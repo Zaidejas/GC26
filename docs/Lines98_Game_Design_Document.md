@@ -6,26 +6,28 @@ Earlier online version (before the Nov 2 revision): [https\://claude.ai/artifact
 
 ## Overview
 
-Lines 98 Mobile remakes the classic 1998 Windows puzzle game for touch and the browser, with a few custom changes. Players move balls on a 9×9 board to form lines of five and try to last as long as possible while new balls keep arriving.
+Lines 98 Mobile remakes the classic 1998 Windows puzzle game for phones, with a few custom changes. Players move balls on a 9×9 board to form lines of five and try to last as long as possible while new balls keep arriving.
 
-The document separates the **MVP** (the first version to ship) from **later** features. Anything marked *Later* is out of scope for the MVP.
+This is a study project. The game is built for iOS and Android and installed directly on our own phones; it is **not published** to the App Store or Google Play.
+
+The document separates the **MVP** (the first complete version) from **later** features. Anything marked *Later* is out of scope for the MVP.
 
 | Item | Value |
 | :---- | :---- |
 | Genre | Casual turn-based puzzle, endless high-score |
-| Platforms | Browser first (Unity Web build), iOS second, Android third |
-| Engine | Unity 6 LTS, C\# |
-| Orientation | Portrait, one-handed play on phones. On desktop browsers the same portrait layout is centered on the screen |
-| Input | Touch on phones, mouse click in desktop browsers |
+| Platforms | iOS first, Android second. Day-to-day testing in the iOS Simulator and the Android Emulator, with regular checks on real phones |
+| Distribution | None. Builds are installed directly on our own devices |
+| Engine | Unity 6 (6000.5.6f1), C\# |
+| Orientation | Portrait, one-handed play |
+| Input | Touch (mouse clicks also work in the Unity editor, for testing) |
 | Session length | 3–10 minutes. The game in progress is saved automatically, so the player can close it at any time and continue later |
 | Audience | Players aged 25–55 who remember the original, plus casual puzzle fans |
-| Development time | 8 weeks, one developer |
+| Development time | 8 weeks, one developer working with Claude |
 
 **Selling points**
 
 - The original rules people remember, plus a few small changes that make it easier to play.
 - Fast, clean controls: two taps per move and no timers.
-- Plays instantly in the browser, with nothing to install.
 - The game in progress is saved automatically and picks up where the player left off.
 - Seven ball colors chosen so they are easy to tell apart.
 
@@ -61,11 +63,12 @@ Every turn ends either with a cleared line, which skips the spawn, or with 3 new
 - A move that forms two crossing lines clears both. The shared ball counts once.
 - If the player moves a ball onto a cell with a preview dot, the ball for that dot appears in another random empty cell instead.
 - If fewer than 3 cells are free when balls spawn, the board fills and the game ends.
+- Game over is final: Undo is not available after the board fills. The only option is to start a new game.
 - Tapping a ball that has no reachable empty cell still selects it. The blocked move is reported when the player taps a target (see Controls). The original game shows nothing here; this is one of the custom changes.
 
 ## Controls and feedback
 
-The whole game is played with two taps (or clicks): tap a ball, then tap an empty cell.
+The whole game is played with two taps: tap a ball, then tap an empty cell.
 
 | Player action | What happens |
 | :---- | :---- |
@@ -74,14 +77,14 @@ The whole game is played with two taps (or clicks): tap a ball, then tap an empt
 | Tap a reachable empty cell | The ball moves along the shortest path, cell by cell (about 40 ms per cell) |
 | Tap an unreachable cell | The ball shakes, a short "No path" alert appears near the board, and the ball stays selected |
 | Tap the selected ball again | Nothing happens. The ball stays selected. To change the selection, tap another ball |
-| Undo button | Restores the board, the score and the preview to how they were before the last move (one step) |
+| Undo button | Restores the board, the score and the preview to how they were before the last move. Only one step, as in the classic game: after an undo, the button is disabled until the next move. Also disabled at the start of a game |
 | Reset button | Asks for confirmation, then clears the board and starts a new game |
 
 Input is ignored while a move, clear or spawn animation is playing.
 
 - Cells are at least 9 mm wide on a 6-inch phone, so the board fills the screen width.
 - *Later:* a movement effect closer to the original, where the ball visibly steps from cell to cell along its path.
-- *Later:* light vibration on a line clear on phones, with an off switch in Settings.
+- *Later:* light vibration on a line clear, with an off switch in Settings.
 
 ## Scoring
 
@@ -102,13 +105,13 @@ Longer lines are worth much more than short ones, which rewards the player for t
 
 ## Preview modes
 
-The original game had three difficulty levels that differ only in how much the player knows about the next balls. The MVP ships with the first one. The other two follow in Week 6.
+The original game had three difficulty levels that differ only in how much the player knows about the next balls. The MVP ships with the first one. The other two are later features.
 
 | Mode | What the player sees before the spawn | Release |
 | :---- | :---- | :---- |
 | Full preview | The colors of the next 3 balls and the cells where they will appear | MVP |
-| Colors only | The colors of the next 3 balls, but not where they will appear | Week 6 |
-| No preview | Nothing about the next balls | Week 6 |
+| Colors only | The colors of the next 3 balls, but not where they will appear | Later |
+| No preview | Nothing about the next balls | Later |
 
 ## Later features (not in the MVP)
 
@@ -116,18 +119,21 @@ These are planned for after the MVP and are not scheduled in the 8 weeks unless 
 
 | Feature | Notes |
 | :---- | :---- |
+| Preview modes | "Colors only" and "No preview" (see above), chosen when starting a new game |
 | Main menu | Play / Continue, Modes, Leaderboard, Settings, How to play. In the MVP the app opens straight into the game |
 | Pause menu | Not needed: nothing happens until the player acts |
 | Best score and "New record" banner | Saved on the device |
 | Settings screen | Sound, music, vibration, theme |
 | How to play | 3 short illustrated cards explaining the rules, shown automatically on first launch |
 | Audio | See the sound list below |
+| Vibration | Light vibration on a line clear |
 | Light and dark themes | The MVP has one theme |
+| Custom art packs | Replace the generated balls and board with your own art |
 | Other game modes | Daily Challenge (the same seed for every player that day, one attempt) and Timed (3 minutes, +5 seconds per cleared line) |
-| Leaderboard | Local top 10, with Google Play Games and Game Center as an option |
+| Leaderboard | Local top 10 on the device |
 | Achievements and statistics | For example: first 7-ball line, two lines in one move, 1,000 points in one game. Statistics: games played, best score, longest line, average score |
 | Unlockable themes | Ball and board themes unlocked by reaching score milestones |
-| Monetization | See below |
+| Web version | A browser build of the same game |
 
 **Planned sounds (later)**
 
@@ -141,19 +147,6 @@ These are planned for after the MVP and are not scheduled in the 8 weeks unless 
 | Game over | Short descending melody |
 
 A calm background music loop, with each sound switchable in Settings.
-
-**Monetization ideas (later)**
-
-The game would be free with light, player-friendly ads, and no ad would ever interrupt a move.
-
-| Source | How it works |
-| :---- | :---- |
-| Rewarded ad | The player chooses to watch an ad for an extra undo or a "second chance" that clears 5 random balls when the game ends. Once per game |
-| Interstitial ad | At most once every 3 games, only on the game-over screen |
-| "Remove ads" purchase | One-time in-app purchase. Turns off interstitial ads; rewarded ads stay available |
-| Theme pack | Extra ball and board themes as an in-app purchase |
-
-Ads would use Unity LevelPlay and purchases Unity IAP. A paid version with no ads is an alternative.
 
 ## Screens and UI (MVP)
 
@@ -173,7 +166,7 @@ The MVP has one screen and two pop-ups. The app opens straight into the game: th
 
 **Saving the game in progress (MVP)**
 
-- The game is saved after every move and when the app is closed or goes to the background (or the browser tab is closed).
+- The game is saved after every move and when the app is closed or goes to the background.
 - The save holds the board, the score, the preview (colors and cells), the preview mode and the Undo step, so Undo still works after a restart.
 - On launch, a saved game is restored automatically. There is no Continue button, because the MVP has no main menu.
 - When a game ends, the save is cleared, so the next launch starts a new game. Reset also starts a new save.
@@ -182,28 +175,30 @@ The MVP has one screen and two pop-ups. The app opens straight into the game: th
 
 The look is a clean, modern take on the original: glossy balls on a soft, light board, with nothing cluttering the play area.
 
-- 7 glossy ball colors that stay easy to tell apart: red, orange, yellow, green, cyan, blue, purple.
+- **Generated in code for the MVP:** the balls are drawn by the game's own code as glossy circles with shading and a highlight, so no image files or art tools are needed. Custom art packs are a later feature.
+- 7 fixed ball colors that stay easy to tell apart: red, orange, yellow, green, cyan, blue, purple. The exact color values are set once in code and used everywhere.
 - A flat board with subtle cell borders. One theme in the MVP.
 - Preview dots: small versions of the next balls, drawn in their target cells.
 - Animations: the selected ball bounces, balls grow in when they spawn, cleared balls shrink and burst into particles, and a blocked move shakes the ball.
-- 2D sprites in a single sprite atlas.
 - No audio in the MVP (see Later features).
 
 ## Technical summary
 
 The game logic is plain C\# kept separate from Unity, so it can be unit-tested. The Unity layer only draws the board and takes input.
 
+**Code-first approach.** The project has a single, nearly empty `Main` scene. Everything else — the board, the balls, the UI — is created by code when the game starts. No scenes, prefabs or layouts are built by hand in the Unity editor; the editor is used only to look at the result. This lets the whole game be written and changed as code.
+
 | Area | Choice |
 | :---- | :---- |
-| Engine | Unity 6 LTS, 2D, URP |
+| Engine | Unity 6 (6000.5.6f1), 2D, URP |
 | Logic | Plain C\#: `Board`, `Pathfinder` (BFS), `LineDetector`, `Spawner` (seeded RNG, picks colors and cells in advance), `ScoreCalculator` |
 | Turn flow | State machine: Idle → Ball selected → Moving → Resolving → Spawning → Check game over |
-| Rendering | Pooled ball objects, one sprite atlas, DOTween animations |
-| Input | New Input System, pointer input (touch and mouse) |
-| UI | uGUI with TextMeshPro, safe-area aware |
-| Saving | `SaveService`: the game in progress as JSON in `Application.persistentDataPath`, saved after each move and on pause/quit. In the Web build this is stored in the browser (IndexedDB) |
-| Testing | EditMode unit tests for all game logic |
-| Builds | 1) Unity Web build, hosted on a site such as itch.io or GitHub Pages. 2) iOS via Xcode (IL2CPP, ARM64). 3) Android AAB (IL2CPP, ARM64) |
-| Targets | 60 FPS on low-end phones. Web build loads quickly (aim for under 20 MB compressed). Current desktop and mobile browsers, iOS 15+, Android 8.0+ |
+| Rendering | Pooled ball objects. Ball and board images generated in code. Animations with a small animation helper written in our own code (no third-party animation library) |
+| Input | New Input System, touch (mouse in the editor) |
+| UI | uGUI with TextMeshPro, created from code, safe-area aware |
+| Saving | `SaveService`: the game in progress as JSON in `Application.persistentDataPath`, saved after each move and when the app goes to the background |
+| Testing | EditMode unit tests for all game logic, run from the command line. Visual checks in the iOS Simulator and Android Emulator, then on real phones |
+| Builds | iOS: Unity → Xcode project → iOS Simulator, and your own iPhone with a free Apple account (the app must be reinstalled every 7 days). Android: APK installed directly on the emulator and your phone |
+| Targets | 60 FPS on older phones. iOS 15+, Android 8.0+ |
 
 The week-by-week schedule is in the separate 8-week development plan (`Lines98_Plan_EN_RU.md`).
