@@ -1,0 +1,19 @@
+{
+    "name": "Lines98.Editor",
+    "rootNamespace": "Lines98.EditorTools",
+    "references": [
+        "Lines98",
+        "Lines98.Core"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
