@@ -30,7 +30,7 @@ namespace Lines98.EditorTools
             EditorSettings.defaultBehaviorMode = EditorBehaviorMode.Mode2D;
 
             PlayerSettings.companyName = "GC26";
-            PlayerSettings.productName = "Lines 98";
+            PlayerSettings.productName = "Lines";
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
             PlayerSettings.allowedAutorotateToPortrait = true;
             PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
