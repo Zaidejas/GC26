@@ -1,14 +1,14 @@
-using Lines98.Game;
+using Lines.Game;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
-namespace Lines98.EditorTools
+namespace Lines.EditorTools
 {
     /// <summary>
     /// Creates the Main scene and applies project settings from code.
     /// Run from the command line:
-    ///   Unity -batchmode -projectPath . -executeMethod Lines98.EditorTools.ProjectSetup.Run -quit
+    ///   Unity -batchmode -projectPath . -executeMethod Lines.EditorTools.ProjectSetup.Run -quit
     /// Safe to run again: it rebuilds the Main scene from scratch.
     /// </summary>
     public static class ProjectSetup
@@ -16,13 +16,13 @@ namespace Lines98.EditorTools
         public const string MainScenePath = "Assets/Scenes/Main.unity";
         static readonly Color Background = new Color(0.96f, 0.95f, 0.92f);
 
-        [MenuItem("Lines98/Run Project Setup")]
+        [MenuItem("Lines/Run Project Setup")]
         public static void Run()
         {
             ApplySettings();
             CreateMainScene();
             AssetDatabase.SaveAssets();
-            Debug.Log("Lines98: project setup finished");
+            Debug.Log("Lines: project setup finished");
         }
 
         static void ApplySettings()

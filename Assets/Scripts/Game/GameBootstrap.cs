@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Lines98.Game
+namespace Lines.Game
 {
     /// <summary>
     /// The only object placed in the Main scene. Everything else
@@ -11,7 +11,7 @@ namespace Lines98.Game
         void Awake()
         {
             Application.targetFrameRate = 60;
-            Debug.Log("Lines98: game started");
+            Debug.Log("Lines: game started");
         }
     }
 }

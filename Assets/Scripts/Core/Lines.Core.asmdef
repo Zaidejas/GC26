@@ -1,6 +1,6 @@
 {
-    "name": "Lines98.Core",
-    "rootNamespace": "Lines98.Core",
+    "name": "Lines.Core",
+    "rootNamespace": "Lines.Core",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],

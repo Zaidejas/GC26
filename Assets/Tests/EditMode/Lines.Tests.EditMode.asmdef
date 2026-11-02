@@ -1,8 +1,8 @@
 {
-    "name": "Lines98.Tests.EditMode",
-    "rootNamespace": "Lines98.Tests",
+    "name": "Lines.Tests.EditMode",
+    "rootNamespace": "Lines.Tests",
     "references": [
-        "Lines98.Core",
+        "Lines.Core",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

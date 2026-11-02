@@ -1,4 +1,4 @@
-# Lines 98 Mobile — Game Design Document
+# Lines — Game Design Document
 
 Oct 21, 2026 · revised Nov 2, 2026 · hmmd2
 
@@ -6,7 +6,7 @@ Earlier online version (before the Nov 2 revision): [https\://claude.ai/artifact
 
 ## Overview
 
-Lines 98 Mobile remakes the classic 1998 Windows puzzle game for phones, with a few custom changes. Players move balls on a 9×9 board to form lines of five and try to last as long as possible while new balls keep arriving.
+Lines remakes the classic 1998 Windows puzzle game for phones, with a few custom changes. Players move balls on a 9×9 board to form lines of five and try to last as long as possible while new balls keep arriving.
 
 This is a study project. The game is built for iOS and Android and installed directly on our own phones; it is **not published** to the App Store or Google Play.
 
@@ -41,7 +41,7 @@ The document separates the **MVP** (the first complete version) from **later** f
 
 Each turn the player makes one move. A move that completes a line removes it and costs nothing. A move that doesn't brings 3 new balls onto the board.
 
-![Turn loop](Lines98_turn_loop.png)
+![Turn loop](Lines_turn_loop.png)
 
 Every turn ends either with a cleared line, which skips the spawn, or with 3 new balls arriving. The game ends only after a spawn fills the board.
 
@@ -201,4 +201,4 @@ The game logic is plain C\# kept separate from Unity, so it can be unit-tested. 
 | Builds | iOS: Unity → Xcode project → iOS Simulator, and your own iPhone with a free Apple account (the app must be reinstalled every 7 days). Android: APK installed directly on the emulator and your phone |
 | Targets | 60 FPS on older phones. iOS 15+, Android 8.0+ |
 
-The week-by-week schedule is in the separate 8-week development plan (`Lines98_Plan_EN_RU.md`).
+The week-by-week schedule is in the separate 8-week development plan (`Lines_Plan_EN_RU.md`).

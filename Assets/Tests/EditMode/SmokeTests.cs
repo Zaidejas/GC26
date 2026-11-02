@@ -1,7 +1,7 @@
-using Lines98.Core;
+using Lines.Core;
 using NUnit.Framework;
 
-namespace Lines98.Tests
+namespace Lines.Tests
 {
     public class SmokeTests
     {

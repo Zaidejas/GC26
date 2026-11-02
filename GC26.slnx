@@ -1,6 +1,6 @@
 ﻿<Solution>
-  <Project Path="Lines98.Tests.EditMode.csproj" />
-  <Project Path="Lines98.Editor.csproj" />
-  <Project Path="Lines98.csproj" />
-  <Project Path="Lines98.Core.csproj" />
+  <Project Path="Lines.Tests.EditMode.csproj" />
+  <Project Path="Lines.Editor.csproj" />
+  <Project Path="Lines.csproj" />
+  <Project Path="Lines.Core.csproj" />
 </Solution>

@@ -1,13 +1,13 @@
 {
-    "name": "Lines98",
-    "rootNamespace": "Lines98",
+    "name": "Lines.Editor",
+    "rootNamespace": "Lines.EditorTools",
     "references": [
-        "Lines98.Core",
-        "Unity.InputSystem",
-        "Unity.TextMeshPro",
-        "UnityEngine.UI"
+        "Lines",
+        "Lines.Core"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

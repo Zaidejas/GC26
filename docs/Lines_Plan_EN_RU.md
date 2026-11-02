@@ -1,4 +1,4 @@
-# Lines 98 Mobile — Development Plan / План разработки
+# Lines — Development Plan / План разработки
 
 Revised Nov 2, 2026 / Обновлено 2 ноября 2026
 
@@ -9,7 +9,7 @@ Revised Nov 2, 2026 / Обновлено 2 ноября 2026
 
 ## English version
 
-# Lines 98: 8-Week Unity C\# Plan
+# Lines: 8-Week Unity C\# Plan
 
 **Assumptions:** one developer working about 20–25 hours a week together with Claude, Unity 6 (6000.5.6f1). Platforms: **iOS first**, **Android second**. This is a study project: the game is installed directly on our own phones and is **not published** to any store. The plan covers the MVP described in the GDD; features marked *Later* in the GDD are not scheduled.
 
@@ -144,7 +144,7 @@ Tests/         EditMode tests for Core
 
 ## Русская версия
 
-# Lines 98: план разработки на 8 недель, Unity C\#
+# Lines: план разработки на 8 недель, Unity C\#
 
 **Исходные условия:** один разработчик, примерно 20–25 часов в неделю, вместе с Claude, Unity 6 (6000.5.6f1). Платформы: **сначала iOS**, **затем Android**. Это учебный проект: игра устанавливается прямо на наши телефоны и **не публикуется** в магазинах приложений. План охватывает MVP, описанный в GDD; функции, помеченные в GDD как *Later* («позже»), в план не входят.
 

@@ -1,4 +1,4 @@
-namespace Lines98.Core
+namespace Lines.Core
 {
     /// <summary>Fixed game rules from the GDD.</summary>
     public static class GameConfig
