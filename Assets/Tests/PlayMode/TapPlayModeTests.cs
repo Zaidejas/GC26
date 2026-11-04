@@ -36,9 +36,14 @@ namespace Lines.Tests
             int moves = 0;
             game.Controller.Game.OnBallMoved += (from, to, path) => { if (from == ball && to == target) moves++; };
             Assert.IsTrue(game.Taps.HandlePress(Px(target)));
-            yield return null;
-
             Assert.AreEqual(1, moves, "The ball moved to the pressed cell");
+
+            // The ball rolls for a moment; presses meanwhile are ignored (the input lock).
+            Assert.AreEqual(TurnState.Moving, game.Controller.State);
+            Assert.IsFalse(game.Taps.HandlePress(Px(target)), "Ignored while moving");
+
+            float waited = 0;
+            while (game.Controller.State != TurnState.Idle && waited < 2f) { waited += Time.deltaTime; yield return null; }
             Assert.AreEqual(TurnState.Idle, game.Controller.State);
             Assert.AreEqual(81 - board.EmptyCount, game.BoardView.BallCount, "The screen shows the board");
             Assert.IsFalse(game.Taps.HandlePress(new Vector2(1, 1)), "Press outside the board does nothing");

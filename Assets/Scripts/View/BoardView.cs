@@ -120,6 +120,15 @@ namespace Lines.View
         }
 
         public BallView BallAt(Cell cell) => balls.TryGetValue(cell, out var ball) ? ball : null;
+
+        /// <summary>Records that the ball at <paramref name="from"/> now belongs to <paramref name="to"/> (after its move animation).</summary>
+        public void MoveBall(Cell from, Cell to)
+        {
+            if (!balls.TryGetValue(from, out var ball)) return;
+            balls.Remove(from);
+            balls[to] = ball;
+            ball.transform.localPosition = CellToLocal(to);
+        }
         public int BallCount => balls.Count;
         public int PooledCount => pool.Count;
 
