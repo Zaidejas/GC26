@@ -89,6 +89,21 @@ namespace Lines.View
         public Vector2 ScreenToWorld(Vector2 pixels) =>
             new Vector2((pixels.x - ScreenSize.x / 2f) / CellPitch, (pixels.y - ScreenSize.y / 2f) / CellPitch);
 
+        /// <summary>
+        /// The board cell under a screen position (pixels, origin bottom-left). Each cell owns the
+        /// whole square around it, gaps included. False when the position is outside the board.
+        /// </summary>
+        public bool TryGetCell(Vector2 pixels, out Lines.Core.Cell cell)
+        {
+            var local = ScreenToWorld(pixels) - BoardCenterWorld;
+            float middle = (Lines.Core.GameConfig.BoardSize - 1) / 2f;
+            int column = Mathf.FloorToInt(local.x + middle + 0.5f);
+            int row = Mathf.FloorToInt(middle - local.y + 0.5f);
+            cell = new Lines.Core.Cell(column, row);
+            return column >= 0 && column < Lines.Core.GameConfig.BoardSize
+                && row >= 0 && row < Lines.Core.GameConfig.BoardSize;
+        }
+
         /// <summary>Converts a world position back to screen pixels.</summary>
         public Vector2 WorldToScreen(Vector2 world) =>
             new Vector2(world.x * CellPitch + ScreenSize.x / 2f, world.y * CellPitch + ScreenSize.y / 2f);

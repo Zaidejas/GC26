@@ -12,16 +12,37 @@ namespace Lines.Game
     /// </summary>
     public sealed class BoardPresenter : IBoardPresenter
     {
+        // Prototype: the selected ball bounces about a fifth of a cell, 0.36 s up and 0.36 s down.
+        public const float BounceHeight = 0.17f;
+        public const float BounceHalfPeriod = 0.36f;
+
         readonly BoardView board;
+        TweenHandle bounce;
 
         public BoardPresenter(BoardView board)
         {
             this.board = board ?? throw new ArgumentNullException(nameof(board));
         }
 
-        public void ShowState(GameState game) => board.ShowBoard(game.Board);
+        public void ShowState(GameState game)
+        {
+            StopBounce();
+            board.ShowBoard(game.Board);
+        }
 
-        public void ShowSelected(Cell? cell) { /* task 13: the selected ball bounces */ }
+        /// <summary>The selected ball bounces; the previously selected one settles back into its cell.</summary>
+        public void ShowSelected(Cell? cell)
+        {
+            StopBounce();
+            if (cell is Cell c && board.BallAt(c) is BallView ball)
+                bounce = Tween.Bounce(ball.transform, BounceHeight, BounceHalfPeriod);
+        }
+
+        void StopBounce()
+        {
+            bounce?.Kill(); // puts the ball back where it was
+            bounce = null;
+        }
 
         public void ShowBlocked(Cell from, Cell to) { /* task 19: shake + "No path" */ }
 

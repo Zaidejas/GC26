@@ -15,8 +15,12 @@ namespace Lines.Game
         Vector2 lastScreenSize;
         Rect lastSafeArea;
 
-        /// <summary>The running game's turn controller (taps go here from task 13).</summary>
+        /// <summary>The running game's turn controller; taps arrive from <see cref="InputHandler"/>.</summary>
         public GameController Controller { get; private set; }
+        /// <summary>The current screen layout (used to turn taps into board cells).</summary>
+        public BoardLayout Layout { get; private set; }
+        public BoardView BoardView => boardView;
+        public InputHandler Taps { get; private set; }
 
         void Awake()
         {
@@ -28,6 +32,8 @@ namespace Lines.Game
             boardView.SetPieces(PieceSet.RandomCreatures(seed));
             Controller = new GameController(GameState.NewGame(seed), new BoardPresenter(boardView));
             Relayout();
+            Taps = gameObject.AddComponent<InputHandler>();
+            Taps.Init(this);
             Debug.Log("Lines: game started");
         }
 
@@ -42,9 +48,9 @@ namespace Lines.Game
         {
             lastScreenSize = new Vector2(Screen.width, Screen.height);
             lastSafeArea = Screen.safeArea;
-            var layout = BoardLayout.Compute(lastScreenSize, lastSafeArea);
-            CameraSetup.Apply(mainCamera, layout);
-            boardView.ApplyLayout(layout);
+            Layout = BoardLayout.Compute(lastScreenSize, lastSafeArea);
+            CameraSetup.Apply(mainCamera, Layout);
+            boardView.ApplyLayout(Layout);
         }
     }
 }
