@@ -54,6 +54,10 @@ $UNITY -batchmode -nographics -projectPath . -runTests -testPlatform EditMode \
 $UNITY -batchmode -projectPath . -runTests -testPlatform PlayMode \
   -testResults <scratchpad>/results-play.xml -logFile <scratchpad>/tests-play.log
 
+# Layout screenshots at 16:9, 20:9 (with notch) and real iPhone sizes, without building; no -nographics
+$UNITY -batchmode -projectPath . -executeMethod Lines.EditorTools.LayoutScreenshots.Run \
+  -quit -shotsDir <scratchpad>/shots -logFile <scratchpad>/shots.log
+
 # Rebuild the Main scene and project settings
 $UNITY -batchmode -nographics -projectPath . -executeMethod Lines.EditorTools.ProjectSetup.Run \
   -quit -logFile <scratchpad>/setup.log
