@@ -14,14 +14,17 @@ public class AbilityButton : MonoBehaviour
     public TMP_Text cooldownText;
     public TMP_Text costText;
 
-    public Color normalColor = new Color(0.12f, 0.14f, 0.2f, 0.9f);
-    public Color activeColor = new Color(0.25f, 0.75f, 0.4f, 0.95f);
+    public Color normalColor = Color.white;
+    public Color activeColor = new Color(0.45f, 1f, 0.6f);
     public Color costColor = new Color(1f, 0.85f, 0.2f);
     public Color noCoinsColor = new Color(1f, 0.3f, 0.3f);
     [Range(0f, 1f)] public float dimmedIconAlpha = 0.35f;
+    [Tooltip("Прозрачность всей ячейки: сквозь неё видно игровое поле")]
+    [Range(0f, 1f)] public float panelAlpha = 0.7f;
 
     void Start()
     {
+        gameObject.AddComponent<CanvasGroup>().alpha = panelAlpha;
         button.onClick.AddListener(() => manager.TryUse(index));
         costText.text = manager.abilities[index].cost.ToString();
     }

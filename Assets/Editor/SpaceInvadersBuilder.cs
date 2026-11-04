@@ -14,13 +14,14 @@ using UnityEngine.UI;
 public static class SpaceInvadersBuilder
 {
     const string SpritesDir = "Assets/Sprites";
+    const string GameArtDir = "Assets/GameArt";
     const string AudioDir = "Assets/Audio";
     const string PrefabsDir = "Assets/Prefabs";
     const string WavesDir = "Assets/Waves";
     const string ScenesDir = "Assets/Scenes";
     const string MenuScenePath = ScenesDir + "/MainMenu.unity";
     const string GameScenePath = ScenesDir + "/Game.unity";
-    const float BodyScale = 2f; // Игрок на вертикальном экране
+    const float BodyScale = 1.8f; // Игрок на вертикальном экране
     const float InvaderScale = 1.3333f;
     const float PickupScale = 3f; // Монетка и хилка
 
@@ -243,6 +244,7 @@ public static class SpaceInvadersBuilder
 
     static Sprite playerSprite, laserSprite, missileSprite, coinSprite, explosionSprite, blockSprite;
     static Sprite boss1Sprite, boss2Sprite, heartSprite;
+    static Sprite canSprite, slotSprite, pauseSprite, buttonSprite, logoSprite;
     static Sprite shieldBubbleSprite, shieldIconSprite, bunkerIconSprite, rapidFireIconSprite, uiSquareSprite;
     static Sprite[] squidFrames, crabFrames, octopusFrames, eliteFrames;
     static AudioClip shootClip, explosionClip, coinClip, hitClip;
@@ -394,6 +396,54 @@ public static class SpaceInvadersBuilder
         bunkerIconSprite = MakeSprite("Icon_Bunker", BunkerShape, Palette(BunkerColor), 100);
         rapidFireIconSprite = MakeSprite("Icon_RapidFire", RapidFireIconArt, Palette(new Color(1f, 0.6f, 0.2f)), 100);
         uiSquareSprite = MakeSprite("UISquare", BlockArt, Palette(Color.white), 100);
+
+        LoadGameArt();
+    }
+
+    // Графика из Assets/GameArt. PPU подобран так, чтобы размеры в игре остались прежними.
+    // Если файла нет, остаётся сгенерированный спрайт
+    static void LoadGameArt()
+    {
+        squidFrames = new[] { Art("squid_1", 384f, squidFrames[0]), Art("squid_2", 384f, squidFrames[1]) };
+        crabFrames = new[] { Art("crab_1", 390f, crabFrames[0]), Art("crab_2", 390f, crabFrames[1]) };
+        octopusFrames = new[] { Art("octopus_1", 358f, octopusFrames[0]), Art("octopus_2", 358f, octopusFrames[1]) };
+        eliteFrames = new[] { Art("elite_1", 358f, eliteFrames[0]), Art("elite_2", 358f, eliteFrames[1]) };
+        boss1Sprite = Art("boss_1", 768f, boss1Sprite);
+        boss2Sprite = Art("boss_2", 816f, boss2Sprite);
+        laserSprite = Art("laser", 600f, laserSprite);
+        missileSprite = Art("missile", 624f, missileSprite);
+        coinSprite = Art("coin", 640f, coinSprite);
+        explosionSprite = Art("explosion", 683f, explosionSprite);
+        shieldBubbleSprite = Art("shield", 320f, shieldBubbleSprite);
+        blockSprite = Art("block", 500f, blockSprite);
+        heartSprite = Art("heart", 100f, heartSprite);
+        shieldIconSprite = Art("icon_shield", 100f, shieldIconSprite);
+        bunkerIconSprite = Art("icon_repair", 100f, bunkerIconSprite);
+        rapidFireIconSprite = Art("icon_rapidfire", 100f, rapidFireIconSprite);
+        canSprite = Art("monster_can", 750f, null);
+        slotSprite = Art("ability_slot", 100f, null);
+        pauseSprite = Art("pause", 100f, null);
+        buttonSprite = Art("button", 100f, null);
+        logoSprite = Art("logo", 100f, null);
+    }
+
+    static Sprite Art(string name, float pixelsPerUnit, Sprite fallback)
+    {
+        string path = $"{GameArtDir}/{name}.png";
+        var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+        if (importer == null) return fallback;
+
+        importer.textureType = TextureImporterType.Sprite;
+        importer.spriteImportMode = SpriteImportMode.Single;
+        importer.spritePixelsPerUnit = pixelsPerUnit;
+        importer.filterMode = FilterMode.Bilinear;
+        importer.textureCompression = TextureImporterCompression.Uncompressed;
+        importer.mipmapEnabled = false;
+        importer.alphaIsTransparency = true;
+        importer.SaveAndReimport();
+
+        var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        return sprite != null ? sprite : fallback;
     }
 
     static void CreateSounds()
@@ -475,7 +525,8 @@ public static class SpaceInvadersBuilder
         explosionPrefab = SavePrefab(explosion);
 
         // Хилка: спрайт банки не генерируется, его кладут в NewSprites
-        var canSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/NewSprites/monster_can.png");
+        if (canSprite == null)
+            canSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/NewSprites/monster_can.png");
         if (canSprite != null)
         {
             var heal = NewSpriteObject("HealthPickup", canSprite, 2);
@@ -684,12 +735,17 @@ public static class SpaceInvadersBuilder
         bossFillRect.anchorMax = Vector2.one;
         bossFillRect.offsetMin = bossFillRect.offsetMax = Vector2.zero;
 
-        // Панель способностей внизу, под кораблём
-        MakeAbilitySlot(safeArea, abilities, 0, shieldIconSprite, -230f);
+        // Панель способностей: столбик у левого края, по центру экрана
+        MakeAbilitySlot(safeArea, abilities, 0, shieldIconSprite, 220f);
         MakeAbilitySlot(safeArea, abilities, 1, bunkerIconSprite, 0f);
-        MakeAbilitySlot(safeArea, abilities, 2, rapidFireIconSprite, 230f);
+        MakeAbilitySlot(safeArea, abilities, 2, rapidFireIconSprite, -220f);
 
-        var pauseButton = MakeButton(safeArea, "PauseButton", "II", Vector2.zero);
+        var pauseButton = MakeButton(safeArea, "PauseButton", pauseSprite != null ? "" : "II", Vector2.zero);
+        if (pauseSprite != null)
+        {
+            pauseButton.image.sprite = pauseSprite;
+            pauseButton.image.color = Color.white;
+        }
         var pauseRect = (RectTransform)pauseButton.transform;
         pauseRect.anchorMin = pauseRect.anchorMax = pauseRect.pivot = topRight;
         pauseRect.anchoredPosition = new Vector2(-30f, -20f);
@@ -727,7 +783,7 @@ public static class SpaceInvadersBuilder
         for (int i = 0; i < decor.Length; i++)
         {
             var go = NewSpriteObject("Decor " + decor[i].name, decor[i], 0);
-            go.transform.position = new Vector3((i - 1) * 2.5f, 6f, 0f);
+            go.transform.position = new Vector3((i - 1) * 2.5f, 8f, 0f);
             go.transform.localScale = Vector3.one * 1.5f;
         }
 
@@ -735,8 +791,18 @@ public static class SpaceInvadersBuilder
         var menu = canvas.gameObject.AddComponent<MainMenu>();
         var center = new Vector2(0.5f, 0.5f);
 
-        var title = MakeText(canvas, "Title", "SPACE INVADERS", 110, TextAlignmentOptions.Center, center, new Vector2(0f, 250f), new Vector2(1200f, 200f));
-        title.color = PlayerColor;
+        if (logoSprite != null)
+        {
+            var logo = MakeChildImage(canvas, "Logo", logoSprite, Color.white);
+            logo.preserveAspect = true;
+            logo.rectTransform.anchoredPosition = new Vector2(0f, 300f);
+            logo.rectTransform.sizeDelta = new Vector2(1100f, 360f);
+        }
+        else
+        {
+            var title = MakeText(canvas, "Title", "SPACE INVADERS", 110, TextAlignmentOptions.Center, center, new Vector2(0f, 250f), new Vector2(1200f, 200f));
+            title.color = PlayerColor;
+        }
 
         menu.highScoreText = MakeText(canvas, "HighScore", "BEST 0", 64, TextAlignmentOptions.Center, center, new Vector2(0f, 90f), new Vector2(1000f, 90f));
         menu.coinsText = MakeText(canvas, "Coins", "COINS 0", 64, TextAlignmentOptions.Center, center, new Vector2(0f, 10f), new Vector2(1000f, 90f));
@@ -982,19 +1048,20 @@ public static class SpaceInvadersBuilder
         return image;
     }
 
-    static void MakeAbilitySlot(Transform parent, AbilityManager manager, int index, Sprite iconSprite, float x)
+    static void MakeAbilitySlot(Transform parent, AbilityManager manager, int index, Sprite iconSprite, float y)
     {
         var go = new GameObject($"Ability{index + 1}", typeof(RectTransform), typeof(Image), typeof(Button));
         go.transform.SetParent(parent, false);
         var rect = (RectTransform)go.transform;
-        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0f);
-        rect.anchoredPosition = new Vector2(x, 30f);
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 0.5f);
+        rect.anchoredPosition = new Vector2(24f, y);
         rect.sizeDelta = new Vector2(200f, 200f);
 
         var slot = go.AddComponent<AbilityButton>();
         slot.manager = manager;
         slot.index = index;
         slot.background = go.GetComponent<Image>();
+        slot.background.sprite = slotSprite;
         slot.button = go.GetComponent<Button>();
         slot.button.targetGraphic = slot.background;
         slot.button.transition = Selectable.Transition.None;
@@ -1032,7 +1099,8 @@ public static class SpaceInvadersBuilder
         rect.sizeDelta = new Vector2(640f, 140f);
 
         var image = go.GetComponent<Image>();
-        image.color = ButtonColor;
+        image.sprite = buttonSprite;
+        image.color = buttonSprite != null ? Color.white : ButtonColor;
         var button = go.GetComponent<Button>();
         button.targetGraphic = image;
 

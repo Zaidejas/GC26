@@ -11,7 +11,7 @@ public static class SpaceInvadersBackground
 {
     const string SpritePath = "Assets/NewSprites/background.png";
     const string ObjectName = "Background";
-    const float PixelsPerUnit = 90f; // 1080 px на 12 юнитов высоты камеры
+    const float PixelsPerUnit = 41.54f; // 1080 px на 26 юнитов высоты камеры
     const int SortingOrder = -100;
 
     static readonly string[] ScenePaths = { "Assets/Scenes/Game.unity", "Assets/Scenes/MainMenu.unity" };
