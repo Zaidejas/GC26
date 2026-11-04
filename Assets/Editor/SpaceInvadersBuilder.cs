@@ -341,11 +341,11 @@ public static class SpaceInvadersBuilder
     {
         waves = new[]
         {
-            MakeWave("Wave1", 4, 6, 1.5f, 1.1f, 0.20f),
-            MakeWave("Wave2", 5, 6, 2.1f, 0.8f, 0.25f),
-            MakeWave("Wave3", 6, 6, 2.7f, 0.55f, 0.30f),
-            MakeWave("Wave4", 7, 6, 2.7f, 0.55f, 0.30f),
-            MakeWave("Wave5", 7, 6, 2.7f, 0.55f, 0.35f),
+            MakeWave("Wave1", 4, 6, 1.5f, 1.0f, 0.20f),
+            MakeWave("Wave2", 5, 6, 2.1f, 0.73f, 0.25f),
+            MakeWave("Wave3", 6, 6, 2.7f, 0.5f, 0.30f),
+            MakeWave("Wave4", 7, 6, 2.7f, 0.5f, 0.30f),
+            MakeWave("Wave5", 7, 6, 2.7f, 0.5f, 0.35f),
         };
     }
 

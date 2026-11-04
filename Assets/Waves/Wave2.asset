@@ -15,5 +15,5 @@ MonoBehaviour:
   rows: 5
   columns: 6
   speed: 2.1
-  missileInterval: 0.8
+  missileInterval: 0.73
   coinDropChance: 0.25
