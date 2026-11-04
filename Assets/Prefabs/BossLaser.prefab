@@ -109,6 +109,6 @@ MonoBehaviour:
   fireTime: 0.5
   warnWidth: 0.15
   fireWidth: 1
-  warnColor: {r: 1, g: 0.3, b: 0.3, a: 0.45}
-  fireColor: {r: 1, g: 0.4, b: 0.3, a: 0.95}
+  warnColor: {r: 0.66, g: 1, b: 0.74, a: 0.45}
+  fireColor: {r: 0.9, g: 1, b: 0.93, a: 0.95}
   playerHalfWidth: 0.9

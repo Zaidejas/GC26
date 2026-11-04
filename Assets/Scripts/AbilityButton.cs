@@ -15,9 +15,9 @@ public class AbilityButton : MonoBehaviour
     public TMP_Text costText;
 
     public Color normalColor = Color.white;
-    public Color activeColor = new Color(0.45f, 1f, 0.6f);
-    public Color costColor = new Color(1f, 0.85f, 0.2f);
-    public Color noCoinsColor = new Color(1f, 0.3f, 0.3f);
+    public Color activeColor = new Color(0.65f, 1f, 0.75f);
+    public Color costColor = new Color(0.78f, 1f, 0.84f);
+    public Color noCoinsColor = new Color(0.13f, 0.45f, 0.2f);
     [Range(0f, 1f)] public float dimmedIconAlpha = 0.35f;
     [Tooltip("Прозрачность всей ячейки: сквозь неё видно игровое поле")]
     [Range(0f, 1f)] public float panelAlpha = 0.7f;

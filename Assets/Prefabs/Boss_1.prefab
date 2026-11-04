@@ -189,6 +189,6 @@ MonoBehaviour:
   rageAtHalfHealth: 0
   rageFireRate: 1.5
   doubleAttackChance: 0.35
-  rageColor: {r: 1, g: 0.55, b: 0.55, a: 1}
-  hitColor: {r: 1, g: 0.25, b: 0.25, a: 1}
+  rageColor: {r: 0.55, g: 0.75, b: 0.55, a: 1}
+  hitColor: {r: 0.3, g: 0.45, b: 0.3, a: 1}
   flashTime: 0.1

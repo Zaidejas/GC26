@@ -128,7 +128,7 @@ public class UIManager : MonoBehaviour
         endPanel.SetActive(true);
 
         endTitleText.text = victory ? "YOU WIN!" : "GAME OVER";
-        endTitleText.color = victory ? new Color(0.4f, 1f, 0.4f) : new Color(1f, 0.3f, 0.3f);
+        endTitleText.color = victory ? new Color(0.78f, 1f, 0.84f) : new Color(0.13f, 0.76f, 0.29f);
         endStatsText.text =
             $"SCORE  {gm.Score}\n" +
             $"BEST  {gm.HighScore}\n" +

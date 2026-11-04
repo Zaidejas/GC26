@@ -8,8 +8,8 @@ public class LaserBeam : MonoBehaviour
     public float fireTime = 0.5f;
     public float warnWidth = 0.15f;
     public float fireWidth = 1f;
-    public Color warnColor = new Color(1f, 0.3f, 0.3f, 0.45f);
-    public Color fireColor = new Color(1f, 0.4f, 0.3f, 0.95f);
+    public Color warnColor = new Color(0.66f, 1f, 0.74f, 0.45f);
+    public Color fireColor = new Color(0.9f, 1f, 0.93f, 0.95f);
     [Tooltip("Половина ширины корабля: луч задевает его краем")]
     public float playerHalfWidth = 0.9f;
 

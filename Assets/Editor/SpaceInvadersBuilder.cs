@@ -230,12 +230,13 @@ public static class SpaceInvadersBuilder
 
     // ---------- Цвета ----------
 
-    static readonly Color PlayerColor = new Color(0.3f, 1f, 0.4f);
+    static readonly Color PlayerColor = new Color(0.22f, 1f, 0.42f);
+    static readonly Color TextColor = new Color(0.78f, 1f, 0.84f);
     static readonly Color SquidColor = new Color(1f, 0.4f, 0.9f);
     static readonly Color CrabColor = new Color(0.4f, 0.9f, 1f);
     static readonly Color OctopusColor = new Color(1f, 0.85f, 0.3f);
     static readonly Color MissileColor = new Color(1f, 0.35f, 0.25f);
-    static readonly Color GoldColor = new Color(1f, 0.85f, 0.2f);
+    static readonly Color GoldColor = new Color(0.66f, 1f, 0.74f);
     static readonly Color DarkGoldColor = new Color(0.75f, 0.5f, 0.05f);
     static readonly Color BunkerColor = new Color(0.3f, 0.85f, 0.3f);
     static readonly Color ButtonColor = new Color(0.15f, 0.55f, 0.25f);
@@ -610,7 +611,7 @@ public static class SpaceInvadersBuilder
         sound.playerHit = hitClip;
 
         // Спрайт из дизайна, если он есть: коллайдер только по видимой части корабля
-        var heroSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/NewSprites/maincharackter.png");
+        var heroSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/GameArt/hero.png");
         var player = NewSpriteObject("Player", heroSprite != null ? heroSprite : playerSprite, 0);
         player.transform.position = new Vector3(0f, -9f, 0f);
         player.transform.localScale = Vector3.one * BodyScale;
@@ -729,7 +730,7 @@ public static class SpaceInvadersBuilder
         bossBarBack.color = new Color(0f, 0f, 0f, 0.7f);
         bossBarBack.raycastTarget = false;
         ui.bossBar = bossBar;
-        ui.bossBarFill = MakeChildImage(bossBar.transform, "Fill", uiSquareSprite, new Color(1f, 0.25f, 0.25f));
+        ui.bossBarFill = MakeChildImage(bossBar.transform, "Fill", uiSquareSprite, PlayerColor);
         ui.bossBarFill.type = Image.Type.Filled;
         ui.bossBarFill.fillMethod = Image.FillMethod.Horizontal;
         var bossFillRect = ui.bossBarFill.rectTransform;
@@ -815,7 +816,7 @@ public static class SpaceInvadersBuilder
 
         var controls = MakeText(canvas, "Controls", "Drag your finger to move\nShooting is automatic",
             44, TextAlignmentOptions.Center, new Vector2(0.5f, 0f), new Vector2(0f, 180f), new Vector2(1200f, 160f));
-        controls.color = new Color(0.7f, 0.7f, 0.7f);
+        controls.color = new Color(0.13f, 0.76f, 0.29f);
 
         MakeEventSystem();
     }
@@ -953,7 +954,7 @@ public static class SpaceInvadersBuilder
         cam.orthographic = true;
         cam.orthographicSize = 13f;
         cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color(0.02f, 0.02f, 0.07f);
+        cam.backgroundColor = new Color(0.012f, 0.063f, 0.024f);
         go.AddComponent<AudioListener>();
     }
 
@@ -1003,7 +1004,7 @@ public static class SpaceInvadersBuilder
         label.text = text;
         label.fontSize = size;
         label.alignment = alignment;
-        label.color = Color.white;
+        label.color = TextColor;
         label.raycastTarget = false; // Текст не должен перехватывать палец
 
         var rect = (RectTransform)go.transform;

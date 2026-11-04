@@ -69,10 +69,10 @@ public class Boss : MonoBehaviour
     [Range(0f, 1f)]
     [Tooltip("Шанс запустить сразу две атаки")]
     public float doubleAttackChance = 0.35f;
-    public Color rageColor = new Color(1f, 0.55f, 0.55f);
+    public Color rageColor = new Color(0.55f, 0.75f, 0.55f);
 
     [Header("Эффект попадания")]
-    public Color hitColor = new Color(1f, 0.25f, 0.25f);
+    public Color hitColor = new Color(0.3f, 0.45f, 0.3f);
     public float flashTime = 0.1f;
 
     public event System.Action Died;

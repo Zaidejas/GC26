@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 [InitializeOnLoad]
 public static class SpaceInvadersBackground
 {
-    const string SpritePath = "Assets/NewSprites/background.png";
+    const string SpritePath = "Assets/GameArt/background_phosphor.png";
     const string ObjectName = "Background";
     const float PixelsPerUnit = 41.54f; // 1080 px на 26 юнитов высоты камеры
     const int SortingOrder = -100;
