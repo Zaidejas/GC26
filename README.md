@@ -32,6 +32,8 @@
 
 Графика игры лежит в `Assets/GameArt`, исходники SVG в папке `Art/svg`. Генератор берёт спрайты оттуда и подбирает масштаб, а без файла подставляет временный пиксельный спрайт.
 
+CRT-эффект на весь экран задаётся шейдером `Assets/Shaders/CRT.shader`, а его сила настраивается в материале `Assets/Settings/CRT.mat`. Выключается галочкой у эффекта CRT в `Assets/Settings/Renderer2D.asset`.
+
 ## Билд игры
 **File → Build Profiles** (в 2022: Build Settings) → **Windows** → **Build**. В списке сцен должны стоять MainMenu (0) и Game (1).
 

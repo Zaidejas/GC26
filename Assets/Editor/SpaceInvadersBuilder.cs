@@ -253,6 +253,7 @@ public static class SpaceInvadersBuilder
     static GameObject explosionPrefab;
     static Invader[] invaderPrefabs;
     static Invader eliteInvaderPrefab;
+    static Camera sceneCamera;
     static LaserBeam bossLaserPrefab;
     static HealthPickup healPrefab;
     static WaveData[] waves;
@@ -312,6 +313,7 @@ public static class SpaceInvadersBuilder
 
         PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
         SpaceInvadersBackground.ApplyIfMissing();
+        SpaceInvadersCrt.Apply();
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -947,6 +949,7 @@ public static class SpaceInvadersBuilder
         go.tag = "MainCamera";
         go.transform.position = new Vector3(0f, 0f, -10f);
         var cam = go.AddComponent<Camera>();
+        sceneCamera = cam;
         cam.orthographic = true;
         cam.orthographicSize = 13f;
         cam.clearFlags = CameraClearFlags.SolidColor;
@@ -957,8 +960,12 @@ public static class SpaceInvadersBuilder
     static Canvas MakeCanvas()
     {
         var go = new GameObject("Canvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        // На камере, а не поверх экрана: иначе CRT-эффект не ляжет на интерфейс
         var canvas = go.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.renderMode = RenderMode.ScreenSpaceCamera;
+        canvas.worldCamera = sceneCamera;
+        canvas.planeDistance = 5f;
+        canvas.sortingOrder = 100;
         var scaler = go.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1284f, 2778f);
