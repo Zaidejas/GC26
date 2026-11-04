@@ -6,7 +6,7 @@ A study project: a phone remake of the classic Lines puzzle (move balls on a 9×
 
 - `docs/Lines_Game_Design_Document.md`: the rules, controls, screens, and what is MVP vs later. **The GDD is the source of truth for game behavior.**
 - `docs/Lines_Plan_EN_RU.md`: the 8-week plan and architecture (English and Russian versions; keep both in sync when editing).
-- Tasks: the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14). Tasks 01–39 are in work order; L01–L16 are later features. Each task says what to do, when it is done, and which doc section it comes from.
+- Tasks: the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14). Tasks 01–42 are in work order; L01–L13 are later features. Each task says what to do, when it is done, and which doc section it comes from.
 
 ## Working with the user
 
@@ -27,8 +27,8 @@ A study project: a phone remake of the classic Lines puzzle (move balls on a 9×
 Assets/Scripts/Core/      Lines.Core   pure C# game rules, no UnityEngine (unit-tested)
 Assets/Scripts/Game/      Lines        GameBootstrap, GameController, input
 Assets/Scripts/View/      Lines        board/ball views, sprite generation, animation helper
-Assets/Scripts/UI/        Lines        HUD, pop-ups (uGUI + TextMeshPro, built from code)
-Assets/Scripts/Services/  Lines        saving
+Assets/Scripts/UI/        Lines        screens (menu, game HUD, how to play, leaderboard), pop-ups (uGUI + TextMeshPro, built from code)
+Assets/Scripts/Services/  Lines        saving (game in progress, leaderboard)
 Assets/Scripts/Editor/    Lines.Editor project setup and build scripts
 Assets/Tests/EditMode/    Lines.Tests.EditMode
 ```

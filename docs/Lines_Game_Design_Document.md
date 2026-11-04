@@ -102,7 +102,8 @@ Longer lines are worth much more than short ones, which rewards the player for t
 - **Several lines in one move:** the total for the move is multiplied by the number of lines (two lines \= ×2).
 - **Lines completed by spawned balls:** score normally, with no multiplier.
 - **Undo:** removes the points scored by the move it takes back.
-- *Later:* best score, saved on the device and shown on the game screen and the game-over screen.
+- **Leaderboard (MVP):** every finished game goes into a local top 10 (see Screens and UI). The game-over pop-up says "New best score!" or the game's place, e.g. "#3 on the leaderboard".
+- *Later:* the best score shown on the game screen during play.
 
 ## Preview modes
 
@@ -121,17 +122,16 @@ These are planned for after the MVP and are not scheduled in the 8 weeks unless 
 | Feature | Notes |
 | :---- | :---- |
 | Preview modes | "Colors only" and "No preview" (see above), chosen when starting a new game |
-| Main menu | Play / Continue, Modes, Leaderboard, Settings, How to play. In the MVP the app opens straight into the game |
+| More menu entries | Modes and Settings on the main menu (the MVP menu has Continue, New game, How to play, Leaderboard) |
 | Pause menu | Not needed: nothing happens until the player acts |
-| Best score and "New record" banner | Saved on the device |
+| Best score during play | The best score shown on the game screen next to the current score |
 | Settings screen | Sound, music, vibration, theme |
-| How to play | 3 short illustrated cards explaining the rules, shown automatically on first launch |
+| How to play on first launch | Open the How to play cards automatically the first time the app starts |
 | Audio | See the sound list below |
 | Vibration | Light vibration on a line clear |
 | Light and dark themes | The MVP has one theme |
 | Custom art packs | Replace the generated balls and board with your own art |
 | Other game modes | Daily Challenge (the same seed for every player that day, one attempt) and Timed (3 minutes, +5 seconds per cleared line) |
-| Leaderboard | Local top 10 on the device |
 | Achievements and statistics | For example: first 7-ball line, two lines in one move, 1,000 points in one game. Statistics: games played, best score, longest line, average score |
 | Unlockable themes | Ball and board themes unlocked by reaching score milestones |
 | Web version | A browser build of the same game |
@@ -151,19 +151,29 @@ A calm background music loop, with each sound switchable in Settings.
 
 ## Screens and UI (MVP)
 
-The MVP has one screen and two pop-ups. The app opens straight into the game: the saved game if there is one, otherwise a new game.
+The MVP has four screens and two pop-ups. The app opens on the main menu.
 
 | Screen | Contents | Opens from |
 | :---- | :---- | :---- |
-| Game | Board, score, preview of the next 3 balls, Undo, Reset | App launch |
-| Reset confirmation | "Start a new game?" with Yes and Cancel | Reset button |
-| Game over | Final score and a "Start new game" button | Game, when the board is full |
+| Main menu | Game title, Continue, New game, How to play, Leaderboard | App launch; Menu buttons |
+| Game | Menu (back) button, score, preview of the next 3 balls, board, Undo, Reset | Continue or New game |
+| How to play | 3 short cards with a small board picture each: move a ball along a free path; make lines of five; the next balls, game over and Undo. Back / Next, and "Got it" on the last card | Main menu |
+| Leaderboard | Local top 10 finished games, each with its score and date; the game just finished is highlighted. Shows a short explanation while it's empty | Main menu |
+| New game confirmation | "Start a new game?" with Yes and Cancel; the current game is lost | Reset button, or New game on the menu while a game is unfinished |
+| Game over | Final score, "New best score!" or the leaderboard place, and Menu / Play again buttons | Game, when the board is full |
+
+**Main menu**
+
+- **Continue** resumes the saved game and shows its score. It is disabled when there's no unfinished game.
+- **New game** starts right away when there's no unfinished game; otherwise it asks for confirmation first.
+- The Menu button on the game screen returns to the menu at any time; the game is saved, so Continue picks it up exactly where it was (Undo included).
 
 **Game screen layout (portrait, top to bottom)**
 
-1. Score and the preview of the next 3 ball colors.
-2. The board, filling the screen width, with preview dots in the cells where the next balls will appear.
-3. Undo and Reset buttons, within easy reach of the thumb.
+1. Menu (back) button in the top-left corner.
+2. Score and the preview of the next 3 ball colors.
+3. The board, filling the screen width, with preview dots in the cells where the next balls will appear.
+4. Undo and Reset buttons, within easy reach of the thumb.
 
 **Layout on the two target screens**
 
@@ -177,8 +187,9 @@ The MVP has one screen and two pop-ups. The app opens straight into the game: th
 
 - The game is saved after every move and when the app is closed or goes to the background.
 - The save holds the board, the score, the preview (colors and cells), the preview mode and the Undo step, so Undo still works after a restart.
-- On launch, a saved game is restored automatically. There is no Continue button, because the MVP has no main menu.
-- When a game ends, the save is cleared, so the next launch starts a new game. Reset also starts a new save.
+- The saved game is resumed with Continue on the main menu.
+- When a game ends, its score goes to the leaderboard and the save is cleared, so Continue is disabled until a new game starts. Reset also starts a new save.
+- The leaderboard (top 10 scores with dates) is saved on the device separately from the game in progress.
 
 ## Art
 
@@ -204,8 +215,8 @@ The game logic is plain C\# kept separate from Unity, so it can be unit-tested. 
 | Turn flow | State machine: Idle → Ball selected → Moving → Resolving → Spawning → Check game over |
 | Rendering | Pooled ball objects. Ball and board images generated in code. Animations with a small animation helper written in our own code (no third-party animation library) |
 | Input | New Input System, touch (mouse in the editor) |
-| UI | uGUI with TextMeshPro, created from code, safe-area aware |
-| Saving | `SaveService`: the game in progress as JSON in `Application.persistentDataPath`, saved after each move and when the app goes to the background |
+| UI | uGUI with TextMeshPro, created from code, safe-area aware. Screens: main menu, game, how to play, leaderboard; switched by a small screen manager |
+| Saving | `SaveService`: the game in progress as JSON in `Application.persistentDataPath`, saved after each move and when the app goes to the background. The leaderboard (top 10) is a separate JSON file; its ranking rules live in Core and are unit-tested |
 | Testing | EditMode unit tests for all game logic, run from the command line. Visual checks in the iOS Simulator and Android Emulator, then on real phones |
 | Builds | iOS: Unity → Xcode project → iOS Simulator, and your own iPhone with a free Apple account (the app must be reinstalled every 7 days). Android: APK installed directly on the emulator and your phone |
 | Targets | Portrait 16:9 and 20:9 screens. 60 FPS on older phones. iOS 15+, Android 8.0+ |

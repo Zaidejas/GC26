@@ -19,7 +19,7 @@ Revised Nov 2, 2026 / Обновлено 2 ноября 2026
 - **Claude writes the code and runs the checks:** unit tests and builds from the command line, then the game in the iOS Simulator or Android Emulator, with screenshots.
 - **Unity stays closed** while Claude works, because an open editor locks the project.
 - **Real phones** are checked regularly, from Week 5.
-- **Tasks** live on the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14), numbered 01–39 in work order (later features: L01–L16).
+- **Tasks** live on the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14), numbered 01–42 in work order (later features: L01–L13).
 - **Commits** go to the `gc26_lines` branch and name the task they belong to ("Task 05: Pathfinder").
 
 ### Core rules to implement
@@ -49,9 +49,10 @@ Scripts/
                InputHandler (touch)
   View/        BoardView, BallView (pooling), BallSpriteGenerator,
                PreviewDots, Tween (small animation helper)
-  UI/          HUD (score, preview, Undo, Reset), GameOverPopup,
+  UI/          ScreenManager, MainMenu, HowToPlay, LeaderboardView,
+               HUD (Menu, score, preview, Undo, Reset), GameOverPopup,
                ConfirmDialog, AlertToast
-  Services/    SaveService (JSON)
+  Services/    SaveService (JSON: game in progress, leaderboard)
 Tests/         EditMode tests for Core
 ```
 
@@ -94,7 +95,7 @@ Tests/         EditMode tests for Core
 - Save the game in progress (board, score, preview, Undo step) as JSON in `Application.persistentDataPath` after each move and when the app goes to the background, and restore it on launch. Clear the save when the game ends.
 - Layout check on the two target screen shapes: iPhone SE (3rd generation) for 16:9 and a modern iPhone (19.5:9, close to 20:9), including notched phones.
 - Tools: Unity's Android Build Support, Android Emulator with two custom phones: 1080×1920 (16:9) and 1080×2400 (20:9). First Android build running on both.
-- **Milestone (end of month 1):** MVP feature-complete, running in the iOS Simulator and the Android Emulator.
+- **Milestone (end of month 1):** the core game is complete, running in the iOS Simulator and the Android Emulator.
 
 #### Week 5: Art and real phones
 
@@ -102,10 +103,13 @@ Tests/         EditMode tests for Core
 - Polish UI transitions. Add the app icon and splash screen.
 - Install the game on your iPhone (Xcode with a free Apple account) and on an Android phone (APK).
 
-#### Week 6: Buffer
+#### Week 6: Menus and leaderboard
 
-- Catch up on anything that slipped.
-- If time is left, pick from the GDD's Later list. The preview modes and the best score are the cheapest and most useful.
+- Main menu (Continue, New game, How to play, Leaderboard) as the start screen, a Menu (back) button on the game screen, and Menu / Play again on the game-over pop-up.
+- How to play: 3 cards with small board pictures.
+- Leaderboard: local top 10 finished games with score and date; "New best score!" or the place on the game-over pop-up. Ranking rules in Core, with unit tests.
+- This week was the buffer before. If you fall behind, How to play is the first piece to move back to Later.
+- **Milestone:** MVP complete.
 
 #### Week 7: Optimization and testing
 
@@ -127,13 +131,14 @@ Tests/         EditMode tests for Core
 | :---- | :---- |
 | 1 | Core logic, tested |
 | 2 | Playable in the iOS Simulator |
-| 4 | MVP complete on the iOS Simulator and Android Emulator |
+| 4 | Core game complete on the iOS Simulator and Android Emulator |
 | 5 | Running on real phones |
+| 6 | MVP complete: menu, How to play, Leaderboard |
 | 8 | Version 1.0 on both phones |
 
 ### Main risks and how to handle them
 
-- **Scope creep:** later features only if time is left in Week 6. If you fall behind, drop them first.
+- **Scope creep:** there is no buffer week any more, so later features wait until after Week 8. If you fall behind, move How to play back to Later first.
 - **Input bugs while animations run:** the strict state machine plus an input lock solves this.
 - **Simulators aren't real phones:** speed and touch feel differ. Check on a real phone from Week 5.
 - **Free Apple account limits:** the app stops working on your iPhone after 7 days and must be reinstalled from Xcode. Only your own devices can be used.
@@ -154,7 +159,7 @@ Tests/         EditMode tests for Core
 - **Claude пишет код и проверяет его:** запускает юнит-тесты и сборки из командной строки, затем игру в iOS Simulator или Android Emulator и делает скриншоты.
 - **Unity закрыт**, пока работает Claude: открытый редактор блокирует проект.
 - **Настоящие телефоны** проверяем регулярно, начиная с 5-й недели.
-- **Задачи** находятся на [доске проекта gc26_lines](https://github.com/users/Zaidejas/projects/14) и пронумерованы 01–39 в порядке работы (отложенные функции: L01–L16).
+- **Задачи** находятся на [доске проекта gc26_lines](https://github.com/users/Zaidejas/projects/14) и пронумерованы 01–42 в порядке работы (отложенные функции: L01–L13).
 - **Коммиты** идут в ветку `gc26_lines` и называют задачу, к которой относятся («Task 05: Pathfinder»).
 
 ### Основные правила игры
@@ -184,9 +189,10 @@ Scripts/
                InputHandler (касания)
   View/        BoardView, BallView (пул объектов), BallSpriteGenerator,
                PreviewDots, Tween (небольшой помощник для анимаций)
-  UI/          HUD (счёт, превью, Отмена, Сброс), GameOverPopup,
+  UI/          ScreenManager, MainMenu, HowToPlay, LeaderboardView,
+               HUD (Меню, счёт, превью, Отмена, Сброс), GameOverPopup,
                ConfirmDialog, AlertToast
-  Services/    SaveService (JSON)
+  Services/    SaveService (JSON: текущая партия, таблица рекордов)
 Tests/         EditMode-тесты для Core
 ```
 
@@ -229,7 +235,7 @@ Tests/         EditMode-тесты для Core
 - Сохранять текущую партию (поле, счёт, превью, шаг для отмены) в JSON в `Application.persistentDataPath` после каждого хода и при сворачивании приложения, и восстанавливать её при запуске. Удалять сохранение, когда игра закончена.
 - Проверить раскладку на двух целевых форматах экрана: iPhone SE (3-го поколения) для 16:9 и современный iPhone (19,5:9, близко к 20:9), включая телефоны с вырезом.
 - Инструменты: модуль Android Build Support для Unity, Android Emulator с двумя своими телефонами: 1080×1920 (16:9) и 1080×2400 (20:9). Первая сборка под Android запускается на обоих.
-- **Контрольная точка (конец 1-го месяца):** MVP готов полностью и работает в iOS Simulator и Android Emulator.
+- **Контрольная точка (конец 1-го месяца):** основная игра готова и работает в iOS Simulator и Android Emulator.
 
 #### Неделя 5: графика и настоящие телефоны
 
@@ -237,10 +243,13 @@ Tests/         EditMode-тесты для Core
 - Доработать переходы в интерфейсе. Сделать иконку приложения и заставку.
 - Установить игру на ваш iPhone (Xcode с бесплатным аккаунтом Apple) и на телефон с Android (APK).
 
-#### Неделя 6: резерв
+#### Неделя 6: меню и таблица рекордов
 
-- Наверстать то, что не успели.
-- Если останется время, взять что-то из списка Later в GDD. Режимы подсказок и рекорд — самые дешёвые и полезные.
+- Главное меню (Продолжить, Новая игра, Как играть, Таблица рекордов) как стартовый экран, кнопка «Меню» (назад) на экране игры и кнопки «Меню» / «Играть снова» в окне конца игры.
+- «Как играть»: 3 карточки с маленькими картинками поля.
+- Таблица рекордов: 10 лучших законченных игр на устройстве со счётом и датой; в окне конца игры — «Новый рекорд!» или место в таблице. Правила рейтинга в Core, с юнит-тестами.
+- Раньше эта неделя была резервом. Если вы отстаёте, первым в Later уходит «Как играть».
+- **Контрольная точка:** MVP готов полностью.
 
 #### Неделя 7: оптимизация и тестирование
 
@@ -262,13 +271,14 @@ Tests/         EditMode-тесты для Core
 | :---- | :---- |
 | 1 | Игровая логика, покрытая тестами |
 | 2 | Игра работает в iOS Simulator |
-| 4 | MVP готов в iOS Simulator и Android Emulator |
+| 4 | Основная игра готова в iOS Simulator и Android Emulator |
 | 5 | Игра работает на настоящих телефонах |
+| 6 | MVP готов: меню, «Как играть», таблица рекордов |
 | 8 | Версия 1.0 на обоих телефонах |
 
 ### Основные риски и что с ними делать
 
-- **Разрастание объёма работ:** отложенные функции — только если на 6-й неделе останется время. Если вы отстаёте от графика, их убирают первыми.
+- **Разрастание объёма работ:** резервной недели больше нет, поэтому отложенные функции ждут окончания 8-й недели. Если вы отстаёте, первым в Later уходит «Как играть».
 - **Ошибки ввода во время анимаций:** решаются строгой машиной состояний и блокировкой ввода.
 - **Симулятор — не настоящий телефон:** скорость и ощущение касаний отличаются. Проверяйте на настоящем телефоне начиная с 5-й недели.
 - **Ограничения бесплатного аккаунта Apple:** через 7 дней игра на iPhone перестаёт запускаться, и её нужно заново установить из Xcode. Устанавливать можно только на свои устройства.
