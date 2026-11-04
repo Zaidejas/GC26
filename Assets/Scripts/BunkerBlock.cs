@@ -5,6 +5,12 @@ public class BunkerBlock : MonoBehaviour
 {
     public void Break()
     {
-        Destroy(gameObject);
+        gameObject.SetActive(false);
+    }
+
+    // Способность восстановления возвращает сломанные блоки
+    public void Repair()
+    {
+        gameObject.SetActive(true);
     }
 }

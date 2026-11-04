@@ -52,6 +52,12 @@ public class GameManager : MonoBehaviour
         StatsChanged?.Invoke();
     }
 
+    public void SpendCoins(int amount)
+    {
+        Coins -= amount;
+        StatsChanged?.Invoke();
+    }
+
     public void LoseLife()
     {
         if (IsGameOver) return;

@@ -16,7 +16,7 @@ public class InvaderGrid : MonoBehaviour
     public float stepDown = 0.35f;
     public float edgePadding = 0.8f;
     [Tooltip("Во сколько раз (дополнительно) ускоряется сетка, когда остаётся последний пришелец")]
-    public float speedUpFactor = 2f;
+    public float speedUpFactor = 0.75f;
     [Tooltip("Если пришельцы опустятся ниже этой линии - игра окончена")]
     public float invadeLineY = -7.2f;
 
@@ -83,7 +83,8 @@ public class InvaderGrid : MonoBehaviour
 
     void Update()
     {
-        if (!active) return;
+        // invaders пропадает, если скрипты перекомпилировались прямо во время Play
+        if (!active || invaders == null) return;
 
         Move();
         if (!active) return;

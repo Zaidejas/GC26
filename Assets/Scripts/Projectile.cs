@@ -7,6 +7,8 @@ public class Projectile : MonoBehaviour
     public float speed = 12f;
     public bool fromPlayer = true;
     public bool damagesBunkers = false;
+    [Tooltip("Радиус поломки бункера вокруг попадания. 0 - только один блок")]
+    public float bunkerDamageRadius = 0f;
     public float destroyBeyondY = 15f;
 
     bool used;
@@ -37,7 +39,19 @@ public class Projectile : MonoBehaviour
         else if (damagesBunkers && other.TryGetComponent(out BunkerBlock block))
         {
             block.Break();
+            BreakBlocksAround(block.transform.position);
             Consume();
+        }
+    }
+
+    void BreakBlocksAround(Vector2 center)
+    {
+        if (bunkerDamageRadius <= 0f) return;
+
+        foreach (Collider2D hit in Physics2D.OverlapCircleAll(center, bunkerDamageRadius))
+        {
+            if (hit.TryGetComponent(out BunkerBlock block))
+                block.Break();
         }
     }
 

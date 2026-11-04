@@ -139,6 +139,30 @@ public static class SpaceInvadersBuilder
 
     static readonly string[] BlockArt = { "####", "####", "####", "####" };
 
+    static readonly string[] ShieldIconArt =
+    {
+        "#..######..#",
+        "############",
+        "##++++++++##",
+        "##++++++++##",
+        "##++++++++##",
+        ".##++++++##.",
+        ".##++++++##.",
+        "..##++++##..",
+        "...##++##...",
+        "....####....",
+        ".....##.....",
+    };
+
+    static readonly string[] RapidFireIconArt =
+    {
+        "#...#..###.",
+        ".#.#.....#.",
+        "..#....##..",
+        ".#.#..#....",
+        "#...#.#####",
+    };
+
     static readonly string[] BunkerShape =
     {
         "..######..",
@@ -164,6 +188,7 @@ public static class SpaceInvadersBuilder
     // ---------- Созданные ассеты ----------
 
     static Sprite playerSprite, laserSprite, missileSprite, coinSprite, explosionSprite, blockSprite;
+    static Sprite shieldBubbleSprite, shieldIconSprite, bunkerIconSprite, rapidFireIconSprite, uiSquareSprite;
     static Sprite[] squidFrames, crabFrames, octopusFrames;
     static AudioClip shootClip, explosionClip, coinClip, hitClip;
     static Projectile laserPrefab, missilePrefab;
@@ -295,6 +320,13 @@ public static class SpaceInvadersBuilder
         coinSprite = MakeSprite("Coin", CoinArt, new Dictionary<char, Color> { { '#', DarkGoldColor }, { '+', GoldColor } }, 20);
         explosionSprite = MakeSprite("Explosion", ExplosionArt, Palette(new Color(1f, 0.8f, 0.5f)), 12);
         blockSprite = MakeSprite("BunkerBlock", BlockArt, Palette(BunkerColor), 20);
+
+        var shieldColors = new Dictionary<char, Color> { { '#', new Color(0.5f, 0.9f, 1f, 0.95f) }, { '+', new Color(0.3f, 0.7f, 1f, 0.3f) } };
+        shieldBubbleSprite = MakeSprite("ShieldBubble", CircleArt(32), shieldColors, 20);
+        shieldIconSprite = MakeSprite("Icon_Shield", ShieldIconArt, new Dictionary<char, Color> { { '#', new Color(0.5f, 0.9f, 1f) }, { '+', new Color(0.2f, 0.45f, 0.8f) } }, 100);
+        bunkerIconSprite = MakeSprite("Icon_Bunker", BunkerShape, Palette(BunkerColor), 100);
+        rapidFireIconSprite = MakeSprite("Icon_RapidFire", RapidFireIconArt, Palette(new Color(1f, 0.6f, 0.2f)), 100);
+        uiSquareSprite = MakeSprite("UISquare", BlockArt, Palette(Color.white), 100);
     }
 
     static void CreateSounds()
@@ -309,11 +341,11 @@ public static class SpaceInvadersBuilder
     {
         waves = new[]
         {
-            MakeWave("Wave1", 4, 6, 1.5f, 0.93f, 0.20f),
-            MakeWave("Wave2", 5, 6, 2.1f, 0.67f, 0.25f),
-            MakeWave("Wave3", 6, 6, 2.7f, 0.47f, 0.30f),
-            MakeWave("Wave4", 7, 6, 2.7f, 0.47f, 0.30f),
-            MakeWave("Wave5", 7, 6, 2.7f, 0.47f, 0.35f),
+            MakeWave("Wave1", 4, 6, 1.5f, 1.1f, 0.20f),
+            MakeWave("Wave2", 5, 6, 2.1f, 0.8f, 0.25f),
+            MakeWave("Wave3", 6, 6, 2.7f, 0.55f, 0.30f),
+            MakeWave("Wave4", 7, 6, 2.7f, 0.55f, 0.30f),
+            MakeWave("Wave5", 7, 6, 2.7f, 0.55f, 0.35f),
         };
     }
 
@@ -359,6 +391,8 @@ public static class SpaceInvadersBuilder
         missileProjectile.speed = 7f;
         missileProjectile.fromPlayer = false;
         missileProjectile.damagesBunkers = true;
+        missileProjectile.bunkerDamageRadius = 0.4f;
+        missile.transform.localScale = Vector3.one * 1.6f;
         missilePrefab = SavePrefab(missile).GetComponent<Projectile>();
 
         var coin = NewSpriteObject("Coin", coinSprite, 2);
@@ -434,17 +468,30 @@ public static class SpaceInvadersBuilder
         grid.invaderPrefabs = invaderPrefabs;
         grid.missilePrefab = missilePrefab;
 
+        var shield = NewSpriteObject("Shield", shieldBubbleSprite, 5);
+        shield.transform.SetParent(player.transform, false);
+        player.GetComponent<PlayerController>().shieldVisual = shield;
+
         var waveManager = new GameObject("WaveManager").AddComponent<WaveManager>();
         waveManager.waves = waves;
         waveManager.grid = grid;
         waveManager.healPrefab = healPrefab;
 
-        BuildBunkers();
-        BuildGameUI(waveManager);
+        var abilities = new GameObject("AbilityManager").AddComponent<AbilityManager>();
+        abilities.player = player.GetComponent<PlayerController>();
+        abilities.bunkers = BuildBunkers();
+        abilities.abilities = new[]
+        {
+            new Ability { type = AbilityType.Shield, cost = 5, cooldown = 10f, duration = 1f },
+            new Ability { type = AbilityType.RepairBunkers, cost = 10, cooldown = 20f, duration = 0f },
+            new Ability { type = AbilityType.RapidFire, cost = 15, cooldown = 20f, duration = 5f },
+        };
+
+        BuildGameUI(waveManager, abilities);
         MakeEventSystem();
     }
 
-    static void BuildBunkers()
+    static Transform BuildBunkers()
     {
         const float blockSize = 0.2f;
         float[] positionsX = { -4.5f, -1.5f, 1.5f, 4.5f };
@@ -471,9 +518,10 @@ public static class SpaceInvadersBuilder
                 }
             }
         }
+        return root.transform;
     }
 
-    static void BuildGameUI(WaveManager waveManager)
+    static void BuildGameUI(WaveManager waveManager, AbilityManager abilities)
     {
         Transform canvas = MakeCanvas().transform;
         var ui = canvas.gameObject.AddComponent<UIManager>();
@@ -493,6 +541,17 @@ public static class SpaceInvadersBuilder
         ui.coinsText.color = GoldColor;
         ui.bannerText = MakeText(canvas, "WaveBanner", "WAVE 1", 110, TextAlignmentOptions.Center, center, Vector2.zero, new Vector2(1200f, 200f));
 
+        // Панель способностей внизу, под кораблём
+        MakeAbilitySlot(safeArea, abilities, 0, shieldIconSprite, -230f);
+        MakeAbilitySlot(safeArea, abilities, 1, bunkerIconSprite, 0f);
+        MakeAbilitySlot(safeArea, abilities, 2, rapidFireIconSprite, 230f);
+
+        var pauseButton = MakeButton(safeArea, "PauseButton", "II", Vector2.zero);
+        var pauseRect = (RectTransform)pauseButton.transform;
+        pauseRect.anchorMin = pauseRect.anchorMax = pauseRect.pivot = topRight;
+        pauseRect.anchoredPosition = new Vector2(-30f, -110f);
+        pauseRect.sizeDelta = new Vector2(120f, 120f);
+
         // Экран конца игры
         var endPanel = MakePanel(canvas, "EndPanel", new Color(0f, 0f, 0f, 0.8f));
         ui.endPanel = endPanel;
@@ -504,6 +563,7 @@ public static class SpaceInvadersBuilder
 
         // Пауза
         var pause = canvas.gameObject.AddComponent<PauseMenu>();
+        pause.pauseButton = pauseButton;
         var pausePanel = MakePanel(canvas, "PausePanel", new Color(0f, 0f, 0f, 0.7f));
         pause.panel = pausePanel;
         MakeText(pausePanel.transform, "Title", "PAUSED", 120, TextAlignmentOptions.Center, center, new Vector2(0f, 320f), new Vector2(1000f, 170f));
@@ -747,6 +807,76 @@ public static class SpaceInvadersBuilder
         rect.offsetMin = rect.offsetMax = Vector2.zero;
         go.GetComponent<Image>().color = color;
         return go;
+    }
+
+    // Круг: '#' обод, '+' заливка
+    static string[] CircleArt(int size)
+    {
+        var rows = new string[size];
+        float center = (size - 1) / 2f;
+        float outer = size / 2f;
+        for (int y = 0; y < size; y++)
+        {
+            var row = new StringBuilder(size);
+            for (int x = 0; x < size; x++)
+            {
+                float distance = Mathf.Sqrt((x - center) * (x - center) + (y - center) * (y - center));
+                row.Append(distance > outer ? '.' : distance > outer - 1.5f ? '#' : '+');
+            }
+            rows[y] = row.ToString();
+        }
+        return rows;
+    }
+
+    static Image MakeChildImage(Transform parent, string name, Sprite sprite, Color color)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(parent, false);
+        var image = go.GetComponent<Image>();
+        image.sprite = sprite;
+        image.color = color;
+        image.raycastTarget = false;
+        return image;
+    }
+
+    static void MakeAbilitySlot(Transform parent, AbilityManager manager, int index, Sprite iconSprite, float x)
+    {
+        var go = new GameObject($"Ability{index + 1}", typeof(RectTransform), typeof(Image), typeof(Button));
+        go.transform.SetParent(parent, false);
+        var rect = (RectTransform)go.transform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0f);
+        rect.anchoredPosition = new Vector2(x, 30f);
+        rect.sizeDelta = new Vector2(200f, 200f);
+
+        var slot = go.AddComponent<AbilityButton>();
+        slot.manager = manager;
+        slot.index = index;
+        slot.background = go.GetComponent<Image>();
+        slot.button = go.GetComponent<Button>();
+        slot.button.targetGraphic = slot.background;
+        slot.button.transition = Selectable.Transition.None;
+
+        slot.icon = MakeChildImage(go.transform, "Icon", iconSprite, Color.white);
+        slot.icon.preserveAspect = true;
+        var iconRect = slot.icon.rectTransform;
+        iconRect.anchoredPosition = new Vector2(0f, 20f);
+        iconRect.sizeDelta = new Vector2(130f, 130f);
+
+        // Затемнение перезарядки уходит по кругу
+        slot.cooldownOverlay = MakeChildImage(go.transform, "Cooldown", uiSquareSprite, new Color(0f, 0f, 0f, 0.7f));
+        slot.cooldownOverlay.type = Image.Type.Filled;
+        slot.cooldownOverlay.fillMethod = Image.FillMethod.Radial360;
+        slot.cooldownOverlay.fillOrigin = (int)Image.Origin360.Top;
+        slot.cooldownOverlay.fillClockwise = false;
+        slot.cooldownOverlay.fillAmount = 0f;
+        var overlayRect = slot.cooldownOverlay.rectTransform;
+        overlayRect.anchorMin = Vector2.zero;
+        overlayRect.anchorMax = Vector2.one;
+        overlayRect.offsetMin = overlayRect.offsetMax = Vector2.zero;
+
+        var center = new Vector2(0.5f, 0.5f);
+        slot.cooldownText = MakeText(go.transform, "CooldownText", "", 90, TextAlignmentOptions.Center, center, Vector2.zero, new Vector2(200f, 120f));
+        slot.costText = MakeText(go.transform, "Cost", "", 44, TextAlignmentOptions.Center, new Vector2(0.5f, 0f), new Vector2(0f, 4f), new Vector2(200f, 56f));
     }
 
     static Button MakeButton(Transform parent, string name, string label, Vector2 position)

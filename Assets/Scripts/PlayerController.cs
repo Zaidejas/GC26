@@ -15,6 +15,10 @@ public class PlayerController : MonoBehaviour
     [Header("Стрельба")]
     public Projectile laserPrefab;
     public float fireCooldown = 0.45f;
+    [HideInInspector] public float fireRateMultiplier = 1f;
+
+    [Header("Щит")]
+    public GameObject shieldVisual;
 
     [Header("Урон")]
     public float invulnerableTime = 1.5f;
@@ -24,9 +28,13 @@ public class PlayerController : MonoBehaviour
     float minX, maxX;
     float fireTimer;
     bool invulnerable;
+    bool shielded;
+    bool dragging;
+    bool wasPressed;
 
     void Start()
     {
+        SetShield(false);
         spriteRenderer = GetComponent<SpriteRenderer>();
 
         // Границы считаем от камеры, чтобы работало при любом разрешении
@@ -48,7 +56,14 @@ public class PlayerController : MonoBehaviour
         Vector3 pos = transform.position;
         pos.x += GameInput.Horizontal() * speed * Time.deltaTime;
 
-        if (GameInput.PointerHeld(out Vector2 screenPosition) && !IsOverUI())
+        // Если палец поставили мимо интерфейса, им можно вести корабль и поверх панели.
+        // Нажатие, начатое на кнопке, корабль не двигает
+        bool pressed = GameInput.PointerHeld(out Vector2 screenPosition);
+        if (pressed && !wasPressed)
+            dragging = !IsOverUI();
+        wasPressed = pressed;
+
+        if (pressed && dragging)
         {
             float targetX = cam.ScreenToWorldPoint(screenPosition).x;
             pos.x = Mathf.MoveTowards(pos.x, targetX, followSpeed * Time.deltaTime);
@@ -72,13 +87,20 @@ public class PlayerController : MonoBehaviour
 
         Instantiate(laserPrefab, transform.position + Vector3.up * 1f, Quaternion.identity);
         SoundManager.Play(Sfx.Shoot);
-        fireTimer = fireCooldown;
+        fireTimer = fireCooldown / fireRateMultiplier;
+    }
+
+    public void SetShield(bool on)
+    {
+        shielded = on;
+        if (shieldVisual != null)
+            shieldVisual.SetActive(on);
     }
 
     // Вызывается ракетой пришельца
     public void Hit()
     {
-        if (invulnerable || GameManager.Instance.IsGameOver) return;
+        if (shielded || invulnerable || GameManager.Instance.IsGameOver) return;
 
         SoundManager.Play(Sfx.PlayerHit);
         GameManager.Instance.LoseLife();

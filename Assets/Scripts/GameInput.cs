@@ -52,6 +52,26 @@ public static class GameInput
 #endif
     }
 
+    // Клавиши 1, 2, 3 для тестов способностей
+    public static bool AbilityPressed(int index)
+    {
+#if ENABLE_LEGACY_INPUT_MANAGER
+        return Input.GetKeyDown(KeyCode.Alpha1 + index);
+#elif ENABLE_INPUT_SYSTEM
+        var keyboard = UnityEngine.InputSystem.Keyboard.current;
+        if (keyboard == null) return false;
+        switch (index)
+        {
+            case 0: return keyboard.digit1Key.wasPressedThisFrame;
+            case 1: return keyboard.digit2Key.wasPressedThisFrame;
+            case 2: return keyboard.digit3Key.wasPressedThisFrame;
+            default: return false;
+        }
+#else
+        return false;
+#endif
+    }
+
     // Esc или P
     public static bool PausePressed()
     {

@@ -8,12 +8,15 @@ public class PauseMenu : MonoBehaviour
     public Button resumeButton;
     public Button restartButton;
     public Button menuButton;
+    [Tooltip("Кнопка паузы на экране: на телефоне нет Esc")]
+    public Button pauseButton;
 
     public bool IsPaused { get; private set; }
 
     void Start()
     {
         panel.SetActive(false);
+        pauseButton.onClick.AddListener(Pause);
         resumeButton.onClick.AddListener(Resume);
         restartButton.onClick.AddListener(() => GameManager.Instance.Restart());
         menuButton.onClick.AddListener(() => GameManager.Instance.LoadMenu());
