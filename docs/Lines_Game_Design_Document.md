@@ -4,6 +4,8 @@ Oct 21, 2026 · revised Nov 2, 2026 · hmmd2
 
 Earlier online version (before the Nov 2 revision): [https\://claude.ai/artifact/MbLgFyYVPGJvoRkVvUrSSQ](https://claude.ai/artifact/MbLgFyYVPGJvoRkVvUrSSQ)
 
+**Playable prototype:** [`prototype/lines-prototype.html`](prototype/lines-prototype.html) (open in a browser). The Unity game should look and play like it.
+
 ## Overview
 
 Lines remakes the classic 1998 Windows puzzle game for phones, with a few custom changes. Players move balls on a 9×9 board to form lines of five and try to last as long as possible while new balls keep arriving.

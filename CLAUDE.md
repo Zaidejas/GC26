@@ -5,6 +5,7 @@ A study project: a phone remake of the classic Lines puzzle (move balls on a 9×
 ## Read first
 
 - `docs/Lines_Game_Design_Document.md`: the rules, controls, screens, and what is MVP vs later. **The GDD is the source of truth for game behavior.**
+- `docs/prototype/lines-prototype.html`: a playable browser prototype (open it in a browser). **The Unity game should look and play the same, as closely as possible**: rules, animation timings, layout, screens and menu flow. When the GDD and the prototype disagree, ask the user. Its JavaScript rule functions (`findPath`, `linesThrough`, `spawn`, `clearLines`, `addScore`) are a useful cross-check for the C# Core.
 - `docs/Lines_Plan_EN_RU.md`: the 8-week plan and architecture (English and Russian versions; keep both in sync when editing).
 - Tasks: the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14). Tasks 01–42 are in work order; L01–L13 are later features. Each task says what to do, when it is done, and which doc section it comes from.
 
