@@ -20,6 +20,38 @@ public static class GameInput
 #endif
     }
 
+    // Палец на экране или зажатая мышь в редакторе: где находится в пикселях экрана
+    public static bool PointerHeld(out Vector2 screenPosition)
+    {
+#if ENABLE_LEGACY_INPUT_MANAGER
+        if (Input.touchCount > 0)
+        {
+            screenPosition = Input.GetTouch(0).position;
+            return true;
+        }
+        screenPosition = Input.mousePosition;
+        return Input.GetMouseButton(0);
+#elif ENABLE_INPUT_SYSTEM
+        var touchscreen = UnityEngine.InputSystem.Touchscreen.current;
+        if (touchscreen != null && touchscreen.primaryTouch.press.isPressed)
+        {
+            screenPosition = touchscreen.primaryTouch.position.ReadValue();
+            return true;
+        }
+        var mouse = UnityEngine.InputSystem.Mouse.current;
+        if (mouse != null && mouse.leftButton.isPressed)
+        {
+            screenPosition = mouse.position.ReadValue();
+            return true;
+        }
+        screenPosition = Vector2.zero;
+        return false;
+#else
+        screenPosition = Vector2.zero;
+        return false;
+#endif
+    }
+
     // Esc или P
     public static bool PausePressed()
     {

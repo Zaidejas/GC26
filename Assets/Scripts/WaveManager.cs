@@ -9,6 +9,18 @@ public class WaveManager : MonoBehaviour
     [Tooltip("Пауза с надписью «WAVE N» перед появлением пришельцев")]
     public float delayBeforeWave = 2f;
 
+    [Header("Хилка")]
+    public HealthPickup healPrefab;
+    [Range(0f, 1f)]
+    [Tooltip("Шанс, что в волне выпадет хилка. Больше одной за волну не бывает")]
+    public float healChance = 0.6f;
+    public float healDelayMin = 3f;
+    public float healDelayMax = 15f;
+    public float healSpawnY = 13.5f;
+    public float healEdgePadding = 1f;
+
+    Coroutine healRoutine;
+
     public int CurrentWave { get; private set; }
     public int TotalWaves => waves.Length;
 
@@ -39,10 +51,28 @@ public class WaveManager : MonoBehaviour
 
         yield return new WaitForSeconds(delayBeforeWave);
         grid.Build(waves[index]);
+
+        if (healPrefab != null && Random.value < healChance)
+            healRoutine = StartCoroutine(DropHeal());
+    }
+
+    // Хилка падает в случайный момент волны из случайного места сверху
+    IEnumerator DropHeal()
+    {
+        yield return new WaitForSeconds(Random.Range(healDelayMin, healDelayMax));
+
+        Camera cam = Camera.main;
+        float minX = cam.ViewportToWorldPoint(new Vector3(0f, 0f, 0f)).x + healEdgePadding;
+        float maxX = cam.ViewportToWorldPoint(new Vector3(1f, 0f, 0f)).x - healEdgePadding;
+        Instantiate(healPrefab, new Vector3(Random.Range(minX, maxX), healSpawnY, 0f), Quaternion.identity);
     }
 
     void OnWaveCleared()
     {
+        // Волна кончилась раньше таймера: хилка этой волны уже не выпадет
+        if (healRoutine != null)
+            StopCoroutine(healRoutine);
+
         if (CurrentWave >= TotalWaves)
             GameManager.Instance.Victory();
         else

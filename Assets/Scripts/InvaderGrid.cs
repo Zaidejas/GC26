@@ -9,16 +9,16 @@ public class InvaderGrid : MonoBehaviour
     public Projectile missilePrefab;
 
     [Header("Сетка")]
-    public float spacingX = 1.1f;
-    public float spacingY = 0.8f;
+    public float spacingX = 1.4f;
+    public float spacingY = 1.07f;
 
     [Header("Движение")]
     public float stepDown = 0.35f;
-    public float edgePadding = 0.6f;
+    public float edgePadding = 0.8f;
     [Tooltip("Во сколько раз (дополнительно) ускоряется сетка, когда остаётся последний пришелец")]
     public float speedUpFactor = 2f;
     [Tooltip("Если пришельцы опустятся ниже этой линии - игра окончена")]
-    public float invadeLineY = -4.3f;
+    public float invadeLineY = -7.2f;
 
     public event System.Action Cleared;
     public event System.Action ReachedBottom;
@@ -144,7 +144,7 @@ public class InvaderGrid : MonoBehaviour
                 Invader invader = invaders[row, col];
                 if (invader == null) continue;
 
-                Instantiate(missilePrefab, invader.transform.position + Vector3.down * 0.4f, Quaternion.identity);
+                Instantiate(missilePrefab, invader.transform.position + Vector3.down * 0.55f, Quaternion.identity);
                 return;
             }
         }

@@ -7,7 +7,7 @@ public class Projectile : MonoBehaviour
     public float speed = 12f;
     public bool fromPlayer = true;
     public bool damagesBunkers = false;
-    public float destroyBeyondY = 8f;
+    public float destroyBeyondY = 15f;
 
     bool used;
 

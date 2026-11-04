@@ -1,12 +1,16 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
-// Корабль игрока: движение влево/вправо и автоматическая стрельба
+// Корабль игрока: идёт за пальцем по горизонтали и автоматически стреляет
 public class PlayerController : MonoBehaviour
 {
     [Header("Движение")]
+    [Tooltip("Скорость движения с клавиатуры")]
     public float speed = 7f;
-    public float edgePadding = 0.6f;
+    [Tooltip("С какой скоростью корабль догоняет палец")]
+    public float followSpeed = 40f;
+    public float edgePadding = 1.2f;
 
     [Header("Стрельба")]
     public Projectile laserPrefab;
@@ -16,6 +20,7 @@ public class PlayerController : MonoBehaviour
     public float invulnerableTime = 1.5f;
 
     SpriteRenderer spriteRenderer;
+    Camera cam;
     float minX, maxX;
     float fireTimer;
     bool invulnerable;
@@ -25,7 +30,7 @@ public class PlayerController : MonoBehaviour
         spriteRenderer = GetComponent<SpriteRenderer>();
 
         // Границы считаем от камеры, чтобы работало при любом разрешении
-        Camera cam = Camera.main;
+        cam = Camera.main;
         minX = cam.ViewportToWorldPoint(new Vector3(0f, 0f, 0f)).x + edgePadding;
         maxX = cam.ViewportToWorldPoint(new Vector3(1f, 0f, 0f)).x - edgePadding;
     }
@@ -42,8 +47,21 @@ public class PlayerController : MonoBehaviour
     {
         Vector3 pos = transform.position;
         pos.x += GameInput.Horizontal() * speed * Time.deltaTime;
+
+        if (GameInput.PointerHeld(out Vector2 screenPosition) && !IsOverUI())
+        {
+            float targetX = cam.ScreenToWorldPoint(screenPosition).x;
+            pos.x = Mathf.MoveTowards(pos.x, targetX, followSpeed * Time.deltaTime);
+        }
+
         pos.x = Mathf.Clamp(pos.x, minX, maxX);
         transform.position = pos;
+    }
+
+    // Нажатие на кнопку интерфейса не должно двигать корабль
+    static bool IsOverUI()
+    {
+        return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
     }
 
     void AutoFire()
@@ -52,7 +70,7 @@ public class PlayerController : MonoBehaviour
         fireTimer -= Time.deltaTime;
         if (fireTimer > 0f) return;
 
-        Instantiate(laserPrefab, transform.position + Vector3.up * 0.6f, Quaternion.identity);
+        Instantiate(laserPrefab, transform.position + Vector3.up * 1f, Quaternion.identity);
         SoundManager.Play(Sfx.Shoot);
         fireTimer = fireCooldown;
     }

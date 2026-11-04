@@ -22,7 +22,7 @@ public static class SpaceInvadersBackground
     }
 
     [MenuItem("Tools/Space Invaders/Apply Background")]
-    static void ApplyIfMissing()
+    public static void ApplyIfMissing()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode || !File.Exists(SpritePath)) return;
 

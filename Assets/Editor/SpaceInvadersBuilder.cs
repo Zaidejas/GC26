@@ -20,6 +20,9 @@ public static class SpaceInvadersBuilder
     const string ScenesDir = "Assets/Scenes";
     const string MenuScenePath = ScenesDir + "/MainMenu.unity";
     const string GameScenePath = ScenesDir + "/Game.unity";
+    const float BodyScale = 2f; // Игрок на вертикальном экране
+    const float InvaderScale = 1.3333f;
+    const float PickupScale = 3f; // Монетка и хилка
 
     // ---------- Пиксель-арт ('#' - основной цвет, '+' - второй цвет, '.' - пусто) ----------
 
@@ -167,6 +170,7 @@ public static class SpaceInvadersBuilder
     static Coin coinPrefab;
     static GameObject explosionPrefab;
     static Invader[] invaderPrefabs;
+    static HealthPickup healPrefab;
     static WaveData[] waves;
 
     [MenuItem("Tools/Space Invaders/Build Game")]
@@ -221,6 +225,9 @@ public static class SpaceInvadersBuilder
             new EditorBuildSettingsScene(MenuScenePath, true),
             new EditorBuildSettingsScene(GameScenePath, true),
         };
+
+        PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
+        SpaceInvadersBackground.ApplyIfMissing();
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -302,26 +309,33 @@ public static class SpaceInvadersBuilder
     {
         waves = new[]
         {
-            MakeWave("Wave1", 4, 8, 1.0f, 1.4f, 0.20f),
-            MakeWave("Wave2", 5, 9, 1.4f, 1.0f, 0.25f),
-            MakeWave("Wave3", 5, 11, 1.8f, 0.7f, 0.30f),
-            MakeWave("Wave4", 5, 11, 2.0f, 0.6f, 0.30f),
-            MakeWave("Wave5", 5, 11, 2.2f, 0.5f, 0.35f),
+            MakeWave("Wave1", 4, 6, 1.5f, 0.93f, 0.20f),
+            MakeWave("Wave2", 5, 6, 2.1f, 0.67f, 0.25f),
+            MakeWave("Wave3", 6, 6, 2.7f, 0.47f, 0.30f),
+            MakeWave("Wave4", 7, 6, 2.7f, 0.47f, 0.30f),
+            MakeWave("Wave5", 7, 6, 2.7f, 0.47f, 0.35f),
         };
     }
 
     static WaveData MakeWave(string name, int rows, int columns, float speed, float missileInterval, float coinChance)
     {
-        var wave = ScriptableObject.CreateInstance<WaveData>();
+        string path = $"{WavesDir}/{name}.asset";
+        var wave = AssetDatabase.LoadAssetAtPath<WaveData>(path);
+        bool isNew = wave == null;
+        if (isNew)
+            wave = ScriptableObject.CreateInstance<WaveData>();
+
         wave.rows = rows;
         wave.columns = columns;
         wave.speed = speed;
         wave.missileInterval = missileInterval;
         wave.coinDropChance = coinChance;
 
-        string path = $"{WavesDir}/{name}.asset";
-        AssetDatabase.DeleteAsset(path);
-        AssetDatabase.CreateAsset(wave, path);
+        // Существующий файл обновляем на месте, чтобы не менять его GUID
+        if (isNew)
+            AssetDatabase.CreateAsset(wave, path);
+        else
+            EditorUtility.SetDirty(wave);
         return wave;
     }
 
@@ -332,7 +346,7 @@ public static class SpaceInvadersBuilder
         AddTrigger(laser, true);
         var laserProjectile = laser.AddComponent<Projectile>();
         laserProjectile.direction = Vector2.up;
-        laserProjectile.speed = 12f;
+        laserProjectile.speed = 16f;
         laserProjectile.fromPlayer = true;
         laserProjectile.damagesBunkers = false;
         laserPrefab = SavePrefab(laser).GetComponent<Projectile>();
@@ -342,12 +356,13 @@ public static class SpaceInvadersBuilder
         AddTrigger(missile, true);
         var missileProjectile = missile.AddComponent<Projectile>();
         missileProjectile.direction = Vector2.down;
-        missileProjectile.speed = 6f;
+        missileProjectile.speed = 7f;
         missileProjectile.fromPlayer = false;
         missileProjectile.damagesBunkers = true;
         missilePrefab = SavePrefab(missile).GetComponent<Projectile>();
 
         var coin = NewSpriteObject("Coin", coinSprite, 2);
+        coin.transform.localScale = Vector3.one * PickupScale;
         AddTrigger(coin, true);
         coin.AddComponent<Coin>();
         coinPrefab = SavePrefab(coin).GetComponent<Coin>();
@@ -355,6 +370,17 @@ public static class SpaceInvadersBuilder
         var explosion = NewSpriteObject("Explosion", explosionSprite, 3);
         explosion.AddComponent<Explosion>();
         explosionPrefab = SavePrefab(explosion);
+
+        // Хилка: спрайт банки не генерируется, его кладут в NewSprites
+        var canSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/NewSprites/monster_can.png");
+        if (canSprite != null)
+        {
+            var heal = NewSpriteObject("HealthPickup", canSprite, 2);
+            heal.transform.localScale = Vector3.one * PickupScale;
+            AddTrigger(heal, true);
+            heal.AddComponent<HealthPickup>();
+            healPrefab = SavePrefab(heal).GetComponent<HealthPickup>();
+        }
 
         invaderPrefabs = new[]
         {
@@ -367,6 +393,7 @@ public static class SpaceInvadersBuilder
     static Invader MakeInvaderPrefab(string name, Sprite[] frames, int points)
     {
         var go = NewSpriteObject(name, frames[0], 0);
+        go.transform.localScale = Vector3.one * InvaderScale;
         AddTrigger(go, false);
         var invader = go.AddComponent<Invader>();
         invader.points = points;
@@ -391,13 +418,18 @@ public static class SpaceInvadersBuilder
         sound.coin = coinClip;
         sound.playerHit = hitClip;
 
-        var player = NewSpriteObject("Player", playerSprite, 0);
-        player.transform.position = new Vector3(0f, -5f, 0f);
+        // Спрайт из дизайна, если он есть: коллайдер только по видимой части корабля
+        var heroSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/NewSprites/maincharackter.png");
+        var player = NewSpriteObject("Player", heroSprite != null ? heroSprite : playerSprite, 0);
+        player.transform.position = new Vector3(0f, -9f, 0f);
+        player.transform.localScale = Vector3.one * BodyScale;
         AddTrigger(player, false);
+        if (heroSprite != null)
+            player.GetComponent<BoxCollider2D>().size = new Vector2(1.0824f, 0.6353f);
         player.AddComponent<PlayerController>().laserPrefab = laserPrefab;
 
         var gridObject = new GameObject("InvaderGrid");
-        gridObject.transform.position = new Vector3(0f, 3.8f, 0f);
+        gridObject.transform.position = new Vector3(0f, 9.2f, 0f);
         var grid = gridObject.AddComponent<InvaderGrid>();
         grid.invaderPrefabs = invaderPrefabs;
         grid.missilePrefab = missilePrefab;
@@ -405,6 +437,7 @@ public static class SpaceInvadersBuilder
         var waveManager = new GameObject("WaveManager").AddComponent<WaveManager>();
         waveManager.waves = waves;
         waveManager.grid = grid;
+        waveManager.healPrefab = healPrefab;
 
         BuildBunkers();
         BuildGameUI(waveManager);
@@ -414,7 +447,7 @@ public static class SpaceInvadersBuilder
     static void BuildBunkers()
     {
         const float blockSize = 0.2f;
-        float[] positionsX = { -6f, -2f, 2f, 6f };
+        float[] positionsX = { -4.5f, -1.5f, 1.5f, 4.5f };
         int width = BunkerShape[0].Length;
 
         var root = new GameObject("Bunkers");
@@ -422,7 +455,7 @@ public static class SpaceInvadersBuilder
         {
             var bunker = new GameObject($"Bunker {i + 1}");
             bunker.transform.SetParent(root.transform);
-            bunker.transform.position = new Vector3(positionsX[i], -2.6f, 0f);
+            bunker.transform.position = new Vector3(positionsX[i], -5.5f, 0f);
 
             for (int row = 0; row < BunkerShape.Length; row++)
             {
@@ -451,31 +484,32 @@ public static class SpaceInvadersBuilder
         var topRight = new Vector2(1f, 1f);
         var center = new Vector2(0.5f, 0.5f);
 
-        ui.scoreText = MakeText(canvas, "Score", "SCORE 0", 40, TextAlignmentOptions.TopLeft, topLeft, new Vector2(30f, -20f), new Vector2(500f, 60f));
-        ui.livesText = MakeText(canvas, "Lives", "LIVES 3", 40, TextAlignmentOptions.TopLeft, topLeft, new Vector2(30f, -70f), new Vector2(500f, 60f));
+        Transform safeArea = MakeSafeArea(canvas);
+        ui.scoreText = MakeText(safeArea, "Score", "SCORE 0", 56, TextAlignmentOptions.TopLeft, topLeft, new Vector2(30f, -20f), new Vector2(500f, 80f));
+        ui.livesText = MakeText(safeArea, "Lives", "LIVES 3", 56, TextAlignmentOptions.TopLeft, topLeft, new Vector2(30f, -90f), new Vector2(500f, 80f));
         ui.livesText.color = PlayerColor;
-        ui.waveText = MakeText(canvas, "Wave", "WAVE 1/5", 40, TextAlignmentOptions.Top, top, new Vector2(0f, -20f), new Vector2(500f, 60f));
-        ui.coinsText = MakeText(canvas, "Coins", "COINS 0", 40, TextAlignmentOptions.TopRight, topRight, new Vector2(-30f, -20f), new Vector2(500f, 60f));
+        ui.waveText = MakeText(safeArea, "Wave", "WAVE 1/5", 56, TextAlignmentOptions.Top, top, new Vector2(0f, -20f), new Vector2(320f, 80f));
+        ui.coinsText = MakeText(safeArea, "Coins", "COINS 0", 56, TextAlignmentOptions.TopRight, topRight, new Vector2(-30f, -20f), new Vector2(400f, 80f));
         ui.coinsText.color = GoldColor;
-        ui.bannerText = MakeText(canvas, "WaveBanner", "WAVE 1", 110, TextAlignmentOptions.Center, center, Vector2.zero, new Vector2(1400f, 200f));
+        ui.bannerText = MakeText(canvas, "WaveBanner", "WAVE 1", 110, TextAlignmentOptions.Center, center, Vector2.zero, new Vector2(1200f, 200f));
 
         // Экран конца игры
         var endPanel = MakePanel(canvas, "EndPanel", new Color(0f, 0f, 0f, 0.8f));
         ui.endPanel = endPanel;
-        ui.endTitleText = MakeText(endPanel.transform, "Title", "GAME OVER", 120, TextAlignmentOptions.Center, center, new Vector2(0f, 230f), new Vector2(1400f, 170f));
-        ui.endStatsText = MakeText(endPanel.transform, "Stats", "", 44, TextAlignmentOptions.Center, center, new Vector2(0f, 40f), new Vector2(1200f, 220f));
-        ui.restartButton = MakeButton(endPanel.transform, "RestartButton", "PLAY AGAIN", new Vector2(0f, -150f));
-        ui.menuButton = MakeButton(endPanel.transform, "MenuButton", "MAIN MENU", new Vector2(0f, -250f));
+        ui.endTitleText = MakeText(endPanel.transform, "Title", "GAME OVER", 120, TextAlignmentOptions.Center, center, new Vector2(0f, 360f), new Vector2(1200f, 170f));
+        ui.endStatsText = MakeText(endPanel.transform, "Stats", "", 56, TextAlignmentOptions.Center, center, new Vector2(0f, 100f), new Vector2(1200f, 300f));
+        ui.restartButton = MakeButton(endPanel.transform, "RestartButton", "PLAY AGAIN", new Vector2(0f, -170f));
+        ui.menuButton = MakeButton(endPanel.transform, "MenuButton", "MAIN MENU", new Vector2(0f, -330f));
         endPanel.SetActive(false);
 
         // Пауза
         var pause = canvas.gameObject.AddComponent<PauseMenu>();
         var pausePanel = MakePanel(canvas, "PausePanel", new Color(0f, 0f, 0f, 0.7f));
         pause.panel = pausePanel;
-        MakeText(pausePanel.transform, "Title", "PAUSED", 120, TextAlignmentOptions.Center, center, new Vector2(0f, 200f), new Vector2(1000f, 170f));
-        pause.resumeButton = MakeButton(pausePanel.transform, "ResumeButton", "RESUME", new Vector2(0f, 30f));
-        pause.restartButton = MakeButton(pausePanel.transform, "RestartButton", "RESTART", new Vector2(0f, -70f));
-        pause.menuButton = MakeButton(pausePanel.transform, "MenuButton", "MAIN MENU", new Vector2(0f, -170f));
+        MakeText(pausePanel.transform, "Title", "PAUSED", 120, TextAlignmentOptions.Center, center, new Vector2(0f, 320f), new Vector2(1000f, 170f));
+        pause.resumeButton = MakeButton(pausePanel.transform, "ResumeButton", "RESUME", new Vector2(0f, 80f));
+        pause.restartButton = MakeButton(pausePanel.transform, "RestartButton", "RESTART", new Vector2(0f, -80f));
+        pause.menuButton = MakeButton(pausePanel.transform, "MenuButton", "MAIN MENU", new Vector2(0f, -240f));
         pausePanel.SetActive(false);
     }
 
@@ -490,7 +524,7 @@ public static class SpaceInvadersBuilder
         for (int i = 0; i < decor.Length; i++)
         {
             var go = NewSpriteObject("Decor " + decor[i].name, decor[i], 0);
-            go.transform.position = new Vector3((i - 1) * 2.5f, 4.2f, 0f);
+            go.transform.position = new Vector3((i - 1) * 2.5f, 6f, 0f);
             go.transform.localScale = Vector3.one * 1.5f;
         }
 
@@ -498,18 +532,18 @@ public static class SpaceInvadersBuilder
         var menu = canvas.gameObject.AddComponent<MainMenu>();
         var center = new Vector2(0.5f, 0.5f);
 
-        var title = MakeText(canvas, "Title", "SPACE INVADERS", 130, TextAlignmentOptions.Center, center, new Vector2(0f, 200f), new Vector2(1700f, 200f));
+        var title = MakeText(canvas, "Title", "SPACE INVADERS", 110, TextAlignmentOptions.Center, center, new Vector2(0f, 250f), new Vector2(1200f, 200f));
         title.color = PlayerColor;
 
-        menu.highScoreText = MakeText(canvas, "HighScore", "BEST 0", 48, TextAlignmentOptions.Center, center, new Vector2(0f, 70f), new Vector2(1000f, 70f));
-        menu.coinsText = MakeText(canvas, "Coins", "COINS 0", 48, TextAlignmentOptions.Center, center, new Vector2(0f, 10f), new Vector2(1000f, 70f));
+        menu.highScoreText = MakeText(canvas, "HighScore", "BEST 0", 64, TextAlignmentOptions.Center, center, new Vector2(0f, 90f), new Vector2(1000f, 90f));
+        menu.coinsText = MakeText(canvas, "Coins", "COINS 0", 64, TextAlignmentOptions.Center, center, new Vector2(0f, 10f), new Vector2(1000f, 90f));
         menu.coinsText.color = GoldColor;
 
-        menu.playButton = MakeButton(canvas, "PlayButton", "PLAY", new Vector2(0f, -120f));
-        menu.quitButton = MakeButton(canvas, "QuitButton", "QUIT", new Vector2(0f, -220f));
+        menu.playButton = MakeButton(canvas, "PlayButton", "PLAY", new Vector2(0f, -170f));
+        menu.quitButton = MakeButton(canvas, "QuitButton", "QUIT", new Vector2(0f, -330f));
 
-        var controls = MakeText(canvas, "Controls", "A / D  or  ARROWS - move        ESC - pause        shooting is automatic",
-            30, TextAlignmentOptions.Center, new Vector2(0.5f, 0f), new Vector2(0f, 60f), new Vector2(1700f, 60f));
+        var controls = MakeText(canvas, "Controls", "Drag your finger to move\nShooting is automatic",
+            44, TextAlignmentOptions.Center, new Vector2(0.5f, 0f), new Vector2(0f, 180f), new Vector2(1200f, 160f));
         controls.color = new Color(0.7f, 0.7f, 0.7f);
 
         MakeEventSystem();
@@ -645,7 +679,7 @@ public static class SpaceInvadersBuilder
         go.transform.position = new Vector3(0f, 0f, -10f);
         var cam = go.AddComponent<Camera>();
         cam.orthographic = true;
-        cam.orthographicSize = 6f;
+        cam.orthographicSize = 13f;
         cam.clearFlags = CameraClearFlags.SolidColor;
         cam.backgroundColor = new Color(0.02f, 0.02f, 0.07f);
         go.AddComponent<AudioListener>();
@@ -658,9 +692,20 @@ public static class SpaceInvadersBuilder
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         var scaler = go.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 0.5f;
+        scaler.referenceResolution = new Vector2(1284f, 2778f);
+        scaler.matchWidthOrHeight = 0f;
         return canvas;
+    }
+
+    static Transform MakeSafeArea(Transform canvas)
+    {
+        var go = new GameObject("SafeArea", typeof(RectTransform), typeof(SafeArea));
+        go.transform.SetParent(canvas, false);
+        var rect = (RectTransform)go.transform;
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = rect.offsetMax = Vector2.zero;
+        return go.transform;
     }
 
     static void MakeEventSystem()
@@ -683,6 +728,7 @@ public static class SpaceInvadersBuilder
         label.fontSize = size;
         label.alignment = alignment;
         label.color = Color.white;
+        label.raycastTarget = false; // Текст не должен перехватывать палец
 
         var rect = (RectTransform)go.transform;
         rect.anchorMin = rect.anchorMax = rect.pivot = anchor;
@@ -710,14 +756,14 @@ public static class SpaceInvadersBuilder
         var rect = (RectTransform)go.transform;
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
         rect.anchoredPosition = position;
-        rect.sizeDelta = new Vector2(380f, 80f);
+        rect.sizeDelta = new Vector2(640f, 140f);
 
         var image = go.GetComponent<Image>();
         image.color = ButtonColor;
         var button = go.GetComponent<Button>();
         button.targetGraphic = image;
 
-        MakeText(go.transform, "Label", label, 38, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), Vector2.zero, rect.sizeDelta);
+        MakeText(go.transform, "Label", label, 60, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), Vector2.zero, rect.sizeDelta);
         return button;
     }
 }

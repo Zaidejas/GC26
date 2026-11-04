@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Wave2
   m_EditorClassIdentifier: Assembly-CSharp::WaveData
   rows: 5
-  columns: 9
-  speed: 1.4
-  missileInterval: 1
+  columns: 6
+  speed: 2.1
+  missileInterval: 0.67
   coinDropChance: 0.25

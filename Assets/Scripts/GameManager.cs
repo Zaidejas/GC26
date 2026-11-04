@@ -63,6 +63,15 @@ public class GameManager : MonoBehaviour
             GameOver();
     }
 
+    // Жизней не может стать больше, чем было на старте
+    public void AddLives(int amount)
+    {
+        if (IsGameOver) return;
+
+        Lives = Mathf.Min(startLives, Lives + amount);
+        StatsChanged?.Invoke();
+    }
+
     public void GameOver() => EndGame(false);
     public void Victory() => EndGame(true);
 

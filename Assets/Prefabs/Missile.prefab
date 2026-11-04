@@ -181,7 +181,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Projectile
   direction: {x: 0, y: -1}
-  speed: 6
+  speed: 7
   fromPlayer: 0
   damagesBunkers: 1
-  destroyBeyondY: 8
+  destroyBeyondY: 15

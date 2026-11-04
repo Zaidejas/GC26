@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d6a688b1380bb18489db3515f3e2134f, type: 3}
   m_Name: Wave3
   m_EditorClassIdentifier: Assembly-CSharp::WaveData
-  rows: 5
-  columns: 11
-  speed: 1.8
-  missileInterval: 0.7
+  rows: 6
+  columns: 6
+  speed: 2.7
+  missileInterval: 0.47
   coinDropChance: 0.3

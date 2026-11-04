@@ -4,9 +4,9 @@ using UnityEngine;
 public class Coin : MonoBehaviour
 {
     public int value = 1;
-    public float fallSpeed = 2.5f;
+    public float fallSpeed = 4f;
     public float spinSpeed = 5f;
-    public float destroyBelowY = -7f;
+    public float destroyBelowY = -14.5f;
 
     Vector3 baseScale;
     bool collected;

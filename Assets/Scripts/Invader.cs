@@ -15,7 +15,7 @@ public class Invader : MonoBehaviour
 
     [Header("Бункеры")]
     [Tooltip("Ниже этой высоты пришелец ломает бункеры, через которые проходит")]
-    public float bunkerCheckY = -1.9f;
+    public float bunkerCheckY = -4.8f;
 
     public int Row { get; private set; }
     public int Column { get; private set; }
