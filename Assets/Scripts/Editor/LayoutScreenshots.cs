@@ -10,7 +10,7 @@ namespace Lines.EditorTools
 {
     /// <summary>
     /// Renders the game screen at given phone sizes to PNG files, without building the app.
-    /// Coloured boxes mark the areas reserved for parts not built yet (score, buttons, back button)
+    /// Coloured boxes mark the areas reserved for parts not built yet (buttons, back button)
     /// and the phone's unsafe areas (notch, home bar).
     /// Run from the command line (no -nographics, it needs the GPU):
     ///   Unity -batchmode -projectPath . -executeMethod Lines.EditorTools.LayoutScreenshots.Run -quit -shotsDir &lt;folder&gt;
@@ -56,9 +56,17 @@ namespace Lines.EditorTools
             var view = BoardView.Create();
             view.ApplyLayout(layout);
             view.SetPieces(PieceSet.RandomCreatures(7));
-            view.ShowBoard(DemoBoard());
+            var game = GameState.NewGame(7);
+            var board = DemoBoard(game.Board);
+            view.ShowBoard(board);
+            view.ShowPreviewDots(game.Preview, board);
 
-            Zone(layout, layout.Hud, new Color(0.23f, 0.43f, 0.88f, 0.22f));
+            var hud = Lines.UI.HudView.Create(camera);
+            hud.ApplyLayout(layout);
+            hud.SetScore(120);
+            hud.SetPreview(game.Preview.Colors, view.Pieces);
+            Canvas.ForceUpdateCanvases();
+
             Zone(layout, layout.Actions, new Color(0.23f, 0.65f, 0.34f, 0.25f));
             Zone(layout, layout.BackButton, new Color(0.95f, 0.52f, 0.12f, 0.35f));
             if (shot.TopInset > 0) Zone(layout, new Rect(0, shot.Height - shot.TopInset, shot.Width, shot.TopInset), new Color(0, 0, 0, 0.18f));
@@ -84,9 +92,8 @@ namespace Lines.EditorTools
         }
 
         /// <summary>A started game plus one ball of each color, so all 7 colors show.</summary>
-        static Board DemoBoard()
+        static Board DemoBoard(Board board)
         {
-            var board = GameState.NewGame(7).Board;
             for (int i = 0; i < BallColors.All.Length; i++)
             {
                 var cell = new Cell(i + 1, 8);

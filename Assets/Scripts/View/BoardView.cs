@@ -37,7 +37,7 @@ namespace Lines.View
     /// </summary>
     public sealed class BoardView : MonoBehaviour
     {
-        public const int BoardOrder = 0, CellOrder = 1, BallOrder = 3;
+        public const int BoardOrder = 0, CellOrder = 1, DotOrder = 2, BallOrder = 3;
 
         SpriteRenderer background;
         readonly SpriteRenderer[] cells = new SpriteRenderer[GameConfig.BoardSize * GameConfig.BoardSize];
@@ -53,6 +53,7 @@ namespace Lines.View
         {
             pieces = set ?? PieceSet.Balls();
             foreach (var ball in balls.Values) ball.SetColor(ball.Color, pieces);
+            RedrawDots();
         }
 
         public static BoardView Create(Transform parent = null)
@@ -120,6 +121,57 @@ namespace Lines.View
         }
 
         public BallView BallAt(Cell cell) => balls.TryGetValue(cell, out var ball) ? ball : null;
+
+        // ---- Preview dots: small pieces in the cells where the next balls will appear ----
+
+        readonly List<SpriteRenderer> dots = new List<SpriteRenderer>();
+        readonly List<(Cell cell, BallColor color)> dotData = new List<(Cell, BallColor)>();
+
+        /// <summary>Shows a small piece in each preview cell that is still empty.</summary>
+        public void ShowPreviewDots(Preview preview, Board board)
+        {
+            dotData.Clear();
+            for (int k = 0; k < preview.Cells.Count && k < preview.Colors.Count; k++)
+                if (board.IsEmpty(preview.Cells[k]))
+                    dotData.Add((preview.Cells[k], preview.Colors[k]));
+            RedrawDots();
+        }
+
+        /// <summary>Hides the dot in <paramref name="cell"/> (a ball has just moved onto it).</summary>
+        public void HideDotAt(Cell cell)
+        {
+            dotData.RemoveAll(d => d.cell == cell);
+            RedrawDots();
+        }
+
+        public IEnumerable<Cell> DotCells
+        {
+            get { foreach (var d in dotData) yield return d.cell; }
+        }
+
+        void RedrawDots()
+        {
+            while (dots.Count < dotData.Count)
+            {
+                var sr = new GameObject("Preview dot").AddComponent<SpriteRenderer>();
+                sr.transform.SetParent(transform, false);
+                sr.sortingOrder = DotOrder;
+                dots.Add(sr);
+            }
+            for (int i = 0; i < dots.Count; i++)
+            {
+                bool show = i < dotData.Count;
+                dots[i].gameObject.SetActive(show);
+                if (!show) continue;
+                var (cell, color) = dotData[i];
+                var sprite = pieces.SpriteFor(color);
+                dots[i].sprite = sprite;
+                dots[i].color = new Color(1f, 1f, 1f, pieces.UsesCreatures ? 0.9f : 0.95f);
+                dots[i].transform.localPosition = CellToLocal(cell);
+                var size = sprite.bounds.size;
+                dots[i].transform.localScale = Vector3.one * (pieces.DotSizeInCell / Mathf.Max(size.x, size.y));
+            }
+        }
 
         /// <summary>Records that the ball at <paramref name="from"/> now belongs to <paramref name="to"/> (after its move animation).</summary>
         public void MoveBall(Cell from, Cell to)

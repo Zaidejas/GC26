@@ -23,6 +23,9 @@ namespace Lines.View
         /// <summary>Piece size compared to a cell (prototype: balls 80%, creatures 94%).</summary>
         public float SizeInCell => UsesCreatures ? 0.94f : 0.8f;
 
+        /// <summary>Preview dot size compared to a cell (prototype: balls 30%, creatures 42%).</summary>
+        public float DotSizeInCell => UsesCreatures ? 0.42f : 0.30f;
+
         PieceSet(int[] creatureForColor) { this.creatureForColor = creatureForColor; }
 
         public static PieceSet Balls() => new PieceSet(null);

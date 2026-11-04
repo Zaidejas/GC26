@@ -20,6 +20,12 @@ namespace Lines.Tests
             Assert.IsNotNull(board, "The board was created from code");
             Assert.AreEqual(3, board.BallCount, "A new game starts with 3 balls");
             Assert.IsTrue(Camera.main.orthographic);
+
+            var hud = Object.FindAnyObjectByType<Lines.UI.HudView>();
+            Assert.IsNotNull(hud, "The score/next strip was created from code");
+            Assert.AreEqual("0", hud.ScoreText);
+            Assert.AreEqual(3, System.Linq.Enumerable.Count(hud.NextPieces, i => i.enabled && i.sprite != null));
+            Assert.AreEqual(3, System.Linq.Enumerable.Count(board.DotCells), "3 preview dots on the board");
         }
     }
 }

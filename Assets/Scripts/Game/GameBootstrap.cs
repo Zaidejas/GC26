@@ -1,4 +1,5 @@
 using Lines.Core;
+using Lines.UI;
 using Lines.View;
 using UnityEngine;
 
@@ -12,6 +13,7 @@ namespace Lines.Game
     {
         Camera mainCamera;
         BoardView boardView;
+        HudView hud;
         Vector2 lastScreenSize;
         Rect lastSafeArea;
 
@@ -20,6 +22,7 @@ namespace Lines.Game
         /// <summary>The current screen layout (used to turn taps into board cells).</summary>
         public BoardLayout Layout { get; private set; }
         public BoardView BoardView => boardView;
+        public HudView Hud => hud;
         public InputHandler Taps { get; private set; }
 
         void Awake()
@@ -30,7 +33,8 @@ namespace Lines.Game
             int seed = System.Environment.TickCount;
             // MVP art: 7 of the 9 creatures per game. For the glossy balls instead, use PieceSet.Balls().
             boardView.SetPieces(PieceSet.RandomCreatures(seed));
-            Controller = new GameController(GameState.NewGame(seed), new BoardPresenter(boardView));
+            hud = HudView.Create(mainCamera);
+            Controller = new GameController(GameState.NewGame(seed), new BoardPresenter(boardView, hud));
             Relayout();
             Taps = gameObject.AddComponent<InputHandler>();
             Taps.Init(this);
@@ -51,6 +55,7 @@ namespace Lines.Game
             Layout = BoardLayout.Compute(lastScreenSize, lastSafeArea);
             CameraSetup.Apply(mainCamera, Layout);
             boardView.ApplyLayout(Layout);
+            hud.ApplyLayout(Layout);
         }
     }
 }
