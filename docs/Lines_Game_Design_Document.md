@@ -19,6 +19,7 @@ The document separates the **MVP** (the first complete version) from **later** f
 | Distribution | None. Builds are installed directly on our own devices |
 | Engine | Unity 6 (6000.5.6f1), C\# |
 | Orientation | Portrait, one-handed play |
+| Target screens | Two portrait shapes, as required by the course: **16:9** (e.g. 1080×1920) and **20:9** (e.g. 1080×2400) |
 | Input | Touch (mouse clicks also work in the Unity editor, for testing) |
 | Session length | 3–10 minutes. The game in progress is saved automatically, so the player can close it at any time and continue later |
 | Audience | Players aged 25–55 who remember the original, plus casual puzzle fans |
@@ -164,6 +165,14 @@ The MVP has one screen and two pop-ups. The app opens straight into the game: th
 2. The board, filling the screen width, with preview dots in the cells where the next balls will appear.
 3. Undo and Reset buttons, within easy reach of the thumb.
 
+**Layout on the two target screens**
+
+- The board takes the full screen width minus small side margins, on both screen shapes.
+- **16:9 is the tight case:** the score and preview, the board and the buttons must all fit inside the safe area with no overlap.
+- **20:9 is the tall case:** the extra height is split evenly above and below the content, so the board stays in the middle of the screen and nothing sticks to the top.
+- Text and buttons keep the same size on both shapes; only the empty space changes.
+- Testing: iPhone SE (3rd generation) in the iOS Simulator is exactly 16:9; modern iPhones (19.5:9) are close to 20:9. The Android Emulator gets two custom phones with exactly 1080×1920 and 1080×2400.
+
 **Saving the game in progress (MVP)**
 
 - The game is saved after every move and when the app is closed or goes to the background.
@@ -199,6 +208,6 @@ The game logic is plain C\# kept separate from Unity, so it can be unit-tested. 
 | Saving | `SaveService`: the game in progress as JSON in `Application.persistentDataPath`, saved after each move and when the app goes to the background |
 | Testing | EditMode unit tests for all game logic, run from the command line. Visual checks in the iOS Simulator and Android Emulator, then on real phones |
 | Builds | iOS: Unity → Xcode project → iOS Simulator, and your own iPhone with a free Apple account (the app must be reinstalled every 7 days). Android: APK installed directly on the emulator and your phone |
-| Targets | 60 FPS on older phones. iOS 15+, Android 8.0+ |
+| Targets | Portrait 16:9 and 20:9 screens. 60 FPS on older phones. iOS 15+, Android 8.0+ |
 
 The week-by-week schedule is in the separate 8-week development plan (`Lines_Plan_EN_RU.md`).

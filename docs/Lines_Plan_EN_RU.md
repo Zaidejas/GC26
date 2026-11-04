@@ -92,8 +92,8 @@ Tests/         EditMode tests for Core
 
 - Game-over pop-up: final score and a "Start new game" button.
 - Save the game in progress (board, score, preview, Undo step) as JSON in `Application.persistentDataPath` after each move and when the app goes to the background, and restore it on launch. Clear the save when the game ends.
-- Layout check on several simulated phone sizes, including notched phones.
-- Tools: Unity's Android Build Support, Android Emulator. First Android build running in the emulator.
+- Layout check on the two target screen shapes: iPhone SE (3rd generation) for 16:9 and a modern iPhone (19.5:9, close to 20:9), including notched phones.
+- Tools: Unity's Android Build Support, Android Emulator with two custom phones: 1080×1920 (16:9) and 1080×2400 (20:9). First Android build running on both.
 - **Milestone (end of month 1):** MVP feature-complete, running in the iOS Simulator and the Android Emulator.
 
 #### Week 5: Art and real phones
@@ -110,7 +110,7 @@ Tests/         EditMode tests for Core
 #### Week 7: Optimization and testing
 
 - Profile on real phones: object pooling, a 60 FPS target, fewer draw calls.
-- Test on different screen sizes and notched phones (simulators and real devices).
+- Final check of both target screen shapes, 16:9 and 20:9, plus notched phones (simulators, emulators and real devices).
 - Playtest with friends. Android: share the APK. iOS: on your own iPhone (a free Apple account can't install on other people's phones). Collect feedback and fix bugs.
 - Re-check the scoring balance.
 
@@ -227,8 +227,8 @@ Tests/         EditMode-тесты для Core
 
 - Окно конца игры: итоговый счёт и кнопка «Начать новую игру».
 - Сохранять текущую партию (поле, счёт, превью, шаг для отмены) в JSON в `Application.persistentDataPath` после каждого хода и при сворачивании приложения, и восстанавливать её при запуске. Удалять сохранение, когда игра закончена.
-- Проверить раскладку на нескольких размерах телефонов в симуляторе, включая телефоны с вырезом.
-- Инструменты: модуль Android Build Support для Unity, Android Emulator. Первая сборка под Android запускается в эмуляторе.
+- Проверить раскладку на двух целевых форматах экрана: iPhone SE (3-го поколения) для 16:9 и современный iPhone (19,5:9, близко к 20:9), включая телефоны с вырезом.
+- Инструменты: модуль Android Build Support для Unity, Android Emulator с двумя своими телефонами: 1080×1920 (16:9) и 1080×2400 (20:9). Первая сборка под Android запускается на обоих.
 - **Контрольная точка (конец 1-го месяца):** MVP готов полностью и работает в iOS Simulator и Android Emulator.
 
 #### Неделя 5: графика и настоящие телефоны
@@ -245,7 +245,7 @@ Tests/         EditMode-тесты для Core
 #### Неделя 7: оптимизация и тестирование
 
 - Профилирование на настоящих телефонах: пул объектов, цель 60 FPS, меньше вызовов отрисовки.
-- Проверить на разных размерах экрана и телефонах с вырезом (симуляторы и настоящие устройства).
+- Финальная проверка обоих целевых форматов экрана, 16:9 и 20:9, и телефонов с вырезом (симуляторы, эмуляторы и настоящие устройства).
 - Дать поиграть друзьям. Android: отправить APK. iOS: на вашем iPhone (с бесплатным аккаунтом Apple нельзя установить игру на чужие телефоны). Собрать отзывы и исправить ошибки.
 - Ещё раз проверить баланс очков.
 
