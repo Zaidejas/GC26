@@ -12,9 +12,11 @@ namespace Lines.Game
     {
         Camera mainCamera;
         BoardView boardView;
-        GameState game;
         Vector2 lastScreenSize;
         Rect lastSafeArea;
+
+        /// <summary>The running game's turn controller (taps go here from task 13).</summary>
+        public GameController Controller { get; private set; }
 
         void Awake()
         {
@@ -22,10 +24,9 @@ namespace Lines.Game
             mainCamera = Camera.main;
             boardView = BoardView.Create();
             int seed = System.Environment.TickCount;
-            game = GameState.NewGame(seed);
             // MVP art: 7 of the 9 creatures per game. For the glossy balls instead, use PieceSet.Balls().
             boardView.SetPieces(PieceSet.RandomCreatures(seed));
-            boardView.ShowBoard(game.Board);
+            Controller = new GameController(GameState.NewGame(seed), new BoardPresenter(boardView));
             Relayout();
             Debug.Log("Lines: game started");
         }
