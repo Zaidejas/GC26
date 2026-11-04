@@ -25,12 +25,12 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _ColorShift: 0.25
-    - _Fisheye: 0.04
-    - _Flicker: 0.7
+    - _ColorShift: 0.368
+    - _Fisheye: 0.038
+    - _Flicker: 1
     - _ScanlineCount: 232
-    - _Scanlines: 0.25
-    - _Vignette: 0.6
+    - _Scanlines: 0.451
+    - _Vignette: 0.545
     m_Colors: []
   m_BuildTextureStacks: []
   m_AllowLocking: 1
