@@ -3,6 +3,7 @@
     "rootNamespace": "Lines.Tests",
     "references": [
         "Lines.Core",
+        "Lines",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

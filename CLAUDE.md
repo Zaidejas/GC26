@@ -31,7 +31,8 @@ Assets/Scripts/View/      Lines        board/ball views, sprite generation, anim
 Assets/Scripts/UI/        Lines        screens (menu, game HUD, how to play, leaderboard), pop-ups (uGUI + TextMeshPro, built from code)
 Assets/Scripts/Services/  Lines        saving (game in progress, leaderboard)
 Assets/Scripts/Editor/    Lines.Editor project setup and build scripts
-Assets/Tests/EditMode/    Lines.Tests.EditMode
+Assets/Tests/EditMode/    Lines.Tests.EditMode   (Core rules, Tween driven by Tween.Tick)
+Assets/Tests/PlayMode/    Lines.Tests.PlayMode   (things that need real frames)
 ```
 
 - Namespaces follow the folders: `Lines.Core`, `Lines.Game`, `Lines.View`, `Lines.UI`, `Lines.Services`, `Lines.EditorTools`, `Lines.Tests`.
@@ -48,6 +49,10 @@ UNITY=/Applications/Unity/Hub/Editor/6000.5.6f1/Unity.app/Contents/MacOS/Unity
 # EditMode tests (do not pass -quit with -runTests)
 $UNITY -batchmode -nographics -projectPath . -runTests -testPlatform EditMode \
   -testResults <scratchpad>/results.xml -logFile <scratchpad>/tests.log
+
+# PlayMode tests (real frame loop, e.g. animations); no -nographics, no -quit
+$UNITY -batchmode -projectPath . -runTests -testPlatform PlayMode \
+  -testResults <scratchpad>/results-play.xml -logFile <scratchpad>/tests-play.log
 
 # Rebuild the Main scene and project settings
 $UNITY -batchmode -nographics -projectPath . -executeMethod Lines.EditorTools.ProjectSetup.Run \

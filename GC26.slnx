@@ -1,6 +1,7 @@
 ﻿<Solution>
+  <Project Path="Lines.Tests.PlayMode.csproj" />
+  <Project Path="Lines.csproj" />
   <Project Path="Lines.Tests.EditMode.csproj" />
   <Project Path="Lines.Core.csproj" />
   <Project Path="Lines.Editor.csproj" />
-  <Project Path="Lines.csproj" />
 </Solution>
