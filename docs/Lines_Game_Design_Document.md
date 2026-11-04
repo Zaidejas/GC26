@@ -30,7 +30,7 @@ The document separates the **MVP** (the first complete version) from **later** f
 - The original rules people remember, plus a few small changes that make it easier to play.
 - Fast, clean controls: two taps per move and no timers.
 - The game in progress is saved automatically and picks up where the player left off.
-- Seven ball colors chosen so they are easy to tell apart.
+- Cute blob creatures instead of plain balls: 7 of the 9 creatures are picked at random for each game.
 
 **Custom changes compared to the original**
 
@@ -49,7 +49,7 @@ Every turn ends either with a cleared line, which skips the spawn, or with 3 new
 | Rule | Value |
 | :---- | :---- |
 | Board | 9×9 cells (81) |
-| Colors | 7 |
+| Kinds of balls | 7 per game, picked at random from the 9 creatures (see Art) |
 | Balls at the start | 3, in random cells, as in the classic game |
 | New balls per turn | 3. Their colors **and the cells where they will appear** are shown in advance (the cells show small preview dots) |
 | Movement | One ball per turn to any empty cell that has a path to it |
@@ -61,7 +61,7 @@ Every turn ends either with a cleared line, which skips the spawn, or with 3 new
 
 **Edge cases**
 
-- A move that forms two crossing lines clears both. The shared ball counts once.
+- A move that forms two crossing lines clears both. The shared ball is removed once, but for scoring it counts in the length of **both** lines (two crossing 5-lines: (10 + 10) × 2 = 40).
 - If the player moves a ball onto a cell with a preview dot, the ball for that dot appears in another random empty cell instead.
 - If fewer than 3 cells are free when balls spawn, the board fills and the game ends.
 - Game over is final: Undo is not available after the board fills. The only option is to start a new game.
@@ -102,7 +102,10 @@ Longer lines are worth much more than short ones, which rewards the player for t
 - **Several lines in one move:** the total for the move is multiplied by the number of lines (two lines \= ×2).
 - **Lines completed by spawned balls:** score normally, with no multiplier.
 - **Undo:** removes the points scored by the move it takes back.
-- **Leaderboard (MVP):** every finished game goes into a local top 10 (see Screens and UI). The game-over pop-up says "New best score!" or the game's place, e.g. "#3 on the leaderboard".
+- **Leaderboard (MVP):** a local top 10 of finished games, each with a player name, score and date (see Screens and UI).
+  - Only finished games count: a game abandoned with Reset or New game never reaches the leaderboard.
+  - **Ties:** the older score keeps its place. A new score must be higher than the 10th place to get in.
+  - After saving, the leaderboard says "New best score, Anna!", "You're #3, Anna!" or "120 points didn't make the top 10".
 - *Later:* the best score shown on the game screen during play.
 
 ## Preview modes
@@ -130,7 +133,7 @@ These are planned for after the MVP and are not scheduled in the 8 weeks unless 
 | Audio | See the sound list below |
 | Vibration | Light vibration on a line clear |
 | Light and dark themes | The MVP has one theme |
-| Custom art packs | Replace the generated balls and board with your own art |
+| Custom art packs | Replace the MVP creatures (and board) with other art |
 | Other game modes | Daily Challenge (the same seed for every player that day, one attempt) and Timed (3 minutes, +5 seconds per cleared line) |
 | Achievements and statistics | For example: first 7-ball line, two lines in one move, 1,000 points in one game. Statistics: games played, best score, longest line, average score |
 | Unlockable themes | Ball and board themes unlocked by reaching score milestones |
@@ -155,22 +158,28 @@ The MVP has four screens and two pop-ups. The app opens on the main menu.
 
 | Screen | Contents | Opens from |
 | :---- | :---- | :---- |
-| Main menu | Game title, Continue, New game, How to play, Leaderboard | App launch; Menu buttons |
-| Game | Menu (back) button, score, preview of the next 3 balls, board, Undo, Reset | Continue or New game |
-| How to play | 3 short cards with a small board picture each: move a ball along a free path; make lines of five; the next balls, game over and Undo. Back / Next, and "Got it" on the last card | Main menu |
-| Leaderboard | Local top 10 finished games, each with its score and date; the game just finished is highlighted. Shows a short explanation while it's empty | Main menu |
+| Main menu | Game title, Continue (with the saved game's score), New game, How to play, Leaderboard | App launch; back buttons |
+| Game | Back button, score, preview of the next 3 balls, board, Undo, Reset | Continue or New game |
+| How to play | Back button, then 3 short cards with a small board picture each: move a ball along a free path; make lines of five; the next balls, game over and Undo. Back / Next, and "Got it" on the last card. The picture and title stay in the same place on every card | Main menu |
+| Leaderboard | Back button, then the local top 10 finished games, each with rank, name, date and score; the game just finished is highlighted, with a result line above the list and a Play again button below it. Shows a short explanation while it's empty | Main menu; Save on the game-over pop-up |
 | New game confirmation | "Start a new game?" with Yes and Cancel; the current game is lost | Reset button, or New game on the menu while a game is unfinished |
-| Game over | Final score, "New best score!" or the leaderboard place, and Menu / Play again buttons | Game, when the board is full |
+| Game over | Final score and a name field with Save, nothing else. Save adds the score to the leaderboard and opens the Leaderboard screen | Game, when the board is full |
 
 **Main menu**
 
 - **Continue** resumes the saved game and shows its score. It is disabled when there's no unfinished game.
 - **New game** starts right away when there's no unfinished game; otherwise it asks for confirmation first.
-- The Menu button on the game screen returns to the menu at any time; the game is saved, so Continue picks it up exactly where it was (Undo included).
+- The back button (an arrow, no text) on the game, How to play and Leaderboard screens returns to the menu. Leaving the game saves it, so Continue picks it up exactly where it was (Undo included).
+- How to play and Leaderboard have no title at the top, only the back button.
+
+**Player name on game over**
+
+- The name field is pre-filled with the last name the player typed. If they have never typed one, it's a placeholder **PlayerN**, where N counts the placeholder names used so far (Player1, Player2, …).
+- The player can keep it or type their own (up to 16 characters). An empty field uses the placeholder.
 
 **Game screen layout (portrait, top to bottom)**
 
-1. Menu (back) button in the top-left corner.
+1. Back button (arrow) in the top-left corner.
 2. Score and the preview of the next 3 ball colors.
 3. The board, filling the screen width, with preview dots in the cells where the next balls will appear.
 4. Undo and Reset buttons, within easy reach of the thumb.
@@ -188,17 +197,20 @@ The MVP has four screens and two pop-ups. The app opens on the main menu.
 - The game is saved after every move and when the app is closed or goes to the background.
 - The save holds the board, the score, the preview (colors and cells), the preview mode and the Undo step, so Undo still works after a restart.
 - The saved game is resumed with Continue on the main menu.
-- When a game ends, its score goes to the leaderboard and the save is cleared, so Continue is disabled until a new game starts. Reset also starts a new save.
+- Closing the app during a game keeps it for Continue.
+- When a game ends, the score waits on the game-over pop-up and is kept in the save. If the app is closed before Save is tapped, the score goes to the leaderboard under the pre-filled name at the next launch.
+- After a game ends, Continue is disabled until a new game starts. Reset also starts a new save.
 - The leaderboard (top 10 scores with dates) is saved on the device separately from the game in progress.
 
 ## Art
 
-The look is a clean, modern take on the original: glossy balls on a soft, light board, with nothing cluttering the play area.
+The look is a clean, modern take on the original: cute blob creatures on a soft, light board, with nothing cluttering the play area. (The rest of this document calls them "balls".)
 
-- **Generated in code for the MVP:** the balls are drawn by the game's own code as glossy circles with shading and a highlight, so no image files or art tools are needed. Custom art packs are a later feature.
-- 7 fixed ball colors that stay easy to tell apart: red, orange, yellow, green, cyan, blue, purple. The exact color values are set once in code and used everywhere.
+- **Creatures for the MVP:** 9 blob creatures from the team's Figma file (purple, blue, grey-violet, green, teal with antlers, yellow, red, orange with spikes, light blue). Each game picks 7 of them at random. They're exported from Figma as PNGs with transparent backgrounds. Replacing them with other art is a later feature.
+- Some creatures have similar colors (the two blues, the grey); this is accepted for now and will be revisited with the art.
+- Until the PNGs are in the project, simple glossy circles generated in code stand in for them.
 - A flat board with subtle cell borders. One theme in the MVP.
-- Preview dots: small versions of the next balls, drawn in their target cells.
+- Preview dots: small versions of the next creatures, drawn in their target cells.
 - Animations: the selected ball bounces, balls grow in when they spawn, cleared balls shrink and burst into particles, and a blocked move shakes the ball.
 - No audio in the MVP (see Later features).
 
@@ -213,7 +225,7 @@ The game logic is plain C\# kept separate from Unity, so it can be unit-tested. 
 | Engine | Unity 6 (6000.5.6f1), 2D, URP |
 | Logic | Plain C\#: `Board`, `Pathfinder` (BFS), `LineDetector`, `Spawner` (seeded RNG, picks colors and cells in advance), `ScoreCalculator` |
 | Turn flow | State machine: Idle → Ball selected → Moving → Resolving → Spawning → Check game over |
-| Rendering | Pooled ball objects. Ball and board images generated in code. Animations with a small animation helper written in our own code (no third-party animation library) |
+| Rendering | Pooled ball objects. Creature images are PNGs exported from Figma; the board is generated in code. Animations with a small animation helper written in our own code (no third-party animation library) |
 | Input | New Input System, touch (mouse in the editor) |
 | UI | uGUI with TextMeshPro, created from code, safe-area aware. Screens: main menu, game, how to play, leaderboard; switched by a small screen manager |
 | Saving | `SaveService`: the game in progress as JSON in `Application.persistentDataPath`, saved after each move and when the app goes to the background. The leaderboard (top 10) is a separate JSON file; its ranking rules live in Core and are unit-tested |

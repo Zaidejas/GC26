@@ -19,7 +19,7 @@ A study project: a phone remake of the classic Lines puzzle (move balls on a 9×
 - The project has one scene, `Assets/Scenes/Main.unity`, containing only a camera and `GameBootstrap`. Everything else (board, balls, UI) is created from code at runtime.
 - Never hand-edit `.unity`, `.prefab` or `.asset` files as text. If a scene or setting must change, change `Assets/Scripts/Editor/ProjectSetup.cs` and run it.
 - No third-party packages from the Asset Store. Animations use our own small helper (no DOTween).
-- Ball and board images are generated in code (MVP).
+- MVP art: 9 blob creatures exported from Figma as PNGs (7 picked at random per game); the board is generated in code. Until the PNGs arrive, generated glossy circles stand in for them.
 
 ## Code layout
 

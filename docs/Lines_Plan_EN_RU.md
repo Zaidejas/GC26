@@ -99,15 +99,15 @@ Tests/         EditMode tests for Core
 
 #### Week 5: Art and real phones
 
-- Final ball look generated in code (glossy circles with shading and a highlight, 7 fixed colors), preview dots, board and background style. One theme.
+- Creature art: export the 9 blob creatures from the team's Figma file as PNGs (transparent background, 256 px or more), add them to the project, pick 7 at random per game. Preview dots, board and background style. One theme.
 - Polish UI transitions. Add the app icon and splash screen.
 - Install the game on your iPhone (Xcode with a free Apple account) and on an Android phone (APK).
 
 #### Week 6: Menus and leaderboard
 
-- Main menu (Continue, New game, How to play, Leaderboard) as the start screen, a Menu (back) button on the game screen, and Menu / Play again on the game-over pop-up.
+- Main menu (Continue, New game, How to play, Leaderboard) as the start screen, and a back button (arrow) on the game, How to play and Leaderboard screens.
 - How to play: 3 cards with small board pictures.
-- Leaderboard: local top 10 finished games with score and date; "New best score!" or the place on the game-over pop-up. Ranking rules in Core, with unit tests.
+- Game over and leaderboard: the game-over pop-up only asks for a name (pre-filled with the last typed name or PlayerN) and Save opens the Leaderboard: local top 10 finished games with name, score and date, a result line and Play again. Older scores win ties; a score left unsaved when the app closes is added at the next launch. Ranking rules in Core, with unit tests.
 - This week was the buffer before. If you fall behind, How to play is the first piece to move back to Later.
 - **Milestone:** MVP complete.
 
@@ -143,7 +143,7 @@ Tests/         EditMode tests for Core
 - **Simulators aren't real phones:** speed and touch feel differ. Check on a real phone from Week 5.
 - **Free Apple account limits:** the app stops working on your iPhone after 7 days and must be reinstalled from Xcode. Only your own devices can be used.
 - **Unity editor left open:** it locks the project, so tests and builds from the command line fail. Close Unity before handing work to Claude.
-- **Art taking too long:** the balls are generated in code, so the style stays simple. Plain glossy circles are enough.
+- **Art taking too long:** the creatures already exist in Figma; until they are exported, generated glossy circles stand in for them.
 
 ---
 
@@ -239,15 +239,15 @@ Tests/         EditMode-тесты для Core
 
 #### Неделя 5: графика и настоящие телефоны
 
-- Финальный вид шаров, сгенерированный кодом (глянцевые круги с тенью и бликом, 7 постоянных цветов), точки-подсказки, стиль поля и фона. Одна тема.
+- Графика существ: экспортировать 9 существ из Figma-файла команды в PNG (прозрачный фон, 256 px или больше), добавить в проект, для каждой игры случайно выбирать 7. Точки-подсказки, стиль поля и фона. Одна тема.
 - Доработать переходы в интерфейсе. Сделать иконку приложения и заставку.
 - Установить игру на ваш iPhone (Xcode с бесплатным аккаунтом Apple) и на телефон с Android (APK).
 
 #### Неделя 6: меню и таблица рекордов
 
-- Главное меню (Продолжить, Новая игра, Как играть, Таблица рекордов) как стартовый экран, кнопка «Меню» (назад) на экране игры и кнопки «Меню» / «Играть снова» в окне конца игры.
+- Главное меню (Продолжить, Новая игра, Как играть, Таблица рекордов) как стартовый экран и кнопка «назад» (стрелка) на экранах игры, «Как играть» и таблицы рекордов.
 - «Как играть»: 3 карточки с маленькими картинками поля.
-- Таблица рекордов: 10 лучших законченных игр на устройстве со счётом и датой; в окне конца игры — «Новый рекорд!» или место в таблице. Правила рейтинга в Core, с юнит-тестами.
+- Конец игры и таблица рекордов: окно конца игры только спрашивает имя (заполнено последним введённым именем или PlayerN), «Сохранить» открывает таблицу: 10 лучших законченных игр с именем, счётом и датой, строка с результатом и кнопка «Играть снова». При равенстве остаётся более старый результат; несохранённый при закрытии приложения счёт добавляется при следующем запуске. Правила рейтинга в Core, с юнит-тестами.
 - Раньше эта неделя была резервом. Если вы отстаёте, первым в Later уходит «Как играть».
 - **Контрольная точка:** MVP готов полностью.
 
@@ -283,4 +283,4 @@ Tests/         EditMode-тесты для Core
 - **Симулятор — не настоящий телефон:** скорость и ощущение касаний отличаются. Проверяйте на настоящем телефоне начиная с 5-й недели.
 - **Ограничения бесплатного аккаунта Apple:** через 7 дней игра на iPhone перестаёт запускаться, и её нужно заново установить из Xcode. Устанавливать можно только на свои устройства.
 - **Открытый редактор Unity:** он блокирует проект, и тесты и сборки из командной строки не запускаются. Закрывайте Unity, прежде чем передавать работу Claude.
-- **Графика отнимает слишком много времени:** шары генерируются кодом, поэтому стиль остаётся простым. Простых глянцевых кругов достаточно.
+- **Графика отнимает слишком много времени:** существа уже нарисованы в Figma; пока их не экспортировали, вместо них используются сгенерированные глянцевые круги.
