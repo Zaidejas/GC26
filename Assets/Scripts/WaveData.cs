@@ -4,6 +4,9 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "Wave", menuName = "Space Invaders/Wave")]
 public class WaveData : ScriptableObject
 {
+    [Tooltip("Если задан, вместо сетки пришельцев будет битва с этим боссом")]
+    public Boss bossPrefab;
+
     [Min(1)] public int rows = 4;
     [Min(1)] public int columns = 8;
 

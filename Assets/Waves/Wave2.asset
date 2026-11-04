@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d6a688b1380bb18489db3515f3e2134f, type: 3}
   m_Name: Wave2
   m_EditorClassIdentifier: Assembly-CSharp::WaveData
+  bossPrefab: {fileID: 0}
   rows: 5
   columns: 6
   eliteCountMin: 2

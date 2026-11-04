@@ -8,6 +8,7 @@ public class WaveManager : MonoBehaviour
     public InvaderGrid grid;
     [Tooltip("Пауза с надписью «WAVE N» перед появлением пришельцев")]
     public float delayBeforeWave = 2f;
+    public float bossSpawnY = 7.5f;
 
     [Header("Хилка")]
     public HealthPickup healPrefab;
@@ -26,6 +27,9 @@ public class WaveManager : MonoBehaviour
 
     // (номер волны, всего волн)
     public event System.Action<int, int> WaveStarted;
+    public event System.Action<Boss> BossSpawned;
+
+    public bool IsBossWave(int waveNumber) => waves[waveNumber - 1].bossPrefab != null;
 
     void Start()
     {
@@ -50,10 +54,21 @@ public class WaveManager : MonoBehaviour
         WaveStarted?.Invoke(CurrentWave, TotalWaves);
 
         yield return new WaitForSeconds(delayBeforeWave);
-        grid.Build(waves[index]);
+        if (waves[index].bossPrefab != null)
+            SpawnBoss(waves[index].bossPrefab);
+        else
+            grid.Build(waves[index]);
 
         if (healPrefab != null && Random.value < healChance)
             healRoutine = StartCoroutine(DropHeal());
+    }
+
+    void SpawnBoss(Boss prefab)
+    {
+        Boss boss = Instantiate(prefab, new Vector3(0f, bossSpawnY, 0f), Quaternion.identity);
+        boss.Init(grid.player);
+        boss.Died += OnWaveCleared;
+        BossSpawned?.Invoke(boss);
     }
 
     // Хилка падает в случайный момент волны из случайного места сверху

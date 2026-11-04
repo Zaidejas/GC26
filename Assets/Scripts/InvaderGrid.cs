@@ -175,17 +175,10 @@ public class InvaderGrid : MonoBehaviour
 
                 Projectile missile = Instantiate(missilePrefab, invader.transform.position + Vector3.down * 0.55f, Quaternion.identity);
                 if (player != null && Random.value < invader.aimedShotChance)
-                    AimAtPlayer(missile);
+                    missile.SetDirection(player.transform.position - missile.transform.position);
                 return;
             }
         }
-    }
-
-    void AimAtPlayer(Projectile missile)
-    {
-        Vector2 toPlayer = (player.transform.position - missile.transform.position).normalized;
-        missile.direction = toPlayer;
-        missile.transform.rotation = Quaternion.FromToRotation(Vector3.down, toPlayer);
     }
 
     float NextShootDelay()

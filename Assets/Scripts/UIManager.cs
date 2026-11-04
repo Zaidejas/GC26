@@ -8,10 +8,17 @@ public class UIManager : MonoBehaviour
 {
     [Header("HUD")]
     public TMP_Text scoreText;
-    public TMP_Text livesText;
+    public Image[] hearts;
+    [Tooltip("Прозрачность сердечка потерянной жизни")]
+    [Range(0f, 1f)] public float lostHeartAlpha = 0.15f;
+    public float heartFadeSpeed = 2.5f;
     public TMP_Text coinsText;
     public TMP_Text waveText;
     public TMP_Text bannerText;
+
+    [Header("Босс")]
+    public GameObject bossBar;
+    public Image bossBarFill;
 
     [Header("Конец игры")]
     public GameObject endPanel;
@@ -23,6 +30,7 @@ public class UIManager : MonoBehaviour
     public WaveManager waveManager;
 
     GameManager gm;
+    Boss boss;
 
     void Start()
     {
@@ -30,13 +38,45 @@ public class UIManager : MonoBehaviour
         gm.StatsChanged += RefreshStats;
         gm.GameEnded += ShowEndScreen;
         waveManager.WaveStarted += OnWaveStarted;
+        waveManager.BossSpawned += OnBossSpawned;
 
         restartButton.onClick.AddListener(gm.Restart);
         menuButton.onClick.AddListener(gm.LoadMenu);
 
         endPanel.SetActive(false);
         bannerText.gameObject.SetActive(false);
+        bossBar.SetActive(false);
         RefreshStats();
+    }
+
+    void Update()
+    {
+        UpdateHearts();
+
+        if (boss != null)
+            bossBarFill.fillAmount = boss.HealthFraction;
+        else if (bossBar.activeSelf)
+            bossBar.SetActive(false);
+    }
+
+    // Сердечки плавно затухают при потере жизни и проявляются при лечении.
+    // Реальное время: последнее сердечко должно погаснуть и на экране конца игры
+    void UpdateHearts()
+    {
+        for (int i = 0; i < hearts.Length; i++)
+        {
+            Color color = hearts[i].color;
+            float target = i < gm.Lives ? 1f : lostHeartAlpha;
+            color.a = Mathf.MoveTowards(color.a, target, heartFadeSpeed * Time.unscaledDeltaTime);
+            hearts[i].color = color;
+        }
+    }
+
+    void OnBossSpawned(Boss spawned)
+    {
+        boss = spawned;
+        bossBarFill.fillAmount = 1f;
+        bossBar.SetActive(true);
     }
 
     void OnDestroy()
@@ -47,21 +87,30 @@ public class UIManager : MonoBehaviour
             gm.GameEnded -= ShowEndScreen;
         }
         if (waveManager != null)
+        {
             waveManager.WaveStarted -= OnWaveStarted;
+            waveManager.BossSpawned -= OnBossSpawned;
+        }
     }
 
     void RefreshStats()
     {
-        scoreText.text = $"SCORE {gm.Score}";
-        livesText.text = $"LIVES {gm.Lives}";
-        coinsText.text = $"COINS {gm.Coins}";
+        scoreText.text = gm.Score.ToString();
+        coinsText.text = gm.Coins.ToString();
     }
 
     void OnWaveStarted(int wave, int total)
     {
-        waveText.text = $"WAVE {wave}/{total}";
+        waveText.text = $"{wave}/{total}";
         StopAllCoroutines();
-        StartCoroutine(ShowBanner(wave == total ? "FINAL WAVE" : $"WAVE {wave}"));
+        StartCoroutine(ShowBanner(BannerText(wave, total)));
+    }
+
+    string BannerText(int wave, int total)
+    {
+        if (waveManager.IsBossWave(wave))
+            return wave == total ? "FINAL BOSS" : "BOSS";
+        return wave == total ? "FINAL WAVE" : $"WAVE {wave}";
     }
 
     IEnumerator ShowBanner(string text)

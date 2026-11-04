@@ -163,6 +163,36 @@ public static class SpaceInvadersBuilder
         ".#........#.",
     };
 
+    static readonly string[] HeartArt =
+    {
+        ".###...###.",
+        "#####.#####",
+        "###########",
+        "###########",
+        "###########",
+        ".#########.",
+        "..#######..",
+        "...#####...",
+        "....###....",
+        ".....#.....",
+    };
+
+    static readonly string[] BossArt =
+    {
+        "....############....",
+        "..################..",
+        ".##################.",
+        "###..####..####..###",
+        "###..####..####..###",
+        "####################",
+        "####################",
+        "..###.##.##.##.###..",
+        "..##..##.##.##..##..",
+        ".##...##.##.##...##.",
+        "##...##..##..##...##",
+        "#....#...##...#....#",
+    };
+
     static readonly string[] ShieldIconArt =
     {
         "#..######..#",
@@ -212,6 +242,7 @@ public static class SpaceInvadersBuilder
     // ---------- Созданные ассеты ----------
 
     static Sprite playerSprite, laserSprite, missileSprite, coinSprite, explosionSprite, blockSprite;
+    static Sprite boss1Sprite, boss2Sprite, heartSprite;
     static Sprite shieldBubbleSprite, shieldIconSprite, bunkerIconSprite, rapidFireIconSprite, uiSquareSprite;
     static Sprite[] squidFrames, crabFrames, octopusFrames, eliteFrames;
     static AudioClip shootClip, explosionClip, coinClip, hitClip;
@@ -220,6 +251,7 @@ public static class SpaceInvadersBuilder
     static GameObject explosionPrefab;
     static Invader[] invaderPrefabs;
     static Invader eliteInvaderPrefab;
+    static LaserBeam bossLaserPrefab;
     static HealthPickup healPrefab;
     static WaveData[] waves;
 
@@ -352,6 +384,10 @@ public static class SpaceInvadersBuilder
         explosionSprite = MakeSprite("Explosion", ExplosionArt, Palette(new Color(1f, 0.8f, 0.5f)), 12);
         blockSprite = MakeSprite("BunkerBlock", BlockArt, Palette(BunkerColor), 20);
 
+        heartSprite = MakeSprite("Heart", HeartArt, Palette(new Color(1f, 0.25f, 0.35f)), 100);
+        boss1Sprite = MakeSprite("Boss_1", BossArt, Palette(new Color(1f, 0.55f, 0.15f)), 16);
+        boss2Sprite = MakeSprite("Boss_2", BossArt, Palette(new Color(0.75f, 0.35f, 1f)), 16);
+
         var shieldColors = new Dictionary<char, Color> { { '#', new Color(0.5f, 0.9f, 1f, 0.95f) }, { '+', new Color(0.3f, 0.7f, 1f, 0.3f) } };
         shieldBubbleSprite = MakeSprite("ShieldBubble", CircleArt(32), shieldColors, 20);
         shieldIconSprite = MakeSprite("Icon_Shield", ShieldIconArt, new Dictionary<char, Color> { { '#', new Color(0.5f, 0.9f, 1f) }, { '+', new Color(0.2f, 0.45f, 0.8f) } }, 100);
@@ -456,6 +492,17 @@ public static class SpaceInvadersBuilder
             MakeInvaderPrefab("Invader_Octopus", octopusFrames, 10),
         };
         eliteInvaderPrefab = MakeInvaderPrefab("Invader_Elite", eliteFrames, 40, 2, 0.5f);
+
+        var bossLaser = NewSpriteObject("BossLaser", uiSquareSprite, 4);
+        bossLaser.AddComponent<LaserBeam>();
+        bossLaserPrefab = SavePrefab(bossLaser).GetComponent<LaserBeam>();
+
+        waves[2].bossPrefab = MakeBossPrefab("Boss_1", boss1Sprite, 3f, 100, 500, 3f, 9f,
+            new[] { BossAttack.Fan, BossAttack.Burst, BossAttack.Dash }, false, null);
+        waves[4].bossPrefab = MakeBossPrefab("Boss_2", boss2Sprite, 4f, 200, 1000, 3.5f, 10f,
+            new[] { BossAttack.Wall, BossAttack.Spiral, BossAttack.Laser, BossAttack.Summon }, true, invaderPrefabs[1]);
+        EditorUtility.SetDirty(waves[2]);
+        EditorUtility.SetDirty(waves[4]);
     }
 
     static Invader MakeInvaderPrefab(string name, Sprite[] frames, int points, int hitPoints = 1, float aimedShotChance = 0f)
@@ -471,6 +518,27 @@ public static class SpaceInvadersBuilder
         invader.explosionPrefab = explosionPrefab;
         invader.coinPrefab = coinPrefab;
         return SavePrefab(go).GetComponent<Invader>();
+    }
+
+    static Boss MakeBossPrefab(string name, Sprite sprite, float scale, int health, int points, float speed, float missileSpeed,
+        BossAttack[] attacks, bool rage, Invader minion)
+    {
+        var go = NewSpriteObject(name, sprite, 0);
+        go.transform.localScale = Vector3.one * scale;
+        AddTrigger(go, false);
+        var boss = go.AddComponent<Boss>();
+        boss.maxHealth = health;
+        boss.points = points;
+        boss.moveSpeed = speed;
+        boss.missileSpeed = missileSpeed;
+        boss.attacks = attacks;
+        boss.missilePrefab = missilePrefab;
+        boss.laserPrefab = bossLaserPrefab;
+        boss.coinPrefab = coinPrefab;
+        boss.explosionPrefab = explosionPrefab;
+        boss.rageAtHalfHealth = rage;
+        boss.minionPrefab = minion;
+        return SavePrefab(go).GetComponent<Boss>();
     }
 
     // ================= Сцена Game =================
@@ -571,13 +639,50 @@ public static class SpaceInvadersBuilder
         var center = new Vector2(0.5f, 0.5f);
 
         Transform safeArea = MakeSafeArea(canvas);
-        ui.scoreText = MakeText(safeArea, "Score", "SCORE 0", 56, TextAlignmentOptions.TopLeft, topLeft, new Vector2(30f, -20f), new Vector2(500f, 80f));
-        ui.livesText = MakeText(safeArea, "Lives", "LIVES 3", 56, TextAlignmentOptions.TopLeft, topLeft, new Vector2(30f, -90f), new Vector2(500f, 80f));
-        ui.livesText.color = PlayerColor;
-        ui.waveText = MakeText(safeArea, "Wave", "WAVE 1/5", 56, TextAlignmentOptions.Top, top, new Vector2(0f, -20f), new Vector2(320f, 80f));
-        ui.coinsText = MakeText(safeArea, "Coins", "COINS 0", 56, TextAlignmentOptions.TopRight, topRight, new Vector2(-30f, -20f), new Vector2(400f, 80f));
+        ui.waveText = MakeText(safeArea, "Wave", "1/5", 56, TextAlignmentOptions.Top, top, new Vector2(0f, -20f), new Vector2(320f, 80f));
+        ui.scoreText = MakeText(safeArea, "Score", "0", 64, TextAlignmentOptions.Top, top, new Vector2(0f, -90f), new Vector2(500f, 90f));
+
+        // Жизни: сердечки слева
+        ui.hearts = new Image[3];
+        for (int i = 0; i < ui.hearts.Length; i++)
+        {
+            ui.hearts[i] = MakeChildImage(safeArea, $"Heart{i + 1}", heartSprite, Color.white);
+            ui.hearts[i].preserveAspect = true;
+            var heartRect = ui.hearts[i].rectTransform;
+            heartRect.anchorMin = heartRect.anchorMax = heartRect.pivot = topLeft;
+            heartRect.anchoredPosition = new Vector2(30f + i * 100f, -20f);
+            heartRect.sizeDelta = new Vector2(90f, 90f);
+        }
+
+        // Монеты: иконка и число под сердечками
+        var coinIcon = MakeChildImage(safeArea, "CoinIcon", coinSprite, Color.white);
+        coinIcon.preserveAspect = true;
+        var coinIconRect = coinIcon.rectTransform;
+        coinIconRect.anchorMin = coinIconRect.anchorMax = coinIconRect.pivot = topLeft;
+        coinIconRect.anchoredPosition = new Vector2(35f, -125f);
+        coinIconRect.sizeDelta = new Vector2(80f, 80f);
+        ui.coinsText = MakeText(safeArea, "Coins", "0", 64, TextAlignmentOptions.TopLeft, topLeft, new Vector2(130f, -127f), new Vector2(300f, 90f));
         ui.coinsText.color = GoldColor;
         ui.bannerText = MakeText(canvas, "WaveBanner", "WAVE 1", 110, TextAlignmentOptions.Center, center, Vector2.zero, new Vector2(1200f, 200f));
+
+        // Полоска здоровья босса
+        var bossBar = new GameObject("BossBar", typeof(RectTransform), typeof(Image));
+        bossBar.transform.SetParent(safeArea, false);
+        var bossBarRect = (RectTransform)bossBar.transform;
+        bossBarRect.anchorMin = bossBarRect.anchorMax = bossBarRect.pivot = top;
+        bossBarRect.anchoredPosition = new Vector2(0f, -245f);
+        bossBarRect.sizeDelta = new Vector2(1040f, 40f);
+        var bossBarBack = bossBar.GetComponent<Image>();
+        bossBarBack.color = new Color(0f, 0f, 0f, 0.7f);
+        bossBarBack.raycastTarget = false;
+        ui.bossBar = bossBar;
+        ui.bossBarFill = MakeChildImage(bossBar.transform, "Fill", uiSquareSprite, new Color(1f, 0.25f, 0.25f));
+        ui.bossBarFill.type = Image.Type.Filled;
+        ui.bossBarFill.fillMethod = Image.FillMethod.Horizontal;
+        var bossFillRect = ui.bossBarFill.rectTransform;
+        bossFillRect.anchorMin = Vector2.zero;
+        bossFillRect.anchorMax = Vector2.one;
+        bossFillRect.offsetMin = bossFillRect.offsetMax = Vector2.zero;
 
         // Панель способностей внизу, под кораблём
         MakeAbilitySlot(safeArea, abilities, 0, shieldIconSprite, -230f);
@@ -587,7 +692,7 @@ public static class SpaceInvadersBuilder
         var pauseButton = MakeButton(safeArea, "PauseButton", "II", Vector2.zero);
         var pauseRect = (RectTransform)pauseButton.transform;
         pauseRect.anchorMin = pauseRect.anchorMax = pauseRect.pivot = topRight;
-        pauseRect.anchoredPosition = new Vector2(-30f, -110f);
+        pauseRect.anchoredPosition = new Vector2(-30f, -20f);
         pauseRect.sizeDelta = new Vector2(120f, 120f);
 
         // Экран конца игры

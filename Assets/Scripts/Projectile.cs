@@ -10,14 +10,23 @@ public class Projectile : MonoBehaviour
     [Tooltip("Радиус поломки бункера вокруг попадания. 0 - только один блок")]
     public float bunkerDamageRadius = 0f;
     public float destroyBeyondY = 15f;
+    public float destroyBeyondX = 12f;
 
     bool used;
+
+    // Задаёт направление полёта и поворачивает ракету носом вперёд
+    public void SetDirection(Vector2 newDirection)
+    {
+        direction = newDirection.normalized;
+        transform.rotation = Quaternion.FromToRotation(Vector3.down, direction);
+    }
 
     void Update()
     {
         transform.Translate(direction * speed * Time.deltaTime, Space.World);
 
-        if (Mathf.Abs(transform.position.y) > destroyBeyondY)
+        // Боковые ракеты спирали иначе летели бы за экраном вечно
+        if (Mathf.Abs(transform.position.y) > destroyBeyondY || Mathf.Abs(transform.position.x) > destroyBeyondX)
             Destroy(gameObject);
     }
 
@@ -29,6 +38,11 @@ public class Projectile : MonoBehaviour
         if (fromPlayer && other.TryGetComponent(out Invader invader))
         {
             invader.Hit();
+            Consume();
+        }
+        else if (fromPlayer && other.TryGetComponent(out Boss boss))
+        {
+            boss.Hit();
             Consume();
         }
         else if (!fromPlayer && other.TryGetComponent(out PlayerController player))

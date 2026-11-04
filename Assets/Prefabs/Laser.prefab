@@ -186,3 +186,4 @@ MonoBehaviour:
   damagesBunkers: 0
   bunkerDamageRadius: 0
   destroyBeyondY: 15
+  destroyBeyondX: 12

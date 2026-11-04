@@ -13,6 +13,11 @@ public class Explosion : MonoBehaviour
     void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
+    }
+
+    // В Start, а не в Awake: босс задаёт размер своего взрыва сразу после создания
+    void Start()
+    {
         startScale = transform.localScale;
     }
 
