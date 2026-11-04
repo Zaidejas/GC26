@@ -28,7 +28,7 @@ public class Projectile : MonoBehaviour
 
         if (fromPlayer && other.TryGetComponent(out Invader invader))
         {
-            invader.Kill();
+            invader.Hit();
             Consume();
         }
         else if (!fromPlayer && other.TryGetComponent(out PlayerController player))

@@ -184,4 +184,5 @@ MonoBehaviour:
   speed: 16
   fromPlayer: 1
   damagesBunkers: 0
+  bunkerDamageRadius: 0
   destroyBeyondY: 15

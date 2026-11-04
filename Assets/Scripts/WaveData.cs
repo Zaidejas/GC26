@@ -7,6 +7,10 @@ public class WaveData : ScriptableObject
     [Min(1)] public int rows = 4;
     [Min(1)] public int columns = 8;
 
+    [Tooltip("Сколько усиленных пришельцев будет в волне: случайно от Min до Max")]
+    [Min(0)] public int eliteCountMin = 0;
+    [Min(0)] public int eliteCountMax = 0;
+
     [Tooltip("Базовая скорость сетки")]
     public float speed = 1f;
 

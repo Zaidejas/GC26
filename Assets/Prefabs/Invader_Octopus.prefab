@@ -153,6 +153,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Invader
   points: 10
+  hitPoints: 1
+  aimedShotChance: 0
+  damagedColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}
   frames:
   - {fileID: 21300000, guid: 66157c645372ec34d9df9517f2e370e1, type: 3}
   - {fileID: 21300000, guid: 60ece71275b66844e8aa65f3825543a5, type: 3}

@@ -139,6 +139,30 @@ public static class SpaceInvadersBuilder
 
     static readonly string[] BlockArt = { "####", "####", "####", "####" };
 
+    static readonly string[] EliteArt1 =
+    {
+        "#..#....#..#",
+        ".#..#..#..#.",
+        "..########..",
+        ".##.####.##.",
+        "############",
+        "#.########.#",
+        "#.#......#.#",
+        "..##....##..",
+    };
+
+    static readonly string[] EliteArt2 =
+    {
+        "#..#....#..#",
+        ".#..#..#..#.",
+        "#.########.#",
+        "###.####.###",
+        "############",
+        ".##########.",
+        "..#......#..",
+        ".#........#.",
+    };
+
     static readonly string[] ShieldIconArt =
     {
         "#..######..#",
@@ -189,12 +213,13 @@ public static class SpaceInvadersBuilder
 
     static Sprite playerSprite, laserSprite, missileSprite, coinSprite, explosionSprite, blockSprite;
     static Sprite shieldBubbleSprite, shieldIconSprite, bunkerIconSprite, rapidFireIconSprite, uiSquareSprite;
-    static Sprite[] squidFrames, crabFrames, octopusFrames;
+    static Sprite[] squidFrames, crabFrames, octopusFrames, eliteFrames;
     static AudioClip shootClip, explosionClip, coinClip, hitClip;
     static Projectile laserPrefab, missilePrefab;
     static Coin coinPrefab;
     static GameObject explosionPrefab;
     static Invader[] invaderPrefabs;
+    static Invader eliteInvaderPrefab;
     static HealthPickup healPrefab;
     static WaveData[] waves;
 
@@ -315,6 +340,12 @@ public static class SpaceInvadersBuilder
             MakeSprite("Octopus_1", OctopusArt1, Palette(OctopusColor), 12),
             MakeSprite("Octopus_2", OctopusArt2, Palette(OctopusColor), 12),
         };
+        var eliteColor = new Color(1f, 0.3f, 0.3f);
+        eliteFrames = new[]
+        {
+            MakeSprite("Elite_1", EliteArt1, Palette(eliteColor), 12),
+            MakeSprite("Elite_2", EliteArt2, Palette(eliteColor), 12),
+        };
         laserSprite = MakeSprite("Laser", LaserArt, Palette(Color.white), 16);
         missileSprite = MakeSprite("Missile", MissileArt, Palette(MissileColor), 14);
         coinSprite = MakeSprite("Coin", CoinArt, new Dictionary<char, Color> { { '#', DarkGoldColor }, { '+', GoldColor } }, 20);
@@ -342,14 +373,14 @@ public static class SpaceInvadersBuilder
         waves = new[]
         {
             MakeWave("Wave1", 4, 6, 1.5f, 1.0f, 0.20f),
-            MakeWave("Wave2", 5, 6, 2.1f, 0.73f, 0.25f),
+            MakeWave("Wave2", 5, 6, 2.1f, 0.73f, 0.25f, 2, 5),
             MakeWave("Wave3", 6, 6, 2.7f, 0.5f, 0.30f),
-            MakeWave("Wave4", 7, 6, 2.7f, 0.5f, 0.30f),
+            MakeWave("Wave4", 7, 6, 2.7f, 0.5f, 0.30f, 2, 5),
             MakeWave("Wave5", 7, 6, 2.7f, 0.5f, 0.35f),
         };
     }
 
-    static WaveData MakeWave(string name, int rows, int columns, float speed, float missileInterval, float coinChance)
+    static WaveData MakeWave(string name, int rows, int columns, float speed, float missileInterval, float coinChance, int eliteMin = 0, int eliteMax = 0)
     {
         string path = $"{WavesDir}/{name}.asset";
         var wave = AssetDatabase.LoadAssetAtPath<WaveData>(path);
@@ -357,6 +388,8 @@ public static class SpaceInvadersBuilder
         if (isNew)
             wave = ScriptableObject.CreateInstance<WaveData>();
 
+        wave.eliteCountMin = eliteMin;
+        wave.eliteCountMax = eliteMax;
         wave.rows = rows;
         wave.columns = columns;
         wave.speed = speed;
@@ -422,15 +455,18 @@ public static class SpaceInvadersBuilder
             MakeInvaderPrefab("Invader_Crab", crabFrames, 20),
             MakeInvaderPrefab("Invader_Octopus", octopusFrames, 10),
         };
+        eliteInvaderPrefab = MakeInvaderPrefab("Invader_Elite", eliteFrames, 40, 2, 0.5f);
     }
 
-    static Invader MakeInvaderPrefab(string name, Sprite[] frames, int points)
+    static Invader MakeInvaderPrefab(string name, Sprite[] frames, int points, int hitPoints = 1, float aimedShotChance = 0f)
     {
         var go = NewSpriteObject(name, frames[0], 0);
         go.transform.localScale = Vector3.one * InvaderScale;
         AddTrigger(go, false);
         var invader = go.AddComponent<Invader>();
         invader.points = points;
+        invader.hitPoints = hitPoints;
+        invader.aimedShotChance = aimedShotChance;
         invader.frames = frames;
         invader.explosionPrefab = explosionPrefab;
         invader.coinPrefab = coinPrefab;
@@ -466,7 +502,9 @@ public static class SpaceInvadersBuilder
         gridObject.transform.position = new Vector3(0f, 9.2f, 0f);
         var grid = gridObject.AddComponent<InvaderGrid>();
         grid.invaderPrefabs = invaderPrefabs;
+        grid.eliteInvaderPrefab = eliteInvaderPrefab;
         grid.missilePrefab = missilePrefab;
+        grid.player = player.GetComponent<PlayerController>();
 
         var shield = NewSpriteObject("Shield", shieldBubbleSprite, 5);
         shield.transform.SetParent(player.transform, false);

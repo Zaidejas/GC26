@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WaveData
   rows: 7
   columns: 6
+  eliteCountMin: 0
+  eliteCountMax: 0
   speed: 2.7
   missileInterval: 0.5
   coinDropChance: 0.35

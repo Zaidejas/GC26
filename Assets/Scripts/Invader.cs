@@ -5,6 +5,13 @@ public class Invader : MonoBehaviour
 {
     public int points = 10;
 
+    [Header("Усиленный пришелец")]
+    public int hitPoints = 1;
+    [Range(0f, 1f)]
+    [Tooltip("Шанс, что выстрел этого пришельца полетит прицельно в игрока")]
+    public float aimedShotChance = 0f;
+    public Color damagedColor = new Color(0.55f, 0.55f, 0.55f);
+
     [Header("Анимация")]
     public Sprite[] frames;
     public float frameTime = 0.5f;
@@ -73,6 +80,15 @@ public class Invader : MonoBehaviour
     }
 
     // Вызывается пулей игрока
+    public void Hit()
+    {
+        hitPoints--;
+        if (hitPoints <= 0)
+            Kill();
+        else
+            spriteRenderer.color = damagedColor;
+    }
+
     public void Kill()
     {
         if (dead) return;

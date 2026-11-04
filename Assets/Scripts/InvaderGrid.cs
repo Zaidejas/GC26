@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // Сетка пришельцев: создание по WaveData, движение «змейкой», ускорение, стрельба
@@ -6,7 +7,11 @@ public class InvaderGrid : MonoBehaviour
     [Header("Префабы")]
     [Tooltip("0 - верхний ряд, 1 - средние ряды, 2 - нижние ряды")]
     public Invader[] invaderPrefabs;
+    public Invader eliteInvaderPrefab;
+    [Tooltip("Усиленные ставятся в нижние ряды: стреляют только нижние пришельцы")]
+    public int eliteBottomRows = 2;
     public Projectile missilePrefab;
+    public PlayerController player;
 
     [Header("Сетка")]
     public float spacingX = 1.4f;
@@ -55,12 +60,15 @@ public class InvaderGrid : MonoBehaviour
         invaders = new Invader[data.rows, data.columns];
         float startX = -(data.columns - 1) * spacingX / 2f;
 
+        HashSet<int> eliteCells = PickEliteCells(data);
+
         for (int row = 0; row < data.rows; row++)
         {
-            Invader prefab = invaderPrefabs[Mathf.Min(RowType(row, data.rows), invaderPrefabs.Length - 1)];
+            Invader rowPrefab = invaderPrefabs[Mathf.Min(RowType(row, data.rows), invaderPrefabs.Length - 1)];
 
             for (int col = 0; col < data.columns; col++)
             {
+                Invader prefab = eliteCells.Contains(row * data.columns + col) ? eliteInvaderPrefab : rowPrefab;
                 Invader invader = Instantiate(prefab, transform);
                 invader.transform.localPosition = new Vector3(startX + col * spacingX, -row * spacingY, 0f);
                 invader.Init(this, row, col, data.coinDropChance);
@@ -71,6 +79,26 @@ public class InvaderGrid : MonoBehaviour
         total = alive = data.rows * data.columns;
         shootTimer = NextShootDelay();
         active = true;
+    }
+
+    HashSet<int> PickEliteCells(WaveData data)
+    {
+        var cells = new List<int>();
+        for (int row = Mathf.Max(0, data.rows - eliteBottomRows); row < data.rows; row++)
+        {
+            for (int col = 0; col < data.columns; col++)
+                cells.Add(row * data.columns + col);
+        }
+
+        var picked = new HashSet<int>();
+        int count = Mathf.Min(cells.Count, Random.Range(data.eliteCountMin, data.eliteCountMax + 1));
+        for (int i = 0; i < count; i++)
+        {
+            int index = Random.Range(0, cells.Count);
+            picked.Add(cells[index]);
+            cells.RemoveAt(index);
+        }
+        return picked;
     }
 
     // Верхний ряд - самые ценные, затем средние, внизу - самые простые
@@ -145,10 +173,19 @@ public class InvaderGrid : MonoBehaviour
                 Invader invader = invaders[row, col];
                 if (invader == null) continue;
 
-                Instantiate(missilePrefab, invader.transform.position + Vector3.down * 0.55f, Quaternion.identity);
+                Projectile missile = Instantiate(missilePrefab, invader.transform.position + Vector3.down * 0.55f, Quaternion.identity);
+                if (player != null && Random.value < invader.aimedShotChance)
+                    AimAtPlayer(missile);
                 return;
             }
         }
+    }
+
+    void AimAtPlayer(Projectile missile)
+    {
+        Vector2 toPlayer = (player.transform.position - missile.transform.position).normalized;
+        missile.direction = toPlayer;
+        missile.transform.rotation = Quaternion.FromToRotation(Vector3.down, toPlayer);
     }
 
     float NextShootDelay()
