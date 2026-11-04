@@ -55,6 +55,7 @@ namespace Lines.EditorTools
 
             var view = BoardView.Create();
             view.ApplyLayout(layout);
+            view.SetPieces(PieceSet.RandomCreatures(7));
             view.ShowBoard(DemoBoard());
 
             Zone(layout, layout.Hud, new Color(0.23f, 0.43f, 0.88f, 0.22f));

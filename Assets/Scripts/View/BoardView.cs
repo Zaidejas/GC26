@@ -4,12 +4,9 @@ using UnityEngine;
 
 namespace Lines.View
 {
-    /// <summary>One ball on the board: a sprite that can be recoloured and reused.</summary>
+    /// <summary>One ball on the board (a creature or a glossy ball): a sprite that can be changed and reused.</summary>
     public sealed class BallView : MonoBehaviour
     {
-        /// <summary>Ball size compared to a cell (the prototype draws balls at 80%).</summary>
-        public const float SizeInCell = 0.8f;
-
         SpriteRenderer spriteRenderer;
         public BallColor Color { get; private set; }
 
@@ -23,10 +20,14 @@ namespace Lines.View
             return view;
         }
 
-        public void SetColor(BallColor color)
+        /// <summary>Shows <paramref name="color"/> using <paramref name="pieces"/> and sizes it to fit a cell.</summary>
+        public void SetColor(BallColor color, PieceSet pieces)
         {
             Color = color;
-            spriteRenderer.sprite = SpriteFactory.Ball(color);
+            var sprite = pieces.SpriteFor(color);
+            spriteRenderer.sprite = sprite;
+            var size = sprite.bounds.size;
+            transform.localScale = Vector3.one * (pieces.SizeInCell / Mathf.Max(size.x, size.y));
         }
     }
 
@@ -43,6 +44,16 @@ namespace Lines.View
         readonly Dictionary<Cell, BallView> balls = new Dictionary<Cell, BallView>();
         readonly Stack<BallView> pool = new Stack<BallView>();
         Transform ballRoot, poolRoot;
+        PieceSet pieces = PieceSet.Balls();
+
+        public PieceSet Pieces => pieces;
+
+        /// <summary>Switches between creatures and balls; balls already on the board change at once.</summary>
+        public void SetPieces(PieceSet set)
+        {
+            pieces = set ?? PieceSet.Balls();
+            foreach (var ball in balls.Values) ball.SetColor(ball.Color, pieces);
+        }
 
         public static BoardView Create(Transform parent = null)
         {
@@ -117,8 +128,7 @@ namespace Lines.View
             var ball = pool.Count > 0 ? pool.Pop() : BallView.Create(ballRoot);
             ball.transform.SetParent(ballRoot, false);
             ball.transform.localPosition = CellToLocal(cell);
-            ball.transform.localScale = Vector3.one * BallView.SizeInCell;
-            ball.SetColor(color);
+            ball.SetColor(color, pieces);
             return ball;
         }
 

@@ -210,7 +210,7 @@ The look is a clean, modern take on the original: cute blob creatures on a soft,
 
 - **Creatures for the MVP:** 9 blob creatures from the team's Figma file (purple, blue, grey-violet, green, teal with antlers, yellow, red, orange with spikes, light blue). Each game picks 7 of them at random. They're exported from Figma as PNGs with transparent backgrounds. Replacing them with other art is a later feature.
 - Some creatures have similar colors (the two blues, the grey); this is accepted for now and will be revisited with the art.
-- Until the PNGs are in the project, simple glossy circles generated in code stand in for them.
+- The game already uses creature images cut from screenshots of the Figma file (`Assets/Resources/Creatures`, about 130–175 px, slightly soft). Task 28 replaces them with sharp PNG exports. Glossy balls generated in code remain as a fallback if the images are missing.
 - A flat board with subtle cell borders. One theme in the MVP.
 - Preview dots: small versions of the next creatures, drawn in their target cells.
 - Animations: the selected ball bounces, balls grow in when they spawn, cleared balls shrink and burst into particles, and a blocked move shakes the ball.

@@ -21,7 +21,10 @@ namespace Lines.Game
             Application.targetFrameRate = 60;
             mainCamera = Camera.main;
             boardView = BoardView.Create();
-            game = GameState.NewGame(System.Environment.TickCount);
+            int seed = System.Environment.TickCount;
+            game = GameState.NewGame(seed);
+            // MVP art: 7 of the 9 creatures per game. For the glossy balls instead, use PieceSet.Balls().
+            boardView.SetPieces(PieceSet.RandomCreatures(seed));
             boardView.ShowBoard(game.Board);
             Relayout();
             Debug.Log("Lines: game started");

@@ -143,7 +143,7 @@ Tests/         EditMode tests for Core
 - **Simulators aren't real phones:** speed and touch feel differ. Check on a real phone from Week 5.
 - **Free Apple account limits:** the app stops working on your iPhone after 7 days and must be reinstalled from Xcode. Only your own devices can be used.
 - **Unity editor left open:** it locks the project, so tests and builds from the command line fail. Close Unity before handing work to Claude.
-- **Art taking too long:** the creatures already exist in Figma; until they are exported, generated glossy circles stand in for them.
+- **Art taking too long:** the creatures already exist in Figma, and versions cut from screenshots are already in the game; only the sharp export is left.
 
 ---
 
@@ -283,4 +283,4 @@ Tests/         EditMode-тесты для Core
 - **Симулятор — не настоящий телефон:** скорость и ощущение касаний отличаются. Проверяйте на настоящем телефоне начиная с 5-й недели.
 - **Ограничения бесплатного аккаунта Apple:** через 7 дней игра на iPhone перестаёт запускаться, и её нужно заново установить из Xcode. Устанавливать можно только на свои устройства.
 - **Открытый редактор Unity:** он блокирует проект, и тесты и сборки из командной строки не запускаются. Закрывайте Unity, прежде чем передавать работу Claude.
-- **Графика отнимает слишком много времени:** существа уже нарисованы в Figma; пока их не экспортировали, вместо них используются сгенерированные глянцевые круги.
+- **Графика отнимает слишком много времени:** существа уже нарисованы в Figma, и версии, вырезанные из скриншотов, уже есть в игре; осталось только чёткий экспорт.
