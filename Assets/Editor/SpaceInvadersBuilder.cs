@@ -9,7 +9,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 // Сборщик игры: Tools → Space Invaders → Build Game
-// Рисует спрайты, генерирует звуки, создаёт префабы, 3 волны, сцены MainMenu и Game
+// Рисует спрайты, генерирует звуки, создаёт префабы, 5 волн, сцены MainMenu и Game
 // и добавляет сцены в Build Settings. Всё созданное потом можно менять руками в редакторе.
 public static class SpaceInvadersBuilder
 {
@@ -305,6 +305,8 @@ public static class SpaceInvadersBuilder
             MakeWave("Wave1", 4, 8, 1.0f, 1.4f, 0.20f),
             MakeWave("Wave2", 5, 9, 1.4f, 1.0f, 0.25f),
             MakeWave("Wave3", 5, 11, 1.8f, 0.7f, 0.30f),
+            MakeWave("Wave4", 5, 11, 2.0f, 0.6f, 0.30f),
+            MakeWave("Wave5", 5, 11, 2.2f, 0.5f, 0.35f),
         };
     }
 
@@ -452,7 +454,7 @@ public static class SpaceInvadersBuilder
         ui.scoreText = MakeText(canvas, "Score", "SCORE 0", 40, TextAlignmentOptions.TopLeft, topLeft, new Vector2(30f, -20f), new Vector2(500f, 60f));
         ui.livesText = MakeText(canvas, "Lives", "LIVES 3", 40, TextAlignmentOptions.TopLeft, topLeft, new Vector2(30f, -70f), new Vector2(500f, 60f));
         ui.livesText.color = PlayerColor;
-        ui.waveText = MakeText(canvas, "Wave", "WAVE 1/3", 40, TextAlignmentOptions.Top, top, new Vector2(0f, -20f), new Vector2(500f, 60f));
+        ui.waveText = MakeText(canvas, "Wave", "WAVE 1/5", 40, TextAlignmentOptions.Top, top, new Vector2(0f, -20f), new Vector2(500f, 60f));
         ui.coinsText = MakeText(canvas, "Coins", "COINS 0", 40, TextAlignmentOptions.TopRight, topRight, new Vector2(-30f, -20f), new Vector2(500f, 60f));
         ui.coinsText.color = GoldColor;
         ui.bannerText = MakeText(canvas, "WaveBanner", "WAVE 1", 110, TextAlignmentOptions.Center, center, Vector2.zero, new Vector2(1400f, 200f));
