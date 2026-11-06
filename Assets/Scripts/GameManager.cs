@@ -20,6 +20,18 @@ public class GameManager : MonoBehaviour
     public int HighScore => PlayerPrefs.GetInt(HighScoreKey, 0);
     public int TotalCoins => PlayerPrefs.GetInt(TotalCoinsKey, 0);
 
+    [Header("Бонусы при победе")]
+    public int bonusPerLife = 1000;
+    public int bonusPerCoin = 10;
+
+    // Итоги забега для экранов конца игры
+    public int BaseScore { get; private set; }
+    public int LivesBonus { get; private set; }
+    public int CoinsBonus { get; private set; }
+    public int PreviousBest { get; private set; }
+    // Место в таблице рекордов (0..4) или -1
+    public int TableIndex { get; private set; } = -1;
+
     // Изменились очки/жизни/монеты - UI обновляется
     public event System.Action StatsChanged;
     // Конец игры: true = победа, false = поражение
@@ -39,6 +51,23 @@ public class GameManager : MonoBehaviour
     {
         if (Instance == this) Instance = null;
     }
+
+#if UNITY_EDITOR
+    // Только в редакторе: F9 - победа, F10 - поражение, чтобы смотреть экраны конца игры
+    void Update()
+    {
+        if (IsGameOver) return;
+#if ENABLE_INPUT_SYSTEM
+        var keyboard = UnityEngine.InputSystem.Keyboard.current;
+        if (keyboard == null) return;
+        if (keyboard.f9Key.wasPressedThisFrame) Victory();
+        else if (keyboard.f10Key.wasPressedThisFrame) GameOver();
+#elif ENABLE_LEGACY_INPUT_MANAGER
+        if (Input.GetKeyDown(KeyCode.F9)) Victory();
+        else if (Input.GetKeyDown(KeyCode.F10)) GameOver();
+#endif
+    }
+#endif
 
     public void AddScore(int amount)
     {
@@ -86,21 +115,38 @@ public class GameManager : MonoBehaviour
         if (IsGameOver) return;
 
         IsGameOver = true;
+
+        // При победе к счёту добавляются бонусы за оставшиеся жизни и монеты забега
+        BaseScore = Score;
+        if (victory)
+        {
+            LivesBonus = Lives * bonusPerLife;
+            CoinsBonus = Coins * bonusPerCoin;
+            Score += LivesBonus + CoinsBonus;
+        }
+
+        PreviousBest = HighScoreTable.Best;
         SaveProgress();
         Time.timeScale = 0f;
         GameEnded?.Invoke(victory);
     }
 
-    // Монеты копятся между играми, рекорд обновляется. Сохраняем один раз за забег
+    // Монеты копятся между играми, результат попадает в таблицу рекордов
+    // с последними инициалами (на экране победы их можно сменить). Один раз за забег
     void SaveProgress()
     {
         if (progressSaved) return;
         progressSaved = true;
 
         PlayerPrefs.SetInt(TotalCoinsKey, TotalCoins + Coins);
-        if (Score > HighScore)
-            PlayerPrefs.SetInt(HighScoreKey, Score);
+        TableIndex = HighScoreTable.Insert(HighScoreTable.LastInitials, Score);
         PlayerPrefs.Save();
+    }
+
+    public void RenameRecord(string initials)
+    {
+        HighScoreTable.LastInitials = initials;
+        HighScoreTable.Rename(TableIndex, initials);
     }
 
     public void Restart()

@@ -253,6 +253,7 @@ public static class SpaceInvadersBuilder
     static Sprite playerSprite, laserSprite, missileSprite, coinSprite, explosionSprite, blockSprite, blockTopSprite, blockGrooveSprite;
     static Sprite boss1Sprite, boss2Sprite, boss1AngrySprite, boss2AngrySprite, heartSprite;
     static Sprite canSprite, slotSprite, pauseSprite, buttonSprite, logoSprite;
+    static Sprite btnOutlineSprite, btnFillSprite, btnGlowSprite, windowSprite;
     static Sprite shieldBubbleSprite, shieldIconSprite, bunkerIconSprite, rapidFireIconSprite, uiSquareSprite;
     static Sprite[] squidFrames, crabFrames, octopusFrames, eliteFrames;
     static AudioClip shootClip, explosionClip, coinClip, hitClip;
@@ -442,9 +443,16 @@ public static class SpaceInvadersBuilder
         pauseSprite = Art("pause", 100f, null);
         buttonSprite = Art("button", 100f, null);
         logoSprite = Art("logo", 100f, null);
+
+        // Экраны конца игры: аркадные кнопки, свечение нажатия, окно Game Over (9-slice)
+        btnOutlineSprite = Art("btn_outline", 100f, uiSquareSprite);
+        btnFillSprite = Art("btn_fill", 100f, uiSquareSprite);
+        btnGlowSprite = Art("btn_glow", 100f, null);
+        windowSprite = Art("window", 100f, uiSquareSprite, new Vector4(80f, 80f, 80f, 80f));
     }
 
-    static Sprite Art(string name, float pixelsPerUnit, Sprite fallback)
+    // border - края для 9-slice (левый, нижний, правый, верхний), по умолчанию без растягивания по краям
+    static Sprite Art(string name, float pixelsPerUnit, Sprite fallback, Vector4 border = default)
     {
         string path = $"{GameArtDir}/{name}.png";
         var importer = AssetImporter.GetAtPath(path) as TextureImporter;
@@ -453,6 +461,7 @@ public static class SpaceInvadersBuilder
         importer.textureType = TextureImporterType.Sprite;
         importer.spriteImportMode = SpriteImportMode.Single;
         importer.spritePixelsPerUnit = pixelsPerUnit;
+        importer.spriteBorder = border;
         importer.filterMode = FilterMode.Bilinear;
         importer.textureCompression = TextureImporterCompression.Uncompressed;
         importer.mipmapEnabled = false;
@@ -814,14 +823,9 @@ public static class SpaceInvadersBuilder
         pauseRect.anchoredPosition = new Vector2(-30f, -20f);
         pauseRect.sizeDelta = new Vector2(120f, 120f);
 
-        // Экран конца игры
-        var endPanel = MakePanel(canvas, "EndPanel", new Color(0f, 0f, 0f, 0.8f));
-        ui.endPanel = endPanel;
-        ui.endTitleText = MakeText(endPanel.transform, "Title", "GAME OVER", 120, TextAlignmentOptions.Center, center, new Vector2(0f, 360f), new Vector2(1200f, 170f));
-        ui.endStatsText = MakeText(endPanel.transform, "Stats", "", 56, TextAlignmentOptions.Center, center, new Vector2(0f, 100f), new Vector2(1200f, 300f));
-        ui.restartButton = MakeButton(endPanel.transform, "RestartButton", "PLAY AGAIN", new Vector2(0f, -170f));
-        ui.menuButton = MakeButton(endPanel.transform, "MenuButton", "MAIN MENU", new Vector2(0f, -330f));
-        endPanel.SetActive(false);
+        // Экраны конца игры: аркадная победа и окно Game Over
+        ui.victoryScreen = BuildVictoryScreen(canvas);
+        ui.gameOverWindow = BuildGameOverWindow(canvas);
 
         // Пауза
         var pause = canvas.gameObject.AddComponent<PauseMenu>();
@@ -1341,6 +1345,254 @@ public static class SpaceInvadersBuilder
         var center = new Vector2(0.5f, 0.5f);
         slot.cooldownText = MakeText(go.transform, "CooldownText", "", 90, TextAlignmentOptions.Center, center, Vector2.zero, new Vector2(200f, 120f));
         slot.costText = MakeText(go.transform, "Cost", "", 44, TextAlignmentOptions.Center, new Vector2(0.5f, 0f), new Vector2(0f, 4f), new Vector2(200f, 56f));
+    }
+
+    // ================= Экраны конца игры =================
+
+    static readonly Color ScreenDark = new Color(0.024f, 0.082f, 0.043f);   // #06150B
+    static readonly Color PhosphorMid = new Color(0.28f, 0.83f, 0.42f);     // #48D46C
+    static readonly Color PhosphorLine = new Color(0.12f, 0.54f, 0.24f);    // #1F8A3E
+    static readonly Color HighScoreYellow = new Color(1f, 0.83f, 0.35f);    // #FFD45A
+
+    static TextMeshProUGUI TopText(Transform parent, string name, string text, float size, float x, float y,
+        float width, TextAlignmentOptions alignment, Color color)
+    {
+        var label = MakeText(parent, name, text, size, alignment, new Vector2(0.5f, 1f), new Vector2(x, y), new Vector2(width, size * 1.5f));
+        label.color = color;
+        return label;
+    }
+
+    static void TopLine(Transform parent, float y)
+    {
+        var line = MakeChildImage(parent, "Line", uiSquareSprite, PhosphorLine);
+        var rect = line.rectTransform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 1f);
+        rect.anchoredPosition = new Vector2(0f, y);
+        rect.sizeDelta = new Vector2(1100f, 8f);
+    }
+
+    static void AddBlink(Component text, float period = 1f)
+    {
+        text.gameObject.AddComponent<BlinkGraphic>().period = period;
+    }
+
+    // Аркадная кнопка-капсула: filled - залитая (главная), иначе с обводкой
+    static PressableButton MakeArcadeButton(Transform parent, string name, string label, bool filled,
+        Vector2 anchor, Vector2 position, Vector2 size)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        var rect = (RectTransform)go.transform;
+        rect.anchorMin = rect.anchorMax = anchor;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+
+        var button = go.AddComponent<PressableButton>();
+
+        if (btnGlowSprite != null)
+        {
+            button.glow = MakeChildImage(go.transform, "Glow", btnGlowSprite, Color.white);
+            button.glow.rectTransform.sizeDelta = new Vector2(size.x * 700f / 540f, size.y * 310f / 150f);
+        }
+
+        // Не "Background": под этим именем фон игры ищет SpaceInvadersBackground и, найдя, не добавляет его
+        button.background = MakeChildImage(go.transform, "Plate", filled ? btnFillSprite : btnOutlineSprite, Color.white);
+        button.background.raycastTarget = true;
+        Stretch(button.background.rectTransform);
+
+        var mint = new Color(0.66f, 0.96f, 0.74f);
+        button.normalSprite = filled ? btnFillSprite : btnOutlineSprite;
+        button.normalColor = filled ? mint : Color.white;
+        button.normalLabelColor = filled ? ScreenDark : mint;
+        button.litSprite = btnFillSprite;
+        button.litColor = filled ? new Color(0.95f, 1f, 0.96f) : mint;
+        button.litLabelColor = ScreenDark;
+
+        button.label = MakeText(go.transform, "Label", label, size.y * 0.37f, TextAlignmentOptions.Center,
+            new Vector2(0.5f, 0.5f), Vector2.zero, size);
+        button.label.color = button.normalLabelColor;
+        return button;
+    }
+
+    // Поле ввода TextMeshPro в стиле кнопки-обводки. Привязка к верху родителя
+    static TMP_InputField MakeInputField(Transform parent, string name, Vector2 position, Vector2 size)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(parent, false);
+        var rect = (RectTransform)go.transform;
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 1f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+        var frame = go.GetComponent<Image>();
+        frame.sprite = btnOutlineSprite;
+        frame.color = Color.white;
+
+        // Область текста с обрезкой по краям
+        var area = new GameObject("TextArea", typeof(RectTransform), typeof(RectMask2D));
+        area.transform.SetParent(go.transform, false);
+        var areaRect = (RectTransform)area.transform;
+        areaRect.anchorMin = Vector2.zero;
+        areaRect.anchorMax = Vector2.one;
+        areaRect.offsetMin = new Vector2(40f, 10f);
+        areaRect.offsetMax = new Vector2(-40f, -10f);
+
+        var center = new Vector2(0.5f, 0.5f);
+        var placeholder = MakeText(area.transform, "Placeholder", "NAME", 60, TextAlignmentOptions.Center, center, Vector2.zero, Vector2.zero);
+        placeholder.color = PhosphorLine;
+        Stretch(placeholder.rectTransform);
+        var text = MakeText(area.transform, "Text", "", 60, TextAlignmentOptions.Center, center, Vector2.zero, Vector2.zero);
+        Stretch(text.rectTransform);
+
+        var input = go.AddComponent<TMP_InputField>();
+        input.targetGraphic = frame;
+        input.textViewport = areaRect;
+        input.textComponent = text;
+        input.placeholder = placeholder;
+        input.fontAsset = text.font;
+        input.pointSize = 60;
+        input.lineType = TMP_InputField.LineType.SingleLine;
+        input.characterLimit = 8;
+        input.customCaretColor = true;
+        input.caretColor = TextColor;
+        input.caretWidth = 4;
+        input.selectionColor = new Color(0.28f, 0.83f, 0.42f, 0.45f);
+        input.keyboardType = TouchScreenKeyboardType.Default;
+        return input;
+    }
+
+    static VictoryScreen BuildVictoryScreen(Transform canvas)
+    {
+        var panel = MakePanel(canvas, "VictoryScreen", ScreenDark);
+        var screen = panel.AddComponent<VictoryScreen>();
+        Transform area = MakeSafeArea(panel.transform);
+        var left = TextAlignmentOptions.Left;
+        var right = TextAlignmentOptions.Right;
+        var mid = TextAlignmentOptions.Center;
+
+        // Шапка автомата: 1UP и HI
+        screen.oneUpLabel = TopText(area, "1UP", "1UP", 40, -380f, -60f, 200f, mid, PhosphorMid);
+        screen.topScoreText = TopText(area, "TopScore", "00000", 40, -160f, -60f, 260f, mid, TextColor);
+        screen.hiLabel = TopText(area, "HI", "HI", 40, 150f, -60f, 160f, mid, PhosphorMid);
+        screen.topBestText = TopText(area, "TopBest", "00000", 40, 360f, -60f, 260f, mid, TextColor);
+
+        screen.titleText = TopText(area, "Title", "CONGRATULATIONS!", 96, 0f, -220f, 1240f, mid, TextColor);
+        AddBlink(screen.titleText);
+        screen.subtitleText = TopText(area, "Subtitle", "EARTH IS SAVED\nALL 5 WAVES CLEARED", 44, 0f, -400f, 1200f, mid, PhosphorMid);
+        screen.subtitleText.rectTransform.sizeDelta = new Vector2(1200f, 140f);
+        TopLine(area, -580f);
+
+        // Подсчёт очков: подпись слева, число справа
+        screen.scoreLabel = TopText(area, "ScoreLabel", "SCORE", 48, 0f, -630f, 1080f, left, TextColor);
+        screen.scoreValue = TopText(area, "ScoreValue", "", 48, 0f, -630f, 1080f, right, TextColor);
+        screen.livesLabel = TopText(area, "LivesLabel", "LIVES", 48, 0f, -720f, 1080f, left, TextColor);
+        screen.livesValue = TopText(area, "LivesValue", "", 48, 0f, -720f, 1080f, right, TextColor);
+        screen.coinsLabel = TopText(area, "CoinsLabel", "COINS", 48, 0f, -810f, 1080f, left, TextColor);
+        screen.coinsValue = TopText(area, "CoinsValue", "", 48, 0f, -810f, 1080f, right, TextColor);
+        screen.totalLabel = TopText(area, "TotalLabel", "TOTAL", 62, 0f, -915f, 1080f, left, TextColor);
+        screen.totalValue = TopText(area, "TotalValue", "", 62, 0f, -915f, 1080f, right, TextColor);
+
+        screen.newHighScore = TopText(area, "NewHighScore", "NEW HIGH SCORE!", 54, 0f, -1030f, 1200f, mid, HighScoreYellow);
+        AddBlink(screen.newHighScore);
+        TopLine(area, -1130f);
+
+        // Таблица TOP 5
+        var table = new GameObject("Table", typeof(RectTransform));
+        table.transform.SetParent(area, false);
+        Stretch((RectTransform)table.transform);
+        screen.tableRoot = table;
+        screen.tableTitle = TopText(table.transform, "TableTitle", "- TOP 5 -", 40, 0f, -1165f, 600f, mid, PhosphorMid);
+
+        string[] ranks = { "1ST", "2ND", "3RD", "4TH", "5TH" };
+        screen.rankTexts = new TMP_Text[ranks.Length];
+        screen.nameTexts = new TMP_Text[ranks.Length];
+        screen.scoreTexts = new TMP_Text[ranks.Length];
+        screen.rowHighlights = new Image[ranks.Length];
+        for (int i = 0; i < ranks.Length; i++)
+        {
+            float y = -1240f - i * 90f;
+            var highlight = MakeChildImage(table.transform, $"Row{i + 1}", uiSquareSprite, new Color(0.07f, 0.23f, 0.12f));
+            var rect = highlight.rectTransform;
+            rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, y + 6f);
+            rect.sizeDelta = new Vector2(1100f, 84f);
+            screen.rowHighlights[i] = highlight;
+
+            screen.rankTexts[i] = TopText(table.transform, $"Rank{i + 1}", ranks[i], 46, 0f, y, 1040f, left, PhosphorMid);
+            // Колонка имени шириной под 8 символов
+            screen.nameTexts[i] = TopText(table.transform, $"Name{i + 1}", "---", 46, 10f, y, 560f, left, TextColor);
+            screen.scoreTexts[i] = TopText(table.transform, $"Score{i + 1}", "00000", 46, 0f, y, 1040f, right, TextColor);
+        }
+
+        // Ввод имени: поле с клавиатурой (экранной на телефоне) и OK
+        var initials = new GameObject("Initials", typeof(RectTransform));
+        initials.transform.SetParent(table.transform, false);
+        Stretch((RectTransform)initials.transform);
+        screen.initialsPanel = initials;
+        screen.initialsHint = TopText(initials.transform, "Hint", "ENTER YOUR NAME", 36, 0f, -1700f, 800f, mid, PhosphorMid);
+        screen.initialsInput = MakeInputField(initials.transform, "NameInput", new Vector2(-130f, -1830f), new Vector2(620f, 130f));
+        screen.initialsOkButton = MakeArcadeButton(initials.transform, "NameOk", "OK", false,
+            new Vector2(0.5f, 1f), new Vector2(330f, -1830f), new Vector2(220f, 130f));
+
+        // Кнопки внизу экрана
+        var bottom = new Vector2(0.5f, 0f);
+        screen.menuButton = MakeArcadeButton(area, "MenuButton", "MENU", false, bottom, new Vector2(-290f, 260f), new Vector2(540f, 150f));
+        screen.restartButton = MakeArcadeButton(area, "RestartButton", "RESTART", true, bottom, new Vector2(290f, 260f), new Vector2(540f, 150f));
+
+        panel.SetActive(false);
+        return screen;
+    }
+
+    static GameOverWindow BuildGameOverWindow(Transform canvas)
+    {
+        var root = new GameObject("GameOverWindow", typeof(RectTransform));
+        root.transform.SetParent(canvas, false);
+        Stretch((RectTransform)root.transform);
+        var window = root.AddComponent<GameOverWindow>();
+
+        // Затемнение перехватывает касания, чтобы игра под окном не реагировала
+        window.dimmer = MakeChildImage(root.transform, "Dimmer", null, new Color(0.01f, 0.04f, 0.02f, 0f));
+        window.dimmer.raycastTarget = true;
+        Stretch(window.dimmer.rectTransform);
+
+        var frame = MakeChildImage(root.transform, "Window", windowSprite, Color.white);
+        frame.type = Image.Type.Sliced;
+        window.window = frame.rectTransform;
+        window.window.sizeDelta = new Vector2(1200f, 1340f);
+        Transform w = frame.transform;
+        var left = TextAlignmentOptions.Left;
+        var right = TextAlignmentOptions.Right;
+        var mid = TextAlignmentOptions.Center;
+
+        window.titleTop = TopText(w, "TitleTop", "GAME", 140, 0f, -70f, 1000f, mid, TextColor);
+        window.titleBottom = TopText(w, "TitleBottom", "OVER", 140, 0f, -230f, 1000f, mid, TextColor);
+        TopLine(w, -440f);
+
+        float[] rows = { -490f, -580f, -670f, -760f };
+        window.scoreLabel = TopText(w, "ScoreLabel", "", 50, 0f, rows[0], 1040f, left, PhosphorMid);
+        window.scoreValue = TopText(w, "ScoreValue", "", 50, 0f, rows[0], 1040f, right, TextColor);
+        window.waveLabel = TopText(w, "WaveLabel", "", 50, 0f, rows[1], 1040f, left, PhosphorMid);
+        window.waveValue = TopText(w, "WaveValue", "", 50, 0f, rows[1], 1040f, right, TextColor);
+        window.coinsLabel = TopText(w, "CoinsLabel", "", 50, 0f, rows[2], 1040f, left, PhosphorMid);
+        window.coinsValue = TopText(w, "CoinsValue", "", 50, 0f, rows[2], 1040f, right, TextColor);
+        window.bestLabel = TopText(w, "BestLabel", "", 50, 0f, rows[3], 1040f, left, PhosphorMid);
+        window.bestValue = TopText(w, "BestValue", "", 50, 0f, rows[3], 1040f, right, TextColor);
+
+        window.newHighScore = TopText(w, "NewHighScore", "", 46, 0f, -870f, 1100f, mid, HighScoreYellow);
+        AddBlink(window.newHighScore);
+        window.newHighScore.GetComponent<BlinkGraphic>().enabled = false;
+
+        var top = new Vector2(0.5f, 1f);
+        window.menuButton = MakeArcadeButton(w, "MenuButton", "", false, top, new Vector2(-275f, -1040f), new Vector2(520f, 140f));
+        window.restartButton = MakeArcadeButton(w, "RestartButton", "", true, top, new Vector2(275f, -1040f), new Vector2(520f, 140f));
+
+        window.insertCoin = TopText(w, "InsertCoin", "", 36, 0f, -1190f, 800f, mid, PhosphorMid);
+        AddBlink(window.insertCoin);
+        window.insertCoin.GetComponent<BlinkGraphic>().enabled = false;
+
+        root.SetActive(false);
+        return window;
     }
 
     static Button MakeButton(Transform parent, string name, string label, Vector2 position)

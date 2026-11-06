@@ -21,11 +21,10 @@ public class UIManager : MonoBehaviour
     public Image bossBarFill;
 
     [Header("Конец игры")]
-    public GameObject endPanel;
-    public TMP_Text endTitleText;
-    public TMP_Text endStatsText;
-    public Button restartButton;
-    public Button menuButton;
+    public VictoryScreen victoryScreen;
+    public GameOverWindow gameOverWindow;
+    [Tooltip("Корабль мигает перед окном Game Over")]
+    public SpriteRenderer playerSprite;
 
     public WaveManager waveManager;
 
@@ -35,15 +34,24 @@ public class UIManager : MonoBehaviour
     void Start()
     {
         gm = GameManager.Instance;
+        if (playerSprite == null)
+        {
+            var player = FindFirstObjectByType<PlayerController>();
+            if (player != null) playerSprite = player.GetComponent<SpriteRenderer>();
+        }
         gm.StatsChanged += RefreshStats;
         gm.GameEnded += ShowEndScreen;
         waveManager.WaveStarted += OnWaveStarted;
         waveManager.BossSpawned += OnBossSpawned;
 
-        restartButton.onClick.AddListener(gm.Restart);
-        menuButton.onClick.AddListener(gm.LoadMenu);
+        // На экране победы недовведённые инициалы сохраняются перед переходом
+        victoryScreen.menuButton.onPress.AddListener(() => { victoryScreen.FinishInitials(); gm.LoadMenu(); });
+        victoryScreen.restartButton.onPress.AddListener(() => { victoryScreen.FinishInitials(); gm.Restart(); });
+        gameOverWindow.menuButton.onPress.AddListener(gm.LoadMenu);
+        gameOverWindow.restartButton.onPress.AddListener(gm.Restart);
 
-        endPanel.SetActive(false);
+        victoryScreen.gameObject.SetActive(false);
+        gameOverWindow.gameObject.SetActive(false);
         bannerText.gameObject.SetActive(false);
         bossBar.SetActive(false);
         RefreshStats();
@@ -125,13 +133,10 @@ public class UIManager : MonoBehaviour
     {
         StopAllCoroutines();
         bannerText.gameObject.SetActive(false);
-        endPanel.SetActive(true);
 
-        endTitleText.text = victory ? "YOU WIN!" : "GAME OVER";
-        endTitleText.color = victory ? new Color(0.78f, 1f, 0.84f) : new Color(0.13f, 0.76f, 0.29f);
-        endStatsText.text =
-            $"SCORE  {gm.Score}\n" +
-            $"BEST  {gm.HighScore}\n" +
-            $"COINS  +{gm.Coins}   (TOTAL {gm.TotalCoins})";
+        if (victory)
+            victoryScreen.Show(gm);
+        else
+            gameOverWindow.Show(gm, waveManager, playerSprite);
     }
 }
