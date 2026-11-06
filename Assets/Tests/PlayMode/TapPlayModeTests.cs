@@ -19,6 +19,7 @@ namespace Lines.Tests
             yield return SceneManager.LoadSceneAsync("Main");
             yield return null;
             var game = Object.FindAnyObjectByType<GameBootstrap>();
+            game.Menu.NewGameButton.Click();
             var board = game.Controller.Game.Board;
             var layout = game.Layout;
 

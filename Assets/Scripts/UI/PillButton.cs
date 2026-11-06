@@ -8,7 +8,8 @@ namespace Lines.UI
 {
     /// <summary>
     /// A rounded button like the prototype's: white with a thin border and dark bold text
-    /// (or dark with white text for the main action). Disabled buttons fade to 40 %.
+    /// (or dark with white text for the main action). Disabled buttons fade to 40 %; a disabled main
+    /// button turns light grey instead (as the prototype's Continue). Can also show an icon (the back arrow).
     /// Built from code; sizes are given in units (1 % of the content width).
     /// </summary>
     public sealed class PillButton : MonoBehaviour
@@ -20,6 +21,9 @@ namespace Lines.UI
         TextMeshProUGUI label;
         Button button;
         CanvasGroup group;
+        Image icon;
+        bool primary;
+        const float IconSize = 5.4f;
 
         public event Action Clicked;
         public string Text => label.text;
@@ -30,7 +34,18 @@ namespace Lines.UI
             set
             {
                 button.interactable = value;
-                group.alpha = value ? 1f : 0.4f; // prototype: disabled buttons at 40 % opacity
+                if (primary)
+                {
+                    // Prototype: a disabled main button is light grey with soft text, not faded.
+                    border.color = value ? Palette.Text : Palette.Line;
+                    fill.color = value ? Palette.Text : Palette.Hex(0xEBE5DA);
+                    label.color = value ? Color.white : Palette.SoftText;
+                    group.alpha = 1f;
+                }
+                else
+                {
+                    group.alpha = value ? 1f : 0.4f; // prototype: disabled buttons at 40 % opacity
+                }
             }
         }
 
@@ -42,8 +57,26 @@ namespace Lines.UI
             return b;
         }
 
+        /// <summary>A round button showing <paramref name="iconSprite"/> instead of text (e.g. the back arrow).</summary>
+        public static PillButton CreateIcon(RectTransform parent, Sprite iconSprite, string name)
+        {
+            var b = Create(parent, "");
+            b.gameObject.name = "Button " + name;
+            b.icon = b.Child("Icon").gameObject.AddComponent<Image>();
+            b.icon.sprite = iconSprite;
+            b.icon.color = Palette.Text;
+            b.icon.preserveAspect = true;
+            b.icon.raycastTarget = false;
+            var r = b.icon.rectTransform;
+            r.anchorMin = r.anchorMax = r.pivot = new Vector2(0.5f, 0.5f);
+            return b;
+        }
+
+        public bool HasIcon => icon != null;
+
         void Build(RectTransform parent, string text, bool primary)
         {
+            this.primary = primary;
             rect = (RectTransform)transform;
             rect.SetParent(parent, false);
             rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
@@ -84,6 +117,7 @@ namespace Lines.UI
             UiShapes.MakePill(fill, pixels.height - 2f * inset);
 
             label.fontSize = FontSize * unit;
+            if (icon != null) icon.rectTransform.sizeDelta = Vector2.one * IconSize * unit;
         }
 
         public void SetText(string text)

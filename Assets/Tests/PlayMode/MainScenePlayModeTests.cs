@@ -16,6 +16,11 @@ namespace Lines.Tests
             yield return SceneManager.LoadSceneAsync("Main");
             yield return null;
 
+            var game = Object.FindAnyObjectByType<Lines.Game.GameBootstrap>();
+            Assert.IsTrue(game.Menu.IsShowing, "The app opens on the main menu");
+            Assert.IsNull(Object.FindAnyObjectByType<BoardView>(), "The board is hidden behind the menu");
+            game.Menu.NewGameButton.Click();
+
             var board = Object.FindAnyObjectByType<BoardView>();
             Assert.IsNotNull(board, "The board was created from code");
             Assert.AreEqual(3, board.BallCount, "A new game starts with 3 balls");

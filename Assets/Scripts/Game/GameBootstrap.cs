@@ -17,6 +17,7 @@ namespace Lines.Game
         Camera mainCamera;
         BoardView boardView;
         HudView hud;
+        MenuView menu;
         Vector2 lastScreenSize;
         Rect lastSafeArea;
 
@@ -26,10 +27,17 @@ namespace Lines.Game
         public BoardLayout Layout { get; private set; }
         public BoardView BoardView => boardView;
         public HudView Hud => hud;
+        public MenuView Menu => menu;
+
+        /// <summary>True while the game screen (board and HUD) is showing; false on the main menu.</summary>
+        public bool GameScreenShowing { get; private set; }
+
+        /// <summary>There is a game that isn't over (Continue is available).</summary>
+        public bool HasUnfinishedGame => Controller != null && !Controller.Game.IsOver;
         public InputHandler Taps { get; private set; }
 
-        /// <summary>True while a pop-up covers the board, so board taps are ignored.</summary>
-        public bool InputBlocked => hud != null && hud.Dialog.IsOpen;
+        /// <summary>True when board taps must be ignored: a pop-up is open, or the menu is showing.</summary>
+        public bool InputBlocked => !GameScreenShowing || (hud != null && hud.Dialog.IsOpen);
 
         BoardPresenter presenter;
         SaveService saves;
@@ -46,10 +54,11 @@ namespace Lines.Game
             mainCamera = Camera.main;
             boardView = BoardView.Create();
             hud = HudView.Create(mainCamera);
+            menu = MenuView.Create(mainCamera);
             presenter = new BoardPresenter(boardView, hud);
             saves = new SaveService();
-            // For now the saved game continues by itself; task 22 moves this onto the menu's Continue button.
-            if (!TryContinueSavedGame()) StartNewGame();
+            // A saved game is loaded but waits behind Continue; without one, the menu still shows pieces.
+            if (!TryContinueSavedGame()) boardView.SetPieces(PieceSet.RandomCreatures(System.Environment.TickCount));
             Relayout();
             Taps = gameObject.AddComponent<InputHandler>();
             Taps.Init(this);
@@ -59,6 +68,12 @@ namespace Lines.Game
                 new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
             hud.UndoClicked += () => Controller.Undo();
             hud.ResetClicked += AskToReset;
+            hud.BackClicked += BackToMenu;
+            menu.ContinueClicked += Continue;
+            menu.NewGameClicked += AskForNewGame;
+            // How to play and Leaderboard come in tasks 23 and 24.
+            menu.SetSecondaryScreensAvailable(howToPlay: false, leaderboardScreen: false);
+            ShowMenu();
             Debug.Log("Lines: game started");
         }
 
@@ -72,7 +87,50 @@ namespace Lines.Game
             SaveGame(); // Reset also starts a new save
         }
 
-        /// <summary>Continues the saved game, if there is one that isn't over. Returns false otherwise.</summary>
+        // ---- Screens ----
+
+        /// <summary>The app opens here. Continue shows the saved game's score, or is greyed out.</summary>
+        public void ShowMenu()
+        {
+            GameScreenShowing = false;
+            boardView.gameObject.SetActive(false);
+            hud.SetVisible(false);
+            menu.Show(HasUnfinishedGame ? Controller.Game.Score : (int?)null, boardView.Pieces);
+        }
+
+        public void ShowGame()
+        {
+            menu.Hide();
+            boardView.gameObject.SetActive(true);
+            hud.SetVisible(true);
+            GameScreenShowing = true;
+        }
+
+        /// <summary>Menu → Continue: back to the saved game, exactly where it was.</summary>
+        public void Continue()
+        {
+            if (HasUnfinishedGame) ShowGame();
+        }
+
+        /// <summary>Menu → New game: starts at once, or asks first if a game is unfinished (GDD → Main menu).</summary>
+        public void AskForNewGame()
+        {
+            if (hud.Dialog.IsOpen) return;
+            if (!HasUnfinishedGame) { StartNewGame(); ShowGame(); return; }
+            hud.Dialog.Show(ResetTitle, ResetMessage, "Yes", () => { StartNewGame(); ShowGame(); });
+        }
+
+        /// <summary>The back arrow: saves the game and returns to the menu (not while an animation plays).</summary>
+        public void BackToMenu()
+        {
+            if (!GameScreenShowing || hud.Dialog.IsOpen) return;
+            if (Controller != null && !Controller.AcceptsInput && Controller.State != TurnState.GameOver) return;
+            Controller?.ClearSelection();
+            SaveGame();
+            ShowMenu();
+        }
+
+        /// <summary>Loads the saved game, if there is one that isn't over. Returns false otherwise.</summary>
         public bool TryContinueSavedGame()
         {
             var save = saves.Load();
@@ -123,6 +181,7 @@ namespace Lines.Game
             CameraSetup.Apply(mainCamera, Layout);
             boardView.ApplyLayout(Layout);
             hud.ApplyLayout(Layout);
+            menu.ApplyLayout(Layout);
         }
     }
 }

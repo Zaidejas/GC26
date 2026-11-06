@@ -90,6 +90,37 @@ namespace Lines.View
             return disc;
         }
 
+        static Sprite chevron;
+
+        /// <summary>A white "‹" arrow with rounded ends, like the prototype's back button icon.</summary>
+        public static Sprite BackArrow()
+        {
+            if (chevron != null) return chevron;
+            const int n = 64;
+            // The prototype's SVG path "M15 5 l-7 7 7 7" on a 24-unit grid, stroke 2.8.
+            var a = new Vector2(15f, 5f) * n / 24f;
+            var b = new Vector2(8f, 12f) * n / 24f;
+            var c = new Vector2(15f, 19f) * n / 24f;
+            float half = 2.8f / 2f * n / 24f;
+            var pixels = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                var p = new Vector2(x + 0.5f, n - (y + 0.5f)); // SVG y points down
+                float d = Mathf.Min(DistanceToSegment(p, a, b), DistanceToSegment(p, b, c));
+                pixels[y * n + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(half - d + 0.5f));
+            }
+            chevron = Sprite.Create(NewTexture(n, pixels, "BackArrow"), new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), n);
+            return chevron;
+        }
+
+        static float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
+        {
+            var ab = b - a;
+            float t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / ab.sqrMagnitude);
+            return Vector2.Distance(p, a + ab * t);
+        }
+
         /// <summary>A plain white square, 1 world unit wide.</summary>
         public static Sprite Pixel()
         {

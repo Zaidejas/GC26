@@ -71,6 +71,13 @@ namespace Lines.Game
             return true;
         }
 
+        /// <summary>Drops the selection (when leaving the game screen).</summary>
+        public void ClearSelection()
+        {
+            if (State != TurnState.BallSelected) return;
+            Select(null);
+        }
+
         /// <summary>True when the Undo button should be usable: something to undo and no animation playing.</summary>
         public bool CanUndo => AcceptsInput && Game.CanUndo;
 

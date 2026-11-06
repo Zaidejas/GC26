@@ -36,6 +36,8 @@ namespace Lines.Tests
         {
             yield return Launch();
             var game = Object.FindAnyObjectByType<GameBootstrap>();
+            Assert.IsFalse(game.Menu.ContinueButton.Interactable, "Nothing to continue on a first launch");
+            game.Menu.NewGameButton.Click();
             Assert.IsTrue(game.Saves.HasSave, "A new game is saved straight away");
 
             // Play one turn.
@@ -50,9 +52,13 @@ namespace Lines.Tests
             var previewBefore = game.Controller.Game.Preview.Cells.ToArray();
             var creaturesBefore = game.BoardView.Pieces.CreatureIndices;
 
-            // "Restart the app".
+            // "Restart the app": it opens on the menu, and Continue brings the game back.
             yield return Launch();
             game = Object.FindAnyObjectByType<GameBootstrap>();
+            Assert.IsTrue(game.Menu.IsShowing);
+            Assert.IsTrue(game.Menu.ContinueButton.Interactable);
+            StringAssert.Contains("score " + scoreBefore, game.Menu.ContinueButton.Text);
+            game.Menu.ContinueButton.Click();
 
             var restored = game.Controller.Game;
             CollectionAssert.AreEqual(cellsBefore, Enumerable.Range(0, 81).Select(i => restored.Board.Get(C(i))).ToArray(), "Same board");
@@ -72,12 +78,14 @@ namespace Lines.Tests
         {
             yield return Launch();
             var game = Object.FindAnyObjectByType<GameBootstrap>();
+            game.Menu.NewGameButton.Click();
             game.AskToReset();
             game.Hud.Dialog.ConfirmButton.Click();
             var cellsAfterReset = Enumerable.Range(0, 81).Select(i => game.Controller.Game.Board.Get(C(i))).ToArray();
 
             yield return Launch();
             game = Object.FindAnyObjectByType<GameBootstrap>();
+            game.Menu.ContinueButton.Click();
 
             CollectionAssert.AreEqual(cellsAfterReset, Enumerable.Range(0, 81).Select(i => game.Controller.Game.Board.Get(C(i))).ToArray());
             Assert.IsFalse(game.Hud.UndoButton.Interactable);
@@ -89,6 +97,8 @@ namespace Lines.Tests
             System.IO.File.WriteAllText(System.IO.Path.Combine(SaveFolder, Lines.Services.SaveService.FileName), "{ broken");
             yield return Launch();
             var game = Object.FindAnyObjectByType<GameBootstrap>();
+            Assert.IsFalse(game.Menu.ContinueButton.Interactable, "A broken save can't be continued");
+            game.Menu.NewGameButton.Click();
             Assert.AreEqual(78, game.Controller.Game.Board.EmptyCount, "A fresh game");
             Assert.AreEqual(TurnState.Idle, game.Controller.State);
         }

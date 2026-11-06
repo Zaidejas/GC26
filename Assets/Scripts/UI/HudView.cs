@@ -32,6 +32,11 @@ namespace Lines.UI
         /// <summary>The player pressed Reset.</summary>
         public event System.Action ResetClicked;
         public PillButton ResetButton => reset;
+        /// <summary>The player pressed the back arrow (top-left).</summary>
+        public event System.Action BackClicked;
+        public PillButton BackButton => back;
+        PillButton back;
+        GameObject popups; // own canvas on top, so dialogs also work while the HUD is hidden (main menu)
         /// <summary>The "Start a new game?" question (and later pop-ups).</summary>
         public ConfirmDialog Dialog => dialog;
 
@@ -74,7 +79,18 @@ namespace Lines.UI
             undo.Clicked += () => UndoClicked?.Invoke();
             reset = PillButton.Create((RectTransform)transform, "Reset");
             reset.Clicked += () => ResetClicked?.Invoke();
-            dialog = ConfirmDialog.Create((RectTransform)transform); // created last: drawn on top
+            back = PillButton.CreateIcon((RectTransform)transform, SpriteFactory.BackArrow(), "Back");
+            back.Clicked += () => BackClicked?.Invoke();
+
+            popups = new GameObject("Popups");
+            var popupCanvas = popups.AddComponent<Canvas>();
+            popupCanvas.renderMode = RenderMode.ScreenSpaceCamera;
+            popupCanvas.worldCamera = camera;
+            popupCanvas.planeDistance = 4f;
+            popupCanvas.sortingOrder = 30;
+            popups.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+            popups.AddComponent<GraphicRaycaster>();
+            dialog = ConfirmDialog.Create((RectTransform)popups.transform);
             for (int i = 0; i < next.Length; i++)
             {
                 next[i] = NewRect("Next " + i, area).gameObject.AddComponent<Image>();
@@ -108,6 +124,7 @@ namespace Lines.UI
             nextLabel.fontSize = LabelSize * u;
 
             alert.ApplyLayout(layout.Board.center, u); // messages appear over the middle of the board
+            back.Place(layout.BackButton, u);
 
             // Buttons under the board: Undo on the left half, Reset on the right, 4 units apart.
             var actions = layout.Actions;
@@ -115,6 +132,16 @@ namespace Lines.UI
             undo.Place(new Rect(actions.x, actions.y, half, actions.height), u);
             reset.Place(new Rect(actions.x + half + 4f * u, actions.y, half, actions.height), u);
             dialog.ApplyLayout(u);
+        }
+
+        /// <summary>Shows or hides the game's HUD (score, next, buttons). Dialogs are not affected.</summary>
+        public void SetVisible(bool visible) => gameObject.SetActive(visible);
+
+        void OnDestroy()
+        {
+            if (popups == null) return;
+            if (Application.isPlaying) Destroy(popups);
+            else DestroyImmediate(popups);
         }
 
         /// <summary>Enables or greys out the Undo button.</summary>

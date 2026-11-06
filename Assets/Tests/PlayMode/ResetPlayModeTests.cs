@@ -19,6 +19,7 @@ namespace Lines.Tests
             yield return SceneManager.LoadSceneAsync("Main");
             yield return null;
             var game = Object.FindAnyObjectByType<GameBootstrap>();
+            game.Menu.NewGameButton.Click();
 
             // Play one move so there is something to lose.
             var board = game.Controller.Game.Board;

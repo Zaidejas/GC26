@@ -10,8 +10,7 @@ namespace Lines.EditorTools
 {
     /// <summary>
     /// Renders the game screen at given phone sizes to PNG files, without building the app.
-    /// Coloured boxes mark the areas reserved for parts not built yet (back button)
-    /// and the phone's unsafe areas (notch, home bar).
+    /// Grey bars mark the phone's unsafe areas (notch, home bar).
     /// Run from the command line (no -nographics, it needs the GPU):
     ///   Unity -batchmode -projectPath . -executeMethod Lines.EditorTools.LayoutScreenshots.Run -quit -shotsDir &lt;folder&gt;
     /// </summary>
@@ -19,8 +18,8 @@ namespace Lines.EditorTools
     {
         struct Shot
         {
-            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog;
-            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false) { Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; }
+            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog, Menu;
+            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false, bool menu = false) { Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; Menu = menu; }
         }
 
         static readonly Shot[] Shots =
@@ -31,6 +30,8 @@ namespace Lines.EditorTools
             new Shot("iphone-18-pro_1206x2622", 1206, 2622, 177, 102),
             new Shot("alert-no-path_1080x2400", 1080, 2400, 132, 63, "No path"),
             new Shot("dialog-reset_1080x1920", 1080, 1920, 0, 0, resetDialog: true),
+            new Shot("menu_1080x1920", 1080, 1920, 0, 0, menu: true),
+            new Shot("menu_1080x2400_notch", 1080, 2400, 132, 63, menu: true),
         };
 
         [MenuItem("Lines/Render Layout Screenshots")]
@@ -55,6 +56,17 @@ namespace Lines.EditorTools
             var camera = new GameObject("Camera").AddComponent<Camera>();
             CameraSetup.Apply(camera, layout);
 
+            if (shot.Menu)
+            {
+                var menu = Lines.UI.MenuView.Create(camera);
+                menu.ApplyLayout(layout);
+                menu.Show(120, PieceSet.RandomCreatures(7));
+                menu.SetSecondaryScreensAvailable(false, false);
+                Canvas.ForceUpdateCanvases();
+                Finish(shot, camera, path);
+                return;
+            }
+
             var view = BoardView.Create();
             view.ApplyLayout(layout);
             view.SetPieces(PieceSet.RandomCreatures(7));
@@ -75,8 +87,12 @@ namespace Lines.EditorTools
                 Tween.Tick(0.3f); // fully faded in
             }
             Canvas.ForceUpdateCanvases();
+            Finish(shot, camera, path);
+        }
 
-            Zone(layout, layout.BackButton, new Color(0.95f, 0.52f, 0.12f, 0.35f));
+        static void Finish(Shot shot, Camera camera, string path)
+        {
+            var layout = BoardLayout.Compute(new Vector2(shot.Width, shot.Height), new Rect(0, shot.BottomInset, shot.Width, shot.Height - shot.TopInset - shot.BottomInset));
             if (shot.TopInset > 0) Zone(layout, new Rect(0, shot.Height - shot.TopInset, shot.Width, shot.TopInset), new Color(0, 0, 0, 0.18f));
             if (shot.BottomInset > 0) Zone(layout, new Rect(0, 0, shot.Width, shot.BottomInset), new Color(0, 0, 0, 0.18f));
 
