@@ -682,9 +682,9 @@ public static class SpaceInvadersBuilder
         abilities.bunkers = BuildBunkers();
         abilities.abilities = new[]
         {
-            new Ability { type = AbilityType.Shield, cost = 5, cooldown = 10f, duration = 1f },
-            new Ability { type = AbilityType.RepairBunkers, cost = 10, cooldown = 20f, duration = 0f },
-            new Ability { type = AbilityType.RapidFire, cost = 15, cooldown = 20f, duration = 5f },
+            new Ability { type = AbilityType.Shield, cost = 3, cooldown = 10f, duration = 1f },
+            new Ability { type = AbilityType.RepairBunkers, cost = 5, cooldown = 20f, duration = 0f },
+            new Ability { type = AbilityType.RapidFire, cost = 10, cooldown = 20f, duration = 5f },
         };
 
         BuildGameUI(waveManager, abilities);
