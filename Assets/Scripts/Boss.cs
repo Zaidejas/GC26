@@ -62,6 +62,9 @@ public class Boss : MonoBehaviour
     public int minionsPerSummon = 2;
     public float minionFallSpeed = 2.5f;
 
+    [Tooltip("Финальный босс: игрок «устаёт» и время от времени моргает")]
+    public bool playerBlinks = false;
+
     [Header("Ярость при половине здоровья")]
     public bool rageAtHalfHealth = false;
     [Tooltip("Во сколько раз чаще идут атаки в ярости")]
@@ -153,11 +156,25 @@ public class Boss : MonoBehaviour
             BossAttack attack = NextAttack();
 
             if (Raging && attacks.Length > 1 && Random.value < doubleAttackChance)
-                StartCoroutine(RunAttack(NextAttack()));
+                StartCoroutine(TrackAttack(NextAttack()));
 
-            yield return StartCoroutine(RunAttack(attack));
+            yield return StartCoroutine(TrackAttack(attack));
+
+            // Не больше двух атак одновременно: следующая начнётся, когда закончатся обе
+            while (runningAttacks > 0)
+                yield return null;
+
             yield return new WaitForSeconds(Raging ? attackPause / rageFireRate : attackPause);
         }
+    }
+
+    int runningAttacks;
+
+    IEnumerator TrackAttack(BossAttack attack)
+    {
+        runningAttacks++;
+        yield return StartCoroutine(RunAttack(attack));
+        runningAttacks--;
     }
 
     // Случайная атака, но не та же, что была только что

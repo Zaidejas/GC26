@@ -29,7 +29,7 @@ Material:
     - _Fisheye: 0.038
     - _Flicker: 1
     - _ScanlineCount: 232
-    - _Scanlines: 0.451
+    - _Scanlines: 0.463
     - _Vignette: 0.545
     m_Colors: []
   m_BuildTextureStacks: []

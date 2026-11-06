@@ -12,6 +12,8 @@ public class MainMenu : MonoBehaviour
     public TMP_Text coinsText;
     public Button playButton;
     public Button quitButton;
+    [Tooltip("Выключение автомата перед выходом. Без него игра закрывается сразу")]
+    public QuitEffect quitEffect;
 
     void Start()
     {
@@ -31,6 +33,14 @@ public class MainMenu : MonoBehaviour
     }
 
     void Quit()
+    {
+        if (quitEffect != null)
+            quitEffect.Play(QuitNow);
+        else
+            QuitNow();
+    }
+
+    void QuitNow()
     {
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;

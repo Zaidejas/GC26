@@ -38,11 +38,16 @@ Shader "SpaceInvaders/CRT"
             float _ColorShift;
             float _Flicker;
 
+            // Глобальная добавка на заставках (CrtBoost.cs), в остальное время 0
+            float _CrtExtraFisheye;
+            float _CrtExtraColorShift;
+
             float2 Bend(float2 uv)
             {
                 float2 c = uv - 0.5;
                 float r = dot(c, c);
-                return 0.5 + c * (1.0 + _Fisheye * r * 2.0) / (1.0 + _Fisheye * 0.5);
+                float fisheye = _Fisheye + _CrtExtraFisheye;
+                return 0.5 + c * (1.0 + fisheye * r * 2.0) / (1.0 + fisheye * 0.5);
             }
 
             float4 Frag(Varyings input) : SV_Target
@@ -53,7 +58,7 @@ Shader "SpaceInvaders/CRT"
                 if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0)
                     return float4(0.0, 0.0, 0.0, 1.0);
 
-                float2 shift = (uv - 0.5) * _ColorShift * 0.012;
+                float2 shift = (uv - 0.5) * (_ColorShift + _CrtExtraColorShift) * 0.012;
                 float3 color;
                 color.r = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv + shift).r;
                 color.g = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv).g;

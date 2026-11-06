@@ -186,6 +186,7 @@ MonoBehaviour:
   minionPrefab: {fileID: 0}
   minionsPerSummon: 2
   minionFallSpeed: 2.5
+  playerBlinks: 0
   rageAtHalfHealth: 0
   rageFireRate: 1.5
   doubleAttackChance: 0.35

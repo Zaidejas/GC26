@@ -423,7 +423,7 @@ public static class SpaceInvadersBuilder
         shieldIconSprite = Art("icon_shield", 100f, shieldIconSprite);
         bunkerIconSprite = Art("icon_repair", 100f, bunkerIconSprite);
         rapidFireIconSprite = Art("icon_rapidfire", 100f, rapidFireIconSprite);
-        canSprite = Art("monster_can", 750f, null);
+        canSprite = Art("heart_pickup", 550f, null); // хилка: сердечко размером с монетку
         slotSprite = Art("ability_slot", 100f, null);
         pauseSprite = Art("pause", 100f, null);
         buttonSprite = Art("button", 100f, null);
@@ -555,6 +555,8 @@ public static class SpaceInvadersBuilder
             new[] { BossAttack.Fan, BossAttack.Burst, BossAttack.Dash }, false, null);
         waves[4].bossPrefab = MakeBossPrefab("Boss_2", boss2Sprite, 4f, 200, 1000, 3.5f, 10f,
             new[] { BossAttack.Wall, BossAttack.Spiral, BossAttack.Laser, BossAttack.Summon }, true, invaderPrefabs[1]);
+        waves[4].bossPrefab.playerBlinks = true;
+        EditorUtility.SetDirty(waves[4].bossPrefab);
         EditorUtility.SetDirty(waves[2]);
         EditorUtility.SetDirty(waves[4]);
     }
@@ -648,6 +650,7 @@ public static class SpaceInvadersBuilder
         };
 
         BuildGameUI(waveManager, abilities);
+        BuildBlinkOverlay(waveManager);
         MakeEventSystem();
     }
 
@@ -775,6 +778,79 @@ public static class SpaceInvadersBuilder
         pausePanel.SetActive(false);
     }
 
+    // Отдельный Canvas поверх экрана: рисуется после CRT-эффекта, поэтому веки «настоящие»
+    static void BuildBlinkOverlay(WaveManager waveManager)
+    {
+        var go = new GameObject("BlinkOverlay", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+        var canvas = go.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 200;
+        var scaler = go.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1284f, 2778f);
+        scaler.matchWidthOrHeight = 0f;
+
+        Sprite curve = MakeEyelidCurveSprite();
+        var blink = go.AddComponent<BlinkEffect>();
+        blink.waveManager = waveManager;
+        MakeEyelid(go.transform, "TopLid", true, curve, out blink.topLid, out blink.topCurve);
+        MakeEyelid(go.transform, "BottomLid", false, curve, out blink.bottomLid, out blink.bottomCurve);
+    }
+
+    static void MakeEyelid(Transform parent, string name, bool top, Sprite curve, out RectTransform lid, out RectTransform edge)
+    {
+        float y = top ? 1f : 0f;
+        var lidImage = MakeChildImage(parent, name, null, Color.black);
+        lid = lidImage.rectTransform;
+        lid.anchorMin = new Vector2(0f, y);
+        lid.anchorMax = new Vector2(1f, y);
+        lid.pivot = new Vector2(0.5f, y);
+        lid.sizeDelta = Vector2.zero;
+
+        // Изогнутый край века, прилегает к внутренней стороне
+        var edgeImage = MakeChildImage(lid, "Edge", curve, Color.black);
+        edge = edgeImage.rectTransform;
+        edge.anchorMin = new Vector2(0f, 1f - y);
+        edge.anchorMax = new Vector2(1f, 1f - y);
+        edge.pivot = new Vector2(0.5f, y);
+        edge.sizeDelta = Vector2.zero;
+        if (!top) edge.localScale = new Vector3(1f, -1f, 1f);
+    }
+
+    // Белая заливка с выпуклым вниз краем: сверху сплошная, к краям сужается
+    static Sprite MakeEyelidCurveSprite()
+    {
+        const int width = 256, height = 64;
+        var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+        var pixels = new Color[width * height];
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float u = x / (width - 1f) * 2f - 1f;
+                float edgeFromTop = height * (1f - u * u);
+                float fromTop = height - 1 - y;
+                pixels[y * width + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(edgeFromTop - fromTop));
+            }
+        }
+        texture.SetPixels(pixels);
+        texture.Apply();
+
+        string path = $"{SpritesDir}/EyelidCurve.png";
+        File.WriteAllBytes(path, texture.EncodeToPNG());
+        Object.DestroyImmediate(texture);
+
+        AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+        var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+        importer.textureType = TextureImporterType.Sprite;
+        importer.spriteImportMode = SpriteImportMode.Single;
+        importer.filterMode = FilterMode.Bilinear;
+        importer.mipmapEnabled = false;
+        importer.alphaIsTransparency = true;
+        importer.SaveAndReimport();
+        return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+    }
+
     // ================= Сцена MainMenu =================
 
     static void BuildMenuScene()
@@ -818,7 +894,117 @@ public static class SpaceInvadersBuilder
             44, TextAlignmentOptions.Center, new Vector2(0.5f, 0f), new Vector2(0f, 180f), new Vector2(1200f, 160f));
         controls.color = new Color(0.13f, 0.76f, 0.29f);
 
+        menu.quitEffect = BuildQuitOverlay();
+        BuildIntroOverlay();
         MakeEventSystem();
+    }
+
+    // Включение автомата при запуске: отдельный Canvas поверх меню, перехватывает нажатия, пока не исчезнет.
+    // На камере, поэтому под CRT-эффектом: это часть картинки автомата
+    static void BuildIntroOverlay()
+    {
+        var go = new GameObject("IntroBoot", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(CanvasGroup));
+        var canvas = go.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceCamera;
+        canvas.worldCamera = sceneCamera;
+        canvas.planeDistance = 4f;
+        canvas.sortingOrder = 300;
+        var scaler = go.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1284f, 2778f);
+        scaler.matchWidthOrHeight = 0f;
+
+        var intro = go.AddComponent<IntroBoot>();
+        intro.group = go.GetComponent<CanvasGroup>();
+
+        // Не "Background": под этим именем фон звёзд ищет SpaceInvadersBackground
+        intro.background = MakeChildImage(go.transform, "BootScreen", null, Color.black);
+        intro.background.raycastTarget = true;
+        Stretch(intro.background.rectTransform);
+
+        intro.bars = new Image[6];
+        for (int i = 0; i < intro.bars.Length; i++)
+        {
+            intro.bars[i] = MakeChildImage(go.transform, $"Bar{i + 1}", null, Color.clear);
+            var rect = intro.bars[i].rectTransform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+        }
+
+        var noiseGo = new GameObject("Noise", typeof(RectTransform), typeof(RawImage));
+        noiseGo.transform.SetParent(go.transform, false);
+        intro.noise = noiseGo.GetComponent<RawImage>();
+        intro.noise.raycastTarget = false;
+        Stretch(intro.noise.rectTransform);
+
+        string[] texts = { "SPACE INVADERS SYSTEM", "ROM CHECK ........ OK", "RAM CHECK ........ OK", "PHOSPHOR WARMUP ... OK", "TAP TO START" };
+        intro.lines = new TMP_Text[texts.Length];
+        for (int i = 0; i < texts.Length; i++)
+        {
+            intro.lines[i] = MakeText(go.transform, $"Line{i + 1}", texts[i], 60, TextAlignmentOptions.TopLeft,
+                new Vector2(0f, 1f), new Vector2(94f, -640f - i * 128f), new Vector2(1150f, 90f));
+            intro.lines[i].color = i == texts.Length - 1 ? TextColor : PlayerColor;
+        }
+    }
+
+    // Выключение при выходе: тоже на камере, под CRT-эффектом
+    static QuitEffect BuildQuitOverlay()
+    {
+        var go = new GameObject("QuitEffect", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        var canvas = go.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceCamera;
+        canvas.worldCamera = sceneCamera;
+        canvas.planeDistance = 4f;
+        canvas.sortingOrder = 290;
+        var scaler = go.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1284f, 2778f);
+        scaler.matchWidthOrHeight = 0f;
+
+        var effect = go.AddComponent<QuitEffect>();
+        var content = new GameObject("Content", typeof(RectTransform));
+        content.transform.SetParent(go.transform, false);
+        Stretch((RectTransform)content.transform);
+        effect.content = content;
+
+        effect.blackScreen = MakeChildImage(content.transform, "Black", null, Color.black);
+        effect.blackScreen.raycastTarget = true;
+        Stretch(effect.blackScreen.rectTransform);
+
+        effect.screen = MakeChildImage(content.transform, "Screen", null, new Color(0.012f, 0.063f, 0.024f));
+        Stretch(effect.screen.rectTransform);
+        effect.message = MakeText(content.transform, "PowerOff", "POWER OFF", 86, TextAlignmentOptions.Center,
+            new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1100f, 140f));
+        effect.message.color = TextColor;
+
+        effect.glow = MakeChildImage(content.transform, "Glow", null, Color.clear);
+        Stretch(effect.glow.rectTransform);
+
+        effect.topBar = MakeBar(content.transform, "TopBar", 1f);
+        effect.bottomBar = MakeBar(content.transform, "BottomBar", 0f);
+
+        effect.line = MakeChildImage(content.transform, "Line", null, new Color(0.78f, 1f, 0.84f)).rectTransform;
+        effect.dot = MakeChildImage(content.transform, "Dot", MakeSprite("QuitDot", CircleArt(32),
+            new Dictionary<char, Color> { { '#', Color.white }, { '+', Color.white } }, 100), Color.white);
+        return effect;
+    }
+
+    static RectTransform MakeBar(Transform parent, string name, float y)
+    {
+        var rect = MakeChildImage(parent, name, null, Color.black).rectTransform;
+        rect.anchorMin = new Vector2(0f, y);
+        rect.anchorMax = new Vector2(1f, y);
+        rect.pivot = new Vector2(0.5f, y);
+        rect.sizeDelta = Vector2.zero;
+        return rect;
+    }
+
+    static void Stretch(RectTransform rect)
+    {
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = rect.offsetMax = Vector2.zero;
     }
 
     // ================= Помощники =================
