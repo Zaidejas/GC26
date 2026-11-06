@@ -88,7 +88,6 @@ namespace BlockDrop
             FillWorld(0f, 0f, 200f, 200f, new Color(0.07f, 0.055f, 0.1f, 1f));
             DrawMenuBackground();
             DrawMenuTitle(unit);
-            Label("падающие блоки, комбо и особые фигуры", 0f, 5.75f, unit, 0.54f, TextAnchor.MiddleCenter, Muted);
 
             for (int i = 0; i < MenuItems.Length; i++)
                 DrawMenuButton(i, unit);
@@ -114,7 +113,7 @@ namespace BlockDrop
             float visibleWidth = 2f * mainCamera.orthographicSize * Screen.width / Mathf.Max(1, Screen.height);
             float cell = Mathf.Min(0.5f, visibleWidth * 0.92f / TitleColumns);
             float left = -TitleColumns * cell / 2f + cell / 2f;
-            const float CenterY = 8f;
+            const float CenterY = 7.3f;
 
             int column = 0;
             for (int letter = 0; letter < TitleLetters.Length; letter++)
