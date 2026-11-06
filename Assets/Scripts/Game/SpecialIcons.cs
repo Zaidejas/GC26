@@ -8,11 +8,10 @@ namespace BlockDrop.View
     {
         const int Size = 96;
 
-        static Sprite bomb, lightning, freeze;
+        static Sprite bomb, lightning;
 
         public static readonly Color BombColor = new Color(1f, 0.42f, 0.24f);
         public static readonly Color LightningColor = new Color(1f, 0.9f, 0.32f);
-        public static readonly Color FreezeColor = new Color(0.5f, 0.88f, 1f);
 
         public static Sprite Get(SpecialKind kind)
         {
@@ -20,7 +19,6 @@ namespace BlockDrop.View
             {
                 case SpecialKind.Bomb: return bomb != null ? bomb : (bomb = Build(PaintBomb));
                 case SpecialKind.Lightning: return lightning != null ? lightning : (lightning = Build(PaintLightning));
-                case SpecialKind.Freeze: return freeze != null ? freeze : (freeze = Build(PaintFreeze));
                 default: return null;
             }
         }
@@ -31,7 +29,6 @@ namespace BlockDrop.View
             {
                 case SpecialKind.Bomb: return BombColor;
                 case SpecialKind.Lightning: return LightningColor;
-                case SpecialKind.Freeze: return FreezeColor;
                 default: return Color.white;
             }
         }
@@ -137,25 +134,6 @@ namespace BlockDrop.View
         {
             Color c = Badge(x, y, LightningColor);
             return Over(c, LightningColor, Fill(Polygon(x, y, Bolt)));
-        }
-
-        static Color PaintFreeze(float x, float y)
-        {
-            Color c = Badge(x, y, FreezeColor);
-            float flake = float.MaxValue;
-            for (int arm = 0; arm < 6; arm++)
-            {
-                float angle = arm * Mathf.PI / 3f + Mathf.PI / 2f;
-                float dx = Mathf.Cos(angle), dy = Mathf.Sin(angle);
-                flake = Mathf.Min(flake, Segment(x, y, 0f, 0f, dx * 0.62f, dy * 0.62f, 0.04f));
-                for (int side = -1; side <= 1; side += 2)
-                {
-                    float branch = angle + side * 0.8f;
-                    flake = Mathf.Min(flake, Segment(x, y, dx * 0.34f, dy * 0.34f,
-                        dx * 0.34f + Mathf.Cos(branch) * 0.2f, dy * 0.34f + Mathf.Sin(branch) * 0.2f, 0.035f));
-                }
-            }
-            return Over(c, FreezeColor, Fill(flake));
         }
     }
 }

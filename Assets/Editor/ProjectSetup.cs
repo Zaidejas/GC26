@@ -121,10 +121,20 @@ namespace BlockDrop.EditorTools
                 { "Bomb removes 5x5 and the stack falls in", BombExplodes },
                 { "Bomb at the wall stays on the board", BombAtWall },
                 { "Lightning empties one column only", LightningRemovesColumn },
-                { "Freeze stops gravity, soft drop still works", FreezeStopsGravity },
                 { "A special piece can clear lines too", SpecialClearsLines },
                 { "A special piece keeps the combo", SpecialKeepsCombo },
                 { "Hold keeps the special on the piece", HoldKeepsSpecial },
+                { "Sprint ends at 40 lines and stops the game", SprintEndsAtGoal },
+                { "Marathon does not end at 40 lines", MarathonKeepsGoing },
+                { "Sprint can still be lost", SprintCanBeLost },
+                { "Timer stops on pause and at the finish", TimerStops },
+                { "Time format rounds down", TimeFormat },
+                { "Time table keeps the five lowest", TableKeepsLowestTimes },
+                { "Score table keeps the five highest", TableKeepsHighestScores },
+                { "A tie goes below the older result", TableTies },
+                { "Table refuses impossible results", TableRefusesBadValues },
+                { "Table survives saving and reloading", TableRoundTrip },
+                { "Damaged saved table does not break", TableIgnoresGarbage },
             };
 
             int failures = 0;
@@ -463,7 +473,7 @@ namespace BlockDrop.EditorTools
         static void SoundsAreValid()
         {
             Dictionary<string, float[]> sounds = BlockDrop.View.GameAudio.BuildAllSounds();
-            string[] required = { "move", "rotate", "hold", "lock", "harddrop", "clear1", "clear2", "clear3", "clear4", "levelup", "gameover", "music", "bomb", "zap", "freeze" };
+            string[] required = { "move", "rotate", "hold", "lock", "harddrop", "clear1", "clear2", "clear3", "clear4", "levelup", "gameover", "music", "bomb", "zap" };
             foreach (string name in required)
             {
                 Check(sounds.ContainsKey(name), "missing " + name);
@@ -493,8 +503,8 @@ namespace BlockDrop.EditorTools
                     kinds.Add(kind);
                 }
                 Check(kinds.Count >= 30, "seed " + seed + ": only " + kinds.Count + " specials");
-                for (int i = 0; i + 3 <= kinds.Count; i += 3)
-                    Check(kinds.Skip(i).Take(3).Distinct().Count() == 3, "seed " + seed + ": kind repeated before the bag ran out");
+                for (int i = 0; i + 2 <= kinds.Count; i += 2)
+                    Check(kinds.Skip(i).Take(2).Distinct().Count() == 2, "seed " + seed + ": kind repeated before the bag ran out");
             }
         }
 
@@ -624,31 +634,6 @@ namespace BlockDrop.EditorTools
                 Check(ColumnCount(game.Board, x) == (x == column ? 0 : expected[x]), "column " + x);
         }
 
-        static void FreezeStopsGravity()
-        {
-            var game = new Game(34, false);
-            game.ForceCurrentSpecial(SpecialKind.Freeze);
-            SpecialResult seen = default;
-            game.SpecialTriggered += result => seen = result;
-            game.HardDrop();
-            Check(seen.Kind == SpecialKind.Freeze && seen.Removed.Count == 0, "freeze removed cells");
-            Check(game.FreezeTimer == Game.FreezeSeconds, "timer " + game.FreezeTimer);
-
-            int y = game.CurrentY;
-            for (int i = 0; i < 60; i++)
-                game.Tick(0.05f, false);
-            Check(game.CurrentY == y, "piece fell while frozen");
-
-            game.Tick(0.25f, true);
-            Check(game.CurrentY == y - 2, "soft drop while frozen moved " + (y - game.CurrentY));
-
-            y = game.CurrentY;
-            for (int i = 0; i < 80; i++)
-                game.Tick(0.05f, false);
-            Check(game.FreezeTimer == 0f, "timer did not run out");
-            Check(game.CurrentY < y, "gravity did not come back");
-        }
-
         static void SpecialClearsLines()
         {
             var game = new Game(35, false);
@@ -688,6 +673,152 @@ namespace BlockDrop.EditorTools
             Check(game.Hold(), "second hold refused");
             Check(game.CurrentType == held && game.CurrentSpecial == SpecialKind.Bomb, "special did not come back");
             Check(game.HeldSpecial == SpecialKind.None, "ordinary piece held as special");
+        }
+
+        static void PlayToSprintGoal(Game game)
+        {
+            for (int i = 0; i < 200 && game.State == GameState.Playing; i++)
+            {
+                game.Board.Clear();
+                PrepareClear(game);
+                game.HardDrop();
+            }
+        }
+
+        static void SprintEndsAtGoal()
+        {
+            var game = new Game(41, false, GameMode.Sprint);
+            int finished = 0, ended = 0;
+            game.SprintCompleted += () => finished++;
+            game.GameEnded += () => ended++;
+            PlayToSprintGoal(game);
+
+            Check(game.State == GameState.Completed && game.IsFinished, "state " + game.State);
+            Check(game.Lines >= Game.SprintLines, "lines " + game.Lines);
+            Check(finished == 1, "finish events " + finished);
+            Check(ended == 0, "a won sprint must not count as game over");
+
+            int score = game.Score, lines = game.Lines;
+            game.HardDrop();
+            game.Tick(5f, true);
+            Check(!game.Move(1) && !game.Rotate(1) && !game.Hold(), "commands accepted after the finish");
+            Check(game.Score == score && game.Lines == lines, "game changed after the finish");
+            game.TogglePause();
+            Check(game.State == GameState.Completed, "pause changed a finished game");
+        }
+
+        static void MarathonKeepsGoing()
+        {
+            var game = new Game(42, false);
+            int finished = 0;
+            game.SprintCompleted += () => finished++;
+            for (int i = 0; i < 80 && game.Lines < Game.SprintLines + 5; i++)
+            {
+                game.Board.Clear();
+                PrepareClear(game);
+                game.HardDrop();
+            }
+            Check(game.Lines >= Game.SprintLines + 5, "lines " + game.Lines);
+            Check(game.State == GameState.Playing, "state " + game.State);
+            Check(finished == 0, "marathon finished");
+        }
+
+        static void SprintCanBeLost()
+        {
+            var game = new Game(43, false, GameMode.Sprint);
+            for (int i = 0; i < 200 && game.State == GameState.Playing; i++)
+                game.HardDrop();
+            Check(game.State == GameState.GameOver && game.IsFinished, "state " + game.State);
+        }
+
+        static void TimerStops()
+        {
+            var game = new Game(44, false, GameMode.Sprint);
+            game.Tick(0.1f, false);
+            Check(Mathf.Approximately(game.Elapsed, 0.1f), "timer " + game.Elapsed);
+            game.TogglePause();
+            game.Tick(5f, false);
+            Check(Mathf.Approximately(game.Elapsed, 0.1f), "timer ran during pause");
+            game.TogglePause();
+            game.Tick(0.1f, false);
+            Check(Mathf.Approximately(game.Elapsed, 0.2f), "timer did not resume: " + game.Elapsed);
+
+            PlayToSprintGoal(game);
+            float atFinish = game.Elapsed;
+            game.Tick(5f, false);
+            Check(game.Elapsed == atFinish, "timer ran after the finish");
+        }
+
+        static void TimeFormat()
+        {
+            Check(Game.FormatTime(0f) == "0:00.00", Game.FormatTime(0f));
+            Check(Game.FormatTime(5.999f) == "0:05.99", Game.FormatTime(5.999f));
+            Check(Game.FormatTime(62.5f) == "1:02.50", Game.FormatTime(62.5f));
+            Check(Game.FormatTime(600f) == "10:00.00", Game.FormatTime(600f));
+            Check(Game.FormatTime(-3f) == "0:00.00", Game.FormatTime(-3f));
+        }
+
+        static void TableKeepsLowestTimes()
+        {
+            var table = new Leaderboard(true);
+            Check(table.Add(50) == 1, "first entry");
+            Check(table.Add(40) == 1, "better time takes first place");
+            Check(table.Add(45) == 2, "middle time");
+            table.Add(60);
+            table.Add(70);
+            Check(table.Entries.Count == 5, "count " + table.Entries.Count);
+            Check(table.Add(80) == 0, "too slow must not be placed");
+            Check(table.Entries.Count == 5 && table.Entries[4] == 70, "slow time changed the table");
+            Check(table.Add(55) == 4, "placed time");
+            Check(table.Entries.Count == 5 && table.Entries[4] == 60, "worst entry was not dropped");
+            Check(table.Entries.SequenceEqual(new double[] { 40, 45, 50, 55, 60 }), "wrong order");
+        }
+
+        static void TableKeepsHighestScores()
+        {
+            var table = new Leaderboard(false);
+            foreach (double score in new double[] { 100, 500, 300, 200, 400 })
+                table.Add(score);
+            Check(table.Entries.SequenceEqual(new double[] { 500, 400, 300, 200, 100 }), "wrong order");
+            Check(table.Add(50) == 0, "too low must not be placed");
+            Check(table.Add(600) == 1, "new best");
+            Check(table.Entries[4] == 200, "lowest was not dropped");
+        }
+
+        static void TableTies()
+        {
+            var table = new Leaderboard(false);
+            table.Add(100);
+            Check(table.Add(100) == 2, "tie took the older place");
+            for (int i = 0; i < 3; i++)
+                table.Add(100);
+            Check(table.Add(100) == 0, "tie with a full table must not be placed");
+        }
+
+        static void TableRefusesBadValues()
+        {
+            var table = new Leaderboard(true);
+            Check(table.Add(0) == 0 && table.Add(-5) == 0, "zero or negative accepted");
+            Check(table.Add(double.NaN) == 0 && table.Add(double.PositiveInfinity) == 0, "NaN or infinity accepted");
+            Check(table.Entries.Count == 0, "bad value stored");
+        }
+
+        static void TableRoundTrip()
+        {
+            var table = new Leaderboard(true);
+            foreach (double time in new[] { 83.456789012, 71.25, 95.1 })
+                table.Add(time);
+            string text = table.Serialize();
+            Check(!text.Contains(","), "saved text depends on the system language: " + text);
+            Leaderboard loaded = Leaderboard.Parse(text, true);
+            Check(loaded.Entries.SequenceEqual(table.Entries), "changed after reload: " + text);
+            Check(Leaderboard.Parse("", true).Entries.Count == 0 && Leaderboard.Parse(null, true).Entries.Count == 0, "empty text");
+        }
+
+        static void TableIgnoresGarbage()
+        {
+            Leaderboard loaded = Leaderboard.Parse("abc;50.5;;-3;NaN;40;1e999;x;60;70;80;90;100", true);
+            Check(loaded.Entries.SequenceEqual(new double[] { 40, 50.5, 60, 70, 80 }), "got " + loaded.Serialize());
         }
 
         // Finds a seed that spawns the wanted piece first.

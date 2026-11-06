@@ -28,7 +28,6 @@ namespace BlockDrop.View
 
         static readonly Color DisabledColor = Hex(0x5A5568);
         static readonly Color DangerColor = Hex(0x7A1F2E);
-        static readonly Color FrozenWellColor = Hex(0x3C8FB8);
 
         readonly struct Theme
         {
@@ -74,6 +73,12 @@ namespace BlockDrop.View
         public BoardEffects Effects { get; }
         public Color BackgroundColor { get { return backgroundColor; } }
         public Color AccentColor { get { return accentColor; } }
+        public Texture TileTexture { get { return tileSprite.texture; } }
+
+        public static Color PieceColor(int index)
+        {
+            return PieceColors[index];
+        }
 
         readonly Transform root;
         readonly Material material;
@@ -137,7 +142,6 @@ namespace BlockDrop.View
 
             CreateLegendIcon(SpecialKind.Bomb, LegendY(0));
             CreateLegendIcon(SpecialKind.Lightning, LegendY(1));
-            CreateLegendIcon(SpecialKind.Freeze, LegendY(2));
         }
 
         /// <summary>World height of a line in the special-block legend under the right panel.</summary>
@@ -174,7 +178,7 @@ namespace BlockDrop.View
 
         void UpdateSpecialVisuals(Game game)
         {
-            bool playing = game.State != GameState.GameOver;
+            bool playing = !game.IsFinished;
             SpecialKind kind = playing ? game.CurrentSpecial : SpecialKind.None;
             Cell cell = PieceShapes.Get(game.CurrentType, game.CurrentRotation)[Game.SpecialCellIndex];
             int x = game.CurrentX + cell.X;
@@ -342,7 +346,7 @@ namespace BlockDrop.View
                 for (int y = 0; y < Board.VisibleHeight; y++)
                     lockGlow[x, y] = Mathf.Max(0f, lockGlow[x, y] - deltaTime);
             DrawSettledBlocks(game);
-            if (game.State != GameState.GameOver)
+            if (!game.IsFinished)
             {
                 Color pieceColor = PieceColors[(int)game.CurrentType];
                 Color ghost = new Color(pieceColor.r, pieceColor.g, pieceColor.b, 0.28f);
@@ -385,8 +389,6 @@ namespace BlockDrop.View
             float tension = game.State == GameState.Playing ? Tension(game) : 0f;
             float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * (4f + tension * 5f));
             Color well = Color.Lerp(wellColor, DangerColor, tension * (0.45f + 0.55f * pulse));
-            if (game.State != GameState.GameOver && game.FreezeTimer > 0f)
-                well = Color.Lerp(well, FrozenWellColor, Mathf.Clamp01(game.FreezeTimer * 3f) * 0.85f);
             wellRenderer.color = well;
         }
 

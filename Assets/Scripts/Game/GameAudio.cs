@@ -73,16 +73,14 @@ namespace BlockDrop.View
         }
 
         /// <param name="tension">0 to 1: how close the stack is to the top. Speeds the music up.</param>
-        public void UpdateMusic(GameStateForAudio state, int level, float tension, bool frozen, float deltaTime)
+        public void UpdateMusic(GameStateForAudio state, int level, float tension, float deltaTime)
         {
             float target = state == GameStateForAudio.Playing ? 1f : state == GameStateForAudio.Paused ? 0.3f : 0f;
             musicLevel = Mathf.MoveTowards(musicLevel, target, deltaTime * 1.5f);
             music.volume = MusicVolume * musicLevel;
             float levelSpeed = 1f + Mathf.Min(level - 1, 10) * 0.012f;
             float wanted = levelSpeed + tension * 0.12f;
-            if (frozen)
-                wanted *= 0.85f;
-            music.pitch = Mathf.MoveTowards(music.pitch, wanted, deltaTime * (frozen ? 0.5f : 0.15f));
+            music.pitch = Mathf.MoveTowards(music.pitch, wanted, deltaTime * 0.15f);
         }
 
         // --- synthesis: public so the rules tests can check every sound -----------------------
@@ -105,7 +103,6 @@ namespace BlockDrop.View
                 { "gameover", Notes(new[] { 392f, 349f, 311f, 262f, 196f }, 0.16f, 0.7f, 0.75f) },
                 { "bomb", Tone(0.55f, 110f, 28f, 0.72f, 1f, random) },
                 { "zap", Tone(0.3f, 2600f, 240f, 0.65f, 0.9f, random) },
-                { "freeze", Notes(new[] { 2093f, 1568f, 1760f, 1319f, 1568f }, 0.05f, 0.5f, 0.6f) },
                 { "music", BuildMusic() },
             };
         }

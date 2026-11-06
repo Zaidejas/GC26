@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace BlockDrop.Core
 {
-    public enum SpecialKind { None, Bomb, Lightning, Freeze }
+    public enum SpecialKind { None, Bomb, Lightning }
 
     /// <summary>What a special piece did when it landed.</summary>
     public readonly struct SpecialResult
@@ -48,7 +48,7 @@ namespace BlockDrop.Core
         public const int MaxGap = 12;
         public const int FirstAfter = 5;
 
-        static readonly SpecialKind[] Kinds = { SpecialKind.Bomb, SpecialKind.Lightning, SpecialKind.Freeze };
+        static readonly SpecialKind[] Kinds = { SpecialKind.Bomb, SpecialKind.Lightning };
 
         readonly Random random;
         readonly List<SpecialKind> bag = new List<SpecialKind>();

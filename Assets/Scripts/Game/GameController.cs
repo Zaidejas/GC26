@@ -8,9 +8,13 @@ using UnityEngine.InputSystem;
 namespace BlockDrop
 {
     /// <summary>Entry point: owns the game, reads the keyboard and draws the HUD.</summary>
-    public sealed class GameController : MonoBehaviour
+    public sealed partial class GameController : MonoBehaviour
     {
-        const string BestScoreKey = "BlockDrop.BestScore";
+        const string RecordsPrefix = "BlockDrop.";
+        const string TestRecordsPrefix = "BlockDrop.Test.";
+        const string BestScoreName = "BestScore";
+        const string MarathonTableName = "MarathonTable";
+        const string SprintTableName = "SprintTable";
         const float RepeatDelay = 0.17f;
         const float RepeatInterval = 0.045f;
         const float WorldWidth = 22f;
@@ -25,6 +29,10 @@ namespace BlockDrop
         GameAudio gameAudio;
         Camera mainCamera;
         int bestScore;
+        string recordsPrefix = RecordsPrefix;
+        Leaderboard marathonTable;
+        Leaderboard sprintTable;
+        int lastPlace;
         int heldDirection;
         float repeatTimer;
         float shownScore;
@@ -45,6 +53,21 @@ namespace BlockDrop
 
         readonly List<Popup> popups = new List<Popup>();
 
+        // Main menu. Items are laid out in world units so they scale with the window, like the rest of the HUD.
+        enum MenuItem { Marathon, Sprint, Sound, Exit }
+
+        static readonly MenuItem[] MenuItems = { MenuItem.Marathon, MenuItem.Sprint, MenuItem.Sound, MenuItem.Exit };
+
+        const float MenuTopY = 3.55f;
+        const float MenuStepY = 2.25f;
+        const float MenuItemWidth = 12f;
+        const float MenuItemHeight = 1.9f;
+
+        GameMode mode = GameMode.Marathon;
+        bool inMenu = true;
+        int menuIndex;
+        Vector2 lastMousePosition;
+
         // Developer switches, read from the command line (see ReadCommandLine).
         bool autoplay;
         float autoplayTimer;
@@ -55,20 +78,138 @@ namespace BlockDrop
         bool specialCycle;
         bool specialCyclePending;
         int specialCycleIndex;
+        bool logSlowFrames;
 
         void Awake()
         {
             mainCamera = Camera.main;
             view = new BoardView(transform, spriteMaterial);
-            bestScore = PlayerPrefs.GetInt(BestScoreKey, 0);
             ReadCommandLine();
+            LoadRecords();
             gameAudio = new GameAudio(gameObject, autoplay);
             StartNewGame();
+            if (autoplay || assist || specialCycle)
+                inMenu = false;
         }
+
+        // --- records --------------------------------------------------------------------------
+
+        void LoadRecords()
+        {
+            bestScore = PlayerPrefs.GetInt(recordsPrefix + BestScoreName, 0);
+            marathonTable = Leaderboard.Parse(PlayerPrefs.GetString(recordsPrefix + MarathonTableName, ""), false);
+            sprintTable = Leaderboard.Parse(PlayerPrefs.GetString(recordsPrefix + SprintTableName, ""), true);
+
+            // A best score from before the table existed becomes its first entry.
+            if (bestScore > 0 && marathonTable.Entries.Count == 0)
+                marathonTable.Add(bestScore);
+        }
+
+        void SaveMarathonResult()
+        {
+            if (autoplay || noRecords)
+                return;
+            lastPlace = marathonTable.Add(game.Score);
+            PlayerPrefs.SetString(recordsPrefix + MarathonTableName, marathonTable.Serialize());
+            if (game.Score > bestScore)
+            {
+                bestScore = game.Score;
+                PlayerPrefs.SetInt(recordsPrefix + BestScoreName, bestScore);
+            }
+            PlayerPrefs.Save();
+            Debug.Log("[BlockDrop] Marathon result " + game.Score + " place=" + lastPlace + " table=" + marathonTable.Serialize());
+        }
+
+        void SaveSprintResult()
+        {
+            if (autoplay || noRecords)
+                return;
+            lastPlace = sprintTable.Add(game.Elapsed);
+            PlayerPrefs.SetString(recordsPrefix + SprintTableName, sprintTable.Serialize());
+            PlayerPrefs.Save();
+            Debug.Log("[BlockDrop] Sprint result " + Game.FormatTime(game.Elapsed) + " place=" + lastPlace + " table=" + sprintTable.Serialize());
+        }
+
+        string PlaceText()
+        {
+            if (lastPlace == 1)
+                return "Новый рекорд!\n";
+            return lastPlace > 1 ? "Место " + lastPlace + " в таблице\n" : "";
+        }
+
+        // --- main menu ------------------------------------------------------------------------
+
+        void UpdateMenu()
+        {
+            if (Pressed(Key.M))
+                gameAudio.ToggleMute();
+
+            if (HandleButtons(ref menuIndex, MenuItems.Length, MenuTopY, MenuStepY, MenuItemWidth, MenuItemHeight))
+                ActivateMenuItem();
+        }
+
+        static float MenuItemY(int index)
+        {
+            return MenuTopY - index * MenuStepY;
+        }
+
+        void ActivateMenuItem()
+        {
+            switch (MenuItems[menuIndex])
+            {
+                case MenuItem.Marathon:
+                case MenuItem.Sprint:
+                    mode = MenuItems[menuIndex] == MenuItem.Sprint ? GameMode.Sprint : GameMode.Marathon;
+                    Debug.Log("[BlockDrop] Menu: play " + mode);
+                    StartNewGame();
+                    inMenu = false;
+                    gameAudio.Play("hold");
+                    break;
+                case MenuItem.Sound:
+                    gameAudio.ToggleMute();
+                    Debug.Log("[BlockDrop] Menu: sound muted=" + gameAudio.Muted);
+                    gameAudio.Play("hold");
+                    break;
+                case MenuItem.Exit:
+                    Debug.Log("[BlockDrop] Menu: exit");
+                    Application.Quit();
+                    break;
+            }
+        }
+
+        void BackToMenu()
+        {
+            Debug.Log("[BlockDrop] Back to menu");
+            StartNewGame();
+            inMenu = true;
+            menuIndex = 0;
+        }
+
+        string MenuText(MenuItem item)
+        {
+            switch (item)
+            {
+                case MenuItem.Marathon: return "Марафон";
+                case MenuItem.Sprint: return "Спринт";
+                case MenuItem.Sound: return gameAudio.Muted ? "Звук: выкл." : "Звук: вкл.";
+                default: return "Выход";
+            }
+        }
+
+        void FillWorld(float centerX, float centerY, float width, float height, Color color)
+        {
+            Vector2 min = WorldToGui(centerX - width / 2f, centerY - height / 2f);
+            Vector2 max = WorldToGui(centerX + width / 2f, centerY + height / 2f);
+            GUI.color = color;
+            GUI.DrawTexture(new Rect(min.x, max.y, max.x - min.x, min.y - max.y), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+        }
+
+        // --- a game ---------------------------------------------------------------------------
 
         void StartNewGame()
         {
-            game = new Game(System.Environment.TickCount);
+            game = new Game(System.Environment.TickCount, true, mode);
             game.RowsCleared += view.TriggerFlash;
             game.RowsCleared += rows => Debug.Log("[BlockDrop] Rows cleared: " + rows.Count + ", score " + game.Score);
             game.PieceLocked += OnPieceLocked;
@@ -77,7 +218,9 @@ namespace BlockDrop
             game.LevelChanged += OnLevelChanged;
             game.SpecialTriggered += OnSpecialTriggered;
             game.GameEnded += OnGameEnded;
+            game.SprintCompleted += OnSprintCompleted;
             heldDirection = 0;
+            lastPlace = 0;
             shownScore = 0f;
             scoreKick = 0f;
             comboKick = 0f;
@@ -108,12 +251,6 @@ namespace BlockDrop
                     view.Effects.Shake(0.55f);
                     view.Effects.Beam(center.x, 0f, Board.VisibleHeight, new Color(tint.r, tint.g, tint.b, 0.9f));
                     AddPopup(PopupSlot.Special, "МОЛНИЯ!" + points, -0.4f, 1.15f, BannerLife, 0.6f, tint);
-                    break;
-                case SpecialKind.Freeze:
-                    gameAudio.Play("freeze");
-                    view.Effects.Ring(center, new Color(tint.r, tint.g, tint.b, 0.6f), 22f, 0.6f);
-                    view.Effects.Burst(center, tint, 24, 9f);
-                    AddPopup(PopupSlot.Special, "ЗАМОРОЗКА!", -0.4f, 1.15f, BannerLife, 0.6f, tint);
                     break;
             }
         }
@@ -198,12 +335,21 @@ namespace BlockDrop
             Debug.Log("[BlockDrop] Game over, score " + game.Score);
             gameAudio.Play("gameover");
             view.Effects.Shake(0.8f);
-            if (!autoplay && !noRecords && game.Score > bestScore)
-            {
-                bestScore = game.Score;
-                PlayerPrefs.SetInt(BestScoreKey, bestScore);
-                PlayerPrefs.Save();
-            }
+            // The best score belongs to the marathon; a sprint is judged by its time.
+            if (game.Mode == GameMode.Marathon)
+                SaveMarathonResult();
+        }
+
+        void OnSprintCompleted()
+        {
+            Debug.Log("[BlockDrop] Sprint finished time=" + Game.FormatTime(game.Elapsed) + " lines=" + game.Lines + " score=" + game.Score);
+            SaveSprintResult();
+            gameAudio.Play("levelup");
+            gameAudio.Play("clear4", 0.8f);
+            view.Effects.Shake(0.7f);
+            view.Effects.Ring(Vector2.zero, new Color(1f, 0.85f, 0.4f, 0.5f), 30f, 0.8f);
+            for (int x = 0; x < Board.Width; x++)
+                view.Effects.Burst(BoardView.GridPosition(x, Board.VisibleHeight / 2), view.AccentColor, 4, 14f);
         }
 
         static string MultiplierText(float multiplier)
@@ -231,18 +377,37 @@ namespace BlockDrop
             scoreKick = Mathf.Max(0f, scoreKick - deltaTime * 4f);
             comboKick = Mathf.Max(0f, comboKick - deltaTime * 3f);
 
-            GameStateForAudio music = game.State == GameState.Playing ? GameStateForAudio.Playing
+            GameStateForAudio music = inMenu ? GameStateForAudio.Paused
+                : game.State == GameState.Playing ? GameStateForAudio.Playing
                 : game.State == GameState.Paused ? GameStateForAudio.Paused : GameStateForAudio.Stopped;
-            gameAudio.UpdateMusic(music, game.Level, BoardView.Tension(game), game.FreezeTimer > 0f, deltaTime);
+            gameAudio.UpdateMusic(music, game.Level, BoardView.Tension(game), deltaTime);
         }
 
         void Update()
         {
             FitCameraToWindow();
+            if (logSlowFrames && Time.unscaledDeltaTime > 0.1f)
+                Debug.Log("[BlockDrop] Slow frame " + Mathf.RoundToInt(Time.unscaledDeltaTime * 1000f) + " ms at " + Time.realtimeSinceStartup.ToString("F2") + " menu=" + inMenu);
+            if (inMenu)
+            {
+                UpdateMenu();
+                UpdateMenuLooks(Time.deltaTime);
+                view.Render(game, Time.deltaTime);
+                UpdateJuice(Time.deltaTime);
+                mainCamera.backgroundColor = view.BackgroundColor;
+                mainCamera.transform.position = new Vector3(0f, 0f, -10f);
+                return;
+            }
+
+            pauseInputUsed = false;
             HandleSystemKeys();
+            if (inMenu)
+                return;
             ApplyAssist();
             ApplySpecialCycle();
-            HandleMovement();
+            // A key that pressed a pause button must not also act on the piece.
+            if (!pauseInputUsed)
+                HandleMovement();
             if (autoplay)
                 RunAutoplay();
 
@@ -255,13 +420,13 @@ namespace BlockDrop
             mainCamera.transform.position = new Vector3(shake.x, shake.y, -10f);
         }
 
-        // Test aid (-specialCycle): every piece is special, in the order bomb, lightning, freeze.
+        // Test aid (-specialCycle): every piece is special, bomb and lightning in turn.
         void ApplySpecialCycle()
         {
             if (!specialCyclePending || game.State != GameState.Playing)
                 return;
             specialCyclePending = false;
-            game.ForceCurrentSpecial((SpecialKind)(1 + specialCycleIndex % 3));
+            game.ForceCurrentSpecial((SpecialKind)(1 + specialCycleIndex % 2));
             specialCycleIndex++;
         }
 
@@ -324,12 +489,23 @@ namespace BlockDrop
 
         void HandleSystemKeys()
         {
+            bool wasPaused = game.State == GameState.Paused;
             if (Pressed(Key.P) || Pressed(Key.Escape))
+            {
                 game.TogglePause();
+                if (game.State == GameState.Paused)
+                    OpenPauseMenu();
+            }
             if (Pressed(Key.M))
                 gameAudio.ToggleMute();
-            if (Pressed(Key.R) || (game.State == GameState.GameOver && Pressed(Key.Enter)))
+            if (Pressed(Key.R) || (game.IsFinished && Pressed(Key.Enter)))
                 StartNewGame();
+            // Not while playing, so a stray key can't throw a game away.
+            if (Pressed(Key.Backspace) && game.State != GameState.Playing)
+                BackToMenu();
+            // Not on the frame the pause opened: that key press was for opening it.
+            if (wasPaused && !inMenu && game.State == GameState.Paused)
+                UpdatePauseMenu();
         }
 
         void HandleMovement()
@@ -390,21 +566,37 @@ namespace BlockDrop
         {
             float unit = Screen.height / (mainCamera.orthographicSize * 2f);
 
+            if (inMenu)
+            {
+                DrawMenu(unit);
+                return;
+            }
+
             Label("ЗАПАС", BoardView.LeftPanelX, 8.0f, unit, 0.55f, TextAnchor.MiddleCenter, Muted);
             Label("ДАЛЕЕ", BoardView.RightPanelX, 8.0f, unit, 0.55f, TextAnchor.MiddleCenter, Muted);
 
-            int shownBest = Mathf.Max(bestScore, game.Score);
-            Stat("СЧЁТ", Mathf.RoundToInt(shownScore), 2.2f, unit, 1f + scoreKick * 0.35f);
-            Stat("РЕКОРД", shownBest, 0f, unit);
-            Stat("УРОВЕНЬ", game.Level, -2.2f, unit);
-            Stat("ЛИНИИ", game.Lines, -4.4f, unit);
+            Stat("СЧЁТ", Mathf.RoundToInt(shownScore).ToString("N0"), 2.2f, unit, 1f + scoreKick * 0.35f);
+            Stat("УРОВЕНЬ", game.Level.ToString("N0"), -2.2f, unit);
+            if (game.Mode == GameMode.Sprint)
+            {
+                Stat("ВРЕМЯ", Game.FormatTime(game.Elapsed), 0f, unit);
+                string best = sprintTable.Entries.Count > 0 ? "лучшее " + Game.FormatTime((float)sprintTable.Entries[0]) : "лучшего пока нет";
+                Label(best, BoardView.LeftPanelX, -0.98f, unit, 0.38f, TextAnchor.MiddleCenter, Muted);
+                Stat("ЛИНИИ", Mathf.Min(game.Lines, Game.SprintLines) + " / " + Game.SprintLines, -4.4f, unit);
+                DrawSprintProgress();
+            }
+            else
+            {
+                Stat("РЕКОРД", Mathf.Max(bestScore, game.Score).ToString("N0"), 0f, unit);
+                Stat("ЛИНИИ", game.Lines.ToString("N0"), -4.4f, unit);
+            }
 
             Label("BlockDrop", BoardView.LeftPanelX, 10.2f, unit, 0.8f, TextAnchor.MiddleCenter, view.AccentColor);
             Label("← → ход   ↑ поворот   ↓ быстрее   Пробел сброс", 0f, -10.55f, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
             Label("C запас   P пауза   R заново", BoardView.RightPanelX, -3.0f, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
             Label("M звук: " + (gameAudio.Muted ? "выкл." : "вкл."), BoardView.RightPanelX, -3.7f, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
 
-            if (game.Combo >= 1)
+            if (game.Combo >= 1 && !game.IsFinished)
             {
                 // The multiplier the next clear would earn, so keeping the chain feels worth it.
                 float next = Game.ComboMultiplier(game.Combo + 1);
@@ -415,28 +607,36 @@ namespace BlockDrop
             float legendX = BoardView.RightPanelX + 0.45f;
             Label("взрыв 5×5", legendX, BoardView.LegendY(0), unit, 0.4f, TextAnchor.MiddleCenter, Muted);
             Label("весь столбец", legendX, BoardView.LegendY(1), unit, 0.4f, TextAnchor.MiddleCenter, Muted);
-            Label("6 с без падения", legendX, BoardView.LegendY(2), unit, 0.4f, TextAnchor.MiddleCenter, Muted);
-            if (game.FreezeTimer > 0f && game.State != GameState.GameOver)
-            {
-                string left = game.FreezeTimer.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
-                Label("ЗАМОРОЗКА " + left, BoardView.RightPanelX, -8.4f, unit, 0.55f, TextAnchor.MiddleCenter, SpecialIcons.FreezeColor);
-            }
 
             DrawPopups(unit);
 
             if (game.State == GameState.Paused)
-                Overlay("ПАУЗА", "P — продолжить", unit);
+                DrawPauseMenu(unit);
+            else if (game.State == GameState.Completed)
+                Overlay("ФИНИШ!", "Время: " + Game.FormatTime(game.Elapsed) + "\n" + PlaceText() + "Enter — ещё раз\nBackspace — в меню", unit);
+            else if (game.State == GameState.GameOver && game.Mode == GameMode.Sprint)
+                Overlay("НЕ ДОШЛИ", "Линий: " + game.Lines + " из " + Game.SprintLines + "\nEnter — ещё раз\nBackspace — в меню", unit);
             else if (game.State == GameState.GameOver)
-                Overlay("ИГРА ОКОНЧЕНА", "Счёт: " + game.Score + "\nEnter — новая игра", unit);
+                Overlay("ИГРА ОКОНЧЕНА", "Счёт: " + game.Score + "\n" + PlaceText() + "Enter — новая игра\nBackspace — в меню", unit);
+        }
+
+        // A bar along the left wall of the well that fills towards the goal.
+        void DrawSprintProgress()
+        {
+            float share = Mathf.Clamp01(game.Lines / (float)Game.SprintLines);
+            float x = BoardView.BoardLeft - 0.42f;
+            float height = Board.VisibleHeight;
+            FillWorld(x, 0f, 0.28f, height, new Color(0.14f, 0.12f, 0.2f, 1f));
+            FillWorld(x, -height / 2f + height * share / 2f, 0.28f, height * share, view.AccentColor);
         }
 
         static readonly Color Muted = new Color(0.68f, 0.65f, 0.76f);
         static readonly Color Bright = new Color(0.96f, 0.94f, 0.98f);
 
-        void Stat(string caption, int value, float worldY, float unit, float valueScale = 1f)
+        void Stat(string caption, string value, float worldY, float unit, float valueScale = 1f)
         {
             Label(caption, BoardView.LeftPanelX, worldY + 0.55f, unit, 0.5f, TextAnchor.MiddleCenter, Muted);
-            Label(value.ToString("N0"), BoardView.LeftPanelX, worldY - 0.25f, unit, 0.85f * valueScale, TextAnchor.MiddleCenter, Bright);
+            Label(value, BoardView.LeftPanelX, worldY - 0.25f, unit, 0.85f * valueScale, TextAnchor.MiddleCenter, Bright);
         }
 
         void DrawPopups(float unit)
@@ -462,8 +662,8 @@ namespace BlockDrop
             GUI.DrawTexture(new Rect(min.x, max.y, max.x - min.x, min.y - max.y), Texture2D.whiteTexture);
             GUI.color = Color.white;
 
-            Label(title, 0f, 1.2f, unit, 0.95f, TextAnchor.MiddleCenter, view.AccentColor);
-            Label(subtitle, 0f, -1f, unit, 0.55f, TextAnchor.MiddleCenter, Bright);
+            Label(title, 0f, 1.75f, unit, 0.95f, TextAnchor.MiddleCenter, view.AccentColor);
+            Label(subtitle, 0f, -0.7f, unit, 0.55f, TextAnchor.MiddleCenter, Bright);
         }
 
         void Label(string text, float worldX, float worldY, float unit, float sizeInUnits, TextAnchor anchor, Color color)
@@ -491,7 +691,9 @@ namespace BlockDrop
 
         // Testing aids: -autoplay plays random moves; -capture <file> [-captureAfter <seconds>] screenshots and quits;
         // -noRecords never saves a best score; -assist prepares rows so each hard drop clears lines (implies -noRecords);
-        // -specialCycle makes every piece special in turn (implies -noRecords).
+        // -specialCycle makes every piece special in turn (implies -noRecords); -sprint starts those runs as a sprint;
+        // -recordsTest saves results under separate test keys, even with -assist, so real records stay untouched;
+        // -resetRecordsTest empties those test keys first.
         void ReadCommandLine()
         {
             string[] args = System.Environment.GetCommandLineArgs();
@@ -503,6 +705,14 @@ namespace BlockDrop
                 {
                     autoplay = true;
                     autoplayRandom = new System.Random(12345);
+                }
+                else if (args[i] == "-logSlowFrames")
+                {
+                    logSlowFrames = true;
+                }
+                else if (args[i] == "-sprint")
+                {
+                    mode = GameMode.Sprint;
                 }
                 else if (args[i] == "-noRecords")
                 {
@@ -526,6 +736,18 @@ namespace BlockDrop
                 else if (args[i] == "-captureAfter" && i + 1 < args.Length)
                 {
                     float.TryParse(args[i + 1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out captureAfter);
+                }
+            }
+            if (System.Array.IndexOf(args, "-recordsTest") >= 0)
+            {
+                recordsPrefix = TestRecordsPrefix;
+                noRecords = false;
+                if (System.Array.IndexOf(args, "-resetRecordsTest") >= 0)
+                {
+                    PlayerPrefs.DeleteKey(TestRecordsPrefix + BestScoreName);
+                    PlayerPrefs.DeleteKey(TestRecordsPrefix + MarathonTableName);
+                    PlayerPrefs.DeleteKey(TestRecordsPrefix + SprintTableName);
+                    PlayerPrefs.Save();
                 }
             }
             if (capturePath != null)
