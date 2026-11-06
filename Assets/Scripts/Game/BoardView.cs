@@ -74,6 +74,17 @@ namespace BlockDrop.View
         public Color BackgroundColor { get { return backgroundColor; } }
         public Color AccentColor { get { return accentColor; } }
         public Texture TileTexture { get { return tileSprite.texture; } }
+        public Sprite PlainSprite { get { return plainSprite; } }
+        public Color PanelColor { get { return panelColor; } }
+
+        readonly List<SpriteRenderer> legendIcons = new List<SpriteRenderer>();
+
+        /// <summary>The battle mode uses this corner for the bot.</summary>
+        public void SetLegendVisible(bool visible)
+        {
+            foreach (SpriteRenderer icon in legendIcons)
+                icon.enabled = visible;
+        }
 
         public static Color PieceColor(int index)
         {
@@ -156,6 +167,7 @@ namespace BlockDrop.View
         {
             SpriteRenderer icon = CreateRenderer("LegendIcon", SpecialIcons.Get(kind), new Vector2(LegendIconX, y), 0.8f, 2);
             icon.color = Color.white;
+            legendIcons.Add(icon);
         }
 
         SpriteRenderer CreateIconRenderer()

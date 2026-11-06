@@ -95,6 +95,7 @@ namespace BlockDrop
             DrawTablePanel("Марафон: лучшие очки", -4.65f, marathonTable, false, unit);
             DrawTablePanel("Спринт: лучшее время", 4.65f, sprintTable, true, unit);
             Label("↑ ↓ выбрать    Enter подтвердить    или мышью", 0f, -9.95f, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
+            Label("Монеты: " + coinsTotal.ToString("N0"), 9.6f, -9.95f, unit, 0.42f, TextAnchor.MiddleCenter, new Color(1f, 0.8f, 0.25f));
         }
 
         void DrawMenuBackground()
@@ -163,15 +164,14 @@ namespace BlockDrop
             DrawTile(-width / 2f + 0.95f, y, 0.72f * pulse, tile);
 
             Color textColor = Color.Lerp(Muted, Bright, glow);
-            float size = 0.78f + glow * 0.06f;
             if (hint == null)
             {
-                Label(text, 0f, y, unit, size, TextAnchor.MiddleCenter, textColor);
+                Label(text, 0f, y, unit, 0.78f + glow * 0.06f, TextAnchor.MiddleCenter, textColor);
             }
             else
             {
-                Label(text, 0f, y + 0.24f, unit, size, TextAnchor.MiddleCenter, textColor);
-                Label(hint, 0f, y - 0.5f, unit, 0.36f, TextAnchor.MiddleCenter, Muted);
+                Label(text, 0f, y + 0.2f, unit, 0.68f + glow * 0.05f, TextAnchor.MiddleCenter, textColor);
+                Label(hint, 0f, y - 0.43f, unit, 0.34f, TextAnchor.MiddleCenter, Muted);
             }
         }
 
@@ -313,8 +313,10 @@ namespace BlockDrop
 
         string PauseStats()
         {
+            if (game.Mode == GameMode.Battle)
+                return "Бой     бот " + battle.Level + "     здоровье " + battle.Hp + " / " + battle.MaxHp + "     монет +" + battle.CoinsEarned;
             if (game.Mode == GameMode.Sprint)
-                return "Спринт     " + Game.FormatTime(game.Elapsed) + "     линий " + Mathf.Min(game.Lines, Game.SprintLines) + " / " + Game.SprintLines;
+                return "Спринт    " + Game.FormatTime(game.Elapsed) + "     линий " + Mathf.Min(game.Lines, Game.SprintLines) + " / " + Game.SprintLines;
             return "Марафон     счёт " + game.Score.ToString("N0") + "     линий " + game.Lines + "     уровень " + game.Level;
         }
 
@@ -324,6 +326,7 @@ namespace BlockDrop
             {
                 case MenuItem.Marathon: return "играй, пока хватит места";
                 case MenuItem.Sprint: return Game.SprintLines + " линий как можно быстрее";
+                case MenuItem.Battle: return "линии бьют бота, комбо сильнее, падают монетки";
                 default: return null;
             }
         }

@@ -103,6 +103,9 @@ namespace BlockDrop.View
                 { "gameover", Notes(new[] { 392f, 349f, 311f, 262f, 196f }, 0.16f, 0.7f, 0.75f) },
                 { "bomb", Tone(0.55f, 110f, 28f, 0.72f, 1f, random) },
                 { "zap", Tone(0.3f, 2600f, 240f, 0.65f, 0.9f, random) },
+                { "bothit", Tone(0.14f, 330f, 110f, 0.55f, 0.8f, random) },
+                { "botdown", Tone(0.7f, 420f, 40f, 0.6f, 1f, random) },
+                { "coin", Notes(new[] { 1319f, 1760f }, 0.04f, 0.12f, 0.45f) },
                 { "music", BuildMusic() },
             };
         }

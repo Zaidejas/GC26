@@ -135,6 +135,12 @@ namespace BlockDrop.EditorTools
                 { "Table refuses impossible results", TableRefusesBadValues },
                 { "Table survives saving and reloading", TableRoundTrip },
                 { "Damaged saved table does not break", TableIgnoresGarbage },
+                { "More lines and a higher combo hit harder", BattleDamageScales },
+                { "A longer combo drops more coins, up to a limit", BattleCoinsScale },
+                { "A hit lowers the bot's health and adds coins", BattleHitApplies },
+                { "A defeated bot pays out and a stronger one comes", BattleDefeatAdvances },
+                { "No lines means no damage and no coins", BattleEmptyHit },
+                { "Battle games play on like a marathon", BattleModeKeepsGoing },
             };
 
             int failures = 0;
@@ -473,7 +479,7 @@ namespace BlockDrop.EditorTools
         static void SoundsAreValid()
         {
             Dictionary<string, float[]> sounds = BlockDrop.View.GameAudio.BuildAllSounds();
-            string[] required = { "move", "rotate", "hold", "lock", "harddrop", "clear1", "clear2", "clear3", "clear4", "levelup", "gameover", "music", "bomb", "zap" };
+            string[] required = { "move", "rotate", "hold", "lock", "harddrop", "clear1", "clear2", "clear3", "clear4", "levelup", "gameover", "music", "bomb", "zap", "bothit", "botdown", "coin" };
             foreach (string name in required)
             {
                 Check(sounds.ContainsKey(name), "missing " + name);
@@ -819,6 +825,78 @@ namespace BlockDrop.EditorTools
         {
             Leaderboard loaded = Leaderboard.Parse("abc;50.5;;-3;NaN;40;1e999;x;60;70;80;90;100", true);
             Check(loaded.Entries.SequenceEqual(new double[] { 40, 50.5, 60, 70, 80 }), "got " + loaded.Serialize());
+        }
+
+        static void BattleDamageScales()
+        {
+            Check(Battle.DamageFor(1, 1f) == 10, "one line");
+            Check(Battle.DamageFor(4, 1f) == 80, "four lines");
+            Check(Battle.DamageFor(1, 2f) == 20, "combo x2 doubles");
+            Check(Battle.DamageFor(4, 4f) == 320, "four lines at x4");
+            Check(Battle.DamageFor(2, 1.5f) > Battle.DamageFor(2, 1f), "combo must add damage");
+            for (int rows = 1; rows < 4; rows++)
+                Check(Battle.DamageFor(rows + 1, 1f) > Battle.DamageFor(rows, 1f), "more lines must hurt more");
+        }
+
+        static void BattleCoinsScale()
+        {
+            Check(Battle.CoinsFor(1, 1) == 1, "one line, no combo");
+            Check(Battle.CoinsFor(4, 1) == 4, "four lines, no combo");
+            Check(Battle.CoinsFor(1, 3) == 3, "combo adds coins");
+            Check(Battle.CoinsFor(1, 100) == 1 + Battle.MaxComboCoins, "combo coins must be capped");
+            Check(Battle.CoinsFor(0, 5) == 0, "no lines, no coins");
+        }
+
+        static void BattleHitApplies()
+        {
+            var battle = new Battle();
+            Check(battle.Hp == Battle.BaseHp && battle.Level == 1, "starting state");
+            BattleHit hit = battle.Hit(2, 2, 1.5f);
+            Check(hit.Damage == Battle.DamageFor(2, 1.5f) && !hit.Defeated && hit.BotLevel == 1, "hit result");
+            Check(battle.Hp == Battle.BaseHp - hit.Damage, "health " + battle.Hp);
+            Check(hit.Coins == Battle.CoinsFor(2, 2) && battle.CoinsEarned == hit.Coins, "coins");
+        }
+
+        static void BattleDefeatAdvances()
+        {
+            var battle = new Battle();
+            int guard = 0;
+            BattleHit hit = default;
+            while (!hit.Defeated && guard++ < 100)
+                hit = battle.Hit(1, 1, 1f);
+            Check(hit.Defeated && hit.BotLevel == 1, "bot was not defeated");
+            Check(guard == 12, "120 health at 10 damage took " + guard + " hits");
+            Check(hit.Coins == 1 + Battle.DefeatCoinsPerLevel, "defeat coins " + hit.Coins);
+            Check(battle.Level == 2 && battle.BotsDefeated == 1, "did not advance");
+            Check(battle.MaxHp == Battle.BaseHp + Battle.HpPerLevel, "next bot is not stronger");
+            Check(battle.Hp == battle.MaxHp, "next bot must start at full health");
+
+            var overkill = new Battle();
+            overkill.Hit(4, 7, 4f);
+            Check(overkill.Level == 2 && overkill.Hp == overkill.MaxHp, "leftover damage carried over");
+            Check(Battle.MaxHpFor(3) > Battle.MaxHpFor(2), "bots must keep getting stronger");
+        }
+
+        static void BattleEmptyHit()
+        {
+            var battle = new Battle();
+            BattleHit hit = battle.Hit(0, 0, 1f);
+            Check(hit.Damage == 0 && hit.Coins == 0 && !hit.Defeated, "empty hit did something");
+            Check(battle.Hp == battle.MaxHp && battle.CoinsEarned == 0, "state changed");
+        }
+
+        static void BattleModeKeepsGoing()
+        {
+            var game = new Game(51, false, GameMode.Battle);
+            int finished = 0;
+            game.SprintCompleted += () => finished++;
+            for (int i = 0; i < 80 && game.Lines < Game.SprintLines + 5; i++)
+            {
+                game.Board.Clear();
+                PrepareClear(game);
+                game.HardDrop();
+            }
+            Check(game.State == GameState.Playing && finished == 0, "battle ended at the sprint goal");
         }
 
         // Finds a seed that spawns the wanted piece first.

@@ -5,7 +5,7 @@ namespace BlockDrop.Core
 {
     public enum GameState { Playing, Paused, GameOver, Completed }
 
-    public enum GameMode { Marathon, Sprint }
+    public enum GameMode { Marathon, Sprint, Battle }
 
     /// <summary>What one line clear earned, for the score popups and effects.</summary>
     public readonly struct LineClear
