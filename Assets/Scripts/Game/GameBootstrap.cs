@@ -2,6 +2,8 @@ using Lines.Core;
 using Lines.UI;
 using Lines.View;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 
 namespace Lines.Game
 {
@@ -38,6 +40,11 @@ namespace Lines.Game
             Relayout();
             Taps = gameObject.AddComponent<InputHandler>();
             Taps.Init(this);
+
+            // Buttons need an event system that reads the new Input System (touch and mouse).
+            if (EventSystem.current == null)
+                new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
+            hud.UndoClicked += () => Controller.Undo();
             Debug.Log("Lines: game started");
         }
 

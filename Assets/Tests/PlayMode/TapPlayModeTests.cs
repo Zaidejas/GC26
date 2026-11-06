@@ -33,6 +33,7 @@ namespace Lines.Tests
             yield return new WaitForSeconds(0.2f);
             Assert.AreNotEqual(BoardView.CellToLocal(ball), game.BoardView.BallAt(ball).transform.localPosition, "It bounces");
 
+            var emptyBefore = board.EmptyCells();
             int moves = 0;
             game.Controller.Game.OnBallMoved += (from, to, path) => { if (from == ball && to == target) moves++; };
             Assert.IsTrue(game.Taps.HandlePress(Px(target)));
@@ -45,6 +46,12 @@ namespace Lines.Tests
             float waited = 0;
             while (game.Controller.State != TurnState.Idle && waited < 2f) { waited += Time.deltaTime; yield return null; }
             Assert.AreEqual(TurnState.Idle, game.Controller.State);
+
+            // Undo puts the board back as it was before the move.
+            Assert.IsTrue(game.Hud.UndoButton.Interactable);
+            game.Hud.UndoButton.Click();
+            CollectionAssert.AreEqual(emptyBefore, board.EmptyCells(), "Undo restored the board");
+            Assert.IsFalse(game.Hud.UndoButton.Interactable);
             Assert.AreEqual(81 - board.EmptyCount, game.BoardView.BallCount, "The screen shows the board");
             Assert.IsFalse(game.Taps.HandlePress(new Vector2(1, 1)), "Press outside the board does nothing");
         }

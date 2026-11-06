@@ -85,6 +85,14 @@ namespace Lines.Core
 
         public void Clear() => Array.Clear(cells, 0, cells.Length);
 
+        /// <summary>Makes this board hold exactly the same balls as <paramref name="other"/> (used by Undo).</summary>
+        public void CopyFrom(Board other)
+        {
+            if (other == null) throw new ArgumentNullException(nameof(other));
+            if (other.Size != Size) throw new ArgumentException("Boards have different sizes.", nameof(other));
+            Array.Copy(other.cells, cells, cells.Length);
+        }
+
         /// <summary>An independent copy, used for Undo snapshots and saving.</summary>
         public Board Clone()
         {

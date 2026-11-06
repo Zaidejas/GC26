@@ -21,6 +21,21 @@ namespace Lines.Core
         public bool GameOver { get; internal set; }
     }
 
+    /// <summary>The position before the last move, for Undo: board, score and preview.</summary>
+    public sealed class UndoSnapshot
+    {
+        public Board Board { get; }
+        public int Score { get; }
+        public Preview Preview { get; }
+
+        public UndoSnapshot(Board board, int score, Preview preview)
+        {
+            Board = board ?? throw new ArgumentNullException(nameof(board));
+            Preview = preview ?? throw new ArgumentNullException(nameof(preview));
+            Score = score;
+        }
+    }
+
     /// <summary>
     /// One game of Lines: the board, score, preview and the turn rules.
     /// A turn: move a ball along a free path → if it completes lines, clear them (no spawn);
@@ -36,6 +51,13 @@ namespace Lines.Core
         public bool IsOver { get; private set; }
         public Spawner Spawner { get; }
 
+        /// <summary>
+        /// The position before the last move, or null. Undo is one step only, as in the classic game:
+        /// there is none at the start of a game, right after an undo, or after game over (GDD → Controls).
+        /// </summary>
+        public UndoSnapshot UndoStep { get; private set; }
+        public bool CanUndo => UndoStep != null && !IsOver;
+
         /// <summary>A ball moved: from, to, and the path it took.</summary>
         public event Action<Cell, Cell, IReadOnlyList<Cell>> OnBallMoved;
         /// <summary>The player tried to move a ball where it can't go: from, to.</summary>
@@ -46,6 +68,8 @@ namespace Lines.Core
         public event Action<IReadOnlyList<Cell>> OnBallsSpawned;
         /// <summary>The board is full; the final score.</summary>
         public event Action<int> OnGameOver;
+        /// <summary>The last move was taken back.</summary>
+        public event Action OnUndone;
 
         /// <summary>Starts a new game: 3 random balls and the first preview.</summary>
         public static GameState NewGame(int seed)
@@ -57,7 +81,7 @@ namespace Lines.Core
         }
 
         /// <summary>Continues a game from a given position (used by saving and by tests).</summary>
-        public GameState(Board board, Preview preview, int score, Spawner spawner, bool isOver = false)
+        public GameState(Board board, Preview preview, int score, Spawner spawner, bool isOver = false, UndoSnapshot undoStep = null)
         {
             Board = board ?? throw new ArgumentNullException(nameof(board));
             Preview = preview ?? throw new ArgumentNullException(nameof(preview));
@@ -65,6 +89,22 @@ namespace Lines.Core
             if (score < 0) throw new ArgumentOutOfRangeException(nameof(score));
             Score = score;
             IsOver = isOver;
+            UndoStep = isOver ? null : undoStep;
+        }
+
+        /// <summary>
+        /// Takes back the last move: board, score and preview return to how they were before it.
+        /// Returns false (and changes nothing) when there is nothing to undo.
+        /// </summary>
+        public bool Undo()
+        {
+            if (!CanUndo) return false;
+            Board.CopyFrom(UndoStep.Board);
+            Score = UndoStep.Score;
+            Preview = UndoStep.Preview;
+            UndoStep = null;
+            OnUndone?.Invoke();
+            return true;
         }
 
         /// <summary>
@@ -85,6 +125,7 @@ namespace Lines.Core
                 return result;
             }
 
+            UndoStep = new UndoSnapshot(Board.Clone(), Score, Preview); // Preview is immutable, so it can be kept as is
             Board.Move(from, to);
             result.Moved = true;
             result.Path = path;
@@ -116,6 +157,7 @@ namespace Lines.Core
             if (Board.IsFull)
             {
                 IsOver = true;
+                UndoStep = null; // game over is final
                 result.GameOver = true;
                 OnGameOver?.Invoke(Score);
             }

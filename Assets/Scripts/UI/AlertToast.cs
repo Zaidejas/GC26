@@ -73,12 +73,7 @@ namespace Lines.UI
             label.fontSize = FontSize * unit;
             // A pill: corners as round as half the height.
             float height = label.fontSize * 1.25f + 2f * PaddingY * unit;
-            background.sprite = SpriteFactory.RoundRect(0.5f);
-            // A sliced UI image draws its corners border / (sprite ppu / canvas ppu × multiplier) pixels wide.
-            var canvas = GetComponentInParent<Canvas>();
-            float canvasPpu = canvas != null ? canvas.referencePixelsPerUnit : 100f;
-            float border = background.sprite.border.x;
-            background.pixelsPerUnitMultiplier = border * canvasPpu / (background.sprite.pixelsPerUnit * height / 2f);
+            UiShapes.MakePill(background, height);
             Resize();
         }
 

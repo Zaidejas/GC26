@@ -26,6 +26,11 @@ namespace Lines.UI
         float unit = 10f;
         TweenHandle gainTween;
         AlertToast alert;
+        PillButton undo;
+
+        /// <summary>The player pressed Undo.</summary>
+        public event System.Action UndoClicked;
+        public PillButton UndoButton => undo;
 
         public string ScoreText => scoreText.text;
         public IReadOnlyList<Image> NextPieces => next;
@@ -57,6 +62,9 @@ namespace Lines.UI
             gainText.alpha = 0f;
             nextLabel = NewText("Next label", "NEXT", Palette.SoftText, TextAlignmentOptions.BottomRight, bold: true);
             alert = AlertToast.Create((RectTransform)transform);
+            undo = PillButton.Create((RectTransform)transform, "Undo");
+            undo.Interactable = false; // nothing to undo at the start
+            undo.Clicked += () => UndoClicked?.Invoke();
             for (int i = 0; i < next.Length; i++)
             {
                 next[i] = NewRect("Next " + i, area).gameObject.AddComponent<Image>();
@@ -90,7 +98,15 @@ namespace Lines.UI
             nextLabel.fontSize = LabelSize * u;
 
             alert.ApplyLayout(layout.Board.center, u); // messages appear over the middle of the board
+
+            // Buttons under the board: Undo on the left half (Reset joins on the right), 4 units apart.
+            var actions = layout.Actions;
+            float half = (actions.width - 4f * u) / 2f;
+            undo.Place(new Rect(actions.x, actions.y, half, actions.height), u);
         }
+
+        /// <summary>Enables or greys out the Undo button.</summary>
+        public void SetUndoEnabled(bool enabled) => undo.Interactable = enabled;
 
         /// <summary>Shows a short message over the board ("No path").</summary>
         public void ShowAlert(string text) => alert.Show(text);

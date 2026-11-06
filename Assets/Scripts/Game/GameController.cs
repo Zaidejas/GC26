@@ -69,6 +69,24 @@ namespace Lines.Game
             return true;
         }
 
+        /// <summary>True when the Undo button should be usable: something to undo and no animation playing.</summary>
+        public bool CanUndo => AcceptsInput && Game.CanUndo;
+
+        /// <summary>
+        /// Takes back the last move (one step). Ignored while an animation plays, at the start of a game,
+        /// right after an undo and after game over. Returns true when a move was taken back.
+        /// </summary>
+        public bool Undo()
+        {
+            if (!CanUndo) return false;
+            Selected = null;
+            presenter.ShowSelected(null);
+            Game.Undo();
+            presenter.ShowState(Game);
+            SetState(TurnState.Idle);
+            return true;
+        }
+
         void Select(Cell? cell)
         {
             Selected = cell;

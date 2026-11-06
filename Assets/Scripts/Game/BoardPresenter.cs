@@ -49,6 +49,7 @@ namespace Lines.Game
             {
                 hud.SetScore(game.Score);
                 hud.SetPreview(game.Preview.Colors, board.Pieces);
+                hud.SetUndoEnabled(game.CanUndo);
             }
         }
 
