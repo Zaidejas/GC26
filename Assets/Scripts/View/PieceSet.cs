@@ -56,6 +56,19 @@ namespace Lines.View
 
         public static bool CreaturesAvailable() => Creature(0) != null;
 
+        // The main color of each creature, for the burst particles (the prototype's k-0 … k-8 colors).
+        static readonly int[] CreatureColors =
+        {
+            0x7A4FB5, 0x6F9BD8, 0x9A9CB8, 0x7CB342, 0x5CC9A7, 0xF2C75C, 0xE06666, 0xF0A04B, 0xA9D8F0,
+        };
+
+        /// <summary>The color of the particles when a piece of <paramref name="color"/> bursts.</summary>
+        public Color ParticleColor(BallColor color)
+        {
+            int creature = CreatureFor(color);
+            return creature >= 0 ? Palette.Hex(CreatureColors[creature]) : Palette.Ball(color).basis;
+        }
+
         static Sprite Creature(int index)
         {
             if (index < 0 || index >= CreatureCount) throw new ArgumentOutOfRangeException(nameof(index));

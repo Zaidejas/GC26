@@ -195,6 +195,8 @@ namespace Lines.Tests
             var result = game.TryMove(new Cell(0, 8), new Cell(1, 8));
 
             Assert.AreEqual(3, result.Spawned.Count);
+            CollectionAssert.AreEqual(new[] { BallColor.Green, BallColor.Blue, BallColor.Purple }, result.SpawnedColors,
+                "Spawned colors are reported even though the green ones were then cleared");
             Assert.AreEqual(1, result.LinesFromSpawn.Count);
             Assert.AreEqual(10, result.SpawnPoints);
             Assert.AreEqual(10, game.Score);

@@ -103,7 +103,7 @@ namespace Lines.Game
             }
 
             SetState(TurnState.Spawning);
-            presenter.PlaySpawn(result.Spawned, () =>
+            presenter.PlaySpawn(result.Spawned, result.SpawnedColors, () =>
             {
                 if (result.LinesFromSpawn.Count > 0)
                 {

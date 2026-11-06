@@ -26,9 +26,16 @@ namespace Lines.View
             Color = color;
             var sprite = pieces.SpriteFor(color);
             spriteRenderer.sprite = sprite;
+            spriteRenderer.color = UnityEngine.Color.white;
             var size = sprite.bounds.size;
             transform.localScale = Vector3.one * (pieces.SizeInCell / Mathf.Max(size.x, size.y));
+            FullScale = transform.localScale;
         }
+
+        /// <summary>The scale at which the piece fills its spot in the cell.</summary>
+        public Vector3 FullScale { get; private set; } = Vector3.one;
+
+        public void SetAlpha(float alpha) => spriteRenderer.color = new UnityEngine.Color(1f, 1f, 1f, alpha);
     }
 
     /// <summary>
@@ -171,6 +178,23 @@ namespace Lines.View
                 var size = sprite.bounds.size;
                 dots[i].transform.localScale = Vector3.one * (pieces.DotSizeInCell / Mathf.Max(size.x, size.y));
             }
+        }
+
+        /// <summary>Puts one new ball into <paramref name="cell"/> (used by the spawn animation).</summary>
+        public BallView AddBall(Cell cell, BallColor color)
+        {
+            if (balls.TryGetValue(cell, out var existing)) Release(existing);
+            var ball = Take(cell, color);
+            balls[cell] = ball;
+            return ball;
+        }
+
+        /// <summary>Takes the ball out of <paramref name="cell"/> (after its pop animation).</summary>
+        public void RemoveBall(Cell cell)
+        {
+            if (!balls.TryGetValue(cell, out var ball)) return;
+            balls.Remove(cell);
+            Release(ball);
         }
 
         /// <summary>Records that the ball at <paramref name="from"/> now belongs to <paramref name="to"/> (after its move animation).</summary>

@@ -31,7 +31,7 @@ namespace Lines.Tests
             public void ShowBlocked(Cell from, Cell to) => Log.Add("blocked");
             public void PlayMove(IReadOnlyList<Cell> path, Action done) => Play("move", done);
             public void PlayClear(IReadOnlyList<Cell> cells, int points, Action done) => Play($"clear {cells.Count} +{points}", done);
-            public void PlaySpawn(IReadOnlyList<Cell> cells, Action done) => Play("spawn " + cells.Count, done);
+            public void PlaySpawn(IReadOnlyList<Cell> cells, IReadOnlyList<BallColor> colors, Action done) => Play("spawn " + cells.Count, done);
             public void ShowGameOver(int score) => Log.Add("game over " + score);
         }
 

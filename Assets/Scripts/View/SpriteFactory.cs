@@ -6,7 +6,7 @@ namespace Lines.View
 {
     /// <summary>
     /// Draws the game's sprites in code (no image files): glossy balls and rounded squares.
-    /// The balls are placeholders until the creature PNGs arrive (task 28).
+    /// The glossy balls are the fallback when the creature images are missing (see PieceSet).
     /// Sprites are cached, so each one is drawn only once.
     /// </summary>
     public static class SpriteFactory
@@ -70,6 +70,24 @@ namespace Lines.View
             sprite.name = "RoundRect " + cornerRadius;
             RoundRects[cornerRadius] = sprite;
             return sprite;
+        }
+
+        static Sprite disc;
+
+        /// <summary>A plain white circle, 1 world unit wide (burst particles).</summary>
+        public static Sprite Disc()
+        {
+            if (disc != null) return disc;
+            const int n = 32;
+            var pixels = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(n / 2f, n / 2f));
+                pixels[y * n + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(n / 2f - d));
+            }
+            disc = Sprite.Create(NewTexture(n, pixels, "Disc"), new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), n);
+            return disc;
         }
 
         /// <summary>A plain white square, 1 world unit wide.</summary>

@@ -25,8 +25,8 @@ namespace Lines.Game
         /// <summary>Balls in <paramref name="cells"/> disappear; <paramref name="points"/> were scored.</summary>
         void PlayClear(IReadOnlyList<Cell> cells, int points, Action done);
 
-        /// <summary>New balls appear in <paramref name="cells"/>.</summary>
-        void PlaySpawn(IReadOnlyList<Cell> cells, Action done);
+        /// <summary>New balls appear in <paramref name="cells"/>, with <paramref name="colors"/> in the same order.</summary>
+        void PlaySpawn(IReadOnlyList<Cell> cells, IReadOnlyList<BallColor> colors, Action done);
 
         /// <summary>The board is full.</summary>
         void ShowGameOver(int score);

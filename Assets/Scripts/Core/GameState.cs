@@ -13,6 +13,9 @@ namespace Lines.Core
         public int MovePoints { get; internal set; }
         /// <summary>Cells where new balls appeared (empty when the move cleared a line).</summary>
         public IReadOnlyList<Cell> Spawned { get; internal set; } = Array.Empty<Cell>();
+        /// <summary>The color of each spawned ball, in the same order as <see cref="Spawned"/>
+        /// (kept even if the balls then formed a line and were cleared).</summary>
+        public IReadOnlyList<BallColor> SpawnedColors { get; internal set; } = Array.Empty<BallColor>();
         public IReadOnlyList<Line> LinesFromSpawn { get; internal set; } = Array.Empty<Line>();
         public int SpawnPoints { get; internal set; }
         public bool GameOver { get; internal set; }
@@ -98,6 +101,9 @@ namespace Lines.Core
 
             var spawned = Spawner.Spawn(Board, Preview);
             result.Spawned = spawned;
+            var spawnedColors = new List<BallColor>(spawned.Count);
+            foreach (var cell in spawned) spawnedColors.Add(Board.Get(cell));
+            result.SpawnedColors = spawnedColors;
             OnBallsSpawned?.Invoke(spawned);
 
             var spawnLines = LineDetector.FindLinesThrough(Board, spawned);

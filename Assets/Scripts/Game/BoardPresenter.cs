@@ -9,8 +9,8 @@ namespace Lines.Game
 {
     /// <summary>
     /// Shows the turn on the <see cref="BoardView"/> and the <see cref="HudView"/> (score, next pieces).
-    /// Steps without an animation yet finish at once; done: bounce (13), rolling along the path (14),
-    /// score and preview (15); still to come: grow-in and pop (18), shake and "No path" alert (19).
+    /// Done: bounce, rolling along the path, score and preview, grow-in, pop and burst.
+    /// Still to come: shake and "No path" alert (task 17).
     /// </summary>
     public sealed class BoardPresenter : IBoardPresenter
     {
@@ -59,7 +59,7 @@ namespace Lines.Game
             bounce = null;
         }
 
-        public void ShowBlocked(Cell from, Cell to) { /* task 19: shake + "No path" */ }
+        public void ShowBlocked(Cell from, Cell to) { /* task 17: shake + "No path" */ }
 
         /// <summary>The ball rolls along the path at an even speed, one cell every 40 ms (as in the prototype).</summary>
         public void PlayMove(IReadOnlyList<Cell> path, Action done)
@@ -79,15 +79,96 @@ namespace Lines.Game
             });
         }
 
-        /// <summary>Adds the points with a floating "+N" (the shrink-and-burst animation comes in task 18).</summary>
-        public void PlayClear(IReadOnlyList<Cell> cells, int points, Action done)
+        // Prototype timings (docs/prototype/lines-prototype.html).
+        public const float GrowSeconds = 0.22f;      // new pieces grow in
+        public const float SpawnSeconds = 0.24f;     // the turn continues after this
+        public const float PopSeconds = 0.24f;       // cleared pieces swell, then shrink away
+        public const float ClearSeconds = 0.26f;     // the turn continues (and the score updates) after this
+        public const float ParticleSeconds = 0.45f;  // the burst keeps flying a little longer, without holding the turn
+        public const int ParticlesPerPiece = 7;
+
+        /// <summary>New pieces grow in from nothing; their preview dots go away.</summary>
+        public void PlaySpawn(IReadOnlyList<Cell> cells, IReadOnlyList<BallColor> colors, Action done)
         {
-            hud?.AddScore(points);
-            done();
+            for (int i = 0; i < cells.Count; i++)
+            {
+                board.HideDotAt(cells[i]);
+                var ball = board.AddBall(cells[i], colors[i]);
+                var full = ball.FullScale;
+                ball.transform.localScale = Vector3.zero;
+                Tween.Scale(ball.transform, full, GrowSeconds, Ease.OutQuad);
+            }
+            Tween.Delay(SpawnSeconds, done);
         }
 
-        public void PlaySpawn(IReadOnlyList<Cell> cells, Action done) => done(); // task 18: grow in
+        /// <summary>
+        /// Cleared pieces swell to 118 %, then shrink and fade, while 7 particles in their color burst out.
+        /// Then the pieces are removed and the points float up next to the score.
+        /// </summary>
+        public void PlayClear(IReadOnlyList<Cell> cells, int points, Action done)
+        {
+            foreach (var cell in cells)
+            {
+                var ball = board.BallAt(cell);
+                if (ball == null) continue;
+                Burst(cell, board.Pieces.ParticleColor(ball.Color));
+                Pop(ball);
+            }
+            Tween.Delay(ClearSeconds, () =>
+            {
+                foreach (var cell in cells) board.RemoveBall(cell);
+                hud?.AddScore(points);
+                done();
+            });
+        }
 
-        public void ShowGameOver(int score) { /* task 23: game-over pop-up */ }
+        static void Pop(BallView ball)
+        {
+            var t = ball.transform;
+            var full = ball.FullScale;
+            Tween.To(t, PopSeconds, p =>
+            {
+                float size = p < 0.4f ? Mathf.Lerp(1f, 1.18f, p / 0.4f) : Mathf.Lerp(1.18f, 0f, (p - 0.4f) / 0.6f);
+                t.localScale = full * size;
+                ball.SetAlpha(1f - p);
+            }, Ease.InQuad);
+        }
+
+        void Burst(Cell cell, Color color)
+        {
+            var centre = BoardView.CellToLocal(cell);
+            for (int k = 0; k < ParticlesPerPiece; k++)
+            {
+                var sr = new GameObject("Particle").AddComponent<SpriteRenderer>();
+                sr.sprite = SpriteFactory.Disc();
+                sr.color = color;
+                sr.sortingOrder = BoardView.BallOrder + 1;
+                var t = sr.transform;
+                t.SetParent(board.transform, false);
+                t.localPosition = centre;
+                const float size = 0.22f; // prototype: 2.2 % of the width ≈ a fifth of a cell
+                t.localScale = Vector3.one * size;
+
+                // Evenly around the circle, a little jitter; 0.5–1 cell away (prototype: 5–10 % of the width).
+                float angle = k / (float)ParticlesPerPiece * Mathf.PI * 2f + UnityEngine.Random.value * 0.6f;
+                float distance = 0.5f + UnityEngine.Random.value * 0.5f;
+                var direction = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
+                Tween.To(t, ParticleSeconds, p =>
+                {
+                    t.localPosition = centre + direction * (distance * p);
+                    t.localScale = Vector3.one * (size * (1f - 0.8f * p));
+                    sr.color = new Color(color.r, color.g, color.b, 1f - p);
+                }, Ease.OutQuad).OnComplete(() => DestroyObject(sr.gameObject));
+            }
+        }
+
+        static void DestroyObject(GameObject go)
+        {
+            if (go == null) return;
+            if (Application.isPlaying) UnityEngine.Object.Destroy(go);
+            else UnityEngine.Object.DestroyImmediate(go);
+        }
+
+        public void ShowGameOver(int score) { /* task 24: game-over pop-up */ }
     }
 }
