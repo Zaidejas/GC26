@@ -10,10 +10,15 @@ public class BlinkEffect : MonoBehaviour
     public RectTransform topCurve;
     public RectTransform bottomCurve;
 
-    [Tooltip("Раз во сколько секунд моргает")]
-    public float interval = 10f;
-    [Tooltip("Длина одного моргания, в секундах")]
-    public float duration = 0.29f;
+    // Чем меньше ХП у босса, тем чаще и дольше моргание (линейно от полного ХП к нулю)
+    [Tooltip("Интервал между морганиями при полном ХП босса, секунд")]
+    public float intervalFullHealth = 10f;
+    [Tooltip("Интервал при почти нулевом ХП - чаще не бывает, секунд")]
+    public float intervalMin = 6f;
+    [Tooltip("Длина моргания при полном ХП босса, секунд")]
+    public float durationFullHealth = 0.29f;
+    [Tooltip("Длина моргания при почти нулевом ХП - дольше не бывает, секунд")]
+    public float durationMax = 0.6f;
     [Range(0f, 1f)]
     [Tooltip("Насколько закрывается экран: 1 - полностью")]
     public float closeAmount = 1f;
@@ -23,8 +28,14 @@ public class BlinkEffect : MonoBehaviour
     public float curveHeight = 170f;
 
     Boss boss;
-    float timer;
+    float sinceLastBlink;
+    bool firstBlinkPending;
     float blinkTime = -1f;
+    float duration;
+
+    // 0 - у босса полное ХП, 1 - почти убит
+    float Damage => boss == null ? 0f : 1f - Mathf.Clamp01(boss.HealthFraction);
+    float CurrentInterval => Mathf.Lerp(intervalFullHealth, intervalMin, Damage);
 
     void Start()
     {
@@ -43,7 +54,8 @@ public class BlinkEffect : MonoBehaviour
         if (!spawned.playerBlinks) return;
 
         boss = spawned;
-        timer = firstDelay;
+        sinceLastBlink = 0f;
+        firstBlinkPending = true;
     }
 
     void Update()
@@ -56,11 +68,16 @@ public class BlinkEffect : MonoBehaviour
             return;
         }
 
-        timer -= Time.deltaTime;
-        if (timer <= 0f)
+        // Интервал пересчитывается каждый кадр: урон по боссу сразу приближает следующее моргание
+        sinceLastBlink += Time.deltaTime;
+        float wait = firstBlinkPending ? firstDelay : CurrentInterval;
+        if (sinceLastBlink >= wait)
         {
             blinkTime = 0f;
-            timer = interval;
+            sinceLastBlink = 0f;
+            firstBlinkPending = false;
+            // Длину фиксируем на старте, чтобы моргание не дёргалось от попаданий
+            duration = Mathf.Lerp(durationFullHealth, durationMax, Damage);
         }
 
         if (blinkTime < 0f) return;
