@@ -16,10 +16,11 @@ Revised Nov 2, 2026 / Обновлено 2 ноября 2026
 **How we work**
 
 - **Code first.** Everything (board, balls, UI) is created by code. The Unity editor is only used to look at the result.
-- **Claude writes the code and runs the checks:** unit tests and builds from the command line, then the game in the iOS Simulator or Android Emulator, with screenshots.
+- **Two parts.** Part 1 (Weeks 2–4): every feature of the prototype, built and checked in Unity's Play mode. Part 2 (from Week 5 at the latest): iOS Simulator, Android Emulator and real phones.
+- **Claude writes the code and runs the checks:** unit and play-mode tests and layout screenshots (16:9, 20:9, real iPhone sizes) from the command line; in Part 2 also builds that run in the iOS Simulator or Android Emulator, with screenshots.
 - **Unity stays closed** while Claude works, because an open editor locks the project.
-- **Real phones** are checked regularly, from Week 5.
-- **Tasks** live on the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14), numbered 01–42 in work order (later features: L01–L13).
+- **Real phones** are checked regularly, from Week 6.
+- **Tasks** live on the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14), numbered 01–41 in work order (later features: L01–L13).
 - **Commits** go to the `gc26_lines` branch and name the task they belong to ("Task 05: Pathfinder").
 
 ### Core rules to implement
@@ -72,44 +73,46 @@ Tests/         EditMode tests for Core
 - Write EditMode unit tests for all of the above.
 - **Done when:** a complete game can be simulated in tests with no graphics.
 
-#### Week 2: Playable in the iOS Simulator
+#### Week 2: Playable in the Unity editor
 
 - A small animation helper (move, scale, shake).
-- Board and ball views created from code, with simple generated circles for the balls. The board fits the screen (safe area, different phone sizes).
+- Board and pieces created from code (the creatures, with generated glossy balls as a fallback). The board fits the screen (safe area, 16:9 and 20:9).
 - Turn state machine and input lock during animations.
-- Tap to select and to move, with a bouncing animation on the selected ball.
-- Animate the ball moving along the BFS path, cell by cell.
-- Show the score, the 3-color preview and the preview dots on the board.
-- **Done when:** the game is playable from start to finish in the iOS Simulator.
+- Tap to select and to move, with a bouncing animation on the selected piece.
+- Animate the piece moving along the BFS path, cell by cell.
+- Show the score, the next 3 pieces and the preview dots on the board.
+- **Done when:** the game is playable in Unity's Play mode.
 
-#### Week 3: Game feel and full rules
+#### Week 3: Game feel and full rules (Part 1)
 
-- Animate spawning (balls grow in), clearing (shrink, burst, particles) and blocked moves (shake plus the "No path" alert).
+- Animate spawning (pieces grow in) and clearing (shrink, burst, particles).
+- Blocked move: shake plus the "No path" alert.
 - Undo (one step), implemented as snapshots of the board, score and preview.
 - Reset button with a confirmation dialog.
-- Edge cases: full board, fewer than 3 free cells, lines made by spawned balls.
+- Edge cases: full board, fewer than 3 free cells, lines made by spawned pieces.
 
-#### Week 4: Saving, game over and Android
+#### Week 4: Saving, screens and polish (Part 1)
 
-- Game-over pop-up: final score and a "Start new game" button.
-- Save the game in progress (board, score, preview, Undo step) as JSON in `Application.persistentDataPath` after each move and when the app goes to the background, and restore it on launch. Clear the save when the game ends.
-- Layout check on the two target screen shapes: iPhone SE (3rd generation) for 16:9 and a modern iPhone (19.5:9, close to 20:9), including notched phones.
-- Tools: Unity's Android Build Support, Android Emulator with two custom phones: 1080×1920 (16:9) and 1080×2400 (20:9). First Android build running on both.
-- **Milestone (end of month 1):** the core game is complete, running in the iOS Simulator and the Android Emulator.
-
-#### Week 5: Art and real phones
-
-- Creature art: export the 9 blob creatures from the team's Figma file as PNGs (transparent background, 256 px or more), add them to the project, pick 7 at random per game. Preview dots, board and background style. One theme.
-- Polish UI transitions. Add the app icon and splash screen.
-- Install the game on your iPhone (Xcode with a free Apple account) and on an Android phone (APK).
-
-#### Week 6: Menus and leaderboard
-
+- Save the game in progress (board, score, preview, Undo step) as JSON in `Application.persistentDataPath` after each move and when the app goes to the background, and restore it with Continue.
 - Main menu (Continue, New game, How to play, Leaderboard) as the start screen, and a back button (arrow) on the game, How to play and Leaderboard screens.
 - How to play: 3 cards with small board pictures.
 - Game over and leaderboard: the game-over pop-up only asks for a name (pre-filled with the last typed name or PlayerN) and Save opens the Leaderboard: local top 10 finished games with name, score and date, a result line and Play again. Older scores win ties; a score left unsaved when the app closes is added at the next launch. Ranking rules in Core, with unit tests.
-- This week was the buffer before. If you fall behind, How to play is the first piece to move back to Later.
-- **Milestone:** MVP complete.
+- UI transitions and the prototype's fonts.
+- **Milestone (end of month 1):** the whole game plays in Unity like the prototype (MVP features complete).
+
+#### Week 5: Builds and simulators (Part 2)
+
+- Build scripts for the iOS Simulator, your iPhone and an Android APK.
+- First full iOS Simulator build; layout check on the two target shapes: iPhone SE (3rd generation) for 16:9 and a modern iPhone (19.5:9, close to 20:9), including notched phones.
+- Tools: Unity's Android Build Support, Android Emulator with two custom phones: 1080×1920 (16:9) and 1080×2400 (20:9). First Android build running on both.
+- Part 2 starts here at the latest, even if a small Part 1 item is still open.
+- **Milestone:** the game runs in the iOS Simulator and the Android Emulator.
+
+#### Week 6: Art and real phones (Part 2)
+
+- Sharp creature art: export the 9 creatures from the team's Figma file as PNGs (transparent background, 256 px or more) to replace the versions cut from screenshots. Board and background style. One theme.
+- App icon and splash screen.
+- Install the game on your iPhone (Xcode with a free Apple account) and on an Android phone (APK).
 
 #### Week 7: Optimization and testing
 
@@ -130,17 +133,18 @@ Tests/         EditMode tests for Core
 | Week | Deliverable |
 | :---- | :---- |
 | 1 | Core logic, tested |
-| 2 | Playable in the iOS Simulator |
-| 4 | Core game complete on the iOS Simulator and Android Emulator |
-| 5 | Running on real phones |
-| 6 | MVP complete: menu, How to play, Leaderboard |
+| 2 | Playable in the Unity editor |
+| 4 | Whole game in Unity, like the prototype (MVP features complete) |
+| 5 | Running in the iOS Simulator and Android Emulator |
+| 6 | Running on real phones |
 | 8 | Version 1.0 on both phones |
 
 ### Main risks and how to handle them
 
-- **Scope creep:** there is no buffer week any more, so later features wait until after Week 8. If you fall behind, move How to play back to Later first.
+- **Scope creep:** there is no buffer week, so later features wait until after Week 8. If Part 1 runs late, Part 2 still starts at the beginning of Week 5; How to play is the first piece to move back to Later.
+- **Phone-only problems found late** (touch, text, code stripped from phone builds, speed): layout is checked by screenshots from Week 2; the rest is checked in Part 2.
 - **Input bugs while animations run:** the strict state machine plus an input lock solves this.
-- **Simulators aren't real phones:** speed and touch feel differ. Check on a real phone from Week 5.
+- **Simulators aren't real phones:** speed and touch feel differ. Check on a real phone from Week 6.
 - **Free Apple account limits:** the app stops working on your iPhone after 7 days and must be reinstalled from Xcode. Only your own devices can be used.
 - **Unity editor left open:** it locks the project, so tests and builds from the command line fail. Close Unity before handing work to Claude.
 - **Art taking too long:** the creatures already exist in Figma, and versions cut from screenshots are already in the game; only the sharp export is left.
@@ -156,10 +160,11 @@ Tests/         EditMode tests for Core
 **Как мы работаем**
 
 - **Всё через код.** Поле, шары и интерфейс создаются кодом. Редактор Unity нужен только чтобы посмотреть результат.
-- **Claude пишет код и проверяет его:** запускает юнит-тесты и сборки из командной строки, затем игру в iOS Simulator или Android Emulator и делает скриншоты.
+- **Две части.** Часть 1 (недели 2–4): все функции прототипа, сделанные и проверенные в режиме Play в Unity. Часть 2 (не позже 5-й недели): iOS Simulator, Android Emulator и настоящие телефоны.
+- **Claude пишет код и проверяет его:** запускает юнит-тесты, play-mode-тесты и скриншоты раскладки (16:9, 20:9, размеры настоящих iPhone) из командной строки; в части 2 также сборки, которые запускаются в iOS Simulator или Android Emulator, со скриншотами.
 - **Unity закрыт**, пока работает Claude: открытый редактор блокирует проект.
-- **Настоящие телефоны** проверяем регулярно, начиная с 5-й недели.
-- **Задачи** находятся на [доске проекта gc26_lines](https://github.com/users/Zaidejas/projects/14) и пронумерованы 01–42 в порядке работы (отложенные функции: L01–L13).
+- **Настоящие телефоны** проверяем регулярно, начиная с 6-й недели.
+- **Задачи** находятся на [доске проекта gc26_lines](https://github.com/users/Zaidejas/projects/14) и пронумерованы 01–41 в порядке работы (отложенные функции: L01–L13).
 - **Коммиты** идут в ветку `gc26_lines` и называют задачу, к которой относятся («Task 05: Pathfinder»).
 
 ### Основные правила игры
@@ -212,44 +217,46 @@ Tests/         EditMode-тесты для Core
 - Написать EditMode-тесты для всего перечисленного.
 - **Итог:** полную партию можно прогнать в тестах без графики.
 
-#### Неделя 2: игра работает в iOS Simulator
+#### Неделя 2: игра работает в редакторе Unity
 
 - Небольшой помощник для анимаций (перемещение, масштаб, тряска).
-- Поле и шары создаются кодом, шары — простые сгенерированные круги. Поле подгоняется под экран (безопасная зона, разные размеры телефонов).
+- Поле и фишки создаются кодом (существа, а сгенерированные глянцевые шары — запасной вариант). Поле подгоняется под экран (безопасная зона, 16:9 и 20:9).
 - Машина состояний хода и блокировка ввода во время анимаций.
-- Выбор шара и перемещение касанием, выбранный шар подпрыгивает.
-- Анимировать движение шара по найденному пути, клетка за клеткой.
-- Показать счёт, превью 3 цветов и точки-подсказки на поле.
-- **Итог:** игру можно пройти от начала до конца в iOS Simulator.
+- Выбор фишки и перемещение касанием, выбранная фишка подпрыгивает.
+- Анимировать движение фишки по найденному пути, клетка за клеткой.
+- Показать счёт, 3 следующие фишки и точки-подсказки на поле.
+- **Итог:** в игру можно играть в режиме Play в Unity.
 
-#### Неделя 3: отзывчивость и все правила
+#### Неделя 3: отзывчивость и все правила (часть 1)
 
-- Анимации появления шаров (вырастают), удаления (сжимаются, взрыв, частицы) и заблокированного хода (тряска и сообщение «Нет пути»).
+- Анимации появления фишек (вырастают) и удаления (сжимаются, взрыв, частицы).
+- Заблокированный ход: тряска и сообщение «Нет пути».
 - Отмена хода (на один шаг) через снимки поля, счёта и превью.
 - Кнопка «Сброс» с окном подтверждения.
-- Пограничные случаи: полное поле, меньше 3 свободных клеток, линии из появившихся шаров.
+- Пограничные случаи: полное поле, меньше 3 свободных клеток, линии из появившихся фишек.
 
-#### Неделя 4: сохранение, конец игры и Android
+#### Неделя 4: сохранение, экраны и доработка (часть 1)
 
-- Окно конца игры: итоговый счёт и кнопка «Начать новую игру».
-- Сохранять текущую партию (поле, счёт, превью, шаг для отмены) в JSON в `Application.persistentDataPath` после каждого хода и при сворачивании приложения, и восстанавливать её при запуске. Удалять сохранение, когда игра закончена.
-- Проверить раскладку на двух целевых форматах экрана: iPhone SE (3-го поколения) для 16:9 и современный iPhone (19,5:9, близко к 20:9), включая телефоны с вырезом.
-- Инструменты: модуль Android Build Support для Unity, Android Emulator с двумя своими телефонами: 1080×1920 (16:9) и 1080×2400 (20:9). Первая сборка под Android запускается на обоих.
-- **Контрольная точка (конец 1-го месяца):** основная игра готова и работает в iOS Simulator и Android Emulator.
-
-#### Неделя 5: графика и настоящие телефоны
-
-- Графика существ: экспортировать 9 существ из Figma-файла команды в PNG (прозрачный фон, 256 px или больше), добавить в проект, для каждой игры случайно выбирать 7. Точки-подсказки, стиль поля и фона. Одна тема.
-- Доработать переходы в интерфейсе. Сделать иконку приложения и заставку.
-- Установить игру на ваш iPhone (Xcode с бесплатным аккаунтом Apple) и на телефон с Android (APK).
-
-#### Неделя 6: меню и таблица рекордов
-
+- Сохранять текущую партию (поле, счёт, превью, шаг для отмены) в JSON в `Application.persistentDataPath` после каждого хода и при сворачивании приложения, и продолжать её кнопкой «Продолжить».
 - Главное меню (Продолжить, Новая игра, Как играть, Таблица рекордов) как стартовый экран и кнопка «назад» (стрелка) на экранах игры, «Как играть» и таблицы рекордов.
 - «Как играть»: 3 карточки с маленькими картинками поля.
 - Конец игры и таблица рекордов: окно конца игры только спрашивает имя (заполнено последним введённым именем или PlayerN), «Сохранить» открывает таблицу: 10 лучших законченных игр с именем, счётом и датой, строка с результатом и кнопка «Играть снова». При равенстве остаётся более старый результат; несохранённый при закрытии приложения счёт добавляется при следующем запуске. Правила рейтинга в Core, с юнит-тестами.
-- Раньше эта неделя была резервом. Если вы отстаёте, первым в Later уходит «Как играть».
-- **Контрольная точка:** MVP готов полностью.
+- Переходы в интерфейсе и шрифты прототипа.
+- **Контрольная точка (конец 1-го месяца):** вся игра работает в Unity как прототип (все функции MVP готовы).
+
+#### Неделя 5: сборки и симуляторы (часть 2)
+
+- Скрипты сборки для iOS Simulator, вашего iPhone и Android (APK).
+- Первая полная сборка в iOS Simulator; проверка раскладки на двух целевых форматах: iPhone SE (3-го поколения) для 16:9 и современный iPhone (19,5:9, близко к 20:9), включая телефоны с вырезом.
+- Инструменты: модуль Android Build Support для Unity, Android Emulator с двумя своими телефонами: 1080×1920 (16:9) и 1080×2400 (20:9). Первая сборка под Android запускается на обоих.
+- Часть 2 начинается здесь не позже, даже если небольшой пункт части 1 ещё не закрыт.
+- **Контрольная точка:** игра работает в iOS Simulator и Android Emulator.
+
+#### Неделя 6: графика и настоящие телефоны (часть 2)
+
+- Чёткая графика существ: экспортировать 9 существ из Figma-файла команды в PNG (прозрачный фон, 256 px или больше) вместо версий, вырезанных из скриншотов. Стиль поля и фона. Одна тема.
+- Иконка приложения и заставка.
+- Установить игру на ваш iPhone (Xcode с бесплатным аккаунтом Apple) и на телефон с Android (APK).
 
 #### Неделя 7: оптимизация и тестирование
 
@@ -270,17 +277,18 @@ Tests/         EditMode-тесты для Core
 | Неделя | Результат |
 | :---- | :---- |
 | 1 | Игровая логика, покрытая тестами |
-| 2 | Игра работает в iOS Simulator |
-| 4 | Основная игра готова в iOS Simulator и Android Emulator |
-| 5 | Игра работает на настоящих телефонах |
-| 6 | MVP готов: меню, «Как играть», таблица рекордов |
+| 2 | Игра работает в редакторе Unity |
+| 4 | Вся игра в Unity, как прототип (все функции MVP готовы) |
+| 5 | Игра работает в iOS Simulator и Android Emulator |
+| 6 | Игра работает на настоящих телефонах |
 | 8 | Версия 1.0 на обоих телефонах |
 
 ### Основные риски и что с ними делать
 
-- **Разрастание объёма работ:** резервной недели больше нет, поэтому отложенные функции ждут окончания 8-й недели. Если вы отстаёте, первым в Later уходит «Как играть».
+- **Разрастание объёма работ:** резервной недели нет, поэтому отложенные функции ждут окончания 8-й недели. Если часть 1 затягивается, часть 2 всё равно начинается в начале 5-й недели; первым в Later уходит «Как играть».
+- **Проблемы, которые видны только на телефоне** (касания, текст, код, вырезанный из сборки, скорость): раскладку проверяют скриншоты со 2-й недели; остальное — в части 2.
 - **Ошибки ввода во время анимаций:** решаются строгой машиной состояний и блокировкой ввода.
-- **Симулятор — не настоящий телефон:** скорость и ощущение касаний отличаются. Проверяйте на настоящем телефоне начиная с 5-й недели.
+- **Симулятор — не настоящий телефон:** скорость и ощущение касаний отличаются. Проверяйте на настоящем телефоне начиная с 6-й недели.
 - **Ограничения бесплатного аккаунта Apple:** через 7 дней игра на iPhone перестаёт запускаться, и её нужно заново установить из Xcode. Устанавливать можно только на свои устройства.
 - **Открытый редактор Unity:** он блокирует проект, и тесты и сборки из командной строки не запускаются. Закрывайте Unity, прежде чем передавать работу Claude.
 - **Графика отнимает слишком много времени:** существа уже нарисованы в Figma, и версии, вырезанные из скриншотов, уже есть в игре; осталось только чёткий экспорт.

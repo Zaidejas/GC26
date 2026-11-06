@@ -7,7 +7,7 @@ A study project: a phone remake of the classic Lines puzzle (move balls on a 9×
 - `docs/Lines_Game_Design_Document.md`: the rules, controls, screens, and what is MVP vs later. **The GDD is the source of truth for game behavior.**
 - `docs/prototype/lines-prototype.html`: a playable browser prototype (open it in a browser). **The Unity game should look and play the same, as closely as possible**: rules, animation timings, layout, screens and menu flow. When the GDD and the prototype disagree, ask the user. Its JavaScript rule functions (`findPath`, `linesThrough`, `spawn`, `clearLines`, `addScore`) are a useful cross-check for the C# Core.
 - `docs/Lines_Plan_EN_RU.md`: the 8-week plan and architecture (English and Russian versions; keep both in sync when editing).
-- Tasks: the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14). Tasks 01–42 are in work order; L01–L13 are later features. Each task says what to do, when it is done, and which doc section it comes from.
+- Tasks: the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14). Tasks 01–41 are in work order (Part 1, tasks 16–25: every prototype feature in Unity; Part 2, tasks 26–41: simulators and phones); L01–L13 are later features. Each task says what to do, when it is done, and which doc section it comes from.
 
 ## Working with the user
 
@@ -20,7 +20,7 @@ A study project: a phone remake of the classic Lines puzzle (move balls on a 9×
 - The project has one scene, `Assets/Scenes/Main.unity`, containing only a camera and `GameBootstrap`. Everything else (board, balls, UI) is created from code at runtime.
 - Never hand-edit `.unity`, `.prefab` or `.asset` files as text. If a scene or setting must change, change `Assets/Scripts/Editor/ProjectSetup.cs` and run it.
 - No third-party packages from the Asset Store. Animations use our own small helper (no DOTween).
-- MVP art: 9 blob creatures exported from Figma as PNGs (7 picked at random per game); the board is generated in code. Until the sharp Figma exports arrive (task 28), `Assets/Resources/Creatures/creature_0…8.png` hold versions cut from screenshots; `PieceSet` picks them, with generated glossy balls as a fallback.
+- MVP art: 9 blob creatures exported from Figma as PNGs (7 picked at random per game); the board is generated in code. Until the sharp Figma exports arrive (task 31), `Assets/Resources/Creatures/creature_0…8.png` hold versions cut from screenshots; `PieceSet` picks them, with generated glossy balls as a fallback.
 
 ## Code layout
 
@@ -38,6 +38,7 @@ Assets/Tests/PlayMode/    Lines.Tests.PlayMode   (things that need real frames)
 - Namespaces follow the folders: `Lines.Core`, `Lines.Game`, `Lines.View`, `Lines.UI`, `Lines.Services`, `Lines.EditorTools`, `Lines.Tests`.
 - Core raises C# events (`OnBallMoved`, `OnMoveBlocked`, `OnLinesCleared`, `OnBallsSpawned`, `OnGameOver`); the view layer listens. Game rules never live in views.
 - Every Core rule gets unit tests. Use a seeded random generator so tests are repeatable.
+- Touch input is read as events (`EnhancedTouch` `Touch.onFingerDown`), not checked once per frame: a quick tap can go down and up inside one frame and would be missed.
 
 ## Running Unity from the command line
 
@@ -66,12 +67,13 @@ $UNITY -batchmode -nographics -projectPath . -executeMethod Lines.EditorTools.Pr
 - Unity version is pinned to **6000.5.6f1** (`ProjectSettings/ProjectVersion.txt`). Don't upgrade it.
 - Check results in the XML (`result="Passed"`) and look for `error CS` in the log; the exit code alone isn't enough.
 - To import a `.unitypackage`, use `-importPackage <path> -quit`. `AssetDatabase.ImportPackage` does not finish before a batch-mode run quits.
-- Build scripts (iOS Simulator, iPhone, Android APK) arrive in task 16; document their commands here when they exist.
+- Build scripts (iOS Simulator, iPhone, Android APK) arrive in task 26; document their commands here when they exist.
 
 ## How each task is checked
 
 1. Unit tests pass (for anything in Core).
-2. From task 17 on: the game builds and runs in the iOS Simulator (`mcp__Claude_Code_iOS_Simulator__control`), and a screenshot is shown to the user for anything visible.
+2. Part 1 (tasks 16–25): play-mode tests, and layout screenshots (`LayoutScreenshots`) shown to the user for anything visible; the user tries it in Unity's Play mode.
+   Part 2 (from task 27): the game builds and runs in the iOS Simulator (`mcp__Claude_Code_iOS_Simulator__control`) or Android Emulator, with screenshots.
 3. The task's "Done when" on the board is met.
 
 ## Git and the board
