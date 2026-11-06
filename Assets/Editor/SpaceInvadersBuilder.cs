@@ -913,13 +913,16 @@ public static class SpaceInvadersBuilder
     {
         MakeCamera();
 
-        // Декоративные пришельцы над заголовком
-        Sprite[] decor = { squidFrames[0], crabFrames[0], octopusFrames[0] };
+        // Декоративные пришельцы над заголовком: машут кадрами, шагают строем и покачиваются
+        Sprite[][] decor = { squidFrames, crabFrames, octopusFrames };
         for (int i = 0; i < decor.Length; i++)
         {
-            var go = NewSpriteObject("Decor " + decor[i].name, decor[i], 0);
+            var go = NewSpriteObject("Decor " + decor[i][0].name, decor[i][0], 0);
             go.transform.position = new Vector3((i - 1) * 2.5f, 8f, 0f);
             go.transform.localScale = Vector3.one * 1.5f;
+            var anim = go.AddComponent<MenuInvader>();
+            anim.frames = decor[i];
+            anim.bobPhase = i * 2.1f;
         }
 
         Transform canvas = MakeCanvas().transform;
