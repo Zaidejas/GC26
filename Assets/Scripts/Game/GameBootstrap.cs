@@ -1,4 +1,5 @@
 using Lines.Core;
+using Lines.Services;
 using Lines.UI;
 using Lines.View;
 using UnityEngine;
@@ -31,6 +32,10 @@ namespace Lines.Game
         public bool InputBlocked => hud != null && hud.Dialog.IsOpen;
 
         BoardPresenter presenter;
+        SaveService saves;
+
+        /// <summary>Where the game in progress is kept.</summary>
+        public SaveService Saves => saves;
 
         public const string ResetTitle = "Start a new game?";
         public const string ResetMessage = "Your current game will be lost.";
@@ -42,7 +47,9 @@ namespace Lines.Game
             boardView = BoardView.Create();
             hud = HudView.Create(mainCamera);
             presenter = new BoardPresenter(boardView, hud);
-            StartNewGame();
+            saves = new SaveService();
+            // For now the saved game continues by itself; task 22 moves this onto the menu's Continue button.
+            if (!TryContinueSavedGame()) StartNewGame();
             Relayout();
             Taps = gameObject.AddComponent<InputHandler>();
             Taps.Init(this);
@@ -61,8 +68,37 @@ namespace Lines.Game
             int seed = System.Environment.TickCount;
             // MVP art: 7 of the 9 creatures per game. For the glossy balls instead, use PieceSet.Balls().
             boardView.SetPieces(PieceSet.RandomCreatures(seed));
-            Controller = new GameController(GameState.NewGame(seed), presenter);
+            Use(new GameController(GameState.NewGame(seed), presenter));
+            SaveGame(); // Reset also starts a new save
         }
+
+        /// <summary>Continues the saved game, if there is one that isn't over. Returns false otherwise.</summary>
+        public bool TryContinueSavedGame()
+        {
+            var save = saves.Load();
+            var game = save?.ToGameState();
+            if (game == null || game.IsOver) return false;
+            boardView.SetPieces(PieceSet.FromCreatures(save.creatures, System.Environment.TickCount));
+            Use(new GameController(game, presenter));
+            return true;
+        }
+
+        void Use(GameController controller)
+        {
+            Controller = controller;
+            controller.GameChanged += SaveGame;
+        }
+
+        /// <summary>Writes the game in progress to the device.</summary>
+        public void SaveGame()
+        {
+            if (Controller == null || saves == null) return;
+            saves.Save(GameSave.From(Controller.Game, boardView.Pieces.CreatureIndices));
+        }
+
+        // The game also saves when the app goes to the background or closes (GDD → Saving).
+        void OnApplicationPause(bool paused) { if (paused) SaveGame(); }
+        void OnApplicationQuit() => SaveGame();
 
         /// <summary>Reset: asks "Start a new game?" first (not while an animation plays).</summary>
         public void AskToReset()

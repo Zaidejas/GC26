@@ -40,6 +40,8 @@ namespace Lines.Game
         public bool AcceptsInput => State == TurnState.Idle || State == TurnState.BallSelected;
 
         public event Action<TurnState> StateChanged;
+        /// <summary>The game's position changed and settled: a turn finished, or a move was undone (time to save).</summary>
+        public event Action GameChanged;
 
         public GameController(GameState game, IBoardPresenter presenter)
         {
@@ -84,6 +86,7 @@ namespace Lines.Game
             Game.Undo();
             presenter.ShowState(Game);
             SetState(TurnState.Idle);
+            GameChanged?.Invoke();
             return true;
         }
 
@@ -147,6 +150,7 @@ namespace Lines.Game
             {
                 SetState(TurnState.Idle);
             }
+            GameChanged?.Invoke();
         }
 
         void SetState(TurnState state)

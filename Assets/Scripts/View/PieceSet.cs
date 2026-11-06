@@ -44,6 +44,21 @@ namespace Lines.View
             return new PieceSet(all.Take(GameConfig.ColorCount).ToArray());
         }
 
+        /// <summary>Which creature stands for each of the 7 colors (for saving), or null when using balls.</summary>
+        public int[] CreatureIndices => creatureForColor?.ToArray();
+
+        /// <summary>
+        /// The creature set saved with a game. Falls back to a random set if the list is damaged,
+        /// and to balls if the images are missing.
+        /// </summary>
+        public static PieceSet FromCreatures(int[] creatures, int fallbackSeed)
+        {
+            if (!CreaturesAvailable()) return Balls();
+            bool valid = creatures != null && creatures.Length == GameConfig.ColorCount
+                && creatures.All(c => c >= 0 && c < CreatureCount) && creatures.Distinct().Count() == creatures.Length;
+            return valid ? new PieceSet(creatures.ToArray()) : RandomCreatures(fallbackSeed);
+        }
+
         /// <summary>Which creature (0–8) stands for <paramref name="color"/>, or -1 when using balls.</summary>
         public int CreatureFor(BallColor color) =>
             UsesCreatures && color != BallColor.None ? creatureForColor[(int)color - 1] : -1;

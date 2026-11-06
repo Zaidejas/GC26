@@ -8,7 +8,7 @@ using UnityEngine.TestTools;
 namespace Lines.Tests
 {
     /// <summary>Starts the real Main scene, as pressing Play does, and checks what appears.</summary>
-    public class MainScenePlayModeTests
+    public class MainScenePlayModeTests : PlayModeTestBase
     {
         [UnityTest]
         public IEnumerator MainScene_ShowsBoardWithThreeBalls()

@@ -38,6 +38,7 @@ Assets/Tests/PlayMode/    Lines.Tests.PlayMode   (things that need real frames)
 - Namespaces follow the folders: `Lines.Core`, `Lines.Game`, `Lines.View`, `Lines.UI`, `Lines.Services`, `Lines.EditorTools`, `Lines.Tests`.
 - Core raises C# events (`OnBallMoved`, `OnMoveBlocked`, `OnLinesCleared`, `OnBallsSpawned`, `OnGameOver`); the view layer listens. Game rules never live in views.
 - Every Core rule gets unit tests. Use a seeded random generator so tests are repeatable.
+- Play-mode test classes inherit `PlayModeTestBase`, which points saving at a temporary folder, so tests start without a saved game and never touch the real one.
 - Touch input is read as events (`EnhancedTouch` `Touch.onFingerDown`), not checked once per frame: a quick tap can go down and up inside one frame and would be missed.
 
 ## Running Unity from the command line

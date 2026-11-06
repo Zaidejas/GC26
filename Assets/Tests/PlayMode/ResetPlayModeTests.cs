@@ -11,7 +11,7 @@ using UnityEngine.TestTools;
 namespace Lines.Tests
 {
     /// <summary>Reset in the real Main scene: the question, Cancel, and Yes starting a fresh game.</summary>
-    public class ResetPlayModeTests
+    public class ResetPlayModeTests : PlayModeTestBase
     {
         [UnityTest]
         public IEnumerator Reset_AsksFirst_CancelKeepsTheGame_YesStartsANewOne()

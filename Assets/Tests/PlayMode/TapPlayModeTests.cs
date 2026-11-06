@@ -11,7 +11,7 @@ using UnityEngine.TestTools;
 namespace Lines.Tests
 {
     /// <summary>Plays a real turn in the Main scene by pressing on screen positions, like a player would.</summary>
-    public class TapPlayModeTests
+    public class TapPlayModeTests : PlayModeTestBase
     {
         [UnityTest]
         public IEnumerator PressBallThenEmptyCell_PlaysATurn()
