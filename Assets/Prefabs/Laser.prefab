@@ -187,3 +187,4 @@ MonoBehaviour:
   bunkerDamageRadius: 0
   destroyBeyondY: 15
   destroyBeyondX: 12
+  spinSpeed: 0

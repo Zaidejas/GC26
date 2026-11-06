@@ -85,7 +85,8 @@ public class Boss : MonoBehaviour
     Vector3 Muzzle => transform.position + Vector3.down * spriteRenderer.bounds.extents.y;
 
     PlayerController player;
-    SpriteRenderer spriteRenderer;
+    [Tooltip("Картинка босса. Лежит в дочернем Visual, чтобы тряска не двигала коллайдер")]
+    [SerializeField] SpriteRenderer spriteRenderer;
     int health;
     int hits;
     float minX, maxX;
@@ -103,7 +104,8 @@ public class Boss : MonoBehaviour
 
     void Awake()
     {
-        spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer == null)
+            spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         health = maxHealth;
     }
 

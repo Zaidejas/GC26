@@ -24,6 +24,7 @@ public static class SpaceInvadersBuilder
     const float BodyScale = 1.8f; // Игрок на вертикальном экране
     const float InvaderScale = 1.3333f;
     const float PickupScale = 3f; // Монетка и хилка
+    const float MissilePpu = 624f;
 
     // ---------- Пиксель-арт ('#' - основной цвет, '+' - второй цвет, '.' - пусто) ----------
 
@@ -218,14 +219,20 @@ public static class SpaceInvadersBuilder
         "#...#.#####",
     };
 
+    // Гладкий купол из мелких блоков (0.1 юнита): выбоины получаются аккуратнее
     static readonly string[] BunkerShape =
     {
-        "..######..",
-        ".########.",
-        "##########",
-        "##########",
-        "###....###",
-        "##......##",
+        "...##############...",
+        ".##################.",
+        "####################",
+        "####################",
+        "####################",
+        "####################",
+        "####################",
+        "######........######",
+        "#####..........#####",
+        "####............####",
+        "###..............###",
     };
 
     // ---------- Цвета ----------
@@ -243,8 +250,8 @@ public static class SpaceInvadersBuilder
 
     // ---------- Созданные ассеты ----------
 
-    static Sprite playerSprite, laserSprite, missileSprite, coinSprite, explosionSprite, blockSprite;
-    static Sprite boss1Sprite, boss2Sprite, heartSprite;
+    static Sprite playerSprite, laserSprite, missileSprite, coinSprite, explosionSprite, blockSprite, blockTopSprite, blockGrooveSprite;
+    static Sprite boss1Sprite, boss2Sprite, boss1AngrySprite, boss2AngrySprite, heartSprite;
     static Sprite canSprite, slotSprite, pauseSprite, buttonSprite, logoSprite;
     static Sprite shieldBubbleSprite, shieldIconSprite, bunkerIconSprite, rapidFireIconSprite, uiSquareSprite;
     static Sprite[] squidFrames, crabFrames, octopusFrames, eliteFrames;
@@ -387,7 +394,9 @@ public static class SpaceInvadersBuilder
         missileSprite = MakeSprite("Missile", MissileArt, Palette(MissileColor), 14);
         coinSprite = MakeSprite("Coin", CoinArt, new Dictionary<char, Color> { { '#', DarkGoldColor }, { '+', GoldColor } }, 20);
         explosionSprite = MakeSprite("Explosion", ExplosionArt, Palette(new Color(1f, 0.8f, 0.5f)), 12);
-        blockSprite = MakeSprite("BunkerBlock", BlockArt, Palette(BunkerColor), 20);
+        blockSprite = MakeSprite("BunkerBlock", BlockArt, Palette(BunkerColor), 40);
+        blockTopSprite = MakeSprite("BunkerBlockTop", BlockArt, Palette(TextColor), 40);
+        blockGrooveSprite = blockSprite;
 
         heartSprite = MakeSprite("Heart", HeartArt, Palette(new Color(1f, 0.25f, 0.35f)), 100);
         boss1Sprite = MakeSprite("Boss_1", BossArt, Palette(new Color(1f, 0.55f, 0.15f)), 16);
@@ -413,12 +422,17 @@ public static class SpaceInvadersBuilder
         eliteFrames = new[] { Art("elite_1", 358f, eliteFrames[0]), Art("elite_2", 358f, eliteFrames[1]) };
         boss1Sprite = Art("boss_1", 768f, boss1Sprite);
         boss2Sprite = Art("boss_2", 816f, boss2Sprite);
+        // Красные копии для приступов ярости (каналы переставлены, размер тот же). Нет файла - без красноты
+        boss1AngrySprite = Art("boss_1_angry", 768f, null);
+        boss2AngrySprite = Art("boss_2_angry", 816f, null);
         laserSprite = Art("laser", 600f, laserSprite);
-        missileSprite = Art("missile", 624f, missileSprite);
+        missileSprite = Art("missile", MissilePpu, missileSprite); // квадрат 128 px на холсте 136, в игре повёрнут ромбом
         coinSprite = Art("coin", 640f, coinSprite);
         explosionSprite = Art("explosion", 683f, explosionSprite);
         shieldBubbleSprite = Art("shield", 320f, shieldBubbleSprite);
-        blockSprite = Art("block", 500f, blockSprite);
+        blockSprite = Art("block", 500f, blockSprite);              // 50x50 -> 0.1 юнита
+        blockTopSprite = Art("block_top", 500f, blockTopSprite);
+        blockGrooveSprite = Art("block_groove", 500f, blockGrooveSprite);
         heartSprite = Art("heart", 100f, heartSprite);
         shieldIconSprite = Art("icon_shield", 100f, shieldIconSprite);
         bunkerIconSprite = Art("icon_repair", 100f, bunkerIconSprite);
@@ -514,6 +528,9 @@ public static class SpaceInvadersBuilder
         missileProjectile.fromPlayer = false;
         missileProjectile.damagesBunkers = true;
         missileProjectile.bunkerDamageRadius = 0.4f;
+        missileProjectile.spinSpeed = 360f; // ромб крутится в полёте
+        // Хитбокс ровно по светлому квадрату (128 px из 136), без прозрачного поля
+        missile.GetComponent<BoxCollider2D>().size = Vector2.one * (128f / MissilePpu);
         missile.transform.localScale = Vector3.one * 1.6f;
         missilePrefab = SavePrefab(missile).GetComponent<Projectile>();
 
@@ -551,9 +568,9 @@ public static class SpaceInvadersBuilder
         bossLaser.AddComponent<LaserBeam>();
         bossLaserPrefab = SavePrefab(bossLaser).GetComponent<LaserBeam>();
 
-        waves[2].bossPrefab = MakeBossPrefab("Boss_1", boss1Sprite, 3f, 100, 500, 3f, 9f,
+        waves[2].bossPrefab = MakeBossPrefab("Boss_1", boss1Sprite, boss1AngrySprite, 3f, 100, 500, 3f, 9f,
             new[] { BossAttack.Fan, BossAttack.Burst, BossAttack.Dash }, false, null);
-        waves[4].bossPrefab = MakeBossPrefab("Boss_2", boss2Sprite, 4f, 200, 1000, 3.5f, 10f,
+        waves[4].bossPrefab = MakeBossPrefab("Boss_2", boss2Sprite, boss2AngrySprite, 4f, 200, 1000, 3.5f, 10f,
             new[] { BossAttack.Wall, BossAttack.Spiral, BossAttack.Laser, BossAttack.Summon }, true, invaderPrefabs[1]);
         waves[4].bossPrefab.playerBlinks = true;
         EditorUtility.SetDirty(waves[4].bossPrefab);
@@ -576,13 +593,33 @@ public static class SpaceInvadersBuilder
         return SavePrefab(go).GetComponent<Invader>();
     }
 
-    static Boss MakeBossPrefab(string name, Sprite sprite, float scale, int health, int points, float speed, float missileSpeed,
+    static Boss MakeBossPrefab(string name, Sprite sprite, Sprite angrySprite, float scale, int health, int points, float speed, float missileSpeed,
         BossAttack[] attacks, bool rage, Invader minion)
     {
-        var go = NewSpriteObject(name, sprite, 0);
+        // Корень: коллайдер и логика. Картинка в дочернем Visual, чтобы её можно было трясти,
+        // поверх неё красная копия для приступов ярости (BossAnger)
+        var go = new GameObject(name);
         go.transform.localScale = Vector3.one * scale;
-        AddTrigger(go, false);
+        var box = go.AddComponent<BoxCollider2D>();
+        box.isTrigger = true;
+        box.size = sprite.bounds.size;
+
+        var visual = NewSpriteObject("Visual", sprite, 0);
+        visual.transform.SetParent(go.transform, false);
+        var angry = NewSpriteObject("Angry", angrySprite != null ? angrySprite : sprite, 1);
+        angry.transform.SetParent(visual.transform, false);
+        angry.GetComponent<SpriteRenderer>().color = new Color(1f, 1f, 1f, 0f);
+
         var boss = go.AddComponent<Boss>();
+        var so = new SerializedObject(boss);
+        so.FindProperty("spriteRenderer").objectReferenceValue = visual.GetComponent<SpriteRenderer>();
+        so.ApplyModifiedPropertiesWithoutUndo();
+
+        var anger = go.AddComponent<BossAnger>();
+        anger.visual = visual.transform;
+        anger.body = visual.GetComponent<SpriteRenderer>();
+        anger.angry = angry.GetComponent<SpriteRenderer>();
+
         boss.maxHealth = health;
         boss.points = points;
         boss.moveSpeed = speed;
@@ -656,9 +693,10 @@ public static class SpaceInvadersBuilder
 
     static Transform BuildBunkers()
     {
-        const float blockSize = 0.2f;
+        const float blockSize = 0.1f;
         float[] positionsX = { -4.5f, -1.5f, 1.5f, 4.5f };
         int width = BunkerShape[0].Length;
+        int height = BunkerShape.Length;
 
         var root = new GameObject("Bunkers");
         for (int i = 0; i < positionsX.Length; i++)
@@ -667,17 +705,35 @@ public static class SpaceInvadersBuilder
             bunker.transform.SetParent(root.transform);
             bunker.transform.position = new Vector3(positionsX[i], -5.5f, 0f);
 
-            for (int row = 0; row < BunkerShape.Length; row++)
+            var grid = new BunkerBlock[height, width];
+            for (int row = 0; row < height; row++)
             {
                 for (int col = 0; col < width; col++)
                 {
                     if (BunkerShape[row][col] != '#') continue;
 
-                    var block = NewSpriteObject("Block", blockSprite, 0);
+                    // Каждый третий ряд с тёмной бороздкой, верхний край - светлый
+                    Sprite body = row % 3 == 2 ? blockGrooveSprite : blockSprite;
+                    var block = NewSpriteObject("Block", body, 0);
                     block.transform.SetParent(bunker.transform, false);
                     block.transform.localPosition = new Vector3((col - (width - 1) / 2f) * blockSize, -row * blockSize, 0f);
                     AddTrigger(block, false);
-                    block.AddComponent<BunkerBlock>();
+                    var bunkerBlock = block.AddComponent<BunkerBlock>();
+                    bunkerBlock.bodySprite = body;
+                    bunkerBlock.edgeSprite = blockTopSprite;
+                    grid[row, col] = bunkerBlock;
+                }
+            }
+
+            for (int row = 0; row < height; row++)
+            {
+                for (int col = 0; col < width; col++)
+                {
+                    BunkerBlock block = grid[row, col];
+                    if (block == null) continue;
+                    block.above = row > 0 ? grid[row - 1, col] : null;
+                    block.below = row < height - 1 ? grid[row + 1, col] : null;
+                    block.RefreshLook();
                 }
             }
         }

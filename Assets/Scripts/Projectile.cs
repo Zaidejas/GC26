@@ -11,6 +11,8 @@ public class Projectile : MonoBehaviour
     public float bunkerDamageRadius = 0f;
     public float destroyBeyondY = 15f;
     public float destroyBeyondX = 12f;
+    [Tooltip("Вращение спрайта в полёте, градусов в секунду (ромб пришельцев)")]
+    public float spinSpeed = 0f;
 
     bool used;
 
@@ -21,9 +23,18 @@ public class Projectile : MonoBehaviour
         transform.rotation = Quaternion.FromToRotation(Vector3.down, direction);
     }
 
+    // Вращающаяся пуля нарисована квадратом: с первого кадра ставим её ромбом
+    void Start()
+    {
+        if (spinSpeed != 0f)
+            transform.Rotate(0f, 0f, 45f);
+    }
+
     void Update()
     {
         transform.Translate(direction * speed * Time.deltaTime, Space.World);
+        if (spinSpeed != 0f)
+            transform.Rotate(0f, 0f, spinSpeed * Time.deltaTime);
 
         // Боковые ракеты спирали иначе летели бы за экраном вечно
         if (Mathf.Abs(transform.position.y) > destroyBeyondY || Mathf.Abs(transform.position.x) > destroyBeyondX)
