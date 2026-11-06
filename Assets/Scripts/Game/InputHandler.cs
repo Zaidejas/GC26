@@ -1,6 +1,8 @@
 using Lines.View;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
+using ETouch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 namespace Lines.Game
 {
@@ -14,12 +16,28 @@ namespace Lines.Game
 
         public void Init(GameBootstrap bootstrap) => game = bootstrap;
 
+        // Touches are taken as events, not checked once per frame: a quick tap can go down and up
+        // inside one frame (the iOS Simulator's taps always do), and a per-frame check misses it.
+        void OnEnable()
+        {
+            EnhancedTouchSupport.Enable();
+            ETouch.onFingerDown += OnFingerDown;
+        }
+
+        void OnDisable()
+        {
+            ETouch.onFingerDown -= OnFingerDown;
+            EnhancedTouchSupport.Disable();
+        }
+
+        void OnFingerDown(Finger finger) => HandlePress(finger.screenPosition);
+
         void Update()
         {
-            // Pointer covers both the touchscreen and the mouse.
-            var pointer = Pointer.current;
-            if (pointer == null || !pointer.press.wasPressedThisFrame) return;
-            HandlePress(pointer.position.ReadValue());
+            // The mouse, for playing in the Unity editor.
+            var mouse = Mouse.current;
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame)
+                HandlePress(mouse.position.ReadValue());
         }
 
         /// <summary>Handles a press at a screen position (pixels, origin bottom-left). Also used by tests.</summary>
