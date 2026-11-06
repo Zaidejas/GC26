@@ -92,8 +92,7 @@ namespace BlockDrop
             for (int i = 0; i < MenuItems.Length; i++)
                 DrawMenuButton(i, unit);
 
-            DrawTablePanel("Марафон: лучшие очки", -4.65f, marathonTable, false, unit);
-            DrawTablePanel("Спринт: лучшее время", 4.65f, sprintTable, true, unit);
+            DrawTablePanel("Марафон: лучшие очки", marathonTable, unit);
             Label("↑ ↓ выбрать    Enter подтвердить    или мышью", 0f, -9.95f, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
             Label("Монеты: " + coinsTotal.ToString("N0"), 9.6f, -9.95f, unit, 0.42f, TextAnchor.MiddleCenter, new Color(1f, 0.8f, 0.25f));
         }
@@ -315,9 +314,7 @@ namespace BlockDrop
         {
             if (game.Mode == GameMode.Battle)
                 return "Бой     бот " + battle.Level + "     здоровье " + battle.Hp + " / " + battle.MaxHp + "     монет +" + battle.CoinsEarned;
-            if (game.Mode == GameMode.Sprint)
-                return "Спринт    " + Game.FormatTime(game.Elapsed) + "     линий " + Mathf.Min(game.Lines, Game.SprintLines) + " / " + Game.SprintLines;
-            return "Марафон     счёт " + game.Score.ToString("N0") + "     линий " + game.Lines + "     уровень " + game.Level;
+            return "Марафон    счёт " + game.Score.ToString("N0") + "     линий " + game.Lines + "     уровень " + game.Level;
         }
 
         static string MenuHint(MenuItem item)
@@ -325,29 +322,23 @@ namespace BlockDrop
             switch (item)
             {
                 case MenuItem.Marathon: return "играй, пока хватит места";
-                case MenuItem.Sprint: return Game.SprintLines + " линий как можно быстрее";
                 case MenuItem.Battle: return "линии бьют бота, комбо сильнее, падают монетки";
                 default: return null;
             }
         }
 
-        void DrawTablePanel(string title, float x, Leaderboard table, bool isTime, float unit)
+        void DrawTablePanel(string title, Leaderboard table, float unit)
         {
-            RoundedWorld(x, -6.9f, 8.7f, 4.7f, new Color(0.11f, 0.09f, 0.16f, 0.92f), 0.35f, 0f, unit);
-            Label(title, x, -5.08f, unit, 0.5f, TextAnchor.MiddleCenter, view.AccentColor);
+            RoundedWorld(0f, -6.9f, MenuItemWidth, 4.7f, new Color(0.11f, 0.09f, 0.16f, 0.92f), 0.35f, 0f, unit);
+            Label(title, 0f, -5.08f, unit, 0.5f, TextAnchor.MiddleCenter, view.AccentColor);
             for (int i = 0; i < Leaderboard.Size; i++)
             {
                 bool filled = i < table.Entries.Count;
-                string value = "—";
-                if (filled)
-                {
-                    double entry = table.Entries[i];
-                    value = isTime ? Game.FormatTime((float)entry) : ((long)entry).ToString("N0");
-                }
+                string value = filled ? ((long)table.Entries[i]).ToString("N0") : "—";
                 Color color = !filled ? new Color(Muted.r, Muted.g, Muted.b, 0.4f) : i == 0 ? Bright : Muted;
                 float rowY = -5.82f - i * 0.68f;
-                Label((i + 1).ToString(), x - 2.6f, rowY, unit, 0.46f, TextAnchor.MiddleCenter, color);
-                Label(value, x + 0.5f, rowY, unit, 0.5f, TextAnchor.MiddleCenter, color);
+                Label((i + 1).ToString(), -2.6f, rowY, unit, 0.46f, TextAnchor.MiddleCenter, color);
+                Label(value, 0.6f, rowY, unit, 0.5f, TextAnchor.MiddleCenter, color);
             }
         }
 

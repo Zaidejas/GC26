@@ -3,9 +3,9 @@ using System.Collections.Generic;
 
 namespace BlockDrop.Core
 {
-    public enum GameState { Playing, Paused, GameOver, Completed }
+    public enum GameState { Playing, Paused, GameOver }
 
-    public enum GameMode { Marathon, Sprint, Battle }
+    public enum GameMode { Marathon, Battle }
 
     /// <summary>What one line clear earned, for the score popups and effects.</summary>
     public readonly struct LineClear
@@ -38,7 +38,6 @@ namespace BlockDrop.Core
         const int SpecialPointsPerCell = 10;
         const int BombRadius = 2;
 
-        public const int SprintLines = 40;
 
         /// <summary>The cell of a piece that carries its special. Rotations keep the cell order.</summary>
         public const int SpecialCellIndex = 1;
@@ -66,11 +65,7 @@ namespace BlockDrop.Core
         public GameState State { get; private set; } = GameState.Playing;
         public GameMode Mode { get; }
 
-        /// <summary>Seconds of actual play: stops while paused and when the game ends.</summary>
-        public float Elapsed { get; private set; }
-
-        /// <summary>True once the game has ended, by losing or by finishing a sprint.</summary>
-        public bool IsFinished { get { return State == GameState.GameOver || State == GameState.Completed; } }
+        public bool IsFinished { get { return State == GameState.GameOver; } }
         public PieceType CurrentType { get; private set; }
         public int CurrentRotation { get; private set; }
         public int CurrentX { get; private set; }
@@ -95,16 +90,6 @@ namespace BlockDrop.Core
         public event Action<int> LevelChanged;
         public event Action<SpecialResult> SpecialTriggered;
         public event Action GameEnded;
-        public event Action SprintCompleted;
-
-        /// <summary>Formats seconds as m:ss.cc, rounding down so a time never reads better than it was.</summary>
-        public static string FormatTime(float seconds)
-        {
-            int hundredths = (int)Math.Floor(Math.Max(0f, seconds) * 100.0);
-            int minutes = hundredths / 6000;
-            int wholeSeconds = hundredths / 100 % 60;
-            return minutes + ":" + wholeSeconds.ToString("00") + "." + (hundredths % 100).ToString("00");
-        }
 
         /// <summary>The first clear scores x1, each further clear in a row adds x0.5, up to x4.</summary>
         public static float ComboMultiplier(int combo)
@@ -180,8 +165,6 @@ namespace BlockDrop.Core
         {
             if (State != GameState.Playing)
                 return;
-
-            Elapsed += deltaTime;
 
             // At high levels normal gravity outruns the soft drop, so it only applies while it is faster.
             bool useSoftDrop = softDrop && SoftDropInterval / SoftDropRows < GravityInterval;
@@ -333,13 +316,6 @@ namespace BlockDrop.Core
                         rowsBelow++;
                 }
                 ResolveSpecial(special, specialX, specialY - rowsBelow);
-            }
-
-            if (Mode == GameMode.Sprint && Lines >= SprintLines)
-            {
-                State = GameState.Completed;
-                SprintCompleted?.Invoke();
-                return;
             }
 
             CanHold = true;

@@ -14,7 +14,6 @@ namespace BlockDrop
         const string TestRecordsPrefix = "BlockDrop.Test.";
         const string BestScoreName = "BestScore";
         const string MarathonTableName = "MarathonTable";
-        const string SprintTableName = "SprintTable";
         const string CoinsName = "Coins";
         const float RepeatDelay = 0.17f;
         const float RepeatInterval = 0.045f;
@@ -32,7 +31,6 @@ namespace BlockDrop
         int bestScore;
         string recordsPrefix = RecordsPrefix;
         Leaderboard marathonTable;
-        Leaderboard sprintTable;
         int lastPlace;
         int heldDirection;
         float repeatTimer;
@@ -55,14 +53,14 @@ namespace BlockDrop
         readonly List<Popup> popups = new List<Popup>();
 
         // Main menu. Items are laid out in world units so they scale with the window, like the rest of the HUD.
-        enum MenuItem { Marathon, Sprint, Battle, Sound, Exit }
+        enum MenuItem { Marathon, Battle, Sound, Exit }
 
-        static readonly MenuItem[] MenuItems = { MenuItem.Marathon, MenuItem.Sprint, MenuItem.Battle, MenuItem.Sound, MenuItem.Exit };
+        static readonly MenuItem[] MenuItems = { MenuItem.Marathon, MenuItem.Battle, MenuItem.Sound, MenuItem.Exit };
 
-        const float MenuTopY = 4.65f;
-        const float MenuStepY = 1.8f;
+        const float MenuTopY = 4.3f;
+        const float MenuStepY = 2.05f;
         const float MenuItemWidth = 12f;
-        const float MenuItemHeight = 1.6f;
+        const float MenuItemHeight = 1.75f;
 
         GameMode mode = GameMode.Marathon;
         bool inMenu = true;
@@ -101,7 +99,6 @@ namespace BlockDrop
             bestScore = PlayerPrefs.GetInt(recordsPrefix + BestScoreName, 0);
             coinsTotal = PlayerPrefs.GetInt(recordsPrefix + CoinsName, 0);
             marathonTable = Leaderboard.Parse(PlayerPrefs.GetString(recordsPrefix + MarathonTableName, ""), false);
-            sprintTable = Leaderboard.Parse(PlayerPrefs.GetString(recordsPrefix + SprintTableName, ""), true);
 
             // A best score from before the table existed becomes its first entry.
             if (bestScore > 0 && marathonTable.Entries.Count == 0)
@@ -121,16 +118,6 @@ namespace BlockDrop
             }
             PlayerPrefs.Save();
             Debug.Log("[BlockDrop] Marathon result " + game.Score + " place=" + lastPlace + " table=" + marathonTable.Serialize());
-        }
-
-        void SaveSprintResult()
-        {
-            if (autoplay || noRecords)
-                return;
-            lastPlace = sprintTable.Add(game.Elapsed);
-            PlayerPrefs.SetString(recordsPrefix + SprintTableName, sprintTable.Serialize());
-            PlayerPrefs.Save();
-            Debug.Log("[BlockDrop] Sprint result " + Game.FormatTime(game.Elapsed) + " place=" + lastPlace + " table=" + sprintTable.Serialize());
         }
 
         string PlaceText()
@@ -161,10 +148,8 @@ namespace BlockDrop
             switch (MenuItems[menuIndex])
             {
                 case MenuItem.Marathon:
-                case MenuItem.Sprint:
                 case MenuItem.Battle:
-                    mode =MenuItems[menuIndex] == MenuItem.Sprint ? GameMode.Sprint
-                        : MenuItems[menuIndex] == MenuItem.Battle ? GameMode.Battle : GameMode.Marathon;
+                    mode = MenuItems[menuIndex] == MenuItem.Battle ? GameMode.Battle : GameMode.Marathon;
                     Debug.Log("[BlockDrop] Menu: play " + mode);
                     StartNewGame();
                     inMenu = false;
@@ -195,7 +180,6 @@ namespace BlockDrop
             switch (item)
             {
                 case MenuItem.Marathon: return "Марафон";
-                case MenuItem.Sprint: return "Спринт";
                 case MenuItem.Battle: return "Бой с ботом";
                 case MenuItem.Sound: return gameAudio.Muted ? "Звук: выкл." : "Звук: вкл.";
                 default: return "Выход";
@@ -224,7 +208,6 @@ namespace BlockDrop
             game.LevelChanged += OnLevelChanged;
             game.SpecialTriggered += OnSpecialTriggered;
             game.GameEnded += OnGameEnded;
-            game.SprintCompleted += OnSprintCompleted;
             heldDirection = 0;
             lastPlace = 0;
             shownScore = 0f;
@@ -344,21 +327,9 @@ namespace BlockDrop
             Debug.Log("[BlockDrop] Game over, score " + game.Score);
             gameAudio.Play("gameover");
             view.Effects.Shake(0.8f);
-            // The best score belongs to the marathon; a sprint is judged by its time.
+            // The best score belongs to the marathon; a battle pays out in coins instead.
             if (game.Mode == GameMode.Marathon)
                 SaveMarathonResult();
-        }
-
-        void OnSprintCompleted()
-        {
-            Debug.Log("[BlockDrop] Sprint finished time=" + Game.FormatTime(game.Elapsed) + " lines=" + game.Lines + " score=" + game.Score);
-            SaveSprintResult();
-            gameAudio.Play("levelup");
-            gameAudio.Play("clear4", 0.8f);
-            view.Effects.Shake(0.7f);
-            view.Effects.Ring(Vector2.zero, new Color(1f, 0.85f, 0.4f, 0.5f), 30f, 0.8f);
-            for (int x = 0; x < Board.Width; x++)
-                view.Effects.Burst(BoardView.GridPosition(x, Board.VisibleHeight / 2), view.AccentColor, 4, 14f);
         }
 
         static string MultiplierText(float multiplier)
@@ -587,15 +558,7 @@ namespace BlockDrop
 
             Stat("СЧЁТ", Mathf.RoundToInt(shownScore).ToString("N0"), 2.2f, unit, 1f + scoreKick * 0.35f);
             Stat("УРОВЕНЬ", game.Level.ToString("N0"), -2.2f, unit);
-            if (game.Mode == GameMode.Sprint)
-            {
-                Stat("ВРЕМЯ", Game.FormatTime(game.Elapsed), 0f, unit);
-                string best = sprintTable.Entries.Count > 0 ? "лучшее " + Game.FormatTime((float)sprintTable.Entries[0]) : "лучшего пока нет";
-                Label(best, BoardView.LeftPanelX, -0.98f, unit, 0.38f, TextAnchor.MiddleCenter, Muted);
-                Stat("ЛИНИИ", Mathf.Min(game.Lines, Game.SprintLines) + " / " + Game.SprintLines, -4.4f, unit);
-                DrawSprintProgress();
-            }
-            else if (game.Mode == GameMode.Battle)
+            if (game.Mode == GameMode.Battle)
             {
                 Stat("МОНЕТЫ", Mathf.RoundToInt(shownCoins).ToString("N0"), 0f, unit, 1f + coinKick * 0.25f);
                 Stat("ЛИНИИ", game.Lines.ToString("N0"), -4.4f, unit);
@@ -637,24 +600,10 @@ namespace BlockDrop
 
             if (game.State == GameState.Paused)
                 DrawPauseMenu(unit);
-            else if (game.State == GameState.Completed)
-                Overlay("ФИНИШ!", "Время: " + Game.FormatTime(game.Elapsed) + "\n" + PlaceText() + "Enter — ещё раз\nBackspace — в меню", unit);
             else if (game.State == GameState.GameOver && game.Mode == GameMode.Battle)
                 Overlay("БОЙ ОКОНЧЕН", "Повержено ботов: " + battle.BotsDefeated + "\nМонет за бой: +" + battle.CoinsEarned + "\nEnter — новый бой\nBackspace — в меню", unit);
-            else if (game.State == GameState.GameOver && game.Mode == GameMode.Sprint)
-                Overlay("НЕ ДОШЛИ", "Линий: " + game.Lines + " из " + Game.SprintLines + "\nEnter — ещё раз\nBackspace — в меню", unit);
             else if (game.State == GameState.GameOver)
                 Overlay("ИГРА ОКОНЧЕНА", "Счёт: " + game.Score + "\n" + PlaceText() + "Enter — новая игра\nBackspace — в меню", unit);
-        }
-
-        // A bar along the left wall of the well that fills towards the goal.
-        void DrawSprintProgress()
-        {
-            float share = Mathf.Clamp01(game.Lines / (float)Game.SprintLines);
-            float x = BoardView.BoardLeft - 0.42f;
-            float height = Board.VisibleHeight;
-            FillWorld(x, 0f, 0.28f, height, new Color(0.14f, 0.12f, 0.2f, 1f));
-            FillWorld(x, -height / 2f + height * share / 2f, 0.28f, height * share, view.AccentColor);
         }
 
         static readonly Color Muted = new Color(0.68f, 0.65f, 0.76f);
@@ -718,7 +667,7 @@ namespace BlockDrop
 
         // Testing aids: -autoplay plays random moves; -capture <file> [-captureAfter <seconds>] screenshots and quits;
         // -noRecords never saves a best score; -assist prepares rows so each hard drop clears lines (implies -noRecords);
-        // -specialCycle makes every piece special in turn (implies -noRecords); -sprint starts those runs as a sprint;
+        // -specialCycle makes every piece special in turn (implies -noRecords); -battle starts those runs as a battle;
         // -recordsTest saves results under separate test keys, even with -assist, so real records stay untouched;
         // -resetRecordsTest empties those test keys first.
         void ReadCommandLine()
@@ -736,10 +685,6 @@ namespace BlockDrop
                 else if (args[i] == "-logSlowFrames")
                 {
                     logSlowFrames = true;
-                }
-                else if (args[i] == "-sprint")
-                {
-                    mode = GameMode.Sprint;
                 }
                 else if (args[i] == "-battle")
                 {
@@ -777,7 +722,6 @@ namespace BlockDrop
                 {
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + BestScoreName);
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + MarathonTableName);
-                    PlayerPrefs.DeleteKey(TestRecordsPrefix + SprintTableName);
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + CoinsName);
                     PlayerPrefs.Save();
                 }

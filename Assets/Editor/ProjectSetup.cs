@@ -124,12 +124,8 @@ namespace BlockDrop.EditorTools
                 { "A special piece can clear lines too", SpecialClearsLines },
                 { "A special piece keeps the combo", SpecialKeepsCombo },
                 { "Hold keeps the special on the piece", HoldKeepsSpecial },
-                { "Sprint ends at 40 lines and stops the game", SprintEndsAtGoal },
-                { "Marathon does not end at 40 lines", MarathonKeepsGoing },
-                { "Sprint can still be lost", SprintCanBeLost },
-                { "Timer stops on pause and at the finish", TimerStops },
-                { "Time format rounds down", TimeFormat },
-                { "Time table keeps the five lowest", TableKeepsLowestTimes },
+                { "Marathon has no line limit", MarathonKeepsGoing },
+                { "Table can keep the five lowest", TableKeepsLowestTimes },
                 { "Score table keeps the five highest", TableKeepsHighestScores },
                 { "A tie goes below the older result", TableTies },
                 { "Table refuses impossible results", TableRefusesBadValues },
@@ -681,87 +677,17 @@ namespace BlockDrop.EditorTools
             Check(game.HeldSpecial == SpecialKind.None, "ordinary piece held as special");
         }
 
-        static void PlayToSprintGoal(Game game)
-        {
-            for (int i = 0; i < 200 && game.State == GameState.Playing; i++)
-            {
-                game.Board.Clear();
-                PrepareClear(game);
-                game.HardDrop();
-            }
-        }
-
-        static void SprintEndsAtGoal()
-        {
-            var game = new Game(41, false, GameMode.Sprint);
-            int finished = 0, ended = 0;
-            game.SprintCompleted += () => finished++;
-            game.GameEnded += () => ended++;
-            PlayToSprintGoal(game);
-
-            Check(game.State == GameState.Completed && game.IsFinished, "state " + game.State);
-            Check(game.Lines >= Game.SprintLines, "lines " + game.Lines);
-            Check(finished == 1, "finish events " + finished);
-            Check(ended == 0, "a won sprint must not count as game over");
-
-            int score = game.Score, lines = game.Lines;
-            game.HardDrop();
-            game.Tick(5f, true);
-            Check(!game.Move(1) && !game.Rotate(1) && !game.Hold(), "commands accepted after the finish");
-            Check(game.Score == score && game.Lines == lines, "game changed after the finish");
-            game.TogglePause();
-            Check(game.State == GameState.Completed, "pause changed a finished game");
-        }
-
         static void MarathonKeepsGoing()
         {
             var game = new Game(42, false);
-            int finished = 0;
-            game.SprintCompleted += () => finished++;
-            for (int i = 0; i < 80 && game.Lines < Game.SprintLines + 5; i++)
+            for (int i = 0; i < 80 && game.Lines < 45; i++)
             {
                 game.Board.Clear();
                 PrepareClear(game);
                 game.HardDrop();
             }
-            Check(game.Lines >= Game.SprintLines + 5, "lines " + game.Lines);
+            Check(game.Lines >= 45, "lines " + game.Lines);
             Check(game.State == GameState.Playing, "state " + game.State);
-            Check(finished == 0, "marathon finished");
-        }
-
-        static void SprintCanBeLost()
-        {
-            var game = new Game(43, false, GameMode.Sprint);
-            for (int i = 0; i < 200 && game.State == GameState.Playing; i++)
-                game.HardDrop();
-            Check(game.State == GameState.GameOver && game.IsFinished, "state " + game.State);
-        }
-
-        static void TimerStops()
-        {
-            var game = new Game(44, false, GameMode.Sprint);
-            game.Tick(0.1f, false);
-            Check(Mathf.Approximately(game.Elapsed, 0.1f), "timer " + game.Elapsed);
-            game.TogglePause();
-            game.Tick(5f, false);
-            Check(Mathf.Approximately(game.Elapsed, 0.1f), "timer ran during pause");
-            game.TogglePause();
-            game.Tick(0.1f, false);
-            Check(Mathf.Approximately(game.Elapsed, 0.2f), "timer did not resume: " + game.Elapsed);
-
-            PlayToSprintGoal(game);
-            float atFinish = game.Elapsed;
-            game.Tick(5f, false);
-            Check(game.Elapsed == atFinish, "timer ran after the finish");
-        }
-
-        static void TimeFormat()
-        {
-            Check(Game.FormatTime(0f) == "0:00.00", Game.FormatTime(0f));
-            Check(Game.FormatTime(5.999f) == "0:05.99", Game.FormatTime(5.999f));
-            Check(Game.FormatTime(62.5f) == "1:02.50", Game.FormatTime(62.5f));
-            Check(Game.FormatTime(600f) == "10:00.00", Game.FormatTime(600f));
-            Check(Game.FormatTime(-3f) == "0:00.00", Game.FormatTime(-3f));
         }
 
         static void TableKeepsLowestTimes()
@@ -888,15 +814,13 @@ namespace BlockDrop.EditorTools
         static void BattleModeKeepsGoing()
         {
             var game = new Game(51, false, GameMode.Battle);
-            int finished = 0;
-            game.SprintCompleted += () => finished++;
-            for (int i = 0; i < 80 && game.Lines < Game.SprintLines + 5; i++)
+            for (int i = 0; i < 80 && game.Lines < 45; i++)
             {
                 game.Board.Clear();
                 PrepareClear(game);
                 game.HardDrop();
             }
-            Check(game.State == GameState.Playing && finished == 0, "battle ended at the sprint goal");
+            Check(game.Lines >= 45 && game.State == GameState.Playing, "battle ended early: " + game.State);
         }
 
         // Finds a seed that spawns the wanted piece first.
