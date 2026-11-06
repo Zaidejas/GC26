@@ -66,6 +66,7 @@ Every turn ends either with a cleared line, which skips the spawn, or with 3 new
 - A move that forms two crossing lines clears both. The shared ball is removed once, but for scoring it counts in the length of **both** lines (two crossing 5-lines: (10 + 10) × 2 = 40).
 - If the player moves a ball onto a cell with a preview dot, the ball for that dot appears in another random empty cell instead.
 - If fewer than 3 cells are free when balls spawn, the board fills and the game ends.
+- If the spawn fills the last free cells but the new balls complete a line, the line clears first, so the board is no longer full and the game goes on.
 - Game over is final: Undo is not available after the board fills. The only option is to start a new game.
 - Tapping a ball that has no reachable empty cell still selects it. The blocked move is reported when the player taps a target (see Controls). The original game shows nothing here; this is one of the custom changes.
 
