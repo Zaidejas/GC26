@@ -10,8 +10,8 @@ public class MainMenu : MonoBehaviour
 
     public TMP_Text highScoreText;
     public TMP_Text coinsText;
-    public Button playButton;
-    public Button quitButton;
+    public PressableButton playButton;
+    public PressableButton quitButton;
     [Tooltip("Выключение автомата перед выходом. Без него игра закрывается сразу")]
     public QuitEffect quitEffect;
 
@@ -23,8 +23,8 @@ public class MainMenu : MonoBehaviour
         highScoreText.text = $"BEST {PlayerPrefs.GetInt(GameManager.HighScoreKey, 0)}";
         coinsText.text = $"COINS {PlayerPrefs.GetInt(GameManager.TotalCoinsKey, 0)}";
 
-        playButton.onClick.AddListener(Play);
-        quitButton.onClick.AddListener(Quit);
+        playButton.onPress.AddListener(Play);
+        quitButton.onPress.AddListener(Quit);
     }
 
     void Play()

@@ -5,21 +5,21 @@ using UnityEngine.UI;
 public class PauseMenu : MonoBehaviour
 {
     public GameObject panel;
-    public Button resumeButton;
-    public Button restartButton;
-    public Button menuButton;
+    public PressableButton resumeButton;
+    public PressableButton restartButton;
+    public PressableButton menuButton;
     [Tooltip("Кнопка паузы на экране: на телефоне нет Esc")]
-    public Button pauseButton;
+    public PressableButton pauseButton;
 
     public bool IsPaused { get; private set; }
 
     void Start()
     {
         panel.SetActive(false);
-        pauseButton.onClick.AddListener(Pause);
-        resumeButton.onClick.AddListener(Resume);
-        restartButton.onClick.AddListener(() => GameManager.Instance.Restart());
-        menuButton.onClick.AddListener(() => GameManager.Instance.LoadMenu());
+        pauseButton.onPress.AddListener(Pause);
+        resumeButton.onPress.AddListener(Resume);
+        restartButton.onPress.AddListener(() => GameManager.Instance.Restart());
+        menuButton.onPress.AddListener(() => GameManager.Instance.LoadMenu());
     }
 
     void Update()

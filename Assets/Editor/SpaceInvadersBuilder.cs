@@ -812,16 +812,8 @@ public static class SpaceInvadersBuilder
         MakeAbilitySlot(safeArea, abilities, 1, bunkerIconSprite, 0f);
         MakeAbilitySlot(safeArea, abilities, 2, rapidFireIconSprite, -220f);
 
-        var pauseButton = MakeButton(safeArea, "PauseButton", pauseSprite != null ? "" : "II", Vector2.zero);
-        if (pauseSprite != null)
-        {
-            pauseButton.image.sprite = pauseSprite;
-            pauseButton.image.color = Color.white;
-        }
-        var pauseRect = (RectTransform)pauseButton.transform;
-        pauseRect.anchorMin = pauseRect.anchorMax = pauseRect.pivot = topRight;
-        pauseRect.anchoredPosition = new Vector2(-30f, -20f);
-        pauseRect.sizeDelta = new Vector2(120f, 120f);
+        // Круглая аркадная кнопка паузы в правом верхнем углу, подсвечивается при нажатии
+        var pauseButton = MakeRoundButton(safeArea, "PauseButton", topRight, new Vector2(-95f, -85f), 130f);
 
         // Экраны конца игры: аркадная победа и окно Game Over
         ui.victoryScreen = BuildVictoryScreen(canvas);
@@ -833,9 +825,12 @@ public static class SpaceInvadersBuilder
         var pausePanel = MakePanel(canvas, "PausePanel", new Color(0f, 0f, 0f, 0.7f));
         pause.panel = pausePanel;
         MakeText(pausePanel.transform, "Title", "PAUSED", 120, TextAlignmentOptions.Center, center, new Vector2(0f, 320f), new Vector2(1000f, 170f));
-        pause.resumeButton = MakeButton(pausePanel.transform, "ResumeButton", "RESUME", new Vector2(0f, 80f));
-        pause.restartButton = MakeButton(pausePanel.transform, "RestartButton", "RESTART", new Vector2(0f, -80f));
-        pause.menuButton = MakeButton(pausePanel.transform, "MenuButton", "MAIN MENU", new Vector2(0f, -240f));
+        // Аркадные кнопки как на экранах конца игры: RESUME главная (залитая)
+        var mid = new Vector2(0.5f, 0.5f);
+        var menuSize = new Vector2(640f, 150f);
+        pause.resumeButton = MakeArcadeButton(pausePanel.transform, "ResumeButton", "RESUME", true, mid, new Vector2(0f, 80f), menuSize);
+        pause.restartButton = MakeArcadeButton(pausePanel.transform, "RestartButton", "RESTART", false, mid, new Vector2(0f, -100f), menuSize);
+        pause.menuButton = MakeArcadeButton(pausePanel.transform, "MenuButton", "MAIN MENU", false, mid, new Vector2(0f, -280f), menuSize);
         pausePanel.SetActive(false);
     }
 
@@ -951,8 +946,9 @@ public static class SpaceInvadersBuilder
         menu.coinsText = MakeText(canvas, "Coins", "COINS 0", 64, TextAlignmentOptions.Center, center, new Vector2(0f, 10f), new Vector2(1000f, 90f));
         menu.coinsText.color = GoldColor;
 
-        menu.playButton = MakeButton(canvas, "PlayButton", "PLAY", new Vector2(0f, -170f));
-        menu.quitButton = MakeButton(canvas, "QuitButton", "QUIT", new Vector2(0f, -330f));
+        // Аркадные кнопки как на экранах конца игры: PLAY главная (залитая)
+        menu.playButton = MakeArcadeButton(canvas, "PlayButton", "PLAY", true, center, new Vector2(0f, -170f), new Vector2(640f, 150f));
+        menu.quitButton = MakeArcadeButton(canvas, "QuitButton", "QUIT", false, center, new Vector2(0f, -350f), new Vector2(640f, 150f));
 
         var controls = MakeText(canvas, "Controls", "Drag your finger to move\nShooting is automatic",
             44, TextAlignmentOptions.Center, new Vector2(0.5f, 0f), new Vector2(0f, 180f), new Vector2(1200f, 160f));
@@ -1412,6 +1408,38 @@ public static class SpaceInvadersBuilder
         button.label = MakeText(go.transform, "Label", label, size.y * 0.37f, TextAlignmentOptions.Center,
             new Vector2(0.5f, 0.5f), Vector2.zero, size);
         button.label.color = button.normalLabelColor;
+        return button;
+    }
+
+    // Круглая аркадная кнопка со значком паузы: кольцо, при нажатии заливка и свечение
+    static PressableButton MakeRoundButton(Transform parent, string name, Vector2 anchor, Vector2 position, float size)
+    {
+        var button = MakeArcadeButton(parent, name, "", false, anchor, position, new Vector2(size, size));
+        var outline = Art("round_outline", 100f, null);
+        var fill = Art("round_fill", 100f, null);
+        var glow = Art("round_glow", 100f, null);
+        if (outline == null || fill == null) return button; // без картинок остаётся капсула
+
+        button.normalSprite = outline;
+        button.litSprite = fill;
+        button.background.sprite = outline;
+        if (button.glow != null && glow != null)
+        {
+            button.glow.sprite = glow;
+            button.glow.rectTransform.sizeDelta = Vector2.one * size * 310f / 150f;
+        }
+
+        var iconSprite = Art("icon_pause", 100f, null);
+        if (iconSprite != null)
+        {
+            var icon = MakeChildImage(button.transform, "Icon", iconSprite, button.normalLabelColor);
+            icon.rectTransform.sizeDelta = new Vector2(size * 0.32f, size * 0.36f);
+            button.icon = icon;
+        }
+        else
+        {
+            button.label.text = "II";
+        }
         return button;
     }
 
