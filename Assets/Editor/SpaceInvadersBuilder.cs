@@ -562,7 +562,7 @@ public static class SpaceInvadersBuilder
             MakeInvaderPrefab("Invader_Crab", crabFrames, 20),
             MakeInvaderPrefab("Invader_Octopus", octopusFrames, 10),
         };
-        eliteInvaderPrefab = MakeInvaderPrefab("Invader_Elite", eliteFrames, 40, 2, 0.5f);
+        eliteInvaderPrefab = MakeInvaderPrefab("Invader_Elite", eliteFrames, 40, 2, 1f, 1.3f); // всегда целится в игрока, стреляет в 1.3 раза чаще
 
         var bossLaser = NewSpriteObject("BossLaser", uiSquareSprite, 4);
         bossLaser.AddComponent<LaserBeam>();
@@ -578,7 +578,7 @@ public static class SpaceInvadersBuilder
         EditorUtility.SetDirty(waves[4]);
     }
 
-    static Invader MakeInvaderPrefab(string name, Sprite[] frames, int points, int hitPoints = 1, float aimedShotChance = 0f)
+    static Invader MakeInvaderPrefab(string name, Sprite[] frames, int points, int hitPoints = 1, float aimedShotChance = 0f, float fireRateMultiplier = 1f)
     {
         var go = NewSpriteObject(name, frames[0], 0);
         go.transform.localScale = Vector3.one * InvaderScale;
@@ -587,6 +587,7 @@ public static class SpaceInvadersBuilder
         invader.points = points;
         invader.hitPoints = hitPoints;
         invader.aimedShotChance = aimedShotChance;
+        invader.fireRateMultiplier = fireRateMultiplier;
         invader.frames = frames;
         invader.explosionPrefab = explosionPrefab;
         invader.coinPrefab = coinPrefab;

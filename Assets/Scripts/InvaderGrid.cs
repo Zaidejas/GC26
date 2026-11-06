@@ -158,27 +158,40 @@ public class InvaderGrid : MonoBehaviour
         }
     }
 
-    // Стреляет самый нижний пришелец в случайной колонке
+    // Стреляет самый нижний пришелец одной из колонок. Колонка выбирается случайно с весом
+    // fireRateMultiplier её нижнего пришельца: усиленные стреляют чаще обычных
     void Shoot()
     {
         int rows = invaders.GetLength(0);
         int cols = invaders.GetLength(1);
-        int startCol = Random.Range(0, cols);
+        var shooters = new Invader[cols];
+        float totalWeight = 0f;
 
-        for (int i = 0; i < cols; i++)
+        for (int col = 0; col < cols; col++)
         {
-            int col = (startCol + i) % cols;
             for (int row = rows - 1; row >= 0; row--)
             {
-                Invader invader = invaders[row, col];
-                if (invader == null) continue;
-
-                Projectile missile = Instantiate(missilePrefab, invader.transform.position + Vector3.down * 0.55f, Quaternion.identity);
-                if (player != null && Random.value < invader.aimedShotChance)
-                    missile.SetDirection(player.transform.position - missile.transform.position);
-                return;
+                if (invaders[row, col] == null) continue;
+                shooters[col] = invaders[row, col];
+                totalWeight += shooters[col].fireRateMultiplier;
+                break;
             }
         }
+        if (totalWeight <= 0f) return;
+
+        float pick = Random.value * totalWeight;
+        Invader shooter = null;
+        for (int col = 0; col < cols; col++)
+        {
+            if (shooters[col] == null) continue;
+            shooter = shooters[col];
+            pick -= shooter.fireRateMultiplier;
+            if (pick <= 0f) break;
+        }
+
+        Projectile missile = Instantiate(missilePrefab, shooter.transform.position + Vector3.down * 0.55f, Quaternion.identity);
+        if (player != null && Random.value < shooter.aimedShotChance)
+            missile.SetDirection(player.transform.position - missile.transform.position);
     }
 
     float NextShootDelay()

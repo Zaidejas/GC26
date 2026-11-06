@@ -10,6 +10,9 @@ public class Invader : MonoBehaviour
     [Range(0f, 1f)]
     [Tooltip("Шанс, что выстрел этого пришельца полетит прицельно в игрока")]
     public float aimedShotChance = 0f;
+    [Min(0f)]
+    [Tooltip("Во сколько раз чаще обычного этот пришелец становится стрелком")]
+    public float fireRateMultiplier = 1f;
     public Color damagedColor = new Color(0.55f, 0.55f, 0.55f);
 
     [Header("Анимация")]
