@@ -157,6 +157,44 @@ namespace Lines.Tests
         }
 
         [Test]
+        public void Leaderboard_WriteThenRead()
+        {
+            var service = new LeaderboardService(folder);
+            var board = service.Load();
+            Assert.AreEqual(0, board.Count, "Empty at first");
+            board.Record(120, "Anna", 1000);
+            board.Record(80, "", 2000);
+            service.Save(board);
+
+            var again = new LeaderboardService(folder).Load();
+            Assert.AreEqual(2, again.Count);
+            Assert.AreEqual("Anna", again.entries[0].name);
+            Assert.AreEqual(1000, again.entries[0].time);
+            Assert.AreEqual("Player1", again.entries[1].name);
+            Assert.AreEqual("Anna", again.lastName);
+            Assert.AreEqual(1, again.placeholdersUsed);
+            Assert.AreNotEqual(new SaveService(folder).FilePath, service.FilePath, "Separate from the game save");
+        }
+
+        [Test]
+        public void Leaderboard_GarbageFile_MeansEmpty()
+        {
+            Directory.CreateDirectory(folder);
+            File.WriteAllText(Path.Combine(folder, LeaderboardService.FileName), "{ nope");
+            Assert.AreEqual(0, new LeaderboardService(folder).Load().Count);
+        }
+
+        [Test]
+        public void PendingScore_IsKeptInTheSave()
+        {
+            var save = GameSave.From(GameState.NewGame(1));
+            save.hasPendingScore = true;
+            var service = new SaveService(folder);
+            service.Save(save);
+            Assert.IsTrue(service.Load().hasPendingScore);
+        }
+
+        [Test]
         public void File_WriteThenRead_SameGame()
         {
             var service = new SaveService(folder);

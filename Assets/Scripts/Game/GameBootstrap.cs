@@ -19,6 +19,7 @@ namespace Lines.Game
         HudView hud;
         MenuView menu;
         HowToPlayView howToPlay;
+        LeaderboardView leaderboardView;
         Vector2 lastScreenSize;
         Rect lastSafeArea;
 
@@ -30,6 +31,12 @@ namespace Lines.Game
         public HudView Hud => hud;
         public MenuView Menu => menu;
         public HowToPlayView HowToPlay => howToPlay;
+        public LeaderboardView LeaderboardScreen => leaderboardView;
+        /// <summary>The top 10 and the player-name memory (saved in its own file).</summary>
+        public Leaderboard Scores { get; private set; }
+        /// <summary>The finished game's score is waiting on the game-over pop-up.</summary>
+        public bool ScorePending { get; private set; }
+        long latestScoreTime;
 
         /// <summary>True while the game screen (board and HUD) is showing; false on the main menu.</summary>
         public bool GameScreenShowing { get; private set; }
@@ -39,10 +46,11 @@ namespace Lines.Game
         public InputHandler Taps { get; private set; }
 
         /// <summary>True when board taps must be ignored: a pop-up is open, or the menu is showing.</summary>
-        public bool InputBlocked => !GameScreenShowing || (hud != null && hud.Dialog.IsOpen);
+        public bool InputBlocked => !GameScreenShowing || (hud != null && (hud.Dialog.IsOpen || hud.GameOver.IsOpen));
 
         BoardPresenter presenter;
         SaveService saves;
+        LeaderboardService scoreFile;
 
         /// <summary>Where the game in progress is kept.</summary>
         public SaveService Saves => saves;
@@ -58,8 +66,14 @@ namespace Lines.Game
             hud = HudView.Create(mainCamera);
             menu = MenuView.Create(mainCamera);
             howToPlay = HowToPlayView.Create(mainCamera);
+            leaderboardView = LeaderboardView.Create(mainCamera);
             presenter = new BoardPresenter(boardView, hud);
             saves = new SaveService();
+            scoreFile = new LeaderboardService();
+            Scores = scoreFile.Load();
+            RecordLeftoverScore();
+            presenter.GameOver += OnGameOver;
+            hud.GameOver.Saved += SaveScore;
             // A saved game is loaded but waits behind Continue; without one, the menu still shows pieces.
             if (!TryContinueSavedGame()) boardView.SetPieces(PieceSet.RandomCreatures(System.Environment.TickCount));
             Relayout();
@@ -76,8 +90,10 @@ namespace Lines.Game
             menu.NewGameClicked += AskForNewGame;
             menu.HowToPlayClicked += ShowHowToPlay;
             howToPlay.Closed += ShowMenu;
-            // The Leaderboard comes in task 24.
-            menu.SetSecondaryScreensAvailable(howToPlay: true, leaderboardScreen: false);
+            menu.LeaderboardClicked += () => ShowLeaderboard();
+            leaderboardView.Closed += ShowMenu;
+            leaderboardView.PlayAgainClicked += () => { StartNewGame(); ShowGame(); };
+            menu.SetSecondaryScreensAvailable(howToPlay: true, leaderboardScreen: true);
             ShowMenu();
             Debug.Log("Lines: game started");
         }
@@ -88,6 +104,7 @@ namespace Lines.Game
             int seed = System.Environment.TickCount;
             // MVP art: 7 of the 9 creatures per game. For the glossy balls instead, use PieceSet.Balls().
             boardView.SetPieces(PieceSet.RandomCreatures(seed));
+            ScorePending = false; // only finished games reach the leaderboard
             Use(new GameController(GameState.NewGame(seed), presenter));
             SaveGame(); // Reset also starts a new save
         }
@@ -101,6 +118,7 @@ namespace Lines.Game
             boardView.gameObject.SetActive(false);
             hud.SetVisible(false);
             howToPlay.Hide();
+            leaderboardView.Hide();
             menu.Show(HasUnfinishedGame ? Controller.Game.Score : (int?)null, boardView.Pieces);
         }
 
@@ -111,10 +129,25 @@ namespace Lines.Game
             howToPlay.Show(boardView.Pieces);
         }
 
+        /// <summary>
+        /// The Leaderboard screen. Right after a game it shows <paramref name="result"/> and Play again;
+        /// the latest saved score in this session stays highlighted.
+        /// </summary>
+        public void ShowLeaderboard(string result = null, bool afterGame = false)
+        {
+            GameScreenShowing = false;
+            boardView.gameObject.SetActive(false);
+            hud.SetVisible(false);
+            menu.Hide();
+            howToPlay.Hide();
+            leaderboardView.Show(Scores, latestScoreTime, result, afterGame);
+        }
+
         public void ShowGame()
         {
             menu.Hide();
             howToPlay.Hide();
+            leaderboardView.Hide();
             boardView.gameObject.SetActive(true);
             hud.SetVisible(true);
             GameScreenShowing = true;
@@ -165,7 +198,55 @@ namespace Lines.Game
         public void SaveGame()
         {
             if (Controller == null || saves == null) return;
-            saves.Save(GameSave.From(Controller.Game, boardView.Pieces.CreatureIndices));
+            var save = GameSave.From(Controller.Game, boardView.Pieces.CreatureIndices);
+            save.hasPendingScore = ScorePending && Controller.Game.IsOver;
+            saves.Save(save);
+        }
+
+        // ---- Game over and the leaderboard ----
+
+        /// <summary>The board is full: the pop-up asks for a name; the score waits in the save until Save.</summary>
+        void OnGameOver(int score)
+        {
+            ScorePending = true;
+            SaveGame();
+            hud.Dialog.Close();
+            hud.GameOver.Show(score, Scores.DefaultName);
+        }
+
+        /// <summary>Save on the game-over pop-up: adds the score and opens the Leaderboard.</summary>
+        public void SaveScore(string typedName)
+        {
+            if (!ScorePending || Controller == null) return;
+            int score = Controller.Game.Score;
+            string name = Scores.CleanName(typedName);
+            int place = RecordScore(score, name);
+            ScorePending = false;
+            SaveGame();
+            hud.GameOver.Close();
+            ShowLeaderboard(Leaderboard.ResultMessage(place, score, name), afterGame: true);
+        }
+
+        int RecordScore(int score, string name)
+        {
+            latestScoreTime = LeaderboardService.Now();
+            int place = Scores.Record(score, name, latestScoreTime);
+            scoreFile.Save(Scores);
+            return place;
+        }
+
+        /// <summary>
+        /// At launch: a score left on the game-over pop-up (the app closed before Save) goes to the
+        /// leaderboard under the name the field was pre-filled with (GDD → Saving).
+        /// </summary>
+        void RecordLeftoverScore()
+        {
+            var save = saves.Load();
+            if (save == null || !save.isOver || !save.hasPendingScore || save.score < 0) return;
+            RecordScore(save.score, Scores.DefaultName);
+            latestScoreTime = 0; // nothing to highlight: the player didn't see this one saved
+            save.hasPendingScore = false;
+            saves.Save(save);
         }
 
         // The game also saves when the app goes to the background or closes (GDD → Saving).
@@ -197,6 +278,7 @@ namespace Lines.Game
             hud.ApplyLayout(Layout);
             menu.ApplyLayout(Layout);
             howToPlay.ApplyLayout(Layout);
+            leaderboardView.ApplyLayout(Layout);
         }
     }
 }

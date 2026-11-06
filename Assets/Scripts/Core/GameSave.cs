@@ -33,6 +33,12 @@ namespace Lines.Core
         /// <summary>Which creature (0–8) stands for each of the 7 colors; empty when glossy balls are used.</summary>
         public int[] creatures = new int[0];
 
+        /// <summary>
+        /// The game is over and its score waits on the game-over pop-up (not yet on the leaderboard).
+        /// If the app closes before Save, the next launch adds it under the pre-filled name.
+        /// </summary>
+        public bool hasPendingScore;
+
         /// <summary>Captures <paramref name="game"/> (and the creature set shown for it).</summary>
         public static GameSave From(GameState game, int[] creatureForColor = null)
         {

@@ -18,8 +18,8 @@ namespace Lines.EditorTools
     {
         struct Shot
         {
-            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog, Menu; public int HowTo;
-            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false, bool menu = false, int howTo = 0) { HowTo = howTo; Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; Menu = menu; }
+            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog, Menu, GameOver; public int HowTo, Scores;
+            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false, bool menu = false, int howTo = 0, bool gameOver = false, int scores = 0) { HowTo = howTo; GameOver = gameOver; Scores = scores; Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; Menu = menu; }
         }
 
         static readonly Shot[] Shots =
@@ -37,6 +37,12 @@ namespace Lines.EditorTools
             new Shot("howto-3_1080x1920", 1080, 1920, 0, 0, howTo: 3),
             new Shot("howto-3_1080x2400_notch", 1080, 2400, 132, 63, howTo: 3),
             new Shot("howto-1_iphone-se_750x1334", 750, 1334, 0, 0, howTo: 1),
+            new Shot("gameover_1080x1920", 1080, 1920, 0, 0, gameOver: true),
+            new Shot("gameover_1080x2400_notch", 1080, 2400, 132, 63, gameOver: true),
+            new Shot("leaderboard-empty_1080x1920", 1080, 1920, 0, 0, scores: 1),
+            new Shot("leaderboard-after-game_1080x1920", 1080, 1920, 0, 0, scores: 2),
+            new Shot("leaderboard-after-game_1080x2400_notch", 1080, 2400, 132, 63, scores: 2),
+            new Shot("leaderboard-from-menu_1080x2400_notch", 1080, 2400, 132, 63, scores: 3),
         };
 
         [MenuItem("Lines/Render Layout Screenshots")]
@@ -61,6 +67,28 @@ namespace Lines.EditorTools
             var camera = new GameObject("Camera").AddComponent<Camera>();
             CameraSetup.Apply(camera, layout);
 
+            if (shot.Scores > 0)
+            {
+                var screen = Lines.UI.LeaderboardView.Create(camera);
+                screen.ApplyLayout(layout);
+                var scores = new Leaderboard();
+                long day = 86400000L, start = new System.DateTimeOffset(2026, 10, 20, 12, 0, 0, System.TimeSpan.Zero).ToUnixTimeMilliseconds();
+                if (shot.Scores == 1) screen.Show(scores);
+                else
+                {
+                    string[] names = { "Anna", "Mark", "Player1", "Olga", "Anna", "Tom", "Player2", "Mark", "Lena", "Anna", "Max" };
+                    int[] points = { 412, 368, 300, 264, 240, 198, 176, 150, 122, 96, 70 };
+                    for (int i = 0; i < names.Length - 1; i++) scores.Add(points[i], names[i], start + i * day);
+                    long latest = start + 16 * day;
+                    int place = scores.Add(244, "Anna", latest);
+                    if (shot.Scores == 2) screen.Show(scores, latest, Leaderboard.ResultMessage(place, 244, "Anna"), showPlayAgain: true);
+                    else screen.Show(scores);
+                }
+                Canvas.ForceUpdateCanvases();
+                Finish(shot, camera, path);
+                return;
+            }
+
             if (shot.HowTo > 0)
             {
                 var howTo = Lines.UI.HowToPlayView.Create(camera);
@@ -77,7 +105,7 @@ namespace Lines.EditorTools
                 var menu = Lines.UI.MenuView.Create(camera);
                 menu.ApplyLayout(layout);
                 menu.Show(120, PieceSet.RandomCreatures(7));
-                menu.SetSecondaryScreensAvailable(true, false);
+                menu.SetSecondaryScreensAvailable(true, true);
                 Canvas.ForceUpdateCanvases();
                 Finish(shot, camera, path);
                 return;
@@ -95,6 +123,8 @@ namespace Lines.EditorTools
             hud.ApplyLayout(layout);
             hud.SetScore(120);
             hud.SetPreview(game.Preview.Colors, view.Pieces);
+            if (shot.GameOver)
+                hud.GameOver.Show(1284, "Player3");
             if (shot.ResetDialog)
                 hud.Dialog.Show(Lines.Game.GameBootstrap.ResetTitle, Lines.Game.GameBootstrap.ResetMessage, "Yes", null);
             if (shot.Alert != null)

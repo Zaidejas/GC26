@@ -206,6 +206,9 @@ namespace Lines.Game
             else UnityEngine.Object.DestroyImmediate(go);
         }
 
-        public void ShowGameOver(int score) { /* task 24: game-over pop-up */ }
+        /// <summary>The board filled up and every animation has finished (the game-over pop-up opens).</summary>
+        public event Action<int> GameOver;
+
+        public void ShowGameOver(int score) => GameOver?.Invoke(score);
     }
 }

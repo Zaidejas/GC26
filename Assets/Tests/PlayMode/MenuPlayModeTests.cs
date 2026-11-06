@@ -43,7 +43,7 @@ namespace Lines.Tests
             Assert.IsFalse(game.Menu.ContinueButton.Interactable, "No game to continue yet");
             Assert.IsTrue(game.Menu.NewGameButton.Interactable);
             Assert.IsTrue(game.Menu.HowToPlayButton.Interactable);
-            Assert.IsFalse(game.Menu.LeaderboardButton.Interactable, "Comes in task 24");
+            Assert.IsTrue(game.Menu.LeaderboardButton.Interactable);
             Assert.IsTrue(game.InputBlocked, "The board can't be tapped behind the menu");
         }
 

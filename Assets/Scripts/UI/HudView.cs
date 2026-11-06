@@ -28,6 +28,7 @@ namespace Lines.UI
         AlertToast alert;
         PillButton undo, reset;
         ConfirmDialog dialog;
+        GameOverDialog gameOver;
 
         /// <summary>The player pressed Reset.</summary>
         public event System.Action ResetClicked;
@@ -39,6 +40,7 @@ namespace Lines.UI
         GameObject popups; // own canvas on top, so dialogs also work while the HUD is hidden (main menu)
         /// <summary>The "Start a new game?" question (and later pop-ups).</summary>
         public ConfirmDialog Dialog => dialog;
+        public GameOverDialog GameOver => gameOver;
 
         /// <summary>The player pressed Undo.</summary>
         public event System.Action UndoClicked;
@@ -90,6 +92,7 @@ namespace Lines.UI
             popupCanvas.sortingOrder = 30;
             popups.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
             popups.AddComponent<GraphicRaycaster>();
+            gameOver = GameOverDialog.Create((RectTransform)popups.transform);
             dialog = ConfirmDialog.Create((RectTransform)popups.transform);
             for (int i = 0; i < next.Length; i++)
             {
@@ -132,6 +135,7 @@ namespace Lines.UI
             undo.Place(new Rect(actions.x, actions.y, half, actions.height), u);
             reset.Place(new Rect(actions.x + half + 4f * u, actions.y, half, actions.height), u);
             dialog.ApplyLayout(u);
+            gameOver.ApplyLayout(u);
         }
 
         /// <summary>Shows or hides the game's HUD (score, next, buttons). Dialogs are not affected.</summary>
