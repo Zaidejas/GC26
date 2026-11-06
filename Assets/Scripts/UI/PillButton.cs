@@ -146,6 +146,16 @@ namespace Lines.UI
     /// <summary>Shared shapes for UI images.</summary>
     public static class UiShapes
     {
+        /// <summary>Makes <paramref name="image"/> a rounded rectangle with corners <paramref name="radiusPixels"/> round.</summary>
+        public static void MakeRounded(Image image, float radiusPixels)
+        {
+            image.sprite = SpriteFactory.RoundRect(0.5f);
+            image.type = Image.Type.Sliced;
+            var canvas = image.GetComponentInParent<Canvas>();
+            float canvasPpu = canvas != null ? canvas.referencePixelsPerUnit : 100f;
+            image.pixelsPerUnitMultiplier = image.sprite.border.x * canvasPpu / (image.sprite.pixelsPerUnit * Mathf.Max(0.5f, radiusPixels));
+        }
+
         /// <summary>Makes <paramref name="image"/> a pill: a rounded rectangle whose ends are half circles.</summary>
         public static void MakePill(Image image, float heightPixels)
         {

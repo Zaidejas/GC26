@@ -18,8 +18,8 @@ namespace Lines.EditorTools
     {
         struct Shot
         {
-            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog, Menu;
-            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false, bool menu = false) { Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; Menu = menu; }
+            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog, Menu; public int HowTo;
+            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false, bool menu = false, int howTo = 0) { HowTo = howTo; Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; Menu = menu; }
         }
 
         static readonly Shot[] Shots =
@@ -32,6 +32,11 @@ namespace Lines.EditorTools
             new Shot("dialog-reset_1080x1920", 1080, 1920, 0, 0, resetDialog: true),
             new Shot("menu_1080x1920", 1080, 1920, 0, 0, menu: true),
             new Shot("menu_1080x2400_notch", 1080, 2400, 132, 63, menu: true),
+            new Shot("howto-1_1080x1920", 1080, 1920, 0, 0, howTo: 1),
+            new Shot("howto-2_1080x1920", 1080, 1920, 0, 0, howTo: 2),
+            new Shot("howto-3_1080x1920", 1080, 1920, 0, 0, howTo: 3),
+            new Shot("howto-3_1080x2400_notch", 1080, 2400, 132, 63, howTo: 3),
+            new Shot("howto-1_iphone-se_750x1334", 750, 1334, 0, 0, howTo: 1),
         };
 
         [MenuItem("Lines/Render Layout Screenshots")]
@@ -56,12 +61,23 @@ namespace Lines.EditorTools
             var camera = new GameObject("Camera").AddComponent<Camera>();
             CameraSetup.Apply(camera, layout);
 
+            if (shot.HowTo > 0)
+            {
+                var howTo = Lines.UI.HowToPlayView.Create(camera);
+                howTo.ApplyLayout(layout);
+                howTo.Show(PieceSet.RandomCreatures(7));
+                howTo.GoTo(shot.HowTo - 1);
+                Canvas.ForceUpdateCanvases();
+                Finish(shot, camera, path);
+                return;
+            }
+
             if (shot.Menu)
             {
                 var menu = Lines.UI.MenuView.Create(camera);
                 menu.ApplyLayout(layout);
                 menu.Show(120, PieceSet.RandomCreatures(7));
-                menu.SetSecondaryScreensAvailable(false, false);
+                menu.SetSecondaryScreensAvailable(true, false);
                 Canvas.ForceUpdateCanvases();
                 Finish(shot, camera, path);
                 return;

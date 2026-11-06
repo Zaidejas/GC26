@@ -42,7 +42,7 @@ namespace Lines.Tests
             Assert.IsFalse(game.GameScreenShowing);
             Assert.IsFalse(game.Menu.ContinueButton.Interactable, "No game to continue yet");
             Assert.IsTrue(game.Menu.NewGameButton.Interactable);
-            Assert.IsFalse(game.Menu.HowToPlayButton.Interactable, "Comes in task 23");
+            Assert.IsTrue(game.Menu.HowToPlayButton.Interactable);
             Assert.IsFalse(game.Menu.LeaderboardButton.Interactable, "Comes in task 24");
             Assert.IsTrue(game.InputBlocked, "The board can't be tapped behind the menu");
         }
@@ -110,6 +110,31 @@ namespace Lines.Tests
             game.Hud.BackButton.Click();
 
             Assert.IsTrue(game.GameScreenShowing, "Stays on the game until the turn is done");
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator HowToPlay_OpensFromTheMenu_AndReturns()
+        {
+            yield return Launch();
+            var game = Object.FindAnyObjectByType<GameBootstrap>();
+            game.Menu.HowToPlayButton.Click();
+            Assert.IsTrue(game.HowToPlay.IsShowing);
+            Assert.IsFalse(game.Menu.IsShowing);
+            Assert.IsTrue(game.InputBlocked);
+            Assert.AreEqual(0, game.HowToPlay.Step);
+
+            game.HowToPlay.NextButton.Click();
+            game.HowToPlay.NextButton.Click();
+            Assert.AreEqual("Got it", game.HowToPlay.NextButton.Text);
+            game.HowToPlay.NextButton.Click();
+            Assert.IsTrue(game.Menu.IsShowing, "Got it returns to the menu");
+            Assert.IsFalse(game.HowToPlay.IsShowing);
+
+            game.Menu.HowToPlayButton.Click();
+            Assert.AreEqual(0, game.HowToPlay.Step, "Starts on the first card again");
+            game.HowToPlay.BackButton.Click();
+            Assert.IsTrue(game.Menu.IsShowing, "The back arrow returns to the menu");
             yield return null;
         }
 

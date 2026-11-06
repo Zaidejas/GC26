@@ -18,6 +18,7 @@ namespace Lines.Game
         BoardView boardView;
         HudView hud;
         MenuView menu;
+        HowToPlayView howToPlay;
         Vector2 lastScreenSize;
         Rect lastSafeArea;
 
@@ -28,6 +29,7 @@ namespace Lines.Game
         public BoardView BoardView => boardView;
         public HudView Hud => hud;
         public MenuView Menu => menu;
+        public HowToPlayView HowToPlay => howToPlay;
 
         /// <summary>True while the game screen (board and HUD) is showing; false on the main menu.</summary>
         public bool GameScreenShowing { get; private set; }
@@ -55,6 +57,7 @@ namespace Lines.Game
             boardView = BoardView.Create();
             hud = HudView.Create(mainCamera);
             menu = MenuView.Create(mainCamera);
+            howToPlay = HowToPlayView.Create(mainCamera);
             presenter = new BoardPresenter(boardView, hud);
             saves = new SaveService();
             // A saved game is loaded but waits behind Continue; without one, the menu still shows pieces.
@@ -71,8 +74,10 @@ namespace Lines.Game
             hud.BackClicked += BackToMenu;
             menu.ContinueClicked += Continue;
             menu.NewGameClicked += AskForNewGame;
-            // How to play and Leaderboard come in tasks 23 and 24.
-            menu.SetSecondaryScreensAvailable(howToPlay: false, leaderboardScreen: false);
+            menu.HowToPlayClicked += ShowHowToPlay;
+            howToPlay.Closed += ShowMenu;
+            // The Leaderboard comes in task 24.
+            menu.SetSecondaryScreensAvailable(howToPlay: true, leaderboardScreen: false);
             ShowMenu();
             Debug.Log("Lines: game started");
         }
@@ -95,12 +100,21 @@ namespace Lines.Game
             GameScreenShowing = false;
             boardView.gameObject.SetActive(false);
             hud.SetVisible(false);
+            howToPlay.Hide();
             menu.Show(HasUnfinishedGame ? Controller.Game.Score : (int?)null, boardView.Pieces);
+        }
+
+        /// <summary>Menu → How to play: opens on the first card; the back arrow or "Got it" returns.</summary>
+        public void ShowHowToPlay()
+        {
+            menu.Hide();
+            howToPlay.Show(boardView.Pieces);
         }
 
         public void ShowGame()
         {
             menu.Hide();
+            howToPlay.Hide();
             boardView.gameObject.SetActive(true);
             hud.SetVisible(true);
             GameScreenShowing = true;
@@ -182,6 +196,7 @@ namespace Lines.Game
             boardView.ApplyLayout(Layout);
             hud.ApplyLayout(Layout);
             menu.ApplyLayout(Layout);
+            howToPlay.ApplyLayout(Layout);
         }
     }
 }
