@@ -67,6 +67,8 @@ public static class SpaceInvadersBackground
         renderer.sprite = sprite;
         renderer.sortingOrder = SortingOrder;
         background.AddComponent<ScreenBackground>();
+        // Анимированные звёзды «в полёте» вместо статичной картинки
+        background.AddComponent<StarfieldBackground>();
 
         EditorSceneManager.SaveScene(scene);
         if (!wasOpen)
