@@ -19,8 +19,8 @@ namespace Lines.EditorTools
     {
         struct Shot
         {
-            public string Name; public int Width, Height, TopInset, BottomInset;
-            public Shot(string name, int w, int h, int top, int bottom) { Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; }
+            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert;
+            public Shot(string name, int w, int h, int top, int bottom, string alert = null) { Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; }
         }
 
         static readonly Shot[] Shots =
@@ -29,6 +29,7 @@ namespace Lines.EditorTools
             new Shot("20x9_1080x2400_notch", 1080, 2400, 132, 63),
             new Shot("iphone-se_750x1334", 750, 1334, 0, 0),
             new Shot("iphone-18-pro_1206x2622", 1206, 2622, 177, 102),
+            new Shot("alert-no-path_1080x2400", 1080, 2400, 132, 63, "No path"),
         };
 
         [MenuItem("Lines/Render Layout Screenshots")]
@@ -65,6 +66,11 @@ namespace Lines.EditorTools
             hud.ApplyLayout(layout);
             hud.SetScore(120);
             hud.SetPreview(game.Preview.Colors, view.Pieces);
+            if (shot.Alert != null)
+            {
+                hud.ShowAlert(shot.Alert);
+                Tween.Tick(0.3f); // fully faded in
+            }
             Canvas.ForceUpdateCanvases();
 
             Zone(layout, layout.Actions, new Color(0.23f, 0.65f, 0.34f, 0.25f));

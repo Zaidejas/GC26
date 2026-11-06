@@ -25,6 +25,7 @@ namespace Lines.UI
         readonly Image[] next = new Image[GameConfig.BallsPerTurn];
         float unit = 10f;
         TweenHandle gainTween;
+        AlertToast alert;
 
         public string ScoreText => scoreText.text;
         public IReadOnlyList<Image> NextPieces => next;
@@ -55,6 +56,7 @@ namespace Lines.UI
             gainText = NewText("Gain", "", GainColor, TextAlignmentOptions.BottomLeft, bold: true);
             gainText.alpha = 0f;
             nextLabel = NewText("Next label", "NEXT", Palette.SoftText, TextAlignmentOptions.BottomRight, bold: true);
+            alert = AlertToast.Create((RectTransform)transform);
             for (int i = 0; i < next.Length; i++)
             {
                 next[i] = NewRect("Next " + i, area).gameObject.AddComponent<Image>();
@@ -86,7 +88,14 @@ namespace Lines.UI
             }
             Place(nextLabel.rectTransform, right - 40 * u, (PieceSize + 1.4f) * u, 40 * u, LabelSize * 1.4f * u);
             nextLabel.fontSize = LabelSize * u;
+
+            alert.ApplyLayout(layout.Board.center, u); // messages appear over the middle of the board
         }
+
+        /// <summary>Shows a short message over the board ("No path").</summary>
+        public void ShowAlert(string text) => alert.Show(text);
+
+        public AlertToast Alert => alert;
 
         /// <summary>Shows <paramref name="score"/> without the "+N" effect.</summary>
         public void SetScore(int score)

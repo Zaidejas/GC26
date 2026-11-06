@@ -9,8 +9,8 @@ namespace Lines.Game
 {
     /// <summary>
     /// Shows the turn on the <see cref="BoardView"/> and the <see cref="HudView"/> (score, next pieces).
-    /// Done: bounce, rolling along the path, score and preview, grow-in, pop and burst.
-    /// Still to come: shake and "No path" alert (task 17).
+    /// Animations: bounce, rolling along the path, score and preview, grow-in, pop and burst,
+    /// and the blocked-move shake with the "No path" alert.
     /// </summary>
     public sealed class BoardPresenter : IBoardPresenter
     {
@@ -18,10 +18,15 @@ namespace Lines.Game
         public const float BounceHeight = 0.17f;
         public const float BounceHalfPeriod = 0.36f;
         public const float SecondsPerCell = 0.04f;
+        // Prototype: a blocked move shakes the ball left and right (up to 14 % of a cell) for 0.32 s.
+        public const float ShakeStrength = 0.14f;
+        public const float ShakeSeconds = 0.32f;
+        public const string NoPathText = "No path";
 
         readonly BoardView board;
         readonly HudView hud; // optional (tests can leave it out)
-        TweenHandle bounce;
+        TweenHandle bounce, shake;
+        Cell? selected;
 
         public BoardPresenter(BoardView board, HudView hud = null)
         {
@@ -35,7 +40,9 @@ namespace Lines.Game
         /// </summary>
         public void ShowState(GameState game)
         {
+            StopShake();
             StopBounce();
+            selected = null;
             board.ShowBoard(game.Board);
             board.ShowPreviewDots(game.Preview, game.Board);
             if (hud != null)
@@ -48,8 +55,15 @@ namespace Lines.Game
         /// <summary>The selected ball bounces; the previously selected one settles back into its cell.</summary>
         public void ShowSelected(Cell? cell)
         {
+            StopShake();
             StopBounce();
-            if (cell is Cell c && board.BallAt(c) is BallView ball)
+            selected = cell;
+            StartBounce();
+        }
+
+        void StartBounce()
+        {
+            if (selected is Cell c && board.BallAt(c) is BallView ball)
                 bounce = Tween.Bounce(ball.transform, BounceHeight, BounceHalfPeriod);
         }
 
@@ -59,7 +73,29 @@ namespace Lines.Game
             bounce = null;
         }
 
-        public void ShowBlocked(Cell from, Cell to) { /* task 17: shake + "No path" */ }
+        void StopShake()
+        {
+            shake?.Kill(complete: true); // a shake always ends where it started
+            shake = null;
+        }
+
+        /// <summary>
+        /// The selected ball can't reach the tapped cell: it shakes, "No path" shows over the board,
+        /// and the ball stays selected (it bounces again after the shake). Input is not locked.
+        /// </summary>
+        public void ShowBlocked(Cell from, Cell to)
+        {
+            hud?.ShowAlert(NoPathText);
+            var ball = board.BallAt(from);
+            if (ball == null) return;
+            StopShake();
+            StopBounce();
+            shake = Tween.Shake(ball.transform, ShakeStrength, ShakeSeconds).OnComplete(() =>
+            {
+                shake = null;
+                if (selected == from && bounce == null) StartBounce(); // still selected: bounce again
+            });
+        }
 
         /// <summary>The ball rolls along the path at an even speed, one cell every 40 ms (as in the prototype).</summary>
         public void PlayMove(IReadOnlyList<Cell> path, Action done)
