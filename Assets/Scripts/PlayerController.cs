@@ -23,6 +23,11 @@ public class PlayerController : MonoBehaviour
     [Header("Урон")]
     public float invulnerableTime = 1.5f;
 
+    // Куда может встать центр корабля и его полуширина по коллайдеру: по ним босс оставляет проход в стене
+    public float MinX => minX;
+    public float MaxX => maxX;
+    public float HalfWidth => GetComponent<Collider2D>().bounds.extents.x;
+
     SpriteRenderer spriteRenderer;
     Camera cam;
     float minX, maxX;

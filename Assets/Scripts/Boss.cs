@@ -43,7 +43,8 @@ public class Boss : MonoBehaviour
 
     [Header("Стена с дырой")]
     public float wallSpacing = 0.9f;
-    public int wallGapCells = 3;
+    [Tooltip("Запас прохода с каждой стороны корабля, юнитов (включая полуширину ракеты)")]
+    public float wallGapMargin = 0.75f;
     public int wallCount = 2;
     public float wallInterval = 1.2f;
 
@@ -268,12 +269,17 @@ public class Boss : MonoBehaviour
     {
         for (int wall = 0; wall < wallCount; wall++)
         {
+            // Проход ставим туда, куда корабль реально может встать, и шириной от самого корабля.
+            // Раньше дыра считалась в клетках от края экрана и у краёв была уже корабля
+            float gapCenter = Random.Range(player.MinX, player.MaxX);
+            float gapHalf = player.HalfWidth + wallGapMargin;
+
             int cells = Mathf.CeilToInt((rightEdge - leftEdge) / wallSpacing) + 1;
-            int gapStart = Random.Range(0, cells - wallGapCells + 1);
             for (int i = 0; i < cells; i++)
             {
-                if (i >= gapStart && i < gapStart + wallGapCells) continue;
-                SpawnMissile(new Vector3(leftEdge + i * wallSpacing, Muzzle.y, 0f), Vector2.down, missileSpeed);
+                float x = leftEdge + i * wallSpacing;
+                if (Mathf.Abs(x - gapCenter) < gapHalf) continue;
+                SpawnMissile(new Vector3(x, Muzzle.y, 0f), Vector2.down, missileSpeed);
             }
             yield return new WaitForSeconds(Wait(wallInterval));
         }

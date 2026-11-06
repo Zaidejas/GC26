@@ -115,7 +115,7 @@ MonoBehaviour:
   dashVolleyCount: 5
   dashVolleyAngle: 12
   wallSpacing: 0.9
-  wallGapCells: 3
+  wallGapMargin: 0.75
   wallCount: 2
   wallInterval: 1.2
   spiralDuration: 3
