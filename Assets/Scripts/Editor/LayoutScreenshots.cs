@@ -10,7 +10,7 @@ namespace Lines.EditorTools
 {
     /// <summary>
     /// Renders the game screen at given phone sizes to PNG files, without building the app.
-    /// Coloured boxes mark the areas reserved for parts not built yet (Reset, back button)
+    /// Coloured boxes mark the areas reserved for parts not built yet (back button)
     /// and the phone's unsafe areas (notch, home bar).
     /// Run from the command line (no -nographics, it needs the GPU):
     ///   Unity -batchmode -projectPath . -executeMethod Lines.EditorTools.LayoutScreenshots.Run -quit -shotsDir &lt;folder&gt;
@@ -19,8 +19,8 @@ namespace Lines.EditorTools
     {
         struct Shot
         {
-            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert;
-            public Shot(string name, int w, int h, int top, int bottom, string alert = null) { Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; }
+            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog;
+            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false) { Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; }
         }
 
         static readonly Shot[] Shots =
@@ -30,6 +30,7 @@ namespace Lines.EditorTools
             new Shot("iphone-se_750x1334", 750, 1334, 0, 0),
             new Shot("iphone-18-pro_1206x2622", 1206, 2622, 177, 102),
             new Shot("alert-no-path_1080x2400", 1080, 2400, 132, 63, "No path"),
+            new Shot("dialog-reset_1080x1920", 1080, 1920, 0, 0, resetDialog: true),
         };
 
         [MenuItem("Lines/Render Layout Screenshots")]
@@ -66,6 +67,8 @@ namespace Lines.EditorTools
             hud.ApplyLayout(layout);
             hud.SetScore(120);
             hud.SetPreview(game.Preview.Colors, view.Pieces);
+            if (shot.ResetDialog)
+                hud.Dialog.Show(Lines.Game.GameBootstrap.ResetTitle, Lines.Game.GameBootstrap.ResetMessage, "Yes", null);
             if (shot.Alert != null)
             {
                 hud.ShowAlert(shot.Alert);

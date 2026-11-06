@@ -43,7 +43,7 @@ namespace Lines.Game
         /// <summary>Handles a press at a screen position (pixels, origin bottom-left). Also used by tests.</summary>
         public bool HandlePress(Vector2 screenPosition)
         {
-            if (game == null || game.Controller == null) return false;
+            if (game == null || game.Controller == null || game.InputBlocked) return false;
             if (!game.Layout.TryGetCell(screenPosition, out var cell)) return false;
             return game.Controller.Tap(cell);
         }

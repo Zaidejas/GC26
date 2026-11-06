@@ -86,6 +86,12 @@ namespace Lines.UI
             label.fontSize = FontSize * unit;
         }
 
+        public void SetText(string text)
+        {
+            label.text = text;
+            gameObject.name = "Button " + text;
+        }
+
         /// <summary>Presses the button from code (tests); does nothing when it's disabled.</summary>
         public void Click()
         {

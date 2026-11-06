@@ -26,7 +26,14 @@ namespace Lines.UI
         float unit = 10f;
         TweenHandle gainTween;
         AlertToast alert;
-        PillButton undo;
+        PillButton undo, reset;
+        ConfirmDialog dialog;
+
+        /// <summary>The player pressed Reset.</summary>
+        public event System.Action ResetClicked;
+        public PillButton ResetButton => reset;
+        /// <summary>The "Start a new game?" question (and later pop-ups).</summary>
+        public ConfirmDialog Dialog => dialog;
 
         /// <summary>The player pressed Undo.</summary>
         public event System.Action UndoClicked;
@@ -65,6 +72,9 @@ namespace Lines.UI
             undo = PillButton.Create((RectTransform)transform, "Undo");
             undo.Interactable = false; // nothing to undo at the start
             undo.Clicked += () => UndoClicked?.Invoke();
+            reset = PillButton.Create((RectTransform)transform, "Reset");
+            reset.Clicked += () => ResetClicked?.Invoke();
+            dialog = ConfirmDialog.Create((RectTransform)transform); // created last: drawn on top
             for (int i = 0; i < next.Length; i++)
             {
                 next[i] = NewRect("Next " + i, area).gameObject.AddComponent<Image>();
@@ -99,10 +109,12 @@ namespace Lines.UI
 
             alert.ApplyLayout(layout.Board.center, u); // messages appear over the middle of the board
 
-            // Buttons under the board: Undo on the left half (Reset joins on the right), 4 units apart.
+            // Buttons under the board: Undo on the left half, Reset on the right, 4 units apart.
             var actions = layout.Actions;
             float half = (actions.width - 4f * u) / 2f;
             undo.Place(new Rect(actions.x, actions.y, half, actions.height), u);
+            reset.Place(new Rect(actions.x + half + 4f * u, actions.y, half, actions.height), u);
+            dialog.ApplyLayout(u);
         }
 
         /// <summary>Enables or greys out the Undo button.</summary>
