@@ -123,11 +123,12 @@ public class BlinkEffect : MonoBehaviour
         if (scripted) return;
 
         // На паузе и после конца игры веки не должны закрывать меню
-        if (boss == null || Time.timeScale == 0f)
+        // После победы над боссом (уже во время анимации смерти) моргание прекращается
+        if (boss == null || boss.IsDead || Time.timeScale == 0f)
         {
             SetClosed(0f);
             CrtBoost.SetBlur(0f);
-            if (boss == null) blinkTime = blurTime = -1f;
+            if (boss == null || boss.IsDead) blinkTime = blurTime = -1f;
             return;
         }
 

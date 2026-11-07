@@ -221,6 +221,9 @@ MonoBehaviour:
   minionsPerSummon: 2
   minionFallSpeed: 2.5
   playerBlinks: 1
+  dramaticDeath: 1
+  deathChainTime: 3.2
+  deathAfterTime: 1.8
   rageAtHalfHealth: 1
   rageFireRate: 1.5
   doubleAttackChance: 0.35
@@ -255,6 +258,7 @@ MonoBehaviour:
   shakeJitter: 0.25
   hitRedness: 0.4
   hitFlashTime: 0.25
+  dyingShake: -1
 --- !u!1 &8943462285475077278
 GameObject:
   m_ObjectHideFlags: 0

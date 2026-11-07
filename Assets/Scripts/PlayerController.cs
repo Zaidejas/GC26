@@ -16,6 +16,8 @@ public class PlayerController : MonoBehaviour
     public Projectile laserPrefab;
     public float fireCooldown = 0.45f;
     [HideInInspector] public float fireRateMultiplier = 1f;
+    // Сценки выключают стрельбу: «наступает ночь» и смерть финального босса
+    [HideInInspector] public bool canShoot = true;
 
     [Header("Щит")]
     public GameObject shieldVisual;
@@ -86,6 +88,8 @@ public class PlayerController : MonoBehaviour
 
     void AutoFire()
     {
+        if (!canShoot) return;
+
         // На паузе Time.deltaTime = 0, поэтому таймер стоит и стрельба тоже
         fireTimer -= Time.deltaTime;
         if (fireTimer > 0f) return;

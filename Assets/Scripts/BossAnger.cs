@@ -38,6 +38,9 @@ public class BossAnger : MonoBehaviour
     [Range(0f, 1f)] public float hitRedness = 0.4f;
     public float hitFlashTime = 0.25f;
 
+    // Анимация смерти (Boss.DramaticDeath): >= 0 - босс полностью красный и трясётся с этой силой
+    [HideInInspector] public float dyingShake = -1f;
+
     Boss boss;
     float untilFit;
     float fitTime = -1f;
@@ -103,6 +106,11 @@ public class BossAnger : MonoBehaviour
 
         float red = Mathf.Max(fit * fitRedness, hitFlash * hitRedness);
         shake += hitFlash * 0.25f;
+        if (dyingShake >= 0f)
+        {
+            red = 1f;
+            shake = dyingShake;
+        }
 
         // Рывки: через равные промежутки босс резко перекидывается в другую сторону
         stepTimer -= dt;

@@ -15,6 +15,8 @@ public class NightCutscene : MonoBehaviour, IPointerClickHandler
     [Tooltip("Часы в HUD: после сценки тоже показывают ночь")]
     public DayClock hudClock;
     public BlinkEffect blink;
+    [Tooltip("Пока идёт сценка, игрок не стреляет")]
+    public PlayerController player;
 
     [Header("Окно")]
     public GameObject dialog;
@@ -42,6 +44,7 @@ public class NightCutscene : MonoBehaviour, IPointerClickHandler
     public IEnumerator Play(System.Action startBossWave)
     {
         gameObject.SetActive(true);
+        if (player != null) player.canShoot = false;
         group.alpha = 0f;
         bigClock.gameObject.SetActive(true);
         dialog.SetActive(false);
@@ -104,6 +107,9 @@ public class NightCutscene : MonoBehaviour, IPointerClickHandler
             gameObject.SetActive(false);
             startBossWave?.Invoke();
         });
+
+        // Глаза открылись - бой начался, можно стрелять
+        if (player != null) player.canShoot = true;
     }
 
     // «???:» цветом говорящего, затем реплика, с курсором «_» пока печатается

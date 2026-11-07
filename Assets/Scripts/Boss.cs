@@ -66,6 +66,12 @@ public class Boss : MonoBehaviour
     [Tooltip("Финальный босс: игрок «устаёт» и время от времени моргает")]
     public bool playerBlinks = false;
 
+    [Header("Эффектная смерть (финальный босс)")]
+    [Tooltip("Вместо одного взрыва - анимация ~5 с: цепочка взрывов, нарастающая тряска, большой взрыв")]
+    public bool dramaticDeath = false;
+    public float deathChainTime = 3.2f;
+    public float deathAfterTime = 1.8f;
+
     [Header("Ярость при половине здоровья")]
     public bool rageAtHalfHealth = false;
     [Tooltip("Во сколько раз чаще идут атаки в ярости")]
@@ -82,6 +88,8 @@ public class Boss : MonoBehaviour
     public event System.Action Died;
 
     public float HealthFraction => (float)health / maxHealth;
+    // Убит: идёт анимация смерти или босс уже уничтожен
+    public bool IsDead => dead;
     bool Raging => rageAtHalfHealth && health * 2 <= maxHealth;
     Vector3 Muzzle => transform.position + Vector3.down * spriteRenderer.bounds.extents.y;
 
@@ -124,6 +132,7 @@ public class Boss : MonoBehaviour
 
     void Update()
     {
+        if (dead) return; // во время анимации смерти босс стоит, цветом управляет BossAnger
         if (movementHolds == 0)
             Move();
         UpdateColor();
@@ -346,20 +355,92 @@ public class Boss : MonoBehaviour
         dead = true;
         StopAllCoroutines();
         GameManager.Instance.AddScore(points);
-        SoundManager.Play(Sfx.Explosion);
-
-        if (explosionPrefab != null)
-        {
-            GameObject explosion = Instantiate(explosionPrefab, transform.position, Quaternion.identity);
-            explosion.transform.localScale = Vector3.one * 4f;
-        }
 
         foreach (FallingMinion minion in Object.FindObjectsByType<FallingMinion>())
             Destroy(minion.gameObject);
         foreach (LaserBeam beam in Object.FindObjectsByType<LaserBeam>())
             Destroy(beam.gameObject);
 
+        if (dramaticDeath)
+        {
+            StartCoroutine(DramaticDeath());
+            return;
+        }
+
+        SoundManager.Play(Sfx.Explosion);
+        Explode(transform.position, 4f);
         Died?.Invoke();
         Destroy(gameObject);
+    }
+
+    void Explode(Vector3 position, float scale)
+    {
+        if (explosionPrefab == null) return;
+        GameObject explosion = Instantiate(explosionPrefab, position, Quaternion.identity);
+        explosion.transform.localScale = Vector3.one * scale;
+    }
+
+    // Финальный босс: замирает и краснеет, пули исчезают, по телу всё чаще рвутся мелкие взрывы
+    // и нарастает тряска, затем большой взрыв с тряской экрана и короткая пауза перед победой.
+    // Игрок в это время не стреляет
+    IEnumerator DramaticDeath()
+    {
+        if (player != null) player.canShoot = false;
+        var hitbox = GetComponent<Collider2D>();
+        if (hitbox != null) hitbox.enabled = false;
+        foreach (Projectile projectile in Object.FindObjectsByType<Projectile>())
+            Destroy(projectile.gameObject);
+
+        var anger = GetComponent<BossAnger>();
+        spriteRenderer.color = Color.white; // убрать затемнение от последнего попадания
+        Bounds bounds = spriteRenderer.bounds;
+        int sounds = 0;
+
+        for (float t = 0f; t < deathChainTime; )
+        {
+            float k = t / deathChainTime;
+            if (anger != null) anger.dyingShake = Mathf.Lerp(0.6f, 2f, k);
+
+            Vector3 point = new Vector3(
+                Random.Range(bounds.min.x, bounds.max.x) * 0.85f + bounds.center.x * 0.15f,
+                Random.Range(bounds.min.y, bounds.max.y) * 0.85f + bounds.center.y * 0.15f, 0f);
+            Explode(point, Random.Range(1.2f, 2.2f));
+            if (sounds++ % 3 == 0) SoundManager.Play(Sfx.Explosion);
+
+            // Взрывы всё чаще: от 0.28 до 0.07 с
+            float wait = Mathf.Lerp(0.28f, 0.07f, k);
+            yield return new WaitForSeconds(wait);
+            t += wait;
+        }
+
+        // Большой взрыв: в центре и вспышки вокруг, босс исчезает, трясётся весь экран
+        SoundManager.Play(Sfx.Explosion);
+        Explode(bounds.center, 9f);
+        for (int i = 0; i < 6; i++)
+        {
+            float a = i * Mathf.PI / 3f;
+            Explode(bounds.center + new Vector3(Mathf.Cos(a) * bounds.extents.x * 0.8f, Mathf.Sin(a) * bounds.extents.y, 0f), 4f);
+        }
+        if (anger != null) anger.dyingShake = -1f;
+        spriteRenderer.gameObject.SetActive(false);
+        yield return ShakeCamera(0.5f, 0.35f);
+
+        yield return new WaitForSeconds(Mathf.Max(0f, deathAfterTime - 0.5f));
+        Died?.Invoke();
+        Destroy(gameObject);
+    }
+
+    static IEnumerator ShakeCamera(float duration, float strength)
+    {
+        Camera cam = Camera.main;
+        if (cam == null) yield break;
+        Vector3 home = cam.transform.position;
+        for (float t = 0f; t < duration; t += Time.deltaTime)
+        {
+            float s = strength * (1f - t / duration);
+            cam.transform.position = home + new Vector3(Random.Range(-s, s), Random.Range(-s, s), 0f);
+            yield return null;
+        }
+        cam.transform.position = home;
     }
 }

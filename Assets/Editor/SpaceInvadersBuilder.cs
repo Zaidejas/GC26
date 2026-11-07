@@ -582,6 +582,7 @@ public static class SpaceInvadersBuilder
         waves[4].bossPrefab = MakeBossPrefab("Boss_2", boss2Sprite, boss2AngrySprite, 4f, 200, 1000, 3.5f, 10f,
             new[] { BossAttack.Wall, BossAttack.Spiral, BossAttack.Laser, BossAttack.Summon }, true, invaderPrefabs[1]);
         waves[4].bossPrefab.playerBlinks = true;
+        waves[4].bossPrefab.dramaticDeath = true; // анимация смерти ~5 с перед победой
         EditorUtility.SetDirty(waves[4].bossPrefab);
         EditorUtility.SetDirty(waves[2]);
         EditorUtility.SetDirty(waves[4]);
@@ -699,6 +700,7 @@ public static class SpaceInvadersBuilder
         BuildGameUI(waveManager, abilities);
         BlinkEffect blink = BuildBlinkOverlay(waveManager);
         waveManager.nightCutscene = BuildNightCutscene(blink);
+        waveManager.nightCutscene.player = player.GetComponent<PlayerController>(); // в сценке не стреляет
         MakeEventSystem();
     }
 
