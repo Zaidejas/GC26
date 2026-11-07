@@ -26,9 +26,13 @@ public class BossAnger : MonoBehaviour
 
     [Header("Тряска")]
     [Tooltip("Сдвиг картинки на пике, в долях её ширины")]
-    public float shakeAmount = 0.035f;
+    public float shakeAmount = 0.04f;
     [Tooltip("Наклон на пике, градусов")]
-    public float shakeAngle = 3f;
+    public float shakeAngle = 5f;
+    [Tooltip("Как часто босс перекидывается из стороны в сторону, секунд на рывок")]
+    public float shakeStepTime = 0.07f;
+    [Tooltip("Небольшой разброс поверх рывков, в долях сдвига")]
+    [Range(0f, 1f)] public float shakeJitter = 0.25f;
 
     [Header("Попадание")]
     [Range(0f, 1f)] public float hitRedness = 0.4f;
@@ -40,6 +44,8 @@ public class BossAnger : MonoBehaviour
     float hitFlash;
     float lastHealth;
     float visualWidth;
+    float stepTimer;
+    float side = 1f; // в какую сторону сейчас качнулся: -1 влево, 1 вправо
 
     void Awake()
     {
@@ -96,7 +102,16 @@ public class BossAnger : MonoBehaviour
         }
 
         float red = Mathf.Max(fit * fitRedness, hitFlash * hitRedness);
-        shake += hitFlash * 0.2f;
+        shake += hitFlash * 0.25f;
+
+        // Рывки: через равные промежутки босс резко перекидывается в другую сторону
+        stepTimer -= dt;
+        if (stepTimer <= 0f)
+        {
+            stepTimer = shakeStepTime;
+            side = -side;
+        }
+
         Apply(red, shake);
     }
 
@@ -104,9 +119,13 @@ public class BossAnger : MonoBehaviour
     {
         if (visual != null)
         {
+            // Качается туда-сюда без плавного перехода: сдвиг и наклон в сторону side,
+            // сверху небольшой разброс, чтобы рывки не были механически одинаковыми
             float a = shake * shakeAmount * visualWidth;
-            visual.localPosition = new Vector3(Random.Range(-a, a), Random.Range(-a, a) * 0.5f, 0f);
-            visual.localRotation = Quaternion.Euler(0f, 0f, Random.Range(-1f, 1f) * shake * shakeAngle);
+            float x = side * a + Random.Range(-a, a) * shakeJitter;
+            float y = Random.Range(-a, a) * 0.3f;
+            visual.localPosition = new Vector3(x, y, 0f);
+            visual.localRotation = Quaternion.Euler(0f, 0f, -side * shake * shakeAngle);
         }
 
         if (angry != null && body != null)

@@ -156,8 +156,10 @@ MonoBehaviour:
   fitDuration: 1.1
   fitPeak: 0.6
   fitRedness: 0.9
-  shakeAmount: 0.035
-  shakeAngle: 3
+  shakeAmount: 0.04
+  shakeAngle: 5
+  shakeStepTime: 0.07
+  shakeJitter: 0.25
   hitRedness: 0.4
   hitFlashTime: 0.25
 --- !u!1 &3766444698055327311
