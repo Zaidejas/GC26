@@ -19,6 +19,8 @@ public class WaveManager : MonoBehaviour
     public float healDelayMax = 15f;
     public float healSpawnY = 13.5f;
     public float healEdgePadding = 1f;
+    [Tooltip("Сколько хилок гарантированно падает за бой с боссом. Падают равномерно по его ХП: при 3 - на 75%, 50% и 25%")]
+    public int bossHeals = 3;
 
     Coroutine healRoutine;
 
@@ -54,28 +56,59 @@ public class WaveManager : MonoBehaviour
         WaveStarted?.Invoke(CurrentWave, TotalWaves);
 
         yield return new WaitForSeconds(delayBeforeWave);
-        if (waves[index].bossPrefab != null)
-            SpawnBoss(waves[index].bossPrefab);
-        else
-            grid.Build(waves[index]);
+        if (healPrefab == null)
+        {
+            if (waves[index].bossPrefab != null) SpawnBoss(waves[index].bossPrefab);
+            else grid.Build(waves[index]);
+            yield break;
+        }
 
-        if (healPrefab != null && Random.value < healChance)
-            healRoutine = StartCoroutine(DropHeal());
+        if (waves[index].bossPrefab != null)
+        {
+            // Бой с боссом: несколько хилок гарантированно, по мере того как босс теряет ХП
+            Boss boss = SpawnBoss(waves[index].bossPrefab);
+            healRoutine = StartCoroutine(DropBossHeals(boss));
+        }
+        else
+        {
+            grid.Build(waves[index]);
+            if (Random.value < healChance)
+                healRoutine = StartCoroutine(DropHeal());
+        }
     }
 
-    void SpawnBoss(Boss prefab)
+    Boss SpawnBoss(Boss prefab)
     {
         Boss boss = Instantiate(prefab, new Vector3(0f, bossSpawnY, 0f), Quaternion.identity);
         boss.Init(grid.player);
         boss.Died += OnWaveCleared;
         BossSpawned?.Invoke(boss);
+        return boss;
     }
 
-    // Хилка падает в случайный момент волны из случайного места сверху
+    // Обычная волна: хилка падает в случайный момент
     IEnumerator DropHeal()
     {
         yield return new WaitForSeconds(Random.Range(healDelayMin, healDelayMax));
+        SpawnHeal();
+    }
 
+    // Босс: хилка номер k падает, когда у босса остаётся 1 - k/(n+1) ХП (при n = 3: 75%, 50%, 25%)
+    IEnumerator DropBossHeals(Boss boss)
+    {
+        for (int k = 1; k <= bossHeals; k++)
+        {
+            float threshold = 1f - (float)k / (bossHeals + 1);
+            while (boss != null && boss.HealthFraction > threshold)
+                yield return null;
+            if (boss == null || boss.HealthFraction <= 0f) yield break; // босс убит - бой окончен
+            SpawnHeal();
+        }
+    }
+
+    // Хилка падает из случайного места сверху
+    void SpawnHeal()
+    {
         Camera cam = Camera.main;
         float minX = cam.ViewportToWorldPoint(new Vector3(0f, 0f, 0f)).x + healEdgePadding;
         float maxX = cam.ViewportToWorldPoint(new Vector3(1f, 0f, 0f)).x - healEdgePadding;
