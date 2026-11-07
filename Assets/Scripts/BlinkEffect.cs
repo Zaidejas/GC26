@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 // «Уставший игрок»: на финальном боссе экран время от времени быстро моргает.
@@ -74,8 +75,53 @@ public class BlinkEffect : MonoBehaviour
         firstBlinkPending = true;
     }
 
+    // Сценка (NightCutscene) сама управляет веками и размытием
+    bool scripted;
+
+    // Долгое моргание для сценки: веки закрываются за 30% времени, держатся до 60%, открываются.
+    // Размытие нарастает вместе с веками и уходит за blurFadeTime после открытия.
+    // onClosed вызывается, когда глаза полностью закрыты - в этот момент сценка меняет картинку
+    public IEnumerator LongBlink(float length, System.Action onClosed)
+    {
+        scripted = true;
+        bool closedFired = false;
+        for (float t = 0f; t < length; )
+        {
+            if (Time.timeScale == 0f)
+            {
+                // Пауза: меню паузы не должно оказаться под закрытыми веками
+                SetClosed(0f);
+                CrtBoost.SetBlur(0f);
+                yield return null;
+                continue;
+            }
+            float p = t / length;
+            SetClosed(p < 0.3f ? p / 0.3f : p < 0.6f ? 1f : 1f - (p - 0.6f) / 0.4f);
+            CrtBoost.SetBlur(blurRadius * Mathf.Min(1f, p / 0.3f));
+            if (!closedFired && p >= 0.3f)
+            {
+                closedFired = true;
+                onClosed?.Invoke();
+            }
+            yield return null;
+            t += Time.deltaTime;
+        }
+        if (!closedFired) onClosed?.Invoke();
+        SetClosed(0f);
+
+        for (float t = 0f; t < blurFadeTime; t += Time.deltaTime)
+        {
+            CrtBoost.SetBlur(Time.timeScale == 0f ? 0f : blurRadius * (1f - t / blurFadeTime));
+            yield return null;
+        }
+        CrtBoost.SetBlur(0f);
+        scripted = false;
+    }
+
     void Update()
     {
+        if (scripted) return;
+
         // На паузе и после конца игры веки не должны закрывать меню
         if (boss == null || Time.timeScale == 0f)
         {

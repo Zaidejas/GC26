@@ -697,7 +697,8 @@ public static class SpaceInvadersBuilder
         };
 
         BuildGameUI(waveManager, abilities);
-        BuildBlinkOverlay(waveManager);
+        BlinkEffect blink = BuildBlinkOverlay(waveManager);
+        waveManager.nightCutscene = BuildNightCutscene(blink);
         MakeEventSystem();
     }
 
@@ -821,6 +822,10 @@ public static class SpaceInvadersBuilder
         // Круглая аркадная кнопка паузы в правом верхнем углу, подсвечивается при нажатии
         var pauseButton = MakeRoundButton(safeArea, "PauseButton", topRight, new Vector2(-95f, -85f), 130f);
 
+        // Часы «утро-день-ночь» под кнопкой паузы: поворачиваются в начале каждой волны
+        hudDayClock = MakeDayClock(safeArea, "DayClock", topRight, new Vector2(-95f, -240f), 130f);
+        hudDayClock.waveManager = waveManager;
+
         // Экраны конца игры: аркадная победа и окно Game Over
         ui.victoryScreen = BuildVictoryScreen(canvas);
         ui.gameOverWindow = BuildGameOverWindow(canvas);
@@ -841,7 +846,7 @@ public static class SpaceInvadersBuilder
     }
 
     // Отдельный Canvas поверх экрана: рисуется после CRT-эффекта, поэтому веки «настоящие»
-    static void BuildBlinkOverlay(WaveManager waveManager)
+    static BlinkEffect BuildBlinkOverlay(WaveManager waveManager)
     {
         var go = new GameObject("BlinkOverlay", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
         var canvas = go.GetComponent<Canvas>();
@@ -857,6 +862,83 @@ public static class SpaceInvadersBuilder
         blink.waveManager = waveManager;
         MakeEyelid(go.transform, "TopLid", true, curve, out blink.topLid, out blink.topCurve);
         MakeEyelid(go.transform, "BottomLid", false, curve, out blink.bottomLid, out blink.bottomCurve);
+        return blink;
+    }
+
+    // ================= Часы и сценка «наступает ночь» =================
+
+    static DayClock hudDayClock;
+
+    // Круглая рамка как у кнопки паузы, внутри вращается диск неба, сверху указатель
+    static DayClock MakeDayClock(Transform parent, string name, Vector2 anchor, Vector2 position, float size)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        var rect = (RectTransform)go.transform;
+        rect.anchorMin = rect.anchorMax = anchor;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = new Vector2(size, size);
+
+        var frame = MakeChildImage(go.transform, "Frame", Art("round_outline", 100f, uiSquareSprite), Color.white);
+        Stretch(frame.rectTransform);
+
+        var disc = MakeChildImage(go.transform, "Disc", Art("clock_disc", 100f, uiSquareSprite), Color.white);
+        disc.rectTransform.sizeDelta = Vector2.one * size * 0.84f;
+
+        var pointer = MakeChildImage(go.transform, "Pointer", Art("clock_pointer", 100f, uiSquareSprite), Color.white);
+        var pointerRect = pointer.rectTransform;
+        pointerRect.anchorMin = pointerRect.anchorMax = new Vector2(0.5f, 1f);
+        pointerRect.pivot = new Vector2(0.5f, 1f);
+        pointerRect.anchoredPosition = new Vector2(0f, size * 0.06f);
+        pointerRect.sizeDelta = new Vector2(size * 0.2f, size * 0.15f);
+
+        var clock = go.AddComponent<DayClock>();
+        clock.disc = disc.rectTransform;
+        return clock;
+    }
+
+    // Сценка перед Боссом 2: свой Canvas под CRT (на камере) поверх игры и HUD, но под веками
+    static NightCutscene BuildNightCutscene(BlinkEffect blink)
+    {
+        var go = new GameObject("NightCutscene", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler),
+            typeof(GraphicRaycaster), typeof(CanvasGroup), typeof(Image));
+        var canvas = go.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceCamera;
+        canvas.worldCamera = sceneCamera;
+        canvas.planeDistance = 4.5f;
+        canvas.sortingOrder = 150;
+        var scaler = go.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1284f, 2778f);
+        scaler.matchWidthOrHeight = 0f;
+
+        // Затемнение на весь экран, оно же ловит касание
+        var dimmer = go.GetComponent<Image>();
+        dimmer.color = new Color(0.008f, 0.035f, 0.02f, 0.86f);
+        dimmer.raycastTarget = true;
+
+        var cutscene = go.AddComponent<NightCutscene>();
+        cutscene.group = go.GetComponent<CanvasGroup>();
+        cutscene.blink = blink;
+        cutscene.hudClock = hudDayClock;
+
+        var center = new Vector2(0.5f, 0.5f);
+        cutscene.bigClock = MakeDayClock(go.transform, "BigClock", center, new Vector2(0f, 120f), 640f);
+
+        var dialog = MakeChildImage(go.transform, "Dialog", windowSprite, Color.white);
+        dialog.type = Image.Type.Sliced;
+        dialog.rectTransform.anchoredPosition = new Vector2(0f, 120f);
+        dialog.rectTransform.sizeDelta = new Vector2(1200f, 240f);
+        cutscene.dialog = dialog.gameObject;
+        cutscene.line = MakeText(dialog.transform, "Line", "", 56, TextAlignmentOptions.Left, center, new Vector2(0f, 10f), new Vector2(1080f, 100f));
+        cutscene.line.textWrappingMode = TextWrappingModes.NoWrap;
+        cutscene.tapHint = MakeText(dialog.transform, "Tap", "", 34, TextAlignmentOptions.Right, center, new Vector2(0f, -78f), new Vector2(1080f, 50f));
+        cutscene.tapHint.color = PhosphorMid;
+        dialog.gameObject.SetActive(false);
+
+        go.SetActive(false);
+        return cutscene;
     }
 
     static void MakeEyelid(Transform parent, string name, bool top, Sprite curve, out RectTransform lid, out RectTransform edge)

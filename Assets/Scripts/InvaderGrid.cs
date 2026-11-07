@@ -43,6 +43,15 @@ public class InvaderGrid : MonoBehaviour
         startPosition = transform.position;
     }
 
+    // Только для проверки в редакторе: убрать строй без победы в волне
+    public void ClearForDebug()
+    {
+        foreach (Transform child in transform)
+            Destroy(child.gameObject);
+        active = false;
+        alive = 0;
+    }
+
     public void Build(WaveData data)
     {
         wave = data;

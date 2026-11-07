@@ -22,6 +22,10 @@ public class WaveManager : MonoBehaviour
     [Tooltip("Сколько хилок гарантированно падает за бой с боссом. Падают равномерно по его ХП: при 3 - на 75%, 50% и 25%")]
     public int bossHeals = 3;
 
+    [Header("Сценка")]
+    [Tooltip("Сценка «наступает ночь» перед последней волной. Без неё волна начинается как обычно")]
+    public NightCutscene nightCutscene;
+
     Coroutine healRoutine;
 
     public int CurrentWave { get; private set; }
@@ -40,6 +44,37 @@ public class WaveManager : MonoBehaviour
         StartCoroutine(RunWave(0));
     }
 
+#if UNITY_EDITOR
+    // Только в редакторе: F7 - сразу волна 4 (предпоследняя), F8 - сразу сценка «наступает ночь»
+    void Update()
+    {
+        var keyboard = UnityEngine.InputSystem.Keyboard.current;
+        if (keyboard == null) return;
+        if (GameManager.Instance != null && GameManager.Instance.IsGameOver) return;
+
+        if (keyboard.f7Key.wasPressedThisFrame)
+        {
+            ClearForDebug();
+            StartCoroutine(RunWave(TotalWaves - 2));
+        }
+        else if (keyboard.f8Key.wasPressedThisFrame && nightCutscene != null)
+        {
+            ClearForDebug();
+            CurrentWave = TotalWaves - 1;
+            WaveStarted?.Invoke(CurrentWave, TotalWaves);
+            StartCoroutine(CutsceneThenWave(CurrentWave));
+        }
+    }
+
+    void ClearForDebug()
+    {
+        StopAllCoroutines();
+        grid.ClearForDebug();
+        foreach (Boss boss in FindObjectsByType<Boss>())
+            Destroy(boss.gameObject);
+    }
+#endif
+
     void OnDestroy()
     {
         if (grid == null) return;
@@ -47,7 +82,8 @@ public class WaveManager : MonoBehaviour
         grid.ReachedBottom -= OnReachedBottom;
     }
 
-    IEnumerator RunWave(int index)
+    // immediate: без паузы с надписью - когда волну запускает сценка за закрытыми веками
+    IEnumerator RunWave(int index, bool immediate = false)
     {
         // Ждём один кадр, чтобы UI успел подписаться на события в своём Start()
         yield return null;
@@ -55,7 +91,8 @@ public class WaveManager : MonoBehaviour
         CurrentWave = index + 1;
         WaveStarted?.Invoke(CurrentWave, TotalWaves);
 
-        yield return new WaitForSeconds(delayBeforeWave);
+        if (!immediate)
+            yield return new WaitForSeconds(delayBeforeWave);
         if (healPrefab == null)
         {
             if (waves[index].bossPrefab != null) SpawnBoss(waves[index].bossPrefab);
@@ -123,8 +160,23 @@ public class WaveManager : MonoBehaviour
 
         if (CurrentWave >= TotalWaves)
             GameManager.Instance.Victory();
+        else if (nightCutscene != null && CurrentWave == TotalWaves - 1)
+            StartCoroutine(CutsceneThenWave(CurrentWave));
         else
             StartCoroutine(RunWave(CurrentWave));
+    }
+
+    // Перед последней волной - сценка «наступает ночь»; волна стартует за закрытыми веками
+    IEnumerator CutsceneThenWave(int index)
+    {
+        bool started = false;
+        yield return nightCutscene.Play(() =>
+        {
+            started = true;
+            StartCoroutine(RunWave(index, true));
+        });
+        if (!started)
+            StartCoroutine(RunWave(index, true));
     }
 
     void OnReachedBottom()
