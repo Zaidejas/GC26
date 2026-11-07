@@ -30,8 +30,25 @@ public class PressableButton : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     public bool interactable = true;
     public UnityEvent onPress = new UnityEvent();
 
+    [Tooltip("Насколько видна неактивная кнопка (SetInteractable(false))")]
+    [Range(0f, 1f)] public float disabledAlpha = 0.35f;
+
     bool held;
     bool firing;
+
+    // Включает/выключает кнопку и показывает это: неактивная - полупрозрачная и не нажимается
+    public void SetInteractable(bool on)
+    {
+        interactable = on;
+        if (!on)
+        {
+            held = false;
+            SetLit(false);
+        }
+        var group = GetComponent<CanvasGroup>();
+        if (group == null) group = gameObject.AddComponent<CanvasGroup>();
+        group.alpha = on ? 1f : disabledAlpha;
+    }
 
     void OnEnable()
     {

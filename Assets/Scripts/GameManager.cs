@@ -115,6 +115,7 @@ public class GameManager : MonoBehaviour
         if (IsGameOver) return;
 
         IsGameOver = true;
+        Won = victory;
 
         // При победе к счёту добавляются бонусы за оставшиеся жизни и монеты забега
         BaseScore = Score;
@@ -125,21 +126,28 @@ public class GameManager : MonoBehaviour
             Score += LivesBonus + CoinsBonus;
         }
 
-        PreviousBest = HighScoreTable.Best;
+        HighScoreTable.Load(); // применяет сброс таблицы, если он новый, до чтения рекорда
+        PreviousBest = HighScore; // личный рекорд игрока до этого забега
         SaveProgress();
         Time.timeScale = 0f;
         GameEnded?.Invoke(victory);
     }
 
-    // Монеты копятся между играми, результат попадает в таблицу рекордов
-    // с последними инициалами (на экране победы их можно сменить). Один раз за забег
+    public bool Won { get; private set; }
+
+    // Монеты копятся между играми, результат попадает в таблицу рекордов. При победе - под именем
+    // «???», его заменит имя, введённое на экране победы; при поражении - с последним введённым именем.
+    // Один раз за забег
     void SaveProgress()
     {
         if (progressSaved) return;
         progressSaved = true;
 
         PlayerPrefs.SetInt(TotalCoinsKey, TotalCoins + Coins);
-        TableIndex = HighScoreTable.Insert(HighScoreTable.LastInitials, Score);
+        // Личный рекорд (меню HI-SCORE) отдельно от таблицы, где первое место закреплено за Gekata
+        if (Score > HighScore)
+            PlayerPrefs.SetInt(HighScoreKey, Score);
+        TableIndex = HighScoreTable.Insert(Won ? HighScoreTable.UnnamedPlayer : HighScoreTable.LastInitials, Score);
         PlayerPrefs.Save();
     }
 

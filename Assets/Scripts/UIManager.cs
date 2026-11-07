@@ -44,9 +44,7 @@ public class UIManager : MonoBehaviour
         waveManager.WaveStarted += OnWaveStarted;
         waveManager.BossSpawned += OnBossSpawned;
 
-        // На экране победы недовведённые инициалы сохраняются перед переходом
-        victoryScreen.menuButton.onPress.AddListener(() => { victoryScreen.FinishInitials(); gm.LoadMenu(); });
-        victoryScreen.restartButton.onPress.AddListener(() => { victoryScreen.FinishInitials(); gm.Restart(); });
+        // На экране победы кнопок нет: после ввода имени игра выключается сама (VictoryScreen)
         gameOverWindow.menuButton.onPress.AddListener(gm.LoadMenu);
         gameOverWindow.restartButton.onPress.AddListener(gm.Restart);
 

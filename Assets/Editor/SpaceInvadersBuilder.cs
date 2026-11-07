@@ -1654,10 +1654,8 @@ public static class SpaceInvadersBuilder
         screen.initialsOkButton = MakeArcadeButton(initials.transform, "NameOk", "OK", false,
             new Vector2(0.5f, 1f), new Vector2(330f, -1830f), new Vector2(220f, 130f));
 
-        // Кнопки внизу экрана
-        var bottom = new Vector2(0.5f, 0f);
-        screen.menuButton = MakeArcadeButton(area, "MenuButton", "MENU", false, bottom, new Vector2(-290f, 260f), new Vector2(540f, 150f));
-        screen.restartButton = MakeArcadeButton(area, "RestartButton", "RESTART", true, bottom, new Vector2(290f, 260f), new Vector2(540f, 150f));
+        // Кнопок меню и рестарта нет: после ввода имени - POWER OFF и выход из игры
+        screen.quitEffect = BuildQuitOverlay();
 
         panel.SetActive(false);
         return screen;

@@ -20,6 +20,8 @@ public class MainMenu : MonoBehaviour
         AudioListener.pause = false;
 
         // Подпись HI-SCORE стоит отдельно над числом
+        // Личный рекорд игрока. HighScoreTable.Load() заодно применяет сброс таблицы, если он новый
+        HighScoreTable.Load();
         highScoreText.text = PlayerPrefs.GetInt(GameManager.HighScoreKey, 0).ToString("00000");
 
         playButton.onPress.AddListener(Play);

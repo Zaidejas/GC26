@@ -6,7 +6,8 @@ using UnityEngine.UI;
 
 // Аркадный экран победы после финального босса. Всё печатается по очереди:
 // шапка, заголовок, подсчёт очков (числа «накручиваются»), NEW HIGH SCORE,
-// таблица TOP 5, ввод имени (до 8 символов с клавиатуры), кнопки MENU и RESTART.
+// таблица TOP 5 и ввод имени (до 8 символов с клавиатуры). Кнопок меню и рестарта нет:
+// после ввода имени результат сохраняется, автомат выключается (POWER OFF) и игра закрывается.
 // Всё на реальном времени: игра стоит на Time.timeScale = 0
 public class VictoryScreen : MonoBehaviour
 {
@@ -42,9 +43,9 @@ public class VictoryScreen : MonoBehaviour
     public TMP_InputField initialsInput;
     public PressableButton initialsOkButton;
 
-    [Header("Кнопки")]
-    public PressableButton menuButton;
-    public PressableButton restartButton;
+    [Header("Конец")]
+    [Tooltip("Выключение автомата после ввода имени, затем игра закрывается")]
+    public QuitEffect quitEffect;
 
     [Header("Скорость печати")]
     public float titleCharTime = 0.06f;
@@ -56,16 +57,22 @@ public class VictoryScreen : MonoBehaviour
 
     GameManager gm;
     bool editing;
+    bool finished;
     bool tableReady;
     List<HighScoreTable.Entry> table;
 
     void Awake()
     {
         initialsInput.characterLimit = MaxInitials;
-        // Только латиница и цифры, сразу заглавными
+        // Только английские буквы, без цифр и прочего, сразу заглавными
         initialsInput.onValidateInput = (text, index, c) =>
-            c < 128 && char.IsLetterOrDigit(c) ? char.ToUpperInvariant(c) : '\0';
-        initialsInput.onValueChanged.AddListener(_ => RefreshTable());
+            (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ? char.ToUpperInvariant(c) : '\0';
+        initialsInput.onValueChanged.AddListener(_ =>
+        {
+            // OK нажимается, только когда что-то введено
+            initialsOkButton.SetInteractable(TypedInitials().Length > 0);
+            RefreshTable();
+        });
         initialsInput.onSubmit.AddListener(_ => FinishInitials());
         initialsOkButton.onPress.AddListener(FinishInitials);
     }
@@ -88,10 +95,7 @@ public class VictoryScreen : MonoBehaviour
         initialsInput.gameObject.SetActive(false);
         initialsOkButton.gameObject.SetActive(false);
         foreach (Image row in rowHighlights) row.enabled = false;
-        menuButton.gameObject.SetActive(false);
-        restartButton.gameObject.SetActive(false);
-        menuButton.interactable = restartButton.interactable = false;
-        editing = tableReady = false;
+        editing = tableReady = finished = false;
 
         StartCoroutine(Play());
     }
@@ -103,7 +107,7 @@ public class VictoryScreen : MonoBehaviour
         yield return scoreLabel; yield return scoreValue; yield return livesLabel; yield return livesValue;
         yield return coinsLabel; yield return coinsValue; yield return totalLabel; yield return totalValue;
         yield return newHighScore; yield return tableTitle; yield return initialsHint;
-        yield return menuButton.label; yield return restartButton.label; yield return initialsOkButton.label;
+        yield return initialsOkButton.label;
         foreach (TMP_Text t in rankTexts) yield return t;
         foreach (TMP_Text t in nameTexts) yield return t;
         foreach (TMP_Text t in scoreTexts) yield return t;
@@ -162,27 +166,20 @@ public class VictoryScreen : MonoBehaviour
         }
         tableReady = true;
 
-        // Ввод имени, если попали в топ
-        if (gm.TableIndex >= 0)
-        {
-            initialsPanel.SetActive(true);
-            yield return Type(initialsHint, "ENTER YOUR NAME");
-            initialsInput.gameObject.SetActive(true);
-            initialsInput.text = HighScoreTable.LastInitials;
-            initialsOkButton.gameObject.SetActive(true);
-            yield return Type(initialsOkButton.label, "OK");
-            editing = true;
-            // Фокус в поле: на телефоне выезжает клавиатура
-            initialsInput.Select();
-            initialsInput.ActivateInputField();
-            RefreshTable();
-        }
-
-        menuButton.gameObject.SetActive(true);
-        yield return Type(menuButton.label, "MENU");
-        restartButton.gameObject.SetActive(true);
-        yield return Type(restartButton.label, "RESTART");
-        menuButton.interactable = restartButton.interactable = true;
+        // Ввод имени - единственное действие на экране. Если в топ не попали, имя всё равно
+        // спрашиваем (оно запомнится на следующие игры), но в таблицу не пишем
+        initialsPanel.SetActive(true);
+        yield return Type(initialsHint, "ENTER YOUR NAME");
+        initialsInput.gameObject.SetActive(true);
+        initialsInput.text = ""; // поле пустое: OK неактивна, пока игрок что-то не впишет
+        initialsOkButton.gameObject.SetActive(true);
+        initialsOkButton.SetInteractable(false);
+        yield return Type(initialsOkButton.label, "OK");
+        editing = true;
+        // Фокус в поле: на телефоне выезжает клавиатура
+        initialsInput.Select();
+        initialsInput.ActivateInputField();
+        RefreshTable();
     }
 
     IEnumerator CountUp(TMP_Text text, int target, float duration)
@@ -222,28 +219,47 @@ public class VictoryScreen : MonoBehaviour
             return;
         }
 
-        // Пока вводят: набранное и мигающий «_» на месте следующей буквы
+        // Пока вводят: набранное и мигающий «_» на месте следующей буквы.
+        // Пока ничего не набрано - знаки вопроса
         bool cursorVisible = Mathf.Repeat(Time.unscaledTime, 0.6f) < 0.3f;
         string typed = TypedInitials();
+        if (typed.Length == 0)
+        {
+            name.text = HighScoreTable.UnnamedPlayer;
+            return;
+        }
         string cursor = typed.Length < MaxInitials ? (cursorVisible ? "_" : "<alpha=#00>_</alpha>") : "";
         name.text = typed + cursor;
     }
 
-    // Сохраняет имя. Вызывается OK, Enter / «Готово» на клавиатуре
-    // и кнопками MENU/RESTART, если ввод не закончили
+    // Сохраняет имя (OK, Enter / «Готово» на клавиатуре), выключает автомат и закрывает игру
     public void FinishInitials()
     {
-        if (!editing) return;
-        editing = false;
-
+        if (!editing || finished) return;
         string typed = TypedInitials();
-        if (typed.Length == 0) typed = HighScoreTable.LastInitials;
+        if (typed.Length == 0) return; // пустое имя не принимаем (и Enter тоже)
+        editing = false;
+        finished = true;
         initialsInput.DeactivateInputField();
         initialsPanel.SetActive(false);
 
+        // Результат уже в таблице с прошлым именем - меняем имя и сохраняем
         gm.RenameRecord(typed);
+        PlayerPrefs.Save();
         table = HighScoreTable.Load();
         RefreshTable();
+
+        if (quitEffect != null) quitEffect.Play(QuitGame);
+        else QuitGame();
+    }
+
+    static void QuitGame()
+    {
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
     }
 
     static void SetBlink(TMP_Text text, bool on)
