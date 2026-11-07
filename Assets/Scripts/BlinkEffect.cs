@@ -27,11 +27,24 @@ public class BlinkEffect : MonoBehaviour
     [Tooltip("Высота изгиба века в единицах Canvas")]
     public float curveHeight = 170f;
 
+    // Размытие поверх CRT (под веками): начинается вместе с морганием, после открытия глаз
+    // висит в полную силу blurHold и быстро уходит за blurFadeTime.
+    // Чем длиннее моргание, тем дольше висит (пропорционально длине моргания)
+    [Header("Размытие")]
+    [Tooltip("Сколько размытие висит после открытия глаз при обычном моргании, секунд")]
+    public float blurHold = 0.3f;
+    [Tooltip("За сколько размытие уходит после того, как провисело, секунд")]
+    public float blurFadeTime = 0.15f;
+    [Tooltip("Радиус размытия на пике, в долях высоты экрана")]
+    public float blurRadius = 0.0105f;
+
     Boss boss;
     float sinceLastBlink;
     bool firstBlinkPending;
     float blinkTime = -1f;
     float duration;
+    float blurTime = -1f;
+    float blurHoldNow;
 
     // 0 - у босса полное ХП, 1 - почти убит
     float Damage => boss == null ? 0f : 1f - Mathf.Clamp01(boss.HealthFraction);
@@ -41,12 +54,15 @@ public class BlinkEffect : MonoBehaviour
     {
         waveManager.BossSpawned += OnBossSpawned;
         SetClosed(0f);
+        CrtBoost.SetBlur(0f);
     }
 
     void OnDestroy()
     {
         if (waveManager != null)
             waveManager.BossSpawned -= OnBossSpawned;
+        // Глобальная настройка шейдера переживает смену сцены - сбрасываем
+        CrtBoost.SetBlur(0f);
     }
 
     void OnBossSpawned(Boss spawned)
@@ -64,9 +80,12 @@ public class BlinkEffect : MonoBehaviour
         if (boss == null || Time.timeScale == 0f)
         {
             SetClosed(0f);
-            if (boss == null) blinkTime = -1f;
+            CrtBoost.SetBlur(0f);
+            if (boss == null) blinkTime = blurTime = -1f;
             return;
         }
+
+        UpdateBlur();
 
         // Интервал пересчитывается каждый кадр: урон по боссу сразу приближает следующее моргание
         sinceLastBlink += Time.deltaTime;
@@ -78,6 +97,9 @@ public class BlinkEffect : MonoBehaviour
             firstBlinkPending = false;
             // Длину фиксируем на старте, чтобы моргание не дёргалось от попаданий
             duration = Mathf.Lerp(durationFullHealth, durationMax, Damage);
+            // Размытие стартует вместе с морганием, висит тем дольше, чем длиннее моргание
+            blurTime = 0f;
+            blurHoldNow = blurHold * duration / Mathf.Max(0.01f, durationFullHealth);
         }
 
         if (blinkTime < 0f) return;
@@ -94,6 +116,37 @@ public class BlinkEffect : MonoBehaviour
         // Быстро закрылись, чуть задержались, открылись чуть медленнее
         float k = p < 0.35f ? p / 0.35f : p < 0.55f ? 1f : 1f - (p - 0.55f) / 0.45f;
         SetClosed(k);
+    }
+
+    // Нарастает, пока веки закрываются, держится до открытия и ещё blurHoldNow, потом быстро уходит
+    void UpdateBlur()
+    {
+        if (blurTime < 0f) return;
+        blurTime += Time.deltaTime;
+
+        float amount;
+        float holdEnd = duration + blurHoldNow;
+        if (blurTime < duration)
+        {
+            float p = blurTime / duration;
+            amount = p < 0.35f ? p / 0.35f : 1f;
+        }
+        else if (blurTime < holdEnd)
+        {
+            amount = 1f; // глаза открылись, а картинка ещё мутная
+        }
+        else
+        {
+            float x = (blurTime - holdEnd) / Mathf.Max(0.01f, blurFadeTime);
+            if (x >= 1f)
+            {
+                blurTime = -1f;
+                CrtBoost.SetBlur(0f);
+                return;
+            }
+            amount = 1f - x;
+        }
+        CrtBoost.SetBlur(blurRadius * amount);
     }
 
     void SetClosed(float k)

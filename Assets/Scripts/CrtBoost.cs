@@ -10,6 +10,14 @@ public static class CrtBoost
     static readonly int FisheyeId = Shader.PropertyToID("_CrtExtraFisheye");
     static readonly int ColorShiftId = Shader.PropertyToID("_CrtExtraColorShift");
 
+    static readonly int BlurId = Shader.PropertyToID("_CrtBlur");
+
+    // Размытие поверх CRT-картинки: радиус в долях высоты экрана, 0 - выключено
+    public static void SetBlur(float radius)
+    {
+        Shader.SetGlobalFloat(BlurId, radius);
+    }
+
     // amount: 0 - как в игре, 1 - полное усиление
     public static void Set(float amount)
     {

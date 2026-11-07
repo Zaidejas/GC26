@@ -41,6 +41,8 @@ Shader "SpaceInvaders/CRT"
             // Глобальная добавка на заставках (CrtBoost.cs), в остальное время 0
             float _CrtExtraFisheye;
             float _CrtExtraColorShift;
+            // Размытие после моргания на Боссе 2 (BlinkEffect.cs): радиус в долях высоты экрана, 0 - выключено
+            float _CrtBlur;
 
             float2 Bend(float2 uv)
             {
@@ -50,13 +52,12 @@ Shader "SpaceInvaders/CRT"
                 return 0.5 + c * (1.0 + fisheye * r * 2.0) / (1.0 + fisheye * 0.5);
             }
 
-            float4 Frag(Varyings input) : SV_Target
+            // Готовая CRT-картинка в точке экрана: изгиб, сдвиг цветов, сканлайны, виньетка, мерцание
+            float3 Crt(float2 screenUv)
             {
-                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-
-                float2 uv = Bend(input.texcoord);
+                float2 uv = Bend(screenUv);
                 if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0)
-                    return float4(0.0, 0.0, 0.0, 1.0);
+                    return float3(0.0, 0.0, 0.0);
 
                 float2 shift = (uv - 0.5) * (_ColorShift + _CrtExtraColorShift) * 0.012;
                 float3 color;
@@ -72,6 +73,30 @@ Shader "SpaceInvaders/CRT"
 
                 color *= 1.0 - _Flicker * 0.12 * (0.5 + 0.5 * sin(_Time.y * 37.0))
                              - _Flicker * 0.06 * (0.5 + 0.5 * sin(_Time.y * 11.0 + uv.y * 4.0));
+                return color;
+            }
+
+            float4 Frag(Varyings input) : SV_Target
+            {
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+
+                float3 color = Crt(input.texcoord);
+
+                // Размытие поверх CRT: среднее готовой CRT-картинки по двум кольцам вокруг точки,
+                // поэтому размываются и сканлайны. Веки моргания рисуются позже и остаются чёткими.
+                // Считается только пока размытие включено
+                if (_CrtBlur > 0.0001)
+                {
+                    float2 radius = float2(_CrtBlur * _ScreenParams.y / _ScreenParams.x, _CrtBlur);
+                    float3 sum = color;
+                    [unroll] for (int i = 0; i < 6; i++)
+                    {
+                        float a = i * 1.0471976; // 60 градусов
+                        sum += Crt(input.texcoord + float2(cos(a), sin(a)) * radius * 0.5);
+                        sum += Crt(input.texcoord + float2(cos(a + 0.5235988), sin(a + 0.5235988)) * radius);
+                    }
+                    color = sum / 13.0;
+                }
 
                 return float4(color, 1.0);
             }
