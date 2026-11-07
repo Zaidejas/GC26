@@ -3,13 +3,12 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-// Главное меню: рекорд, накопленные монеты, кнопки «Играть» и «Выход»
+// Главное меню: рекорд, кнопки «Играть» и «Выход»
 public class MainMenu : MonoBehaviour
 {
     public string gameSceneName = "Game";
 
     public TMP_Text highScoreText;
-    public TMP_Text coinsText;
     public PressableButton playButton;
     public PressableButton quitButton;
     [Tooltip("Выключение автомата перед выходом. Без него игра закрывается сразу")]
@@ -20,8 +19,8 @@ public class MainMenu : MonoBehaviour
         Time.timeScale = 1f;
         AudioListener.pause = false;
 
-        highScoreText.text = $"BEST {PlayerPrefs.GetInt(GameManager.HighScoreKey, 0)}";
-        coinsText.text = $"COINS {PlayerPrefs.GetInt(GameManager.TotalCoinsKey, 0)}";
+        // Подпись HI-SCORE стоит отдельно над числом
+        highScoreText.text = PlayerPrefs.GetInt(GameManager.HighScoreKey, 0).ToString("00000");
 
         playButton.onPress.AddListener(Play);
         quitButton.onPress.AddListener(Quit);

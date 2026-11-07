@@ -762,8 +762,14 @@ public static class SpaceInvadersBuilder
         var center = new Vector2(0.5f, 0.5f);
 
         Transform safeArea = MakeSafeArea(canvas);
-        ui.waveText = MakeText(safeArea, "Wave", "1/5", 56, TextAlignmentOptions.Top, top, new Vector2(0f, -20f), new Vector2(320f, 80f));
-        ui.scoreText = MakeText(safeArea, "Score", "0", 64, TextAlignmentOptions.Top, top, new Vector2(0f, -90f), new Vector2(500f, 90f));
+        // Аркадная шапка: маленькая тусклая подпись над ярким числом.
+        // SCORE по центру, WAVE справа рядом с кнопкой паузы
+        var scoreLabel = MakeText(safeArea, "ScoreLabel", "SCORE", 32, TextAlignmentOptions.Top, top, new Vector2(0f, -28f), new Vector2(400f, 50f));
+        scoreLabel.color = PhosphorMid;
+        ui.scoreText = MakeText(safeArea, "Score", "00000", 60, TextAlignmentOptions.Top, top, new Vector2(0f, -70f), new Vector2(400f, 80f));
+        var waveLabel = MakeText(safeArea, "WaveLabel", "WAVE", 32, TextAlignmentOptions.Top, topRight, new Vector2(-200f, -28f), new Vector2(200f, 50f));
+        waveLabel.color = PhosphorMid;
+        ui.waveText = MakeText(safeArea, "Wave", "1/5", 48, TextAlignmentOptions.Top, topRight, new Vector2(-200f, -72f), new Vector2(200f, 70f));
 
         // Жизни: сердечки слева
         ui.hearts = new Image[3];
@@ -782,10 +788,10 @@ public static class SpaceInvadersBuilder
         coinIcon.preserveAspect = true;
         var coinIconRect = coinIcon.rectTransform;
         coinIconRect.anchorMin = coinIconRect.anchorMax = coinIconRect.pivot = topLeft;
-        coinIconRect.anchoredPosition = new Vector2(35f, -125f);
-        coinIconRect.sizeDelta = new Vector2(80f, 80f);
-        ui.coinsText = MakeText(safeArea, "Coins", "0", 64, TextAlignmentOptions.TopLeft, topLeft, new Vector2(130f, -127f), new Vector2(300f, 90f));
-        ui.coinsText.color = GoldColor;
+        coinIconRect.anchoredPosition = new Vector2(35f, -128f);
+        coinIconRect.sizeDelta = new Vector2(64f, 64f);
+        ui.coinsText = MakeText(safeArea, "Coins", "0", 48, TextAlignmentOptions.TopLeft, topLeft, new Vector2(115f, -134f), new Vector2(300f, 70f));
+        ui.coinsText.color = TextColor;
         ui.bannerText = MakeText(canvas, "WaveBanner", "WAVE 1", 110, TextAlignmentOptions.Center, center, Vector2.zero, new Vector2(1200f, 200f));
 
         // Полоска здоровья босса
@@ -942,9 +948,10 @@ public static class SpaceInvadersBuilder
             title.color = PlayerColor;
         }
 
-        menu.highScoreText = MakeText(canvas, "HighScore", "BEST 0", 64, TextAlignmentOptions.Center, center, new Vector2(0f, 90f), new Vector2(1000f, 90f));
-        menu.coinsText = MakeText(canvas, "Coins", "COINS 0", 64, TextAlignmentOptions.Center, center, new Vector2(0f, 10f), new Vector2(1000f, 90f));
-        menu.coinsText.color = GoldColor;
+        // Аркадная шапка: тусклая подпись HI-SCORE над ярким рекордом (монеты в меню не показываем)
+        MakeText(canvas, "HighScoreLabel", "HI-SCORE", 34, TextAlignmentOptions.Center, center, new Vector2(0f, 105f), new Vector2(600f, 50f))
+            .color = PhosphorMid;
+        menu.highScoreText = MakeText(canvas, "HighScore", "00000", 64, TextAlignmentOptions.Center, center, new Vector2(0f, 40f), new Vector2(600f, 80f));
 
         // Аркадные кнопки как на экранах конца игры: PLAY главная (залитая)
         menu.playButton = MakeArcadeButton(canvas, "PlayButton", "PLAY", true, center, new Vector2(0f, -170f), new Vector2(640f, 150f));

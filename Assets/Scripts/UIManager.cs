@@ -103,7 +103,7 @@ public class UIManager : MonoBehaviour
 
     void RefreshStats()
     {
-        scoreText.text = gm.Score.ToString();
+        scoreText.text = gm.Score.ToString("00000"); // аркадный счёт с нулями впереди
         coinsText.text = gm.Coins.ToString();
     }
 
