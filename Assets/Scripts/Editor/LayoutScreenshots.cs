@@ -60,6 +60,7 @@ namespace Lines.EditorTools
 
         static void Render(Shot shot, string path)
         {
+            Tween.KillAll(); // nothing left running from the previous shot
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             var safe = new Rect(0, shot.BottomInset, shot.Width, shot.Height - shot.TopInset - shot.BottomInset);
             var layout = BoardLayout.Compute(new Vector2(shot.Width, shot.Height), safe);
@@ -127,11 +128,8 @@ namespace Lines.EditorTools
                 hud.GameOver.Show(1284, "Player3");
             if (shot.ResetDialog)
                 hud.Dialog.Show(Lines.Game.GameBootstrap.ResetTitle, Lines.Game.GameBootstrap.ResetMessage, "Yes", null);
-            if (shot.Alert != null)
-            {
-                hud.ShowAlert(shot.Alert);
-                Tween.Tick(0.3f); // fully faded in
-            }
+            if (shot.Alert != null) hud.ShowAlert(shot.Alert);
+            Tween.Tick(1f); // pop-ups and messages fully faded in
             Canvas.ForceUpdateCanvases();
             Finish(shot, camera, path);
         }

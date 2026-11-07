@@ -74,6 +74,8 @@ namespace Lines.UI
             scoreText = NewText("Score", "0", Palette.Text, TextAlignmentOptions.BottomLeft, bold: true);
             gainText = NewText("Gain", "", GainColor, TextAlignmentOptions.BottomLeft, bold: true);
             gainText.alpha = 0f;
+            UiFonts.UseDisplay(scoreText);
+            UiFonts.UseDisplay(gainText);
             nextLabel = NewText("Next label", "NEXT", Palette.SoftText, TextAlignmentOptions.BottomRight, bold: true);
             alert = AlertToast.Create((RectTransform)transform);
             undo = PillButton.Create((RectTransform)transform, "Undo");
@@ -215,6 +217,7 @@ namespace Lines.UI
             tmp.color = color;
             tmp.alignment = alignment;
             tmp.fontStyle = bold ? FontStyles.Bold : FontStyles.Normal;
+            UiFonts.UseBody(tmp);
             tmp.textWrappingMode = TextWrappingModes.NoWrap;
             tmp.overflowMode = TextOverflowModes.Overflow;
             tmp.raycastTarget = false;

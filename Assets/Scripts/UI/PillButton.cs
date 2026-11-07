@@ -2,6 +2,7 @@ using System;
 using Lines.View;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Lines.UI
@@ -12,7 +13,7 @@ namespace Lines.UI
     /// button turns light grey instead (as the prototype's Continue). Can also show an icon (the back arrow).
     /// Built from code; sizes are given in units (1 % of the content width).
     /// </summary>
-    public sealed class PillButton : MonoBehaviour
+    public sealed class PillButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     {
         const float BorderWidth = 0.4f, FontSize = 4.6f;
 
@@ -79,7 +80,8 @@ namespace Lines.UI
             this.primary = primary;
             rect = (RectTransform)transform;
             rect.SetParent(parent, false);
-            rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
+            rect.anchorMin = rect.anchorMax = Vector2.zero;
+            rect.pivot = new Vector2(0.5f, 0.5f); // presses shrink it towards its middle
             group = gameObject.AddComponent<CanvasGroup>();
 
             border = gameObject.AddComponent<Image>();
@@ -93,6 +95,7 @@ namespace Lines.UI
             label.text = text;
             label.color = primary ? Color.white : Palette.Text;
             label.fontStyle = FontStyles.Bold;
+            UiFonts.UseBody(label);
             label.alignment = TextAlignmentOptions.Center;
             label.textWrappingMode = TextWrappingModes.NoWrap;
             label.raycastTarget = false;
@@ -106,7 +109,7 @@ namespace Lines.UI
         /// <summary>Places the button at <paramref name="pixels"/> (origin bottom-left of the parent).</summary>
         public void Place(Rect pixels, float unit)
         {
-            rect.anchoredPosition = pixels.position;
+            rect.anchoredPosition = pixels.center;
             rect.sizeDelta = pixels.size;
             UiShapes.MakePill(border, pixels.height);
 
@@ -118,6 +121,22 @@ namespace Lines.UI
 
             label.fontSize = FontSize * unit;
             if (icon != null) icon.rectTransform.sizeDelta = Vector2.one * IconSize * unit;
+        }
+
+        // Pressing shrinks the button a little; letting go springs it back (GDD → buttons feel smooth).
+        public const float PressedScale = 0.95f, PressSeconds = 0.08f, ReleaseSeconds = 0.16f;
+
+        public void OnPointerDown(PointerEventData eventData)
+        {
+            if (!Interactable) return;
+            Tween.Kill(rect);
+            Tween.Scale(rect, Vector3.one * PressedScale, PressSeconds);
+        }
+
+        public void OnPointerUp(PointerEventData eventData)
+        {
+            Tween.Kill(rect);
+            Tween.Scale(rect, Vector3.one, ReleaseSeconds, Ease.OutBack);
         }
 
         public void SetText(string text)

@@ -67,6 +67,7 @@ namespace Lines.UI
             }
             logo = NewText("Title", "Lines", Palette.Text);
             tagline = NewText("Tagline", Tagline, Palette.SoftText);
+            UiFonts.UseDisplay(logo);
 
             continueButton = PillButton.Create(root, "Continue", primary: true);
             newGame = PillButton.Create(root, "New game");
@@ -183,6 +184,7 @@ namespace Lines.UI
             tmp.text = text;
             tmp.color = color;
             tmp.fontStyle = FontStyles.Bold;
+            UiFonts.UseBody(tmp);
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.textWrappingMode = TextWrappingModes.NoWrap;
             tmp.raycastTarget = false;

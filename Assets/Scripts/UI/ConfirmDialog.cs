@@ -24,7 +24,9 @@ namespace Lines.UI
         PillButton cancel, confirm;
         Action onConfirm;
 
-        public bool IsOpen => gameObject.activeSelf;
+        PopupMotion motion;
+
+        public bool IsOpen => motion != null && motion.IsOpen;
         public string Title => title.text;
         public string Message => message.text;
         public PillButton CancelButton => cancel;
@@ -59,6 +61,7 @@ namespace Lines.UI
 
             title = NewText("Title", Palette.Text, true);
             message = NewText("Message", Palette.SoftText, false);
+            motion = new PopupMotion(gameObject, card);
             cancel = PillButton.Create(card, "Cancel");
             confirm = PillButton.Create(card, "Yes", primary: true);
             cancel.Clicked += Close;
@@ -118,13 +121,13 @@ namespace Lines.UI
             onConfirm = onYes;
             LayoutCard();
             root.SetAsLastSibling();
-            gameObject.SetActive(true);
+            motion.Open();
         }
 
         public void Close()
         {
             onConfirm = null;
-            gameObject.SetActive(false);
+            motion.Close();
         }
 
         RectTransform NewRect(string name, RectTransform parent)
@@ -141,6 +144,7 @@ namespace Lines.UI
             var tmp = rt.gameObject.AddComponent<TextMeshProUGUI>();
             tmp.color = color;
             tmp.fontStyle = bold ? FontStyles.Bold : FontStyles.Normal;
+            if (bold) UiFonts.UseDisplay(tmp); else UiFonts.UseBody(tmp); // the title is Fredoka
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.textWrappingMode = TextWrappingModes.Normal;
             tmp.raycastTarget = false;

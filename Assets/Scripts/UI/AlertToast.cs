@@ -60,6 +60,7 @@ namespace Lines.UI
             label = textGo.AddComponent<TextMeshProUGUI>();
             label.color = Color.white;
             label.fontStyle = FontStyles.Bold;
+            UiFonts.UseBody(label);
             label.alignment = TextAlignmentOptions.Center;
             label.textWrappingMode = TextWrappingModes.NoWrap;
             label.raycastTarget = false;
@@ -96,6 +97,7 @@ namespace Lines.UI
 
         void Hide()
         {
+            if (this == null) return; // the screen was torn down before the timer ran out
             showTween?.Kill();
             showTween = Tween.To(this, FadeSeconds, p =>
             {

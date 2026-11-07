@@ -33,7 +33,9 @@ namespace Lines.UI
         /// <summary>Save was pressed; gives what is in the name field (may be empty).</summary>
         public event Action<string> Saved;
 
-        public bool IsOpen => gameObject.activeSelf;
+        PopupMotion motion;
+
+        public bool IsOpen => motion != null && motion.IsOpen;
         public int Score { get; private set; }
         public string FinalText => final.text;
         public PillButton SaveButton => save;
@@ -71,6 +73,8 @@ namespace Lines.UI
             final = NewText("Final", "0", Palette.Text, true, TextAlignmentOptions.Center);
             label = NewText("Label", Label, Palette.SoftText, true, TextAlignmentOptions.Left);
             label.characterSpacing = 3f;
+            UiFonts.UseDisplay(title);
+            UiFonts.UseDisplay(final);
 
             // The name field: a rounded white box with a thin border, built inactive so the input field
             // has its text parts before it starts.
@@ -106,6 +110,7 @@ namespace Lines.UI
             input.onSubmit.AddListener(_ => Submit());
             field.gameObject.SetActive(true);
 
+            motion = new PopupMotion(gameObject, card);
             save = PillButton.Create(card, "Save", primary: true);
             save.Clicked += Submit;
         }
@@ -167,15 +172,15 @@ namespace Lines.UI
             final.text = score.ToString();
             input.text = defaultName ?? "";
             placeholder.text = defaultName ?? "Player";
-            gameObject.SetActive(true);
             transform.SetAsLastSibling();
             LayoutCard();
+            motion.Open();
         }
 
         public void Close()
         {
             input.DeactivateInputField();
-            gameObject.SetActive(false);
+            motion.Close();
         }
 
         /// <summary>Types <paramref name="name"/> into the field (tests).</summary>
@@ -209,6 +214,7 @@ namespace Lines.UI
             tmp.text = text;
             tmp.color = color;
             tmp.fontStyle = bold ? FontStyles.Bold : FontStyles.Normal;
+            UiFonts.UseBody(tmp);
             tmp.alignment = align;
             tmp.verticalAlignment = VerticalAlignmentOptions.Middle;
             tmp.textWrappingMode = TextWrappingModes.NoWrap;

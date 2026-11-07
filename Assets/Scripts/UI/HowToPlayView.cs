@@ -260,6 +260,7 @@ namespace Lines.UI
             var tmp = NewRect(name, root).gameObject.AddComponent<TextMeshProUGUI>();
             tmp.color = color;
             tmp.fontStyle = bold ? FontStyles.Bold : FontStyles.Normal;
+            if (bold) UiFonts.UseDisplay(tmp); else UiFonts.UseBody(tmp); // the title is Fredoka
             tmp.alignment = bold ? TextAlignmentOptions.Bottom : TextAlignmentOptions.Top;
             tmp.horizontalAlignment = HorizontalAlignmentOptions.Center;
             tmp.textWrappingMode = TextWrappingModes.Normal;

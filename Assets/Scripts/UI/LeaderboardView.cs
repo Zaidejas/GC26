@@ -84,6 +84,7 @@ namespace Lines.UI
             message = NewText("Message", root, Palette.Text, true, TextAlignmentOptions.Center);
             fine = NewText("Fine print", root, Palette.SoftText, true, TextAlignmentOptions.Center);
             fine.text = FineText;
+            UiFonts.UseDisplay(message);
             empty = NewText("Empty", root, Palette.SoftText, false, TextAlignmentOptions.Center);
             empty.text = EmptyText;
             empty.textWrappingMode = TextWrappingModes.Normal;
@@ -119,6 +120,8 @@ namespace Lines.UI
                 row.Name.overflowMode = TextOverflowModes.Ellipsis;
                 row.Date = NewText("Date", row.Rect, Palette.SoftText, true, TextAlignmentOptions.TopLeft);
                 row.Points = NewText("Points", row.Rect, Palette.Text, true, TextAlignmentOptions.Right);
+                UiFonts.UseDisplay(row.Rank);
+                UiFonts.UseDisplay(row.Points);
                 rows.Add(row);
             }
 
@@ -276,6 +279,7 @@ namespace Lines.UI
             var tmp = NewRect(name, parent).gameObject.AddComponent<TextMeshProUGUI>();
             tmp.color = color;
             tmp.fontStyle = bold ? FontStyles.Bold : FontStyles.Normal;
+            UiFonts.UseBody(tmp);
             tmp.alignment = align;
             if (align == TextAlignmentOptions.Left || align == TextAlignmentOptions.Right || align == TextAlignmentOptions.Center)
                 tmp.verticalAlignment = VerticalAlignmentOptions.Middle;
