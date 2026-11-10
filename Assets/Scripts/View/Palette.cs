@@ -29,14 +29,14 @@ namespace Lines.View
         public static readonly Color Glass = Hex(0x1E1640, 0.9f);
         public static readonly Color Gold = Hex(0xFFC45E);
         public static readonly Color GoldText = Hex(0x3A2208);
-        public static readonly Color GoldGlow = Hex(0xFFBE5A, 0.22f);
+        public static readonly Color GoldGlow = Hex(0xFFBE5A, 0.13f);
         public static readonly Color DisabledFill = Hex(0x2A2448, 0.9f);
         public static readonly Color DisabledRim = Hex(0xFFFFFF, 0.15f);
 
         // Pop-ups.
         public static readonly Color Dim = Hex(0x060814, 0.6f);
         public static readonly Color Card = Hex(0x231A44);
-        public static readonly Color CardGlow = Hex(0xA078FF, 0.12f);
+        public static readonly Color CardGlow = Hex(0xA078FF, 0.05f);
         public static readonly Color Toast = Hex(0x0E0A1E, 0.9f);
 
         // Panels that let the forest show through (leaderboard rows), and the How to play mini board's cells.

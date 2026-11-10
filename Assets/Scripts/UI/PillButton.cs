@@ -15,7 +15,7 @@ namespace Lines.UI
     /// </summary>
     public sealed class PillButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     {
-        const float BorderWidth = 0.4f, FontSize = 5f, GlowSize = 4f;
+        const float BorderWidth = 0.4f, FontSize = 5f, GlowSize = 3f;
 
         RectTransform rect;
         Image hitArea, glow, border, fill;
@@ -122,7 +122,8 @@ namespace Lines.UI
             hitArea.color = Color.clear;
 
             glow = Child("Glow").gameObject.AddComponent<Image>();
-            glow.color = primary ? Palette.GoldGlow : new Color(0.55f, 0.86f, 1f, 0.035f);
+            glow.color = Palette.GoldGlow;
+            glow.enabled = primary; // only the gold main buttons glow; the glass ones stay calm
             glow.raycastTarget = false;
 
             border = Child("Outline").gameObject.AddComponent<Image>();
