@@ -79,9 +79,11 @@ namespace Lines.UI
             nextLabel = NewText("Next label", "NEXT", Palette.SoftText, TextAlignmentOptions.BottomRight, bold: true);
             alert = AlertToast.Create((RectTransform)transform);
             undo = PillButton.Create((RectTransform)transform, "Undo");
+            undo.SetLeadingIcon(SpriteFactory.UndoIcon());
             undo.Interactable = false; // nothing to undo at the start
             undo.Clicked += () => UndoClicked?.Invoke();
             reset = PillButton.Create((RectTransform)transform, "Reset");
+            reset.SetLeadingIcon(SpriteFactory.ResetIcon());
             reset.Clicked += () => ResetClicked?.Invoke();
             back = PillButton.CreateIcon((RectTransform)transform, SpriteFactory.BackArrow(), "Back");
             back.Clicked += () => BackClicked?.Invoke();
@@ -116,6 +118,7 @@ namespace Lines.UI
             scoreText.fontSize = ScoreSize * u;
             Place(scoreLabel.rectTransform, Inset * u, ScoreSize * 1.1f * u, 40 * u, LabelSize * 1.4f * u);
             scoreLabel.fontSize = LabelSize * u;
+            AlignScore();
             gainText.fontSize = GainSize * u;
             PlaceGain();
 
@@ -163,7 +166,26 @@ namespace Lines.UI
         {
             Score = score;
             scoreText.text = score.ToString();
+            AlignScore();
             PlaceGain();
+        }
+
+        // The mushrooms' stems end this far above the bottom of their pictures.
+        const float StemBottomInPicture = 0.07f;
+
+        // Puts the bottom of the score's digits level with the bottom of the Next mushrooms (the prototype
+        // lines them up along one baseline), whatever empty space the font leaves under its digits.
+        void AlignScore()
+        {
+            if (unit <= 0f) return;
+            var rt = scoreText.rectTransform;
+            rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, 0f);
+            scoreText.ForceMeshUpdate();
+            float inkBottom = scoreText.textBounds.min.y; // from the bottom of the text box (pivot at the bottom)
+            rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, StemBottomInPicture * PieceSize * unit - inkBottom);
+            // The SCORE label stays right above the number.
+            var label = scoreLabel.rectTransform;
+            label.anchoredPosition = new Vector2(label.anchoredPosition.x, rt.anchoredPosition.y + ScoreSize * 1.1f * unit);
         }
 
         /// <summary>Adds <paramref name="points"/> and floats "+points" up next to the score (prototype: 0.9 s).</summary>

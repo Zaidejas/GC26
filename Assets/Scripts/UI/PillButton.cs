@@ -24,7 +24,8 @@ namespace Lines.UI
         CanvasGroup group;
         Image icon;
         bool primary;
-        const float IconSize = 5.4f;
+        const float IconSize = 5.4f, LeadingIconSize = 4.6f, LeadingIconGap = 1.6f;
+        Image leadingIcon;
 
         public event Action Clicked;
         public string Text => label.text;
@@ -75,6 +76,37 @@ namespace Lines.UI
         }
 
         public bool HasIcon => icon != null;
+        public bool HasLeadingIcon => leadingIcon != null;
+
+        /// <summary>Shows <paramref name="iconSprite"/> in front of the label, like the prototype's Undo and Reset.</summary>
+        public void SetLeadingIcon(Sprite iconSprite)
+        {
+            if (leadingIcon == null)
+            {
+                leadingIcon = Child("Leading icon").gameObject.AddComponent<Image>();
+                leadingIcon.raycastTarget = false;
+                leadingIcon.preserveAspect = true;
+                var r = leadingIcon.rectTransform;
+                r.anchorMin = r.anchorMax = r.pivot = new Vector2(0.5f, 0.5f);
+            }
+            leadingIcon.sprite = iconSprite;
+            leadingIcon.color = label.color;
+            if (lastUnit > 0f) PlaceLeadingIcon(lastUnit);
+        }
+
+        float lastUnit;
+
+        // The icon and the word sit side by side, centred together in the button.
+        void PlaceLeadingIcon(float unit)
+        {
+            float icon = LeadingIconSize * unit, gap = LeadingIconGap * unit;
+            float textWidth = label.GetPreferredValues(label.text).x;
+            float total = icon + gap + textWidth;
+            leadingIcon.rectTransform.sizeDelta = Vector2.one * icon;
+            leadingIcon.rectTransform.anchoredPosition = new Vector2(-total / 2f + icon / 2f, 0f);
+            label.rectTransform.offsetMin = new Vector2(icon + gap, 0f);
+            label.rectTransform.offsetMax = Vector2.zero;
+        }
 
         void Build(RectTransform parent, string text, bool primary)
         {
@@ -90,7 +122,7 @@ namespace Lines.UI
             hitArea.color = Color.clear;
 
             glow = Child("Glow").gameObject.AddComponent<Image>();
-            glow.color = primary ? Palette.GoldGlow : new Color(0.55f, 0.86f, 1f, 0.08f);
+            glow.color = primary ? Palette.GoldGlow : new Color(0.55f, 0.86f, 1f, 0.035f);
             glow.raycastTarget = false;
 
             border = Child("Outline").gameObject.AddComponent<Image>();
@@ -134,6 +166,8 @@ namespace Lines.UI
 
             label.fontSize = FontSize * unit;
             if (icon != null) icon.rectTransform.sizeDelta = Vector2.one * IconSize * unit;
+            lastUnit = unit;
+            if (leadingIcon != null) PlaceLeadingIcon(unit);
         }
 
         // Pressing shrinks the button a little; letting go springs it back (GDD → buttons feel smooth).
@@ -197,6 +231,20 @@ namespace Lines.UI
         {
             image.sprite = SpriteFactory.RoundRect(0.5f);
             image.type = Image.Type.Sliced;
+            var canvas = image.GetComponentInParent<Canvas>();
+            float canvasPpu = canvas != null ? canvas.referencePixelsPerUnit : 100f;
+            image.pixelsPerUnitMultiplier = image.sprite.border.x * canvasPpu / (image.sprite.pixelsPerUnit * Mathf.Max(0.5f, radiusPixels));
+        }
+
+        /// <summary>
+        /// Makes <paramref name="image"/> a rounded outline with corners <paramref name="radiusPixels"/> round;
+        /// the line is 3/16 of the corner radius thick (the prototype's 0.5u outline on a 3u corner).
+        /// </summary>
+        public static void MakeRing(Image image, float radiusPixels)
+        {
+            image.sprite = SpriteFactory.RoundRectRing();
+            image.type = Image.Type.Sliced;
+            image.fillCenter = false;
             var canvas = image.GetComponentInParent<Canvas>();
             float canvasPpu = canvas != null ? canvas.referencePixelsPerUnit : 100f;
             image.pixelsPerUnitMultiplier = image.sprite.border.x * canvasPpu / (image.sprite.pixelsPerUnit * Mathf.Max(0.5f, radiusPixels));

@@ -48,6 +48,23 @@ namespace Lines.Tests
         }
 
         [UnityTest]
+        public IEnumerator MenuMushrooms_BobUpAndDown()
+        {
+            yield return Launch();
+            var game = Object.FindAnyObjectByType<GameBootstrap>();
+            var piece = game.Menu.transform.Find("Piece 0");
+            float lowest = float.MaxValue, highest = float.MinValue;
+            for (float t = 0; t < 1.6f; t += Time.deltaTime)
+            {
+                lowest = Mathf.Min(lowest, piece.localPosition.y);
+                highest = Mathf.Max(highest, piece.localPosition.y);
+                yield return null;
+            }
+            float expected = 0.14f * 11f * game.Layout.Unit; // prototype: 14 % of an 11-unit piece
+            Assert.Greater(highest - lowest, 0.6f * expected, "The first mushroom moves up and down");
+        }
+
+        [UnityTest]
         public IEnumerator NewGame_Back_Continue_ReturnsToTheSameGame()
         {
             yield return Launch();

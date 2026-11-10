@@ -25,7 +25,6 @@ namespace Lines.UI
         Canvas canvas;
         RectTransform root;
         readonly List<Image> deco = new List<Image>();
-        readonly List<TweenHandle> floats = new List<TweenHandle>();
         TextMeshProUGUI logo, tagline;
         Image logoGlow;
         PillButton continueButton, newGame, howTo, leaderboard;
@@ -94,7 +93,6 @@ namespace Lines.UI
         public void ApplyLayout(BoardLayout screen)
         {
             layout = screen;
-            StopFloating(); // floating pieces snap back to their old spot when stopped, so stop them first
             float u = screen.Unit;
             var safe = screen.SafeArea;
             float contentLeft = safe.x + (safe.width - 100f * u) / 2f;
@@ -108,8 +106,12 @@ namespace Lines.UI
             // Pieces, bottom-aligned in their row and centred.
             float rowWidth = 5f * PieceSize * u + 4f * PieceGap * u;
             float pieceY = top - DecoHeight * u;
+            restPositions.Clear();
             for (int i = 0; i < deco.Count; i++)
+            {
                 Place(deco[i].rectTransform, safe.center.x - rowWidth / 2f + i * (PieceSize + PieceGap) * u, pieceY, PieceSize * u, PieceSize * u);
+                restPositions.Add(deco[i].rectTransform.anchoredPosition);
+            }
 
             float logoTop = top - (DecoHeight + DecoMargin) * u;
             logo.fontSize = LogoSize * u;
@@ -127,7 +129,7 @@ namespace Lines.UI
                 b.Place(new Rect(left, y, width, ButtonHeight * u), u);
                 y -= ButtonGap * u;
             }
-            if (IsShowing) StartFloating();
+            if (IsShowing) AdvanceFloating(0f);
         }
 
         /// <summary>
@@ -144,7 +146,7 @@ namespace Lines.UI
             var colors = BallColors.All;
             for (int i = 0; i < deco.Count; i++) deco[i].sprite = pieces.SpriteFor(colors[i]);
             gameObject.SetActive(true);
-            StartFloating();
+            StopFloating(); // start from the bottom
         }
 
         public void Hide()
@@ -160,27 +162,35 @@ namespace Lines.UI
             leaderboard.Interactable = leaderboardScreen;
         }
 
-        // The pieces bob up and down one after another (prototype: 1.4 s each way, 0.17 s apart).
-        void StartFloating()
+        // The pieces bob up and down one after another (prototype: 1.4 s each way, 0.17 s apart). The motion
+        // follows a clock rather than restarting animations, so refreshing the layout can't freeze it.
+        float floatClock;
+        readonly List<Vector2> restPositions = new List<Vector2>();
+
+        void Update()
         {
-            StopFloating();
+            if (IsShowing) AdvanceFloating(Time.deltaTime);
+        }
+
+        /// <summary>Moves the bobbing on by <paramref name="seconds"/> (called every frame; tests call it directly).</summary>
+        public void AdvanceFloating(float seconds)
+        {
+            floatClock += seconds;
+            if (restPositions.Count != deco.Count) return;
+            float height = FloatHeight * PieceSize * layout.Unit;
             for (int i = 0; i < deco.Count; i++)
             {
-                var t = deco[i].rectTransform;
-                float height = FloatHeight * PieceSize * layout.Unit;
-                int index = i;
-                floats.Add(Tween.Delay(index * FloatStagger, () =>
-                {
-                    if (this != null && gameObject.activeInHierarchy)
-                        floats.Add(Tween.Bounce(t, height, FloatHalfPeriod));
-                }));
+                float t = floatClock - i * FloatStagger;
+                float rise = t <= 0f ? 0f : Easing.Evaluate(Ease.InOutSine, Mathf.PingPong(t / FloatHalfPeriod, 1f));
+                deco[i].rectTransform.anchoredPosition = restPositions[i] + Vector2.up * (height * rise);
             }
         }
 
         void StopFloating()
         {
-            foreach (var f in floats) f?.Kill();
-            floats.Clear();
+            floatClock = 0f;
+            for (int i = 0; i < restPositions.Count && i < deco.Count; i++)
+                deco[i].rectTransform.anchoredPosition = restPositions[i];
         }
 
         RectTransform NewRect(string name)

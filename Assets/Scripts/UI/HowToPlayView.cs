@@ -39,7 +39,7 @@ namespace Lines.UI
         const float TitleSize = 7f, TitleTopMargin = 2f, TextSize = 4.5f, TextWidth = 76f;
         const float DotSize = 2.2f, DotGap = 2.2f, ButtonHeight = 12f, ButtonGap = 3f, TargetRing = 0.6f;
         static readonly Color Focus = Palette.Focus;
-        static readonly Color MiniCell = Palette.Hex(0x2B2452);
+        static readonly Color MiniCell = Palette.MiniCell;
         const int MiniCells = 6;
 
         Canvas canvas;

@@ -84,7 +84,7 @@ namespace Lines.Tests
             menu.Show(null, PieceSet.Balls());
             var piece = menu.transform.Find("Piece 0");
             var rest = piece.localPosition;
-            for (int i = 0; i < 100; i++) Tween.Tick(0.01f);
+            menu.AdvanceFloating(1f);
             Assert.Greater(piece.localPosition.y, rest.y, "Bobbing up");
 
             menu.Hide();

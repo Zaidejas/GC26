@@ -17,6 +17,11 @@ namespace Lines.UI
         public const string BodyFile = "Nunito-Regular", BoldFile = "Nunito-ExtraBold", DisplayFile = "MysteryQuest-Regular";
 
         static TMP_FontAsset body, bold, display;
+        static Material displayMaterial;
+
+        // Mystery Quest comes in one thin weight; Unity draws it thinner than a browser, so its letters are
+        // thickened a little (the prototype's look) through the text material.
+        const float DisplayThickening = 0.22f;
 
         /// <summary>Nunito; text with the Bold style is drawn with Nunito ExtraBold.</summary>
         public static TMP_FontAsset Body { get { Load(); return body; } }
@@ -60,6 +65,12 @@ namespace Lines.UI
             if (Display == null) return;
             text.font = Display;
             text.fontStyle &= ~FontStyles.Bold;
+            if (displayMaterial == null || displayMaterial.mainTexture != Display.material.mainTexture)
+            {
+                displayMaterial = new Material(Display.material) { name = "Mystery Quest (bolder)" };
+                displayMaterial.SetFloat(ShaderUtilities.ID_FaceDilate, DisplayThickening);
+            }
+            text.fontSharedMaterial = displayMaterial;
         }
 
     }

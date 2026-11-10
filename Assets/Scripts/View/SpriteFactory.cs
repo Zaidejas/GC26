@@ -134,6 +134,37 @@ namespace Lines.View
             return softDisc;
         }
 
+        static Sprite ring;
+
+        /// <summary>A white rounded outline for 9-slice drawing: 16 px corners, a 3 px line, empty middle.</summary>
+        public static Sprite RoundRectRing()
+        {
+            if (ring != null) return ring;
+            int n = RoundTextureSize;
+            float r = RoundRadiusPx, thickness = 3f;
+            var pixels = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                float outer = RoundedInside(x, y, n, r, 0f), inner = RoundedInside(x, y, n, r - thickness, thickness);
+                pixels[y * n + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(outer - inner));
+            }
+            ring = Sprite.Create(NewTexture(n, pixels, "RoundRectRing"), new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f,
+                0, SpriteMeshType.FullRect, new Vector4(RoundRadiusPx, RoundRadiusPx, RoundRadiusPx, RoundRadiusPx));
+            return ring;
+        }
+
+        // How much of pixel (x, y) is inside a rounded square inset by `inset` px with corner radius r (0–1).
+        static float RoundedInside(int x, int y, int n, float r, float inset)
+        {
+            float lo = inset + r, hi = n - inset - r;
+            float px = Mathf.Max(lo - (x + 0.5f), (x + 0.5f) - hi, 0f);
+            float py = Mathf.Max(lo - (y + 0.5f), (y + 0.5f) - hi, 0f);
+            bool inBox = x + 0.5f > inset && x + 0.5f < n - inset && y + 0.5f > inset && y + 0.5f < n - inset;
+            if (!inBox) return 0f;
+            return Mathf.Clamp01(r - Mathf.Sqrt(px * px + py * py) + 0.5f);
+        }
+
         static Sprite disc;
 
         /// <summary>A plain white circle, 1 world unit wide (burst particles).</summary>
@@ -150,6 +181,59 @@ namespace Lines.View
             }
             disc = Sprite.Create(NewTexture(n, pixels, "Disc"), new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), n);
             return disc;
+        }
+
+        static Sprite undoIcon, resetIcon;
+
+        /// <summary>The prototype's Undo icon: a hook arrow pointing left.</summary>
+        public static Sprite UndoIcon() => undoIcon != null ? undoIcon : (undoIcon = StrokeIcon("Undo", 2.6f,
+            new[] { new Vector2(9, 14), new Vector2(4, 9), new Vector2(9, 4) },
+            Join(new[] { new Vector2(4, 9), new Vector2(14.5f, 9) }, Arc(new Vector2(14.5f, 14.5f), 5.5f, -90f, 90f), new[] { new Vector2(11, 20) })));
+
+        /// <summary>The prototype's Reset icon: a circle arrow turning back.</summary>
+        public static Sprite ResetIcon() => resetIcon != null ? resetIcon : (resetIcon = StrokeIcon("Reset", 2.6f,
+            Join(Arc(new Vector2(12, 12), 9f, 180f, -131.8f), new[] { new Vector2(3, 8) }),
+            new[] { new Vector2(3, 3), new Vector2(3, 8), new Vector2(8, 8) }));
+
+        // Points along a circle (SVG coordinates: y points down, angles in degrees).
+        static Vector2[] Arc(Vector2 centre, float radius, float fromDeg, float toDeg)
+        {
+            int steps = Mathf.CeilToInt(Mathf.Abs(toDeg - fromDeg) / 6f);
+            var points = new Vector2[steps + 1];
+            for (int i = 0; i <= steps; i++)
+            {
+                float a = Mathf.Lerp(fromDeg, toDeg, (float)i / steps) * Mathf.Deg2Rad;
+                points[i] = centre + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * radius;
+            }
+            return points;
+        }
+
+        static Vector2[] Join(params Vector2[][] parts)
+        {
+            var all = new List<Vector2>();
+            foreach (var part in parts) all.AddRange(part);
+            return all.ToArray();
+        }
+
+        // A white icon made of round-ended lines through the given points (a 24-unit grid, like the prototype's SVGs).
+        static Sprite StrokeIcon(string name, float strokeWidth, params Vector2[][] lines)
+        {
+            const int n = 64;
+            float scale = n / 24f, half = strokeWidth / 2f * scale;
+            var pixels = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                var p = new Vector2(x + 0.5f, n - (y + 0.5f)); // SVG y points down
+                float d = float.MaxValue;
+                foreach (var line in lines)
+                    for (int k = 1; k < line.Length; k++)
+                        d = Mathf.Min(d, DistanceToSegment(p, line[k - 1] * scale, line[k] * scale));
+                pixels[y * n + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(half - d + 0.5f));
+            }
+            var sprite = Sprite.Create(NewTexture(n, pixels, name), new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), n);
+            sprite.name = name;
+            return sprite;
         }
 
         static Sprite chevron;
@@ -179,6 +263,7 @@ namespace Lines.View
         static float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
         {
             var ab = b - a;
+            if (ab.sqrMagnitude < 1e-6f) return Vector2.Distance(p, a); // a zero-length piece (two equal points)
             float t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / ab.sqrMagnitude);
             return Vector2.Distance(p, a + ab * t);
         }

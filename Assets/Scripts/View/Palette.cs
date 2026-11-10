@@ -12,11 +12,11 @@ namespace Lines.View
         public static readonly Color Screen = Hex(0x10202C);
 
         // Board: dark purple glass with a violet rim and glow; cells glow faintly from inside.
-        public static readonly Color Board = Hex(0x1A1538, 0.95f);
+        public static readonly Color Board = Hex(0x171633, 0.95f);
         public static readonly Color BoardRim = Hex(0xBE96FF, 0.38f);
-        public static readonly Color BoardGlow = Hex(0x966EFF, 0.2f);
-        public static readonly Color Cell = Hex(0xFFFFFF, 0.045f);
-        public static readonly Color CellLight = Hex(0xAADCFF, 0.1f);
+        public static readonly Color BoardGlow = Hex(0x966EFF, 0.12f);
+        public static readonly Color Cell = Hex(0xFFFFFF, 0.025f);
+        public static readonly Color CellLight = Hex(0xAADCFF, 0.06f);
 
         // Text.
         public static readonly Color Text = Hex(0xF6EEDB);
@@ -29,20 +29,24 @@ namespace Lines.View
         public static readonly Color Glass = Hex(0x1E1640, 0.9f);
         public static readonly Color Gold = Hex(0xFFC45E);
         public static readonly Color GoldText = Hex(0x3A2208);
-        public static readonly Color GoldGlow = Hex(0xFFBE5A, 0.45f);
+        public static readonly Color GoldGlow = Hex(0xFFBE5A, 0.22f);
         public static readonly Color DisabledFill = Hex(0x2A2448, 0.9f);
         public static readonly Color DisabledRim = Hex(0xFFFFFF, 0.15f);
 
         // Pop-ups.
         public static readonly Color Dim = Hex(0x060814, 0.6f);
         public static readonly Color Card = Hex(0x231A44);
-        public static readonly Color CardGlow = Hex(0xA078FF, 0.3f);
+        public static readonly Color CardGlow = Hex(0xA078FF, 0.12f);
         public static readonly Color Toast = Hex(0x0E0A1E, 0.9f);
+
+        // Panels that let the forest show through (leaderboard rows), and the How to play mini board's cells.
+        public static readonly Color SeeThroughPanel = Hex(0x1A1736, 0.62f);
+        public static readonly Color MiniCell = Hex(0x23263F);
 
         // The "Lines" title: a gold gradient with a warm glow.
         public static readonly Color TitleTop = Hex(0xFFF2C2);
         public static readonly Color TitleBottom = Hex(0xFF9A3C);
-        public static readonly Color TitleGlow = Hex(0xFFBE5A, 0.22f);
+        public static readonly Color TitleGlow = Hex(0xFFBE5A, 0.14f);
 
         /// <summary>Base, light (highlight side) and dark (shadow side) shade of a ball color (the fallback balls).</summary>
         public static (Color basis, Color light, Color dark) Ball(BallColor color)
