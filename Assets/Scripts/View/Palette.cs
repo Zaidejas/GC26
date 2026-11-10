@@ -12,11 +12,11 @@ namespace Lines.View
         public static readonly Color Screen = Hex(0x10202C);
 
         // Board: dark purple glass with a violet rim and glow; cells glow faintly from inside.
-        public static readonly Color Board = Hex(0x1C1640, 0.88f);
+        public static readonly Color Board = Hex(0x1A1538, 0.95f);
         public static readonly Color BoardRim = Hex(0xBE96FF, 0.38f);
-        public static readonly Color BoardGlow = Hex(0x966EFF, 0.34f);
+        public static readonly Color BoardGlow = Hex(0x966EFF, 0.2f);
         public static readonly Color Cell = Hex(0xFFFFFF, 0.045f);
-        public static readonly Color CellLight = Hex(0xAADCFF, 0.13f);
+        public static readonly Color CellLight = Hex(0xAADCFF, 0.1f);
 
         // Text.
         public static readonly Color Text = Hex(0xF6EEDB);

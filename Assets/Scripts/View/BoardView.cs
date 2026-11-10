@@ -46,8 +46,9 @@ namespace Lines.View
     {
         public const int GlowOrder = -2, RimOrder = -1, BoardOrder = 0, CellOrder = 1, CellLightOrder = 2, DotOrder = 3, BallOrder = 4;
 
-        // Prototype: a 0.45cqw rim and a ~7cqw glow around the board; a light at 72% of each cell.
-        const float RimInCells = 0.05f, GlowInCells = 1.1f, CellLightSize = 0.85f;
+        // Prototype: a 0.45cqw rim and a soft glow just outside the board; a light at 72% of each cell.
+        // The glow sprite's edge is its rounded corner plus the fade; only the fade sticks out past the board.
+        const float RimInCells = 0.05f, GlowEdgeInCells = 0.9f, CellLightSize = 0.85f;
 
         SpriteRenderer background, rim, glow;
         readonly SpriteRenderer[] cells = new SpriteRenderer[GameConfig.BoardSize * GameConfig.BoardSize];
@@ -113,8 +114,8 @@ namespace Lines.View
             background.size = Vector2.one * layout.BoardSizeWorld;
             rim.sprite = SpriteFactory.RoundRect(layout.BoardCornerWorld + RimInCells);
             rim.size = Vector2.one * (layout.BoardSizeWorld + 2f * RimInCells);
-            glow.sprite = SpriteFactory.SoftGlow(GlowInCells);
-            glow.size = Vector2.one * (layout.BoardSizeWorld + 2f * GlowInCells);
+            glow.sprite = SpriteFactory.SoftGlow(GlowEdgeInCells);
+            glow.size = Vector2.one * (layout.BoardSizeWorld + 2f * GlowEdgeInCells * SpriteFactory.SoftGlowFadeShare);
             var cellSprite = SpriteFactory.RoundRect(layout.CellCornerWorld);
             foreach (var sr in cells)
             {
