@@ -21,10 +21,11 @@ namespace Lines.UI
         const float RowGap = 2f, LabelGap = 1.6f, SaveWidth = 22f; // "Save" plus 5u padding each side
         public const string Title = "Game over";
         public const string Label = "Your name for the leaderboard";
-        static readonly Color Dim = new Color(58 / 255f, 52 / 255f, 44 / 255f, 0.45f);
+        const float GlowSize = 8f; // the prototype's soft violet glow around the card
+        static readonly Color FieldFill = Palette.Hex(0x1A1433);
 
         RectTransform root, card, field;
-        Image cardImage, fieldBorder, fieldFill;
+        Image cardImage, cardGlow, fieldBorder, fieldFill;
         TextMeshProUGUI title, note, final, label, placeholder;
         TMP_InputField input;
         PillButton save;
@@ -59,13 +60,17 @@ namespace Lines.UI
             root.offsetMin = root.offsetMax = Vector2.zero;
 
             var dim = gameObject.AddComponent<Image>();
-            dim.color = Dim;
+            dim.color = Palette.Dim;
             dim.raycastTarget = true; // nothing behind can be tapped
 
+            cardGlow = NewRect("Glow", root).gameObject.AddComponent<Image>();
+            cardGlow.rectTransform.anchorMin = cardGlow.rectTransform.anchorMax = cardGlow.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            cardGlow.color = Palette.CardGlow;
+            cardGlow.raycastTarget = false;
             card = NewRect("Card", root);
             card.anchorMin = card.anchorMax = card.pivot = new Vector2(0.5f, 0.5f);
             cardImage = card.gameObject.AddComponent<Image>();
-            cardImage.color = Color.white;
+            cardImage.color = Palette.Card;
             cardImage.raycastTarget = false;
 
             title = NewText("Title", Title, Palette.Text, true, TextAlignmentOptions.Center);
@@ -84,7 +89,7 @@ namespace Lines.UI
             fieldBorder = field.gameObject.AddComponent<Image>();
             fieldBorder.color = Palette.Line;
             fieldFill = NewRect("Fill", field).gameObject.AddComponent<Image>();
-            fieldFill.color = Color.white;
+            fieldFill.color = FieldFill;
             fieldFill.raycastTarget = false;
             Stretch(fieldFill.rectTransform);
             var area = NewRect("Text area", field);
@@ -106,7 +111,7 @@ namespace Lines.UI
             input.onFocusSelectAll = true;
             input.caretColor = Palette.Text;
             input.customCaretColor = true;
-            input.selectionColor = new Color(0.23f, 0.43f, 0.88f, 0.3f);
+            input.selectionColor = Palette.Hex(0xFFD56B, 0.35f);
             input.onSubmit.AddListener(_ => Submit());
             field.gameObject.SetActive(true);
 
@@ -139,6 +144,8 @@ namespace Lines.UI
             // Title, 2u, "Final score", the number, 6u, (form pulled up 2u) label, 1.6u, the field row.
             float height = PadTop * u + titleH + 2f * u + noteH + finalH + (6f - 2f) * u + labelH + LabelGap * u + fieldH + PadBottom * u;
             card.sizeDelta = new Vector2(width, height);
+            cardGlow.rectTransform.sizeDelta = card.sizeDelta + Vector2.one * 2f * GlowSize * u;
+            UiShapes.MakeGlow(cardGlow, GlowSize * u);
             UiShapes.MakeRounded(cardImage, CardRadius * u);
 
             float y = height - PadTop * u - titleH;

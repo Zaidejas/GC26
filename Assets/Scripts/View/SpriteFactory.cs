@@ -6,7 +6,7 @@ namespace Lines.View
 {
     /// <summary>
     /// Draws the game's sprites in code (no image files): glossy balls and rounded squares.
-    /// The glossy balls are the fallback when the creature images are missing (see PieceSet).
+    /// The glossy balls are the fallback when the mushroom images are missing (see PieceSet).
     /// Sprites are cached, so each one is drawn only once.
     /// </summary>
     public static class SpriteFactory
@@ -70,6 +70,68 @@ namespace Lines.View
             sprite.name = "RoundRect " + cornerRadius;
             RoundRects[cornerRadius] = sprite;
             return sprite;
+        }
+
+        // ---- Soft glows (the prototype's box-shadow glows) ----
+
+        // Rounded enough to follow pill-shaped buttons: the middle has 30 px corners, the fade is 26 px.
+        const int GlowFadePx = 26, GlowCornerPx = 30, GlowEdgePx = GlowFadePx + GlowCornerPx, GlowTextureSize = 2 * GlowEdgePx + 16;
+        static Texture2D glowTexture;
+        static readonly Dictionary<float, Sprite> Glows = new Dictionary<float, Sprite>();
+        static Sprite softDisc;
+
+        /// <summary>
+        /// A white glow for 9-slice drawing: solid in the middle, fading out towards the edges over
+        /// <paramref name="edge"/> world units. Put it behind a shape, larger than the shape, for a halo.
+        /// </summary>
+        public static Sprite SoftGlow(float edge)
+        {
+            if (Glows.TryGetValue(edge, out var cached) && cached != null) return cached;
+            if (glowTexture == null) glowTexture = MakeGlowTexture();
+            int n = GlowTextureSize;
+            var sprite = Sprite.Create(glowTexture, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), GlowEdgePx / edge,
+                0, SpriteMeshType.FullRect, new Vector4(GlowEdgePx, GlowEdgePx, GlowEdgePx, GlowEdgePx));
+            sprite.name = "SoftGlow " + edge;
+            Glows[edge] = sprite;
+            return sprite;
+        }
+
+        /// <summary>How much of the 9-slice edge in <see cref="SoftGlow"/> is the fade (the rest is the rounded corner).</summary>
+        public const float SoftGlowFadeShare = (float)GlowFadePx / GlowEdgePx;
+
+        static Texture2D MakeGlowTexture()
+        {
+            int n = GlowTextureSize;
+            var pixels = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                // Distance from the solid middle (a rounded square), faded with an ease-out curve.
+                // The solid middle starts GlowFadePx in from the edge, so the glow is fully clear at the edge.
+                float dx = Mathf.Max(GlowFadePx + GlowCornerPx - (x + 0.5f), (x + 0.5f) - (n - GlowFadePx - GlowCornerPx), 0f);
+                float dy = Mathf.Max(GlowFadePx + GlowCornerPx - (y + 0.5f), (y + 0.5f) - (n - GlowFadePx - GlowCornerPx), 0f);
+                float d = Mathf.Max(0f, Mathf.Sqrt(dx * dx + dy * dy) - GlowCornerPx);
+                float t = 1f - Mathf.Clamp01(d / GlowFadePx);
+                pixels[y * n + x] = new Color(1f, 1f, 1f, t * t);
+            }
+            return NewTexture(n, pixels, "SoftGlow");
+        }
+
+        /// <summary>A white disc that fades out from the middle, 1 world unit wide (the light inside each cell).</summary>
+        public static Sprite SoftDisc()
+        {
+            if (softDisc != null) return softDisc;
+            const int n = 64;
+            var pixels = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(n / 2f, n / 2f)) / (n / 2f);
+                float t = 1f - Mathf.Clamp01(d);
+                pixels[y * n + x] = new Color(1f, 1f, 1f, t * t);
+            }
+            softDisc = Sprite.Create(NewTexture(n, pixels, "SoftDisc"), new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), n);
+            return softDisc;
         }
 
         static Sprite disc;

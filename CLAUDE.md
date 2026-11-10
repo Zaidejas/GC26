@@ -20,7 +20,7 @@ A study project: a phone remake of the classic Lines puzzle (move balls on a 9×
 - The project has one scene, `Assets/Scenes/Main.unity`, containing only a camera and `GameBootstrap`. Everything else (board, balls, UI) is created from code at runtime.
 - Never hand-edit `.unity`, `.prefab` or `.asset` files as text. If a scene or setting must change, change `Assets/Scripts/Editor/ProjectSetup.cs` and run it.
 - No third-party packages from the Asset Store. Animations use our own small helper (no DOTween).
-- MVP art: the dark magic-forest look from the prototype (GDD → Art): 7 glowing mushrooms, two forest backgrounds and the Mystery Quest font. Until task 31 brings them into Unity as PNGs exported from the prototype, the game still shows the old light look with the creatures cut from Figma screenshots (`Assets/Resources/Creatures/creature_0…8.png`); `PieceSet` picks the piece images, with generated glossy balls as a fallback.
+- MVP art: the dark magic-forest look from the prototype (GDD → Art), exported from it as PNGs: 7 glowing mushrooms (`Assets/Resources/Mushrooms/mushroom_0…6.png`, the same in every game; `PieceSet.Mushrooms()`, with generated glossy balls as a fallback), two forest backgrounds (`Assets/Resources/Backgrounds/`; `ForestBackground`: the menu's has tall mushrooms) and the Mystery Quest font. Colours live in `Palette`.
 
 ## Code layout
 

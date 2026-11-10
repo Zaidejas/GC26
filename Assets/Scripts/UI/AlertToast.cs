@@ -14,7 +14,7 @@ namespace Lines.UI
         public const float FadeSeconds = 0.15f;
         public const float VisibleSeconds = 1.1f;
         const float FontSize = 4.2f, PaddingX = 5f, PaddingY = 2.2f; // prototype, in units (1 % of the width)
-        static readonly Color Background = new Color(40 / 255f, 34 / 255f, 28 / 255f, 0.9f);
+        static readonly Color Background = Palette.Toast;
 
         RectTransform rect;
         CanvasGroup group;
@@ -58,7 +58,7 @@ namespace Lines.UI
             textRect.anchorMax = Vector2.one;
             textRect.offsetMin = textRect.offsetMax = Vector2.zero;
             label = textGo.AddComponent<TextMeshProUGUI>();
-            label.color = Color.white;
+            label.color = Palette.Text;
             label.fontStyle = FontStyles.Bold;
             UiFonts.UseBody(label);
             label.alignment = TextAlignmentOptions.Center;

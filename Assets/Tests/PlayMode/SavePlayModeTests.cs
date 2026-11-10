@@ -50,7 +50,6 @@ namespace Lines.Tests
             var cellsBefore = Enumerable.Range(0, 81).Select(i => board.Get(C(i))).ToArray();
             var scoreBefore = game.Controller.Game.Score;
             var previewBefore = game.Controller.Game.Preview.Cells.ToArray();
-            var creaturesBefore = game.BoardView.Pieces.CreatureIndices;
 
             // "Restart the app": it opens on the menu, and Continue brings the game back.
             yield return Launch();
@@ -64,7 +63,7 @@ namespace Lines.Tests
             CollectionAssert.AreEqual(cellsBefore, Enumerable.Range(0, 81).Select(i => restored.Board.Get(C(i))).ToArray(), "Same board");
             Assert.AreEqual(scoreBefore, restored.Score);
             CollectionAssert.AreEqual(previewBefore, restored.Preview.Cells.ToArray(), "Same preview");
-            CollectionAssert.AreEqual(creaturesBefore, game.BoardView.Pieces.CreatureIndices, "Same creatures");
+            Assert.IsTrue(game.BoardView.Pieces.UsesImages, "The mushrooms");
             Assert.AreEqual(81 - restored.Board.EmptyCount, game.BoardView.BallCount, "The screen shows it");
             Assert.IsTrue(game.Hud.UndoButton.Interactable, "Undo works after a restart");
 

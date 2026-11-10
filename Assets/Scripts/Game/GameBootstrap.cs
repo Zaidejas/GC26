@@ -18,6 +18,7 @@ namespace Lines.Game
         BoardView boardView;
         HudView hud;
         MenuView menu;
+        ForestBackground forest;
         HowToPlayView howToPlay;
         LeaderboardView leaderboardView;
         Vector2 lastScreenSize;
@@ -30,6 +31,7 @@ namespace Lines.Game
         public BoardView BoardView => boardView;
         public HudView Hud => hud;
         public MenuView Menu => menu;
+        public ForestBackground Forest => forest;
         public HowToPlayView HowToPlay => howToPlay;
         public LeaderboardView LeaderboardScreen => leaderboardView;
         /// <summary>The top 10 and the player-name memory (saved in its own file).</summary>
@@ -64,6 +66,7 @@ namespace Lines.Game
             mainCamera = Camera.main;
             boardView = BoardView.Create();
             hud = HudView.Create(mainCamera);
+            forest = ForestBackground.Create(mainCamera);
             menu = MenuView.Create(mainCamera);
             howToPlay = HowToPlayView.Create(mainCamera);
             leaderboardView = LeaderboardView.Create(mainCamera);
@@ -74,8 +77,10 @@ namespace Lines.Game
             RecordLeftoverScore();
             presenter.GameOver += OnGameOver;
             hud.GameOver.Saved += SaveScore;
-            // A saved game is loaded but waits behind Continue; without one, the menu still shows pieces.
-            if (!TryContinueSavedGame()) boardView.SetPieces(PieceSet.RandomCreatures(System.Environment.TickCount));
+            // MVP art: the 7 glowing mushrooms in every game (glossy balls only if the images are missing).
+            boardView.SetPieces(PieceSet.Mushrooms());
+            // A saved game is loaded but waits behind Continue.
+            TryContinueSavedGame();
             Relayout();
             Taps = gameObject.AddComponent<InputHandler>();
             Taps.Init(this);
@@ -98,12 +103,10 @@ namespace Lines.Game
             Debug.Log("Lines: game started");
         }
 
-        /// <summary>A fresh game: new seed, 3 random pieces, a new set of 7 creatures, score 0, no Undo.</summary>
+        /// <summary>A fresh game: new seed, 3 random pieces, score 0, no Undo.</summary>
         public void StartNewGame()
         {
             int seed = System.Environment.TickCount;
-            // MVP art: 7 of the 9 creatures per game. For the glossy balls instead, use PieceSet.Balls().
-            boardView.SetPieces(PieceSet.RandomCreatures(seed));
             ScorePending = false; // only finished games reach the leaderboard
             Use(new GameController(GameState.NewGame(seed), presenter));
             SaveGame(); // Reset also starts a new save
@@ -114,6 +117,7 @@ namespace Lines.Game
         /// <summary>The app opens here. Continue shows the saved game's score, or is greyed out.</summary>
         public void ShowMenu()
         {
+            forest.Show(menu: true);
             GameScreenShowing = false;
             boardView.gameObject.SetActive(false);
             hud.SetVisible(false);
@@ -125,6 +129,7 @@ namespace Lines.Game
         /// <summary>Menu → How to play: opens on the first card; the back arrow or "Got it" returns.</summary>
         public void ShowHowToPlay()
         {
+            forest.Show(menu: false);
             menu.Hide();
             howToPlay.Show(boardView.Pieces);
         }
@@ -135,6 +140,7 @@ namespace Lines.Game
         /// </summary>
         public void ShowLeaderboard(string result = null, bool afterGame = false)
         {
+            forest.Show(menu: false);
             GameScreenShowing = false;
             boardView.gameObject.SetActive(false);
             hud.SetVisible(false);
@@ -145,6 +151,7 @@ namespace Lines.Game
 
         public void ShowGame()
         {
+            forest.Show(menu: false);
             menu.Hide();
             howToPlay.Hide();
             leaderboardView.Hide();
@@ -183,7 +190,6 @@ namespace Lines.Game
             var save = saves.Load();
             var game = save?.ToGameState();
             if (game == null || game.IsOver) return false;
-            boardView.SetPieces(PieceSet.FromCreatures(save.creatures, System.Environment.TickCount));
             Use(new GameController(game, presenter));
             return true;
         }
@@ -198,7 +204,7 @@ namespace Lines.Game
         public void SaveGame()
         {
             if (Controller == null || saves == null) return;
-            var save = GameSave.From(Controller.Game, boardView.Pieces.CreatureIndices);
+            var save = GameSave.From(Controller.Game);
             save.hasPendingScore = ScorePending && Controller.Game.IsOver;
             saves.Save(save);
         }
@@ -276,6 +282,7 @@ namespace Lines.Game
             CameraSetup.Apply(mainCamera, Layout);
             boardView.ApplyLayout(Layout);
             hud.ApplyLayout(Layout);
+            forest.ApplyLayout(Layout);
             menu.ApplyLayout(Layout);
             howToPlay.ApplyLayout(Layout);
             leaderboardView.ApplyLayout(Layout);

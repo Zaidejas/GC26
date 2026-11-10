@@ -16,10 +16,10 @@ namespace Lines.UI
         // Prototype sizes (cqw).
         const float CardWidth = 78f, CardRadius = 5f, PadTop = 7f, PadSide = 6f, PadBottom = 6f;
         const float TitleSize = 7f, TextSize = 4.4f, ButtonHeight = 12f, ButtonGap = 3f;
-        static readonly Color Dim = new Color(58 / 255f, 52 / 255f, 44 / 255f, 0.45f);
+        const float GlowSize = 8f; // the prototype's soft violet glow around the card
 
         RectTransform root, card;
-        Image cardImage;
+        Image cardImage, cardGlow;
         TextMeshProUGUI title, message;
         PillButton cancel, confirm;
         Action onConfirm;
@@ -51,13 +51,17 @@ namespace Lines.UI
             root.SetAsLastSibling(); // on top of everything else on the canvas
 
             var dim = gameObject.AddComponent<Image>();
-            dim.color = Dim;
+            dim.color = Palette.Dim;
             dim.raycastTarget = true; // swallows taps on whatever is behind
 
+            cardGlow = NewRect("Glow", root).gameObject.AddComponent<Image>();
+            cardGlow.rectTransform.anchorMin = cardGlow.rectTransform.anchorMax = cardGlow.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            cardGlow.color = Palette.CardGlow;
+            cardGlow.raycastTarget = false;
             card = NewRect("Card", root);
             card.anchorMin = card.anchorMax = card.pivot = new Vector2(0.5f, 0.5f);
             cardImage = card.gameObject.AddComponent<Image>();
-            cardImage.color = Color.white;
+            cardImage.color = Palette.Card;
 
             title = NewText("Title", Palette.Text, true);
             message = NewText("Message", Palette.SoftText, false);
@@ -95,6 +99,8 @@ namespace Lines.UI
             float buttonsH = ButtonHeight * u;
             float height = PadTop * u + titleH + 2f * u + messageH + 6f * u + buttonsH + PadBottom * u;
             card.sizeDelta = new Vector2(width, height);
+            cardGlow.rectTransform.sizeDelta = card.sizeDelta + Vector2.one * 2f * GlowSize * u;
+            UiShapes.MakeGlow(cardGlow, GlowSize * u);
             cardImage.sprite = SpriteFactory.RoundRect(0.5f);
             cardImage.type = Image.Type.Sliced;
             var canvas = GetComponentInParent<Canvas>();
@@ -144,7 +150,7 @@ namespace Lines.UI
             var tmp = rt.gameObject.AddComponent<TextMeshProUGUI>();
             tmp.color = color;
             tmp.fontStyle = bold ? FontStyles.Bold : FontStyles.Normal;
-            if (bold) UiFonts.UseDisplay(tmp); else UiFonts.UseBody(tmp); // the title is Fredoka
+            if (bold) UiFonts.UseDisplay(tmp); else UiFonts.UseBody(tmp); // the title is Mystery Quest
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.textWrappingMode = TextWrappingModes.Normal;
             tmp.raycastTarget = false;

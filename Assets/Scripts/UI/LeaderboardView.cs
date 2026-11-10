@@ -24,7 +24,8 @@ namespace Lines.UI
         const float RankWidth = 8f, ColumnGap = 3f, RankSize = 5f, NameSize = 4.4f, DateSize = 3.6f, PointsSize = 6f;
         public const string EmptyText = "No finished games yet. Your score is added here when a game ends.";
         public const string FineText = "Top 10 games on this device";
-        static readonly Color Focus = Palette.Hex(0x3A6EE0);
+        static readonly Color Focus = Palette.Focus;
+        static readonly Color RowFill = Palette.Hex(0x1E1640); // solid, so the gold outline doesn't tint it
 
         sealed class Row
         {
@@ -113,7 +114,7 @@ namespace Lines.UI
                 row.Border = row.Rect.gameObject.AddComponent<Image>();
                 row.Border.raycastTarget = false;
                 row.Fill = NewRect("Fill", row.Rect).gameObject.AddComponent<Image>();
-                row.Fill.color = Color.white;
+                row.Fill.color = RowFill;
                 row.Fill.raycastTarget = false;
                 row.Rank = NewText("Rank", row.Rect, Palette.SoftText, true, TextAlignmentOptions.Left);
                 row.Name = NewText("Name", row.Rect, Palette.Text, true, TextAlignmentOptions.BottomLeft);
@@ -218,7 +219,7 @@ namespace Lines.UI
             float h = RowHeight * u;
             row.Rect.anchoredPosition = new Vector2(0f, -index * (RowHeight + RowGap) * u);
             row.Rect.sizeDelta = new Vector2(width, h);
-            row.Border.color = latest ? Focus : Color.white;
+            row.Border.color = latest ? Focus : RowFill;
             UiShapes.MakeRounded(row.Border, RowRadius * u);
             float b = RowBorder * u;
             Place(row.Fill.rectTransform, b, b, width - 2f * b, h - 2f * b);

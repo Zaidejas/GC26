@@ -4,7 +4,7 @@ namespace Lines.View
 {
     public static class CameraSetup
     {
-        /// <summary>Points the camera so that 1 world unit = 1 board cell, with the screen background colour.</summary>
+        /// <summary>Points the camera so that 1 world unit = 1 board cell; the forest background is drawn on top of its colour.</summary>
         public static void Apply(Camera camera, BoardLayout layout)
         {
             camera.orthographic = true;

@@ -111,10 +111,11 @@ namespace Lines.Tests
         }
 
         [Test]
-        public void CreatureSet_IsKept()
+        public void OldSaveWithACreatureSet_StillLoads()
         {
-            var save = GameSave.From(GameState.NewGame(1), new[] { 8, 0, 3, 5, 1, 7, 2 });
-            CollectionAssert.AreEqual(new[] { 8, 0, 3, 5, 1, 7, 2 }, save.creatures);
+            var json = JsonUtility.ToJson(GameSave.From(PlayedGame(5, 2)));
+            json = json.Replace("\"hasPendingScore\"", "\"creatures\":[8,0,3,5,1,7,2],\"hasPendingScore\"");
+            Assert.IsNotNull(JsonUtility.FromJson<GameSave>(json).ToGameState(), "The old field is simply ignored");
         }
 
         // ---- Damaged data: no crash, just "no saved game" ----
@@ -201,11 +202,10 @@ namespace Lines.Tests
             var game = PlayedGame(10, 5);
             Assert.IsFalse(service.HasSave);
 
-            service.Save(GameSave.From(game, new[] { 0, 1, 2, 3, 4, 5, 6 }));
+            service.Save(GameSave.From(game));
 
             Assert.IsTrue(service.HasSave);
             var loaded = service.Load();
-            CollectionAssert.AreEqual(new[] { 0, 1, 2, 3, 4, 5, 6 }, loaded.creatures);
             var restored = loaded.ToGameState();
             AssertSameBoard(game.Board, restored.Board, "from the file");
             Assert.AreEqual(game.Score, restored.Score);
@@ -243,23 +243,17 @@ namespace Lines.Tests
             Assert.IsFalse(File.Exists(service.FilePath + ".tmp"), "No temporary file left behind");
         }
 
-        // ---- Creature set ----
+        // ---- Pieces ----
 
         [Test]
-        public void PieceSet_FromSavedCreatures()
+        public void Mushrooms_AreThe7Pictures_OnePerColor()
         {
-            var pieces = PieceSet.FromCreatures(new[] { 8, 0, 3, 5, 1, 7, 2 }, 1);
-            if (!pieces.UsesCreatures) Assert.Ignore("Creature images not available");
-            CollectionAssert.AreEqual(new[] { 8, 0, 3, 5, 1, 7, 2 }, pieces.CreatureIndices);
-        }
-
-        [Test]
-        public void PieceSet_DamagedCreatureList_PicksANewValidSet()
-        {
-            var pieces = PieceSet.FromCreatures(new[] { 1, 1, 1 }, 1);
-            if (!pieces.UsesCreatures) Assert.Ignore("Creature images not available");
-            Assert.AreEqual(7, pieces.CreatureIndices.Length);
-            CollectionAssert.AllItemsAreUnique(pieces.CreatureIndices);
+            var pieces = PieceSet.Mushrooms();
+            Assert.IsTrue(pieces.UsesImages, "The mushroom images are in Resources/Mushrooms");
+            var sprites = BallColors.All.Select(pieces.SpriteFor).ToArray();
+            Assert.AreEqual(7, sprites.Distinct().Count(), "A different mushroom for every color");
+            Assert.IsTrue(sprites.All(s => s.name.StartsWith("mushroom_")));
+            Assert.AreEqual(0.94f, pieces.SizeInCell, 1e-4f);
         }
     }
 }

@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 07520ffccc7ec413596944322e5f0a83
+guid: 99ea4e4b23eab4cf28333c47cf464b7c
 TrueTypeFontImporter:
   externalObjects: {}
   serializedVersion: 4
@@ -9,7 +9,7 @@ TrueTypeFontImporter:
   characterPadding: 1
   includeFontData: 1
   fontNames:
-  - Fredoka
+  - Mystery Quest
   fallbackFontReferences: []
   customCharacters: 
   fontRenderingMode: 0

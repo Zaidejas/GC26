@@ -27,6 +27,7 @@ namespace Lines.UI
         readonly List<Image> deco = new List<Image>();
         readonly List<TweenHandle> floats = new List<TweenHandle>();
         TextMeshProUGUI logo, tagline;
+        Image logoGlow;
         PillButton continueButton, newGame, howTo, leaderboard;
         BoardLayout layout;
         PieceSet pieces = PieceSet.Balls();
@@ -68,6 +69,16 @@ namespace Lines.UI
             logo = NewText("Title", "Lines", Palette.Text);
             tagline = NewText("Tagline", Tagline, Palette.SoftText);
             UiFonts.UseDisplay(logo);
+            UiFonts.UseDisplay(tagline);
+            logo.color = Color.white;
+            logo.enableVertexGradient = true;
+            logo.colorGradient = new VertexGradient(Palette.TitleTop, Palette.TitleTop, Palette.TitleBottom, Palette.TitleBottom);
+            // A soft warm light behind the title (the prototype's glow), drawn before the letters.
+            logoGlow = NewRect("Title glow").gameObject.AddComponent<Image>();
+            logoGlow.sprite = SpriteFactory.SoftDisc();
+            logoGlow.color = Palette.TitleGlow;
+            logoGlow.raycastTarget = false;
+            logoGlow.transform.SetSiblingIndex(logo.transform.GetSiblingIndex());
 
             continueButton = PillButton.Create(root, "Continue", primary: true);
             newGame = PillButton.Create(root, "New game");
@@ -103,6 +114,8 @@ namespace Lines.UI
             float logoTop = top - (DecoHeight + DecoMargin) * u;
             logo.fontSize = LogoSize * u;
             Place(logo.rectTransform, left, logoTop - LogoSize * 0.95f * u, width, LogoSize * 0.95f * u);
+            float glowWidth = 70f * u, glowHeight = LogoSize * 1.6f * u;
+            Place(logoGlow.rectTransform, safe.center.x - glowWidth / 2f, logoTop - LogoSize * 0.95f * u / 2f - glowHeight / 2f, glowWidth, glowHeight);
             tagline.fontSize = TagSize * u;
             float tagTop = logoTop - (LogoSize * 0.95f + TagMargin) * u;
             Place(tagline.rectTransform, left, tagTop - TagSize * 1.3f * u, width, TagSize * 1.3f * u);

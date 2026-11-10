@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 83e697225c7de4274b584d233d8bccf1
+guid: 6578e3420ffe4469ca0240ae14281c17
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -2372806692631375629
-    second: creature_0_0
+      213: 929628800536026309
+    second: forest_plain_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -55,7 +55,7 @@ TextureImporter:
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
-  alphaIsTransparency: 1
+  alphaIsTransparency: 0
   spriteTessellationDetail: -1
   textureType: 8
   textureShape: 1
@@ -72,10 +72,10 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
+    maxTextureSize: 4096
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 0
+    textureCompression: 2
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: creature_0_0
+      name: forest_plain_0
       rect:
         serializedVersion: 2
-        x: 7
-        y: 1
-        width: 134
-        height: 146
+        x: 0
+        y: 0
+        width: 1080
+        height: 2160
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 3f0990d72e8121fd0800000000000000
-      internalID: -2372806692631375629
+      spriteID: 5cc1cecf774b6ec00800000000000000
+      internalID: 929628800536026309
       vertices: []
       indices: 
       edges: []

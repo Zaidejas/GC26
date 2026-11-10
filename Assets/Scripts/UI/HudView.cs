@@ -17,7 +17,7 @@ namespace Lines.UI
     {
         // Prototype sizes (cqw).
         const float LabelSize = 3.2f, ScoreSize = 10f, GainSize = 5f, PieceSize = 8.5f, PieceGap = 1.6f, Inset = 1f;
-        static readonly Color GainColor = Palette.Hex(0x2F8F4E);
+        static readonly Color GainColor = Palette.Gain;
 
         Canvas canvas;
         RectTransform area;
@@ -221,7 +221,7 @@ namespace Lines.UI
             tmp.textWrappingMode = TextWrappingModes.NoWrap;
             tmp.overflowMode = TextOverflowModes.Overflow;
             tmp.raycastTarget = false;
-            if (name.EndsWith("label")) tmp.characterSpacing = 12f; // the prototype's letter-spaced labels
+            if (name.EndsWith("label")) { UiFonts.UseDisplay(tmp); tmp.characterSpacing = 6f; } // letter-spaced Mystery Quest labels
             return tmp;
         }
 

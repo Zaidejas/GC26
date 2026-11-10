@@ -67,6 +67,10 @@ namespace Lines.EditorTools
 
             var camera = new GameObject("Camera").AddComponent<Camera>();
             CameraSetup.Apply(camera, layout);
+            // The forest behind every screen: the menu's version has the tall mushrooms.
+            var forest = ForestBackground.Create(camera);
+            forest.ApplyLayout(layout);
+            forest.Show(menu: shot.Menu);
 
             if (shot.Scores > 0)
             {
@@ -94,7 +98,7 @@ namespace Lines.EditorTools
             {
                 var howTo = Lines.UI.HowToPlayView.Create(camera);
                 howTo.ApplyLayout(layout);
-                howTo.Show(PieceSet.RandomCreatures(7));
+                howTo.Show(PieceSet.Mushrooms());
                 howTo.GoTo(shot.HowTo - 1);
                 Canvas.ForceUpdateCanvases();
                 Finish(shot, camera, path);
@@ -105,7 +109,7 @@ namespace Lines.EditorTools
             {
                 var menu = Lines.UI.MenuView.Create(camera);
                 menu.ApplyLayout(layout);
-                menu.Show(120, PieceSet.RandomCreatures(7));
+                menu.Show(120, PieceSet.Mushrooms());
                 menu.SetSecondaryScreensAvailable(true, true);
                 Canvas.ForceUpdateCanvases();
                 Finish(shot, camera, path);
@@ -114,7 +118,7 @@ namespace Lines.EditorTools
 
             var view = BoardView.Create();
             view.ApplyLayout(layout);
-            view.SetPieces(PieceSet.RandomCreatures(7));
+            view.SetPieces(PieceSet.Mushrooms());
             var game = GameState.NewGame(7);
             var board = DemoBoard(game.Board);
             view.ShowBoard(board);

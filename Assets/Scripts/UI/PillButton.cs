@@ -8,17 +8,17 @@ using UnityEngine.UI;
 namespace Lines.UI
 {
     /// <summary>
-    /// A rounded button like the prototype's: white with a thin border and dark bold text
-    /// (or dark with white text for the main action). Disabled buttons fade to 40 %; a disabled main
-    /// button turns light grey instead (as the prototype's Continue). Can also show an icon (the back arrow).
-    /// Built from code; sizes are given in units (1 % of the content width).
+    /// A rounded button like the prototype's forest look: dark glass with a warm outline and light text,
+    /// or glowing gold with dark text for the main action. Disabled buttons fade to 40 %; a disabled main
+    /// button turns into plain dark glass instead (as the prototype's Continue). Can also show an icon (the
+    /// back arrow). Labels use the Mystery Quest font. Built from code; sizes in units (1 % of the content width).
     /// </summary>
     public sealed class PillButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     {
-        const float BorderWidth = 0.4f, FontSize = 4.6f;
+        const float BorderWidth = 0.4f, FontSize = 5f, GlowSize = 4f;
 
         RectTransform rect;
-        Image border, fill;
+        Image hitArea, glow, border, fill;
         TextMeshProUGUI label;
         Button button;
         CanvasGroup group;
@@ -37,10 +37,11 @@ namespace Lines.UI
                 button.interactable = value;
                 if (primary)
                 {
-                    // Prototype: a disabled main button is light grey with soft text, not faded.
-                    border.color = value ? Palette.Text : Palette.Line;
-                    fill.color = value ? Palette.Text : Palette.Hex(0xEBE5DA);
-                    label.color = value ? Color.white : Palette.SoftText;
+                    // Prototype: a disabled main button is plain dark glass with soft text, not faded.
+                    border.color = value ? Palette.Gold : Palette.DisabledRim;
+                    fill.color = value ? Palette.Gold : Palette.DisabledFill;
+                    label.color = value ? Palette.GoldText : Palette.SoftText;
+                    glow.enabled = value;
                     group.alpha = 1f;
                 }
                 else
@@ -65,7 +66,7 @@ namespace Lines.UI
             b.gameObject.name = "Button " + name;
             b.icon = b.Child("Icon").gameObject.AddComponent<Image>();
             b.icon.sprite = iconSprite;
-            b.icon.color = Palette.Text;
+            b.icon.color = Palette.Text; // light cream on dark glass
             b.icon.preserveAspect = true;
             b.icon.raycastTarget = false;
             var r = b.icon.rectTransform;
@@ -84,24 +85,32 @@ namespace Lines.UI
             rect.pivot = new Vector2(0.5f, 0.5f); // presses shrink it towards its middle
             group = gameObject.AddComponent<CanvasGroup>();
 
-            border = gameObject.AddComponent<Image>();
-            border.color = primary ? Palette.Text : Palette.Line;
+            // An invisible image catches taps; the visible parts are children: glow, outline, fill, label.
+            hitArea = gameObject.AddComponent<Image>();
+            hitArea.color = Color.clear;
+
+            glow = Child("Glow").gameObject.AddComponent<Image>();
+            glow.color = primary ? Palette.GoldGlow : new Color(0.55f, 0.86f, 1f, 0.08f);
+            glow.raycastTarget = false;
+
+            border = Child("Outline").gameObject.AddComponent<Image>();
+            border.color = primary ? Palette.Gold : Palette.Line;
+            border.raycastTarget = false;
 
             fill = Child("Fill").gameObject.AddComponent<Image>();
-            fill.color = primary ? Palette.Text : Color.white;
+            fill.color = primary ? Palette.Gold : Palette.Glass;
             fill.raycastTarget = false;
 
             label = Child("Label").gameObject.AddComponent<TextMeshProUGUI>();
             label.text = text;
-            label.color = primary ? Color.white : Palette.Text;
-            label.fontStyle = FontStyles.Bold;
-            UiFonts.UseBody(label);
+            label.color = primary ? Palette.GoldText : Palette.Text;
+            UiFonts.UseDisplay(label);
             label.alignment = TextAlignmentOptions.Center;
             label.textWrappingMode = TextWrappingModes.NoWrap;
             label.raycastTarget = false;
 
             button = gameObject.AddComponent<Button>();
-            button.targetGraphic = border;
+            button.targetGraphic = hitArea;
             button.transition = Selectable.Transition.None; // the 40 % fade shows the disabled state
             button.onClick.AddListener(() => Clicked?.Invoke());
         }
@@ -112,6 +121,10 @@ namespace Lines.UI
             rect.anchoredPosition = pixels.center;
             rect.sizeDelta = pixels.size;
             UiShapes.MakePill(border, pixels.height);
+            float glowSize = GlowSize * unit;
+            glow.rectTransform.offsetMin = new Vector2(-glowSize, -glowSize);
+            glow.rectTransform.offsetMax = new Vector2(glowSize, glowSize);
+            UiShapes.MakeGlow(glow, glowSize);
 
             var inset = BorderWidth * unit;
             var fillRect = fill.rectTransform;
@@ -165,6 +178,20 @@ namespace Lines.UI
     /// <summary>Shared shapes for UI images.</summary>
     public static class UiShapes
     {
+        /// <summary>
+        /// Makes <paramref name="image"/> a soft glow that fades out over about <paramref name="fadePixels"/>
+        /// at its edges; place it <paramref name="fadePixels"/> larger than the shape it lights up.
+        /// </summary>
+        public static void MakeGlow(Image image, float fadePixels)
+        {
+            image.sprite = SpriteFactory.SoftGlow(1f);
+            image.type = Image.Type.Sliced;
+            var canvas = image.GetComponentInParent<Canvas>();
+            float canvasPpu = canvas != null ? canvas.referencePixelsPerUnit : 100f;
+            float edge = Mathf.Max(1f, fadePixels / SpriteFactory.SoftGlowFadeShare); // fade plus rounded corner
+            image.pixelsPerUnitMultiplier = image.sprite.border.x * canvasPpu / (image.sprite.pixelsPerUnit * edge);
+        }
+
         /// <summary>Makes <paramref name="image"/> a rounded rectangle with corners <paramref name="radiusPixels"/> round.</summary>
         public static void MakeRounded(Image image, float radiusPixels)
         {

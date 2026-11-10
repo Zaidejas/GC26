@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Lines.View
 {
-    /// <summary>One ball on the board (a creature or a glossy ball): a sprite that can be changed and reused.</summary>
+    /// <summary>One ball on the board (a mushroom or a glossy ball): a sprite that can be changed and reused.</summary>
     public sealed class BallView : MonoBehaviour
     {
         SpriteRenderer spriteRenderer;
@@ -44,10 +44,14 @@ namespace Lines.View
     /// </summary>
     public sealed class BoardView : MonoBehaviour
     {
-        public const int BoardOrder = 0, CellOrder = 1, DotOrder = 2, BallOrder = 3;
+        public const int GlowOrder = -2, RimOrder = -1, BoardOrder = 0, CellOrder = 1, CellLightOrder = 2, DotOrder = 3, BallOrder = 4;
 
-        SpriteRenderer background;
+        // Prototype: a 0.45cqw rim and a ~7cqw glow around the board; a light at 72% of each cell.
+        const float RimInCells = 0.05f, GlowInCells = 1.1f, CellLightSize = 0.85f;
+
+        SpriteRenderer background, rim, glow;
         readonly SpriteRenderer[] cells = new SpriteRenderer[GameConfig.BoardSize * GameConfig.BoardSize];
+        readonly SpriteRenderer[] cellLights = new SpriteRenderer[GameConfig.BoardSize * GameConfig.BoardSize];
         readonly Dictionary<Cell, BallView> balls = new Dictionary<Cell, BallView>();
         readonly Stack<BallView> pool = new Stack<BallView>();
         Transform ballRoot, poolRoot;
@@ -55,7 +59,7 @@ namespace Lines.View
 
         public PieceSet Pieces => pieces;
 
-        /// <summary>Switches between creatures and balls; balls already on the board change at once.</summary>
+        /// <summary>Switches between mushrooms and balls; balls already on the board change at once.</summary>
         public void SetPieces(PieceSet set)
         {
             pieces = set ?? PieceSet.Balls();
@@ -74,6 +78,8 @@ namespace Lines.View
 
         void Build()
         {
+            glow = NewSprite("Glow", transform, Palette.BoardGlow, GlowOrder);
+            rim = NewSprite("Rim", transform, Palette.BoardRim, RimOrder);
             background = NewSprite("Background", transform, Palette.Board, BoardOrder);
             var cellRoot = new GameObject("Cells").transform;
             cellRoot.SetParent(transform, false);
@@ -84,6 +90,13 @@ namespace Lines.View
                 var sr = NewSprite($"Cell {column},{row}", cellRoot, Palette.Cell, CellOrder);
                 sr.transform.localPosition = CellToLocal(cell);
                 cells[row * GameConfig.BoardSize + column] = sr;
+                var light = new GameObject("Light").AddComponent<SpriteRenderer>();
+                light.transform.SetParent(sr.transform, false);
+                light.transform.localPosition = new Vector3(0f, 0.12f, 0f); // the prototype's light sits a little above the middle
+                light.sprite = SpriteFactory.SoftDisc();
+                light.color = Palette.CellLight;
+                light.sortingOrder = CellLightOrder;
+                cellLights[row * GameConfig.BoardSize + column] = light;
             }
             ballRoot = new GameObject("Balls").transform;
             ballRoot.SetParent(transform, false);
@@ -98,12 +111,18 @@ namespace Lines.View
             transform.localPosition = layout.BoardCenterWorld;
             background.sprite = SpriteFactory.RoundRect(layout.BoardCornerWorld);
             background.size = Vector2.one * layout.BoardSizeWorld;
+            rim.sprite = SpriteFactory.RoundRect(layout.BoardCornerWorld + RimInCells);
+            rim.size = Vector2.one * (layout.BoardSizeWorld + 2f * RimInCells);
+            glow.sprite = SpriteFactory.SoftGlow(GlowInCells);
+            glow.size = Vector2.one * (layout.BoardSizeWorld + 2f * GlowInCells);
             var cellSprite = SpriteFactory.RoundRect(layout.CellCornerWorld);
             foreach (var sr in cells)
             {
                 sr.sprite = cellSprite;
                 sr.size = Vector2.one * layout.CellSizeWorld;
             }
+            foreach (var light in cellLights)
+                light.transform.localScale = Vector3.one * (layout.CellSizeWorld * CellLightSize);
         }
 
         /// <summary>Position of a cell's centre inside the board (row 0 is the top row).</summary>
@@ -173,7 +192,7 @@ namespace Lines.View
                 var (cell, color) = dotData[i];
                 var sprite = pieces.SpriteFor(color);
                 dots[i].sprite = sprite;
-                dots[i].color = new Color(1f, 1f, 1f, pieces.UsesCreatures ? 0.9f : 0.95f);
+                dots[i].color = Color.white;
                 dots[i].transform.localPosition = CellToLocal(cell);
                 var size = sprite.bounds.size;
                 dots[i].transform.localScale = Vector3.one * (pieces.DotSizeInCell / Mathf.Max(size.x, size.y));

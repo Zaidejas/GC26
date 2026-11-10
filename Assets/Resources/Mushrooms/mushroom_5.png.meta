@@ -1,15 +1,15 @@
 fileFormatVersion: 2
-guid: 3164ff0670c99449f9971ff2aa86fa9f
+guid: aa71787c9d21a493db5f1ba125306b9c
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 1098795796811761745
-    second: creature_7_0
+      213: 3176906158336130014
+    second: mushroom_5_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
     mipMapMode: 0
-    enableMipMap: 0
+    enableMipMap: 1
     sRGBTexture: 1
     linearTexture: 0
     fadeOut: 0
@@ -72,7 +72,7 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
+    maxTextureSize: 1024
     resizeAlgorithm: 0
     textureFormat: -1
     textureCompression: 0
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: creature_7_0
+      name: mushroom_5_0
       rect:
         serializedVersion: 2
-        x: 1
-        y: 16
-        width: 166
-        height: 137
+        x: 10
+        y: 0
+        width: 492
+        height: 491
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 15848ad94f4bf3f00800000000000000
-      internalID: 1098795796811761745
+      spriteID: edb306ca153a61c20800000000000000
+      internalID: 3176906158336130014
       vertices: []
       indices: 
       edges: []

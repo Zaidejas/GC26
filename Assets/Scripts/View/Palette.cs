@@ -3,17 +3,48 @@ using UnityEngine;
 
 namespace Lines.View
 {
-    /// <summary>Colors from docs/prototype/lines-prototype.html (the game screen's single light theme).</summary>
+    /// <summary>
+    /// Colors of the dark magic-forest look from docs/prototype/lines-prototype.html (GDD → Art).
+    /// Layered UI parts (a fill over its border) use nearly opaque colors so the border doesn't show through.
+    /// </summary>
     public static class Palette
     {
-        public static readonly Color Screen = Hex(0xF3EFE7);
-        public static readonly Color Board = Hex(0xDDD5C6);
-        public static readonly Color Cell = Hex(0xF8F5EF);
-        public static readonly Color Text = Hex(0x3A342C);
-        public static readonly Color SoftText = Hex(0x8A7F70);
-        public static readonly Color Line = Hex(0xD9D0C0);
+        public static readonly Color Screen = Hex(0x10202C);
 
-        /// <summary>Base, light (highlight side) and dark (shadow side) shade of a ball color.</summary>
+        // Board: dark purple glass with a violet rim and glow; cells glow faintly from inside.
+        public static readonly Color Board = Hex(0x1C1640, 0.88f);
+        public static readonly Color BoardRim = Hex(0xBE96FF, 0.38f);
+        public static readonly Color BoardGlow = Hex(0x966EFF, 0.34f);
+        public static readonly Color Cell = Hex(0xFFFFFF, 0.045f);
+        public static readonly Color CellLight = Hex(0xAADCFF, 0.13f);
+
+        // Text.
+        public static readonly Color Text = Hex(0xF6EEDB);
+        public static readonly Color SoftText = Hex(0xA9BCCD);
+        public static readonly Color Line = Hex(0xFFE9BE, 0.3f);
+        public static readonly Color Focus = Hex(0xFFD56B);
+        public static readonly Color Gain = Hex(0x9CF5B0);
+
+        // Buttons and panels: dark glass with a warm outline; main buttons are glowing gold.
+        public static readonly Color Glass = Hex(0x1E1640, 0.9f);
+        public static readonly Color Gold = Hex(0xFFC45E);
+        public static readonly Color GoldText = Hex(0x3A2208);
+        public static readonly Color GoldGlow = Hex(0xFFBE5A, 0.45f);
+        public static readonly Color DisabledFill = Hex(0x2A2448, 0.9f);
+        public static readonly Color DisabledRim = Hex(0xFFFFFF, 0.15f);
+
+        // Pop-ups.
+        public static readonly Color Dim = Hex(0x060814, 0.6f);
+        public static readonly Color Card = Hex(0x231A44);
+        public static readonly Color CardGlow = Hex(0xA078FF, 0.3f);
+        public static readonly Color Toast = Hex(0x0E0A1E, 0.9f);
+
+        // The "Lines" title: a gold gradient with a warm glow.
+        public static readonly Color TitleTop = Hex(0xFFF2C2);
+        public static readonly Color TitleBottom = Hex(0xFF9A3C);
+        public static readonly Color TitleGlow = Hex(0xFFBE5A, 0.22f);
+
+        /// <summary>Base, light (highlight side) and dark (shadow side) shade of a ball color (the fallback balls).</summary>
         public static (Color basis, Color light, Color dark) Ball(BallColor color)
         {
             switch (color)
@@ -29,7 +60,7 @@ namespace Lines.View
             }
         }
 
-        public static Color Hex(int rgb) =>
-            new Color(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f, 1f);
+        public static Color Hex(int rgb, float alpha = 1f) =>
+            new Color(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f, alpha);
     }
 }

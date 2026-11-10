@@ -110,14 +110,14 @@ namespace Lines.Tests
         public void Fonts_AreThePrototypes()
         {
             Assert.IsNotNull(UiFonts.Body, "Nunito found in Resources/Fonts");
-            Assert.IsNotNull(UiFonts.Display, "Fredoka found in Resources/Fonts");
+            Assert.IsNotNull(UiFonts.Display, "Mystery Quest found in Resources/Fonts");
             Assert.AreEqual(UiFonts.BodyFile, UiFonts.Body.name);
             Assert.AreEqual(UiFonts.BoldFile, UiFonts.Body.fontWeightTable[7].regularTypeface.name, "Bold text uses Nunito ExtraBold");
 
             var label = hud.ResetButton.GetComponentInChildren<TMPro.TextMeshProUGUI>();
-            Assert.AreSame(UiFonts.Body, label.font, "Buttons: Nunito");
+            Assert.AreSame(UiFonts.Display, label.font, "Buttons: Mystery Quest");
             var score = hud.transform.Find("HUD/Score") ?? FindDeep(hud.transform, "Score");
-            Assert.AreSame(UiFonts.Display, score.GetComponent<TMPro.TextMeshProUGUI>().font, "The score: Fredoka");
+            Assert.AreSame(UiFonts.Display, score.GetComponent<TMPro.TextMeshProUGUI>().font, "The score: Mystery Quest");
         }
 
         static Transform FindDeep(Transform root, string name)

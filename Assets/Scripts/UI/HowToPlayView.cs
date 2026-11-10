@@ -38,7 +38,8 @@ namespace Lines.UI
         const float MiniWidth = 78f, MiniPad = 1.2f, MiniGap = 0.8f, MiniRadius = 2.6f, CellRadius = 1.1f;
         const float TitleSize = 7f, TitleTopMargin = 2f, TextSize = 4.5f, TextWidth = 76f;
         const float DotSize = 2.2f, DotGap = 2.2f, ButtonHeight = 12f, ButtonGap = 3f, TargetRing = 0.6f;
-        static readonly Color Focus = Palette.Hex(0x3A6EE0);
+        static readonly Color Focus = Palette.Focus;
+        static readonly Color MiniCell = Palette.Hex(0x2B2452);
         const int MiniCells = 6;
 
         Canvas canvas;
@@ -95,9 +96,9 @@ namespace Lines.UI
             for (int i = 0; i < MiniCells; i++)
             {
                 var cell = NewRect("Cell " + i, mini).gameObject.AddComponent<Image>();
-                cell.color = Palette.Cell;
+                cell.color = MiniCell;
                 var inner = NewRect("Inner", cell.rectTransform).gameObject.AddComponent<Image>();
-                inner.color = Palette.Cell;
+                inner.color = MiniCell;
                 var content = NewRect("Content", cell.rectTransform).gameObject.AddComponent<Image>();
                 content.preserveAspect = true;
                 cellImages.Add(cell);
@@ -174,7 +175,7 @@ namespace Lines.UI
             for (int i = 0; i < pageDots.Count; i++)
             {
                 Place(pageDots[i].rectTransform, centerX - dotsWidth / 2f + i * (DotSize + DotGap) * u, dotsY, DotSize * u, DotSize * u);
-                pageDots[i].color = i == Step ? Palette.Text : Palette.Line;
+                pageDots[i].color = i == Step ? Palette.Focus : Palette.Line;
             }
 
             // The card: mini board, title and text, centred between the back arrow and the dots.
@@ -217,7 +218,7 @@ namespace Lines.UI
 
                 char ch = i < spec.Length ? spec[i] : '.';
                 bool target = ch == 'o';
-                cell.color = target ? Focus : Palette.Cell;   // the target cell gets a blue ring
+                cell.color = target ? Focus : MiniCell;   // the target cell gets a gold ring
                 var inner = cellInner[i];
                 float ring = target ? TargetRing * u : 0f;
                 Place(inner.rectTransform, ring, ring, cellPx - 2f * ring, cellPx - 2f * ring);
@@ -260,7 +261,7 @@ namespace Lines.UI
             var tmp = NewRect(name, root).gameObject.AddComponent<TextMeshProUGUI>();
             tmp.color = color;
             tmp.fontStyle = bold ? FontStyles.Bold : FontStyles.Normal;
-            if (bold) UiFonts.UseDisplay(tmp); else UiFonts.UseBody(tmp); // the title is Fredoka
+            if (bold) UiFonts.UseDisplay(tmp); else UiFonts.UseBody(tmp); // the title is Mystery Quest
             tmp.alignment = bold ? TextAlignmentOptions.Bottom : TextAlignmentOptions.Top;
             tmp.horizontalAlignment = HorizontalAlignmentOptions.Center;
             tmp.textWrappingMode = TextWrappingModes.Normal;

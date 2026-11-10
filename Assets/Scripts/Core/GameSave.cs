@@ -6,8 +6,9 @@ namespace Lines.Core
 {
     /// <summary>
     /// Everything needed to continue a game later (GDD → Saving the game in progress): the board, score,
-    /// preview, the Undo step, the random generator's state (so the coming pieces stay the same) and the
-    /// 7 creatures picked for this game. Plain fields only, so it can be written as JSON.
+    /// preview, the Undo step and the random generator's state (so the coming pieces stay the same).
+    /// Plain fields only, so it can be written as JSON. (Older saves also list a creature set; it is
+    /// ignored now that every game uses the same 7 mushrooms.)
     /// Cells are stored as numbers 0–80 (row × 9 + column); colors as numbers 1–7.
     /// </summary>
     [Serializable]
@@ -30,8 +31,6 @@ namespace Lines.Core
 
         /// <summary>The random generator's state (a 32-bit number, kept in a long for JSON).</summary>
         public long randomState;
-        /// <summary>Which creature (0–8) stands for each of the 7 colors; empty when glossy balls are used.</summary>
-        public int[] creatures = new int[0];
 
         /// <summary>
         /// The game is over and its score waits on the game-over pop-up (not yet on the leaderboard).
@@ -39,8 +38,8 @@ namespace Lines.Core
         /// </summary>
         public bool hasPendingScore;
 
-        /// <summary>Captures <paramref name="game"/> (and the creature set shown for it).</summary>
-        public static GameSave From(GameState game, int[] creatureForColor = null)
+        /// <summary>Captures <paramref name="game"/>.</summary>
+        public static GameSave From(GameState game)
         {
             if (game == null) throw new ArgumentNullException(nameof(game));
             var save = new GameSave
@@ -51,7 +50,6 @@ namespace Lines.Core
                 previewCells = game.Preview.Cells.Select(Index).ToArray(),
                 isOver = game.IsOver,
                 randomState = game.Spawner.Random.State,
-                creatures = creatureForColor?.ToArray() ?? new int[0],
             };
             var undo = game.UndoStep;
             if (undo != null)
