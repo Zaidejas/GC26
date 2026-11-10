@@ -25,12 +25,18 @@ namespace Lines.EditorTools
             Debug.Log("Lines: project setup finished");
         }
 
+        public const string BundleId = "com.gc26.lines";
+
         static void ApplySettings()
         {
             EditorSettings.defaultBehaviorMode = EditorBehaviorMode.Mode2D;
 
             PlayerSettings.companyName = "GC26";
             PlayerSettings.productName = "Lines";
+            // A unique app id, needed to install on a real iPhone with a free Apple account (and on Android).
+            PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.iOS, BundleId);
+            PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Android, BundleId);
+            PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Standalone, BundleId);
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
             PlayerSettings.allowedAutorotateToPortrait = true;
             PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;

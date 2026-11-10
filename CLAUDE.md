@@ -68,7 +68,18 @@ $UNITY -batchmode -nographics -projectPath . -executeMethod Lines.EditorTools.Pr
 - Unity version is pinned to **6000.5.6f1** (`ProjectSettings/ProjectVersion.txt`). Don't upgrade it.
 - Check results in the XML (`result="Passed"`) and look for `error CS` in the log; the exit code alone isn't enough.
 - To import a `.unitypackage`, use `-importPackage <path> -quit`. `AssetDatabase.ImportPackage` does not finish before a batch-mode run quits.
-- Build scripts (iOS Simulator, iPhone, Android APK) arrive in task 26; document their commands here when they exist.
+
+Builds (Unity closed; output in `Builds/`, which git ignores; logs in `Builds/logs/`):
+
+```bash
+scripts/build.sh ios-sim      # Unity → Xcode → installs and starts the game in the iOS Simulator (~2 min)
+scripts/build.sh ios-device   # Xcode project for a real iPhone: Builds/iOS-Device/Unity-iPhone.xcodeproj
+scripts/build.sh android      # Builds/Android/Lines.apk (needs Unity's Android module, task 29)
+```
+
+- `LINES_SIM=<name or UDID>` picks the simulated iPhone (default: the running one, else "iPhone 18 Pro"); `LINES_APPLE_TEAM=<team id>` signs the iPhone build with the user's free Apple account.
+- This Xcode has no separate Simulator app window; watch the game with `mcp__Claude_Code_iOS_Simulator__control` (attach, screenshot).
+- The app id is `com.gc26.lines` (set in `ProjectSetup`). Builds switch Unity back to the Mac platform at the end.
 
 ## How each task is checked
 
