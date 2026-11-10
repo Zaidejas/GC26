@@ -5,7 +5,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&family=Mystery+Quest&display=swap">
 <style>
 /* Layout: a phone-shaped frame centered on the page; inside it the MVP game screen
    (HUD, 9×9 board, Undo/Reset) scales with the frame width via container units. */
@@ -302,6 +302,13 @@ body {
 .phone.forest .scores li.latest { border-color: #ffd56b; box-shadow: 0 0 3cqw rgba(255, 213, 107, 0.35); }
 .phone.forest .mini { box-shadow: 0 0 4cqw rgba(120, 230, 210, 0.15); }
 .phone.forest .dots span.on { background: #ffd56b; box-shadow: 0 0 1.6cqw #ffd56b; }
+
+/* The magic font: Mystery Quest (Google Fonts, OFL) for titles, numbers, labels and buttons;
+   longer text stays in Nunito so it is easy to read. One weight only, so no fake bold. */
+.phone.forest .screen { --font-display: "Mystery Quest", "Nunito", serif; font-synthesis: none; }
+.phone.forest .screen button.btn, .phone.forest .label, .phone.forest .tag { font-family: var(--font-display); font-weight: 400; }
+.phone.forest .screen button.btn { font-size: 5cqw; }
+.phone.forest .label { letter-spacing: 0.06em; }
 
 @media (prefers-reduced-motion: reduce) {
   .selected { animation: none; transform: translateY(-8%); }
@@ -990,6 +997,7 @@ body {
       if (now === "howto") renderHowto();
     }));
     phone.classList.add("forest"); // the one look: a dark, magical mushroom forest
+
 
     try { const saved = localStorage.getItem(SKIN_KEY); setSkin(saved === "balls" || saved === "mushrooms" ? saved : "creatures"); } catch (e) { setSkin("creatures"); }
 
