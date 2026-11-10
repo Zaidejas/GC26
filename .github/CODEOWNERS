@@ -1,0 +1,8 @@
+# Replace @organizer with the organizer's GitHub username.
+*                     @organizer
+/Assets/Microgames/   @organizer
+/ProjectSettings/     @organizer
+/Packages/            @organizer
+/Assets/Core/         @organizer
+/Assets/Shared/       @organizer
+/tools/               @organizer
