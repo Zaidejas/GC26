@@ -1,12 +1,14 @@
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Lines.EditorTools
 {
     /// <summary>
-    /// Pressing Play in the editor always starts the game's only scene (Assets/Scenes/Main.unity),
-    /// whatever scene happens to be open; for example, an empty one left behind by a batch run.
-    /// The open scene comes back when Play stops.
+    /// When the editor opens on an empty, unsaved scene (batch runs such as the layout screenshots leave
+    /// one behind), it switches to the game's only scene, Assets/Scenes/Main.unity, so Play starts the
+    /// game instead of a blank blue screen. Play itself is left alone, so the test runner's own scenes work.
     /// </summary>
     [InitializeOnLoad]
     static class PlayFromMainScene
@@ -15,12 +17,17 @@ namespace Lines.EditorTools
 
         static PlayFromMainScene()
         {
-            EditorApplication.delayCall += Apply;
+            EditorApplication.delayCall += OpenMainSceneIfBlank;
         }
 
-        static void Apply()
+        static void OpenMainSceneIfBlank()
         {
-            EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(MainScenePath);
+            if (Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode) return;
+            if (SceneManager.sceneCount != 1) return;
+            var scene = SceneManager.GetActiveScene();
+            if (!string.IsNullOrEmpty(scene.path) || scene.isDirty) return; // a saved scene, or unsaved work
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(MainScenePath) == null) return;
+            EditorSceneManager.OpenScene(MainScenePath);
         }
     }
 }
