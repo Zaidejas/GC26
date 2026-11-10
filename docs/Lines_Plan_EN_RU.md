@@ -76,7 +76,7 @@ Tests/         EditMode tests for Core
 #### Week 2: Playable in the Unity editor
 
 - A small animation helper (move, scale, shake).
-- Board and pieces created from code (the creatures, with generated glossy balls as a fallback). The board fits the screen (safe area, 16:9 and 20:9).
+- Board and pieces created from code (piece images, with generated glossy balls as a fallback). The board fits the screen (safe area, 16:9 and 20:9).
 - Turn state machine and input lock during animations.
 - Tap to select and to move, with a bouncing animation on the selected piece.
 - Animate the piece moving along the BFS path, cell by cell.
@@ -110,7 +110,7 @@ Tests/         EditMode tests for Core
 
 #### Week 6: Art and real phones (Part 2)
 
-- Sharp creature art: export the 9 creatures from the team's Figma file as PNGs (transparent background, 256 px or more) to replace the versions cut from screenshots. Board and background style. One theme.
+- Magic-forest look (GDD → Art): export the 7 glowing mushrooms (transparent background, 256 px or more) and the two forest backgrounds (start screen with tall mushrooms, other screens without) from the browser prototype as PNGs; switch the UI to the dark theme (glass board, glowing buttons, light text) and the Mystery Quest font. One theme.
 - App icon and splash screen.
 - Install the game on your iPhone (Xcode with a free Apple account) and on an Android phone (APK).
 
@@ -147,7 +147,7 @@ Tests/         EditMode tests for Core
 - **Simulators aren't real phones:** speed and touch feel differ. Check on a real phone from Week 6.
 - **Free Apple account limits:** the app stops working on your iPhone after 7 days and must be reinstalled from Xcode. Only your own devices can be used.
 - **Unity editor left open:** it locks the project, so tests and builds from the command line fail. Close Unity before handing work to Claude.
-- **Art taking too long:** the creatures already exist in Figma, and versions cut from screenshots are already in the game; only the sharp export is left.
+- **Art taking too long:** the mushrooms, backgrounds and fonts are already chosen and drawn in the browser prototype; only the PNG export and the dark UI styling in Unity are left.
 
 ---
 
@@ -220,7 +220,7 @@ Tests/         EditMode-тесты для Core
 #### Неделя 2: игра работает в редакторе Unity
 
 - Небольшой помощник для анимаций (перемещение, масштаб, тряска).
-- Поле и фишки создаются кодом (существа, а сгенерированные глянцевые шары — запасной вариант). Поле подгоняется под экран (безопасная зона, 16:9 и 20:9).
+- Поле и фишки создаются кодом (картинки фишек, а сгенерированные глянцевые шары — запасной вариант). Поле подгоняется под экран (безопасная зона, 16:9 и 20:9).
 - Машина состояний хода и блокировка ввода во время анимаций.
 - Выбор фишки и перемещение касанием, выбранная фишка подпрыгивает.
 - Анимировать движение фишки по найденному пути, клетка за клеткой.
@@ -254,7 +254,7 @@ Tests/         EditMode-тесты для Core
 
 #### Неделя 6: графика и настоящие телефоны (часть 2)
 
-- Чёткая графика существ: экспортировать 9 существ из Figma-файла команды в PNG (прозрачный фон, 256 px или больше) вместо версий, вырезанных из скриншотов. Стиль поля и фона. Одна тема.
+- Оформление «волшебный лес» (GDD → Art): экспортировать из браузерного прототипа в PNG 7 светящихся грибов (прозрачный фон, 256 px или больше) и два фона леса (стартовый экран с высокими грибами, остальные экраны без них); перевести интерфейс на тёмную тему (стеклянное поле, светящиеся кнопки, светлый текст) и шрифт Mystery Quest. Одна тема.
 - Иконка приложения и заставка.
 - Установить игру на ваш iPhone (Xcode с бесплатным аккаунтом Apple) и на телефон с Android (APK).
 
@@ -291,4 +291,4 @@ Tests/         EditMode-тесты для Core
 - **Симулятор — не настоящий телефон:** скорость и ощущение касаний отличаются. Проверяйте на настоящем телефоне начиная с 6-й недели.
 - **Ограничения бесплатного аккаунта Apple:** через 7 дней игра на iPhone перестаёт запускаться, и её нужно заново установить из Xcode. Устанавливать можно только на свои устройства.
 - **Открытый редактор Unity:** он блокирует проект, и тесты и сборки из командной строки не запускаются. Закрывайте Unity, прежде чем передавать работу Claude.
-- **Графика отнимает слишком много времени:** существа уже нарисованы в Figma, и версии, вырезанные из скриншотов, уже есть в игре; осталось только чёткий экспорт.
+- **Графика отнимает слишком много времени:** грибы, фоны и шрифты уже выбраны и нарисованы в браузерном прототипе; осталось только экспортировать PNG и сделать тёмное оформление в Unity.

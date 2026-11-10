@@ -32,7 +32,7 @@ The document separates the **MVP** (the first complete version) from **later** f
 - The original rules people remember, plus a few small changes that make it easier to play.
 - Fast, clean controls: two taps per move and no timers.
 - The game in progress is saved automatically and picks up where the player left off.
-- Cute blob creatures instead of plain balls: 7 of the 9 creatures are picked at random for each game.
+- A dark, magical mushroom forest: 7 glowing mushrooms instead of plain balls, on a dark glass board.
 
 **Custom changes compared to the original**
 
@@ -51,7 +51,7 @@ Every turn ends either with a cleared line, which skips the spawn, or with 3 new
 | Rule | Value |
 | :---- | :---- |
 | Board | 9×9 cells (81) |
-| Kinds of balls | 7 per game, picked at random from the 9 creatures (see Art) |
+| Kinds of balls | 7: the 7 glowing mushrooms, the same in every game (see Art) |
 | Balls at the start | 3, in random cells, as in the classic game |
 | New balls per turn | 3. Their colors **and the cells where they will appear** are shown in advance (the cells show small preview dots) |
 | Movement | One ball per turn to any empty cell that has a path to it |
@@ -135,8 +135,8 @@ These are planned for after the MVP and are not scheduled in the 8 weeks unless 
 | How to play on first launch | Open the How to play cards automatically the first time the app starts |
 | Audio | See the sound list below |
 | Vibration | Light vibration on a line clear |
-| Light and dark themes | The MVP has one theme |
-| Custom art packs | Replace the MVP creatures (and board) with other art |
+| More themes | The MVP has one theme: the dark magic forest |
+| Custom art packs | Replace the MVP mushrooms (and board) with other art |
 | Other game modes | Daily Challenge (the same seed for every player that day, one attempt) and Timed (3 minutes, +5 seconds per cleared line) |
 | Achievements and statistics | For example: first 7-ball line, two lines in one move, 1,000 points in one game. Statistics: games played, best score, longest line, average score |
 | Unlockable themes | Ball and board themes unlocked by reaching score milestones |
@@ -207,13 +207,30 @@ The MVP has four screens and two pop-ups. The app opens on the main menu.
 
 ## Art
 
-The look is a clean, modern take on the original: cute blob creatures on a soft, light board, with nothing cluttering the play area. (The rest of this document calls them "balls".)
+The look is a dark, magical mushroom forest at night: glowing mushrooms on a dark glass board, with soft light and fireflies in the background. (The rest of this document calls the mushrooms "balls".) The browser prototype (`docs/prototype/lines-prototype.html`) is the reference for every detail.
 
-- **Creatures for the MVP:** 9 blob creatures from the team's Figma file (purple, blue, grey-violet, green, teal with antlers, yellow, red, orange with spikes, light blue). Each game picks 7 of them at random. They're exported from Figma as PNGs with transparent backgrounds. Replacing them with other art is a later feature.
-- Some creatures have similar colors (the two blues, the grey); this is accepted for now and will be revisited with the art.
-- The game already uses creature images cut from screenshots of the Figma file (`Assets/Resources/Creatures`, about 130–175 px, slightly soft). Task 31 replaces them with sharp PNG exports. Glossy balls generated in code remain as a fallback if the images are missing.
-- A flat board with subtle cell borders. One theme in the MVP.
-- Preview dots: small versions of the next creatures, drawn in their target cells.
+- **Pieces:** 7 glowing mushrooms, the same 7 in every game. Each has its own colour and cap shape, so they stay easy to tell apart even as small preview dots:
+
+  | Colour | Mushroom | Stem |
+  | :---- | :---- | :---- |
+  | Red | Round cap with pale blue bumps | Blue |
+  | Orange | Tall flame-shaped cone | Turquoise |
+  | Yellow | Golden cap with drips along the rim | Purple with yellow dots |
+  | Green | Pointy hat with a curled tip | Glowing blue |
+  | Pink | Flat "jellyfish" cap with a yellow fringe | Pale lilac |
+  | Blue | Cone with a curly tip | Red |
+  | Purple | Round cap with yellow spots | Blue |
+
+  Every stem contrasts with its cap; each cap is glossy, glows softly in its own colour and has a few tiny sparkles around it. The shapes stay simple because the phone screen is small.
+- **Where the art comes from:** the mushrooms and backgrounds are drawn as vector pictures in the prototype and exported from it as PNGs for Unity (mushrooms with a transparent background, 256 px or more). Glossy balls generated in code remain only as a fallback if the images are missing.
+- **Backgrounds:** a dim magic forest (misty trees, soft light beams, vines with glowing buds, ferns, fireflies) that fills the whole screen on both 16:9 and 20:9 and never competes with the board. There are two versions:
+  - **Start screen:** tall glowing mushrooms on long stems at the sides and smaller ones along the bottom, placed in the free space around the title and buttons.
+  - **Game, How to play and Leaderboard:** the same forest without mushrooms, and with nothing glowing near the bottom, so nothing sits behind the board, the buttons or the page dots.
+- **Board:** dark purple glass with a soft violet-and-turquoise glow around the edge; each cell glows faintly from inside.
+- **Buttons and pop-ups:** dark glass with a warm outline; main buttons (Continue, Yes, Save, Play again) are glowing gold. Text is light cream; the "Lines" title is a glowing gold gradient.
+- **Fonts:** Mystery Quest (playful, witchy) for the title, numbers, labels, buttons and headings; Nunito for longer text (How to play explanations, pop-up messages, leaderboard names). Both are free Google Fonts under the SIL Open Font License, so they can be included in the game.
+- One theme (the dark magic forest) in the MVP.
+- Preview dots: small versions of the next mushrooms, drawn in their target cells.
 - Animations: the selected ball bounces, balls grow in when they spawn, cleared balls shrink and burst into particles, and a blocked move shakes the ball.
 - No audio in the MVP (see Later features).
 
@@ -228,7 +245,7 @@ The game logic is plain C\# kept separate from Unity, so it can be unit-tested. 
 | Engine | Unity 6 (6000.5.6f1), 2D, URP |
 | Logic | Plain C\#: `Board`, `Pathfinder` (BFS), `LineDetector`, `Spawner` (seeded RNG, picks colors and cells in advance), `ScoreCalculator` |
 | Turn flow | State machine: Idle → Ball selected → Moving → Resolving → Spawning → Check game over |
-| Rendering | Pooled ball objects. Creature images are PNGs exported from Figma; the board is generated in code. Animations with a small animation helper written in our own code (no third-party animation library) |
+| Rendering | Pooled ball objects. The mushroom images and the two forest backgrounds are PNGs exported from the browser prototype; the board is generated in code. Animations with a small animation helper written in our own code (no third-party animation library) |
 | Input | New Input System, touch (mouse in the editor) |
 | UI | uGUI with TextMeshPro, created from code, safe-area aware. Screens: main menu, game, how to play, leaderboard; switched by a small screen manager |
 | Saving | `SaveService`: the game in progress as JSON in `Application.persistentDataPath`, saved after each move and when the app goes to the background. The leaderboard (top 10) is a separate JSON file; its ranking rules live in Core and are unit-tested |
