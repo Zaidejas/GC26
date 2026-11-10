@@ -34,8 +34,8 @@ namespace Lines.View
         public static readonly Color DisabledRim = Hex(0xFFFFFF, 0.15f);
 
         // Pop-ups.
-        public static readonly Color Dim = Hex(0x060814, 0.6f);
-        public static readonly Color Card = Hex(0x231A44);
+        public static readonly Color Dim = Hex(0x050712, 0.74f);
+        public static readonly Color Card = Hex(0x1C1A36);
         public static readonly Color CardGlow = Hex(0xA078FF, 0.05f);
         public static readonly Color Toast = Hex(0x0E0A1E, 0.9f);
 

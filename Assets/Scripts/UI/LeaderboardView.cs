@@ -12,18 +12,17 @@ namespace Lines.UI
     /// <summary>
     /// The Leaderboard screen (GDD → Screens; prototype's "scores"): a back arrow, the result line after
     /// a game ("You're #3, Anna!"), the top 10 (rank, name, date, score; the game just saved has a blue
-    /// border), "Top 10 games on this device", and Play again right after a game. The list scrolls when it
+    /// border), and Play again right after a game. The list scrolls when it
     /// doesn't fit. With no games yet it shows a short explanation instead.
     /// </summary>
     public sealed class LeaderboardView : MonoBehaviour
     {
         // Prototype sizes (cqw).
         const float PadSide = 5f, PadBottom = 7f, Gap = 5f;
-        const float MessageSize = 5.2f, FineSize = 3.6f, EmptySize = 4.4f, PlayAgainHeight = 13f;
+        const float MessageSize = 5.2f, EmptySize = 4.4f, PlayAgainHeight = 13f;
         const float RowHeight = 15f, RowGap = 2f, RowRadius = 3f, RowBorder = 0.5f, RowPadX = 4f;
         const float RankWidth = 8f, ColumnGap = 3f, RankSize = 5f, NameSize = 4.4f, DateSize = 3.6f, PointsSize = 6f;
         public const string EmptyText = "No finished games yet. Your score is added here when a game ends.";
-        public const string FineText = "Top 10 games on this device";
         static readonly Color Focus = Palette.Focus;
 
         sealed class Row
@@ -37,7 +36,7 @@ namespace Lines.UI
         RectTransform root, viewport, content;
         ScrollRect scroll;
         readonly List<Row> rows = new List<Row>();
-        TextMeshProUGUI message, fine, empty;
+        TextMeshProUGUI message, empty;
         PillButton back, playAgain;
         BoardLayout layout;
         Leaderboard board = new Leaderboard();
@@ -82,8 +81,6 @@ namespace Lines.UI
             back.Clicked += () => Closed?.Invoke();
 
             message = NewText("Message", root, Palette.Text, true, TextAlignmentOptions.Center);
-            fine = NewText("Fine print", root, Palette.SoftText, true, TextAlignmentOptions.Center);
-            fine.text = FineText;
             UiFonts.UseDisplay(message);
             empty = NewText("Empty", root, Palette.SoftText, false, TextAlignmentOptions.Center);
             empty.text = EmptyText;
@@ -165,17 +162,13 @@ namespace Lines.UI
 
             back.Place(layout.BackButton, u);
 
-            // From the bottom up: Play again, the fine print; from the top down: the result line.
+            // From the bottom up: Play again; from the top down: the result line.
             float bottom = safe.y + PadBottom * u;
             if (PlayAgainShowing)
             {
                 playAgain.Place(new Rect(left, bottom, width, PlayAgainHeight * u), u);
                 bottom += (PlayAgainHeight + Gap) * u;
             }
-            fine.fontSize = FineSize * u;
-            float fineH = FineSize * 1.3f * u;
-            Place(fine.rectTransform, left, bottom, width, fineH);
-            bottom += fineH + Gap * u;
 
             float top = layout.BackButton.y - Gap * u;
             if (message.gameObject.activeSelf)

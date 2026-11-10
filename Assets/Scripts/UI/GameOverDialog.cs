@@ -22,7 +22,7 @@ namespace Lines.UI
         public const string Title = "Game over";
         public const string Label = "Your name for the leaderboard";
         const float GlowSize = 8f; // the prototype's soft violet glow around the card
-        static readonly Color FieldFill = Palette.Hex(0x1A1433);
+        static readonly Color FieldFill = Palette.Hex(0x15142A);
 
         RectTransform root, card, field;
         Image cardImage, cardGlow, fieldBorder, fieldFill;

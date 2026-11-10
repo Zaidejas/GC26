@@ -171,7 +171,7 @@ namespace Lines.UI
         }
 
         // The mushrooms' stems end this far above the bottom of their pictures.
-        const float StemBottomInPicture = 0.07f;
+        const float StemBottomInPicture = 0.05f;
 
         // Puts the bottom of the score's digits level with the bottom of the Next mushrooms (the prototype
         // lines them up along one baseline), whatever empty space the font leaves under its digits.
@@ -181,7 +181,9 @@ namespace Lines.UI
             var rt = scoreText.rectTransform;
             rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, 0f);
             scoreText.ForceMeshUpdate();
-            float inkBottom = scoreText.textBounds.min.y; // from the bottom of the text box (pivot at the bottom)
+            var info = scoreText.textInfo;
+            if (info.characterCount == 0) return;
+            float inkBottom = info.characterInfo[0].baseLine; // the digits stand on the baseline (pivot at the bottom)
             rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, StemBottomInPicture * PieceSize * unit - inkBottom);
             // The SCORE label stays right above the number.
             var label = scoreLabel.rectTransform;
