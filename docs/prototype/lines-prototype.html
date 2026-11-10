@@ -10,15 +10,16 @@
 /* Layout: a phone-shaped frame centered on the page; inside it the MVP game screen
    (HUD, 9×9 board, Undo/Reset) scales with the frame width via container units. */
 :root {
-  --page: #dfe2e7;
-  --ink: #1c2128;
-  --muted: #5b6470;
-  --chip: rgba(255, 255, 255, 0.7);
-  --chip-on: #1c2128;
-  --chip-on-ink: #ffffff;
-  --bezel: #17191d;
+  --page: #0d1522;
+  --ink: #f2ead8;
+  --muted: #9fb0c2;
+  --chip: rgba(255, 255, 255, 0.08);
+  --chip-on: #ffd56b;
+  --chip-on-ink: #2a1b05;
+  --bezel: #05070c;
+  color-scheme: dark;
 
-  /* The game screen keeps one light theme (GDD: one theme in the MVP). */
+  /* The light colours below are the base; the forest look (.phone.forest) replaces them. */
   --screen: #f3efe7;
   --board: #ddd5c6;
   --cell: #f8f5ef;
@@ -30,20 +31,9 @@
   --font-display: "Fredoka", "Nunito", ui-rounded, system-ui, sans-serif;
   --font-body: "Nunito", ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --page: #121418; --ink: #e7e9ee; --muted: #9aa3ae;
-    --chip: rgba(255, 255, 255, 0.08); --chip-on: #e7e9ee; --chip-on-ink: #121418; --bezel: #000000;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --page: #121418; --ink: #e7e9ee; --muted: #9aa3ae;
-  --chip: rgba(255, 255, 255, 0.08); --chip-on: #e7e9ee; --chip-on-ink: #121418; --bezel: #000000;
-  color-scheme: dark;
-}
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body {
   background: var(--page);
@@ -267,6 +257,52 @@ body {
 
 .note { color: var(--muted); font-size: 0.85rem; text-align: center; margin: 0; max-width: 62ch; align-self: center; }
 
+/* ---- Forest look (prototype only): dark magical forest, glowing pieces and buttons ---- */
+.phone.forest .screen {
+  --screen: #10202c; --board: rgba(22, 14, 44, 0.55); --cell: rgba(255, 255, 255, 0.07);
+  --text: #f6eedb; --soft: #a9bccd; --line: rgba(255, 233, 190, 0.28); --focus: #ffd56b;
+  background-color: #10202c; background-size: cover; background-position: center;
+}
+.phone.forest .board {
+  background: linear-gradient(160deg, rgba(40, 26, 84, 0.72), rgba(10, 18, 44, 0.78));
+  border: 0.45cqw solid rgba(190, 150, 255, 0.35);
+  box-shadow: 0 0 7cqw rgba(150, 110, 255, 0.28), 0 0 3cqw rgba(100, 220, 255, 0.18), inset 0 0 4cqw rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(1.4cqw); -webkit-backdrop-filter: blur(1.4cqw);
+}
+.phone.forest .grid button {
+  background: radial-gradient(circle at 50% 38%, rgba(170, 220, 255, 0.13), rgba(255, 255, 255, 0.035) 72%);
+  box-shadow: inset 0 0 0 0.2cqw rgba(200, 180, 255, 0.08);
+}
+.phone.forest .ball.creature { filter: drop-shadow(0 0 0.9cqw color-mix(in srgb, var(--c) 65%, transparent)); }
+.phone.forest .ball.creature.dot { filter: drop-shadow(0 0 0.6cqw var(--c)); opacity: 1; }
+.phone.forest .gain { color: #9cf5b0; text-shadow: 0 0 2cqw rgba(140, 255, 170, 0.6); }
+.phone.forest .num, .phone.forest .logo, .phone.forest .card .final { text-shadow: 0 0 3cqw rgba(255, 214, 120, 0.45); }
+.phone.forest .logo {
+  background: linear-gradient(180deg, #fff2c2, #ffc35a 70%, #ff9a3c); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 2.4cqw rgba(255, 190, 90, 0.55));
+}
+.phone.forest .screen button.btn, .phone.forest .icon-btn {
+  background: rgba(28, 20, 58, 0.6); border-color: rgba(255, 233, 190, 0.3); color: var(--text);
+  backdrop-filter: blur(1cqw); -webkit-backdrop-filter: blur(1cqw);
+  box-shadow: 0 0 3cqw rgba(140, 220, 255, 0.12);
+}
+.phone.forest .screen button.primary {
+  background: linear-gradient(180deg, #ffe08a, #ffad45); border-color: #ffe7a8; color: #3a2208;
+  box-shadow: 0 0 5cqw rgba(255, 190, 90, 0.5);
+}
+.phone.forest .screen button.primary:disabled { background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.15); color: var(--soft); box-shadow: none; }
+.phone.forest .modal { background: rgba(6, 8, 20, 0.6); }
+.phone.forest .card {
+  background: linear-gradient(180deg, #2a1f4d, #1c1636); color: var(--text);
+  border: 0.4cqw solid rgba(255, 233, 190, 0.22); box-shadow: 0 0 8cqw rgba(160, 120, 255, 0.3);
+}
+.phone.forest .name-row input { background: rgba(255, 255, 255, 0.08); color: var(--text); border-color: rgba(255, 233, 190, 0.3); }
+.phone.forest .toast { background: rgba(14, 10, 30, 0.88); box-shadow: 0 0 4cqw rgba(255, 120, 160, 0.35); }
+.phone.forest .scores li { background: rgba(28, 20, 58, 0.62); backdrop-filter: blur(1cqw); -webkit-backdrop-filter: blur(1cqw); }
+.phone.forest .scores li.latest { border-color: #ffd56b; box-shadow: 0 0 3cqw rgba(255, 213, 107, 0.35); }
+.phone.forest .mini { box-shadow: 0 0 4cqw rgba(120, 230, 210, 0.15); }
+.phone.forest .dots span.on { background: #ffd56b; box-shadow: 0 0 1.6cqw #ffd56b; }
+
 @media (prefers-reduced-motion: reduce) {
   .selected { animation: none; transform: translateY(-8%); }
   .grow, .pop, .slot.shake, .p, .gain.show { animation-duration: 0.01s; }
@@ -286,6 +322,7 @@ body {
         <span>Pieces</span>
         <button type="button" id="skin-creatures" data-skin="creatures" aria-pressed="true">Creatures</button>
         <button type="button" id="skin-balls" data-skin="balls" aria-pressed="false">Balls</button>
+        <button type="button" id="skin-mushrooms" data-skin="mushrooms" aria-pressed="false">Mushrooms</button>
       </div>
       <div class="ratio" id="ratio" role="group" aria-label="Screen shape">
         <span>Screen</span>
@@ -425,6 +462,139 @@ body {
   sheet.textContent = CREATURE_IMAGES.map((uri, k) => ".k-" + k + "{--img:url(" + uri + ")}").join("\n");
   document.head.appendChild(sheet);
 
+  // Mushrooms (index = color number): 7 glowing mushrooms, one simple shape each. Like the reference
+  // pictures, every stem has a colour that contrasts with its cap, and caps are glossy.
+  const glow = (c) => '<radialGradient id="gl" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="' + c + '" stop-opacity=".6"/><stop offset=".55" stop-color="' + c + '" stop-opacity=".2"/><stop offset="1" stop-color="' + c + '" stop-opacity="0"/></radialGradient>';
+  const cap = (a, b, d) => '<radialGradient id="cp" cx="36%" cy="28%" r="80%"><stop offset="0" stop-color="' + a + '"/><stop offset=".5" stop-color="' + b + '"/><stop offset="1" stop-color="' + d + '"/></radialGradient>';
+  const stemG = (a, b) => '<linearGradient id="st" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="' + b + '"/><stop offset=".45" stop-color="' + a + '"/><stop offset="1" stop-color="' + b + '"/></linearGradient>';
+  const halo = '<circle cx="50" cy="52" r="48" fill="url(#gl)"/>';
+  const sparks = '<g fill="#fff"><circle cx="14" cy="34" r="1.8" opacity=".8"/><circle cx="87" cy="26" r="1.5" opacity=".7"/><circle cx="86" cy="74" r="1.3" opacity=".6"/><circle cx="18" cy="80" r="1.2" opacity=".5"/></g>';
+  const gloss = (d) => '<path d="' + d + '" stroke="#fff" stroke-width="3.6" fill="none" stroke-linecap="round" opacity=".6"/>';
+  const MUSHROOMS = [
+    { name: "red bumps", c: "#ff3b5c", svg:
+      '<defs>' + glow("#ff3b5c") + cap("#ff9aaa", "#ff3b5c", "#a8103a") + stemG("#bfefff", "#2f86e0") + '</defs>' + halo + sparks +
+      '<path d="M43 56C42 70 40 82 35 93C44 96 57 96 65 93C60 82 58 70 57 56Z" fill="url(#st)"/>' +
+      '<path d="M11 60C9 35 28 15 50 15C72 15 91 35 89 60C70 66 30 66 11 60Z" fill="url(#cp)"/>' +
+      '<path d="M12 60C30 66 70 66 88 60" stroke="#ffc4d0" stroke-width="3.4" fill="none" stroke-linecap="round"/>' +
+      '<g fill="#c8f6ff"><circle cx="29" cy="37" r="6"/><circle cx="52" cy="26" r="6.5"/><circle cx="71" cy="39" r="5.5"/><circle cx="41" cy="51" r="4.3"/><circle cx="64" cy="53" r="4"/></g>' +
+      gloss("M20 40C25 29 33 22 42 19") },
+    { name: "orange flame", c: "#ff8a1f", svg:
+      '<defs>' + glow("#ff8a1f") + cap("#ffe08a", "#ff8a1f", "#b8380a") + stemG("#c9f7ff", "#1f9fd1") + '</defs>' + halo + sparks +
+      '<path d="M45 58C44 72 42 84 39 93C46 96 54 96 61 93C58 84 56 72 55 58Z" fill="url(#st)"/>' +
+      '<path d="M17 63C22 46 35 30 44 13C47 7 53 7 56 13C65 30 78 46 83 63C66 68 34 68 17 63Z" fill="url(#cp)"/>' +
+      '<path d="M32 58C40 46 45 32 49 18M60 58C58 46 56 34 53 22" stroke="#ffc36b" stroke-width="2.6" fill="none" opacity=".55" stroke-linecap="round"/>' +
+      gloss("M30 50C35 40 39 31 43 24") },
+    { name: "golden drips", c: "#ffd23f", svg:
+      '<defs>' + glow("#ffd23f") + cap("#fff6b0", "#ffcf2e", "#c78600") + stemG("#d7b0ff", "#6a2fc4") + '</defs>' + halo + sparks +
+      '<path d="M45 58C39 70 50 81 41 93C50 96 60 96 65 92C58 82 62 70 56 58Z" fill="url(#st)"/>' +
+      '<g fill="#ffd84a"><circle cx="49" cy="72" r="2.2"/><circle cx="55" cy="83" r="1.8"/><circle cx="47" cy="87" r="1.6"/></g>' +
+      '<path d="M13 58C13 33 30 17 50 17C70 17 87 33 87 58C86 61 82 62 78 62C78 71 71 71 70 62C66 64 60 62 55 64C55 74 47 74 46 64C42 62 36 64 31 62C31 69 25 71 24 65C22 59 17 62 13 58Z" fill="url(#cp)"/>' +
+      gloss("M22 40C27 30 35 24 44 22") },
+    { name: "green curl", c: "#7ed957", svg:
+      '<defs>' + glow("#7ed957") + cap("#e2ffb0", "#6fd13f", "#2a7016") + stemG("#c9f7ff", "#2f9fe0") + '</defs>' + halo + sparks +
+      '<path d="M45 58C46 70 40 82 33 92C44 96 56 96 67 92C60 82 54 70 55 58Z" fill="url(#st)"/>' +
+      '<ellipse cx="50" cy="62" rx="9" ry="3" fill="#9ff0ff"/>' +
+      '<path d="M10 60C28 55 38 42 44 24C47 13 56 6 64 10C69 13 68 19 63 19C57 19 55 23 56 29C59 44 70 55 90 60C70 66 30 66 10 60Z" fill="url(#cp)"/>' +
+      '<path d="M26 54C34 50 40 42 43 32" stroke="#d6ffa8" stroke-width="2.4" fill="none" opacity=".6" stroke-linecap="round"/>' +
+      gloss("M33 46C38 40 41 32 43 26") },
+    { name: "pink jelly", c: "#ff4fc3", svg:
+      '<defs>' + glow("#ff4fc3") + cap("#ffb0e8", "#ff4fc3", "#9c157a") + stemG("#fbeaff", "#c597ec") + '</defs>' + halo + sparks +
+      '<path d="M47 50C46 66 44 80 41 93C47 96 53 96 59 93C56 80 54 66 53 50Z" fill="url(#st)"/>' +
+      '<g stroke="#ffd84a" stroke-width="3" fill="none" stroke-linecap="round"><path d="M22 52C20 58 25 60 22 67"/><path d="M33 55C32 62 36 64 33 71"/><path d="M67 55C68 62 64 64 67 71"/><path d="M78 52C80 58 75 60 78 67"/></g>' +
+      '<path d="M8 50C10 33 28 23 50 23C72 23 90 33 92 50C78 57 22 57 8 50Z" fill="url(#cp)"/>' +
+      '<path d="M9 50C25 56 75 56 91 50" stroke="#ffd0f2" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+      gloss("M20 36C27 30 36 27 45 26") },
+    { name: "blue curl", c: "#3fa0ff", svg:
+      '<defs>' + glow("#3fa0ff") + cap("#c4e8ff", "#3fa0ff", "#1846aa") + stemG("#ffb39a", "#c72e2a") + '</defs>' + halo + sparks +
+      '<path d="M46 62C44 74 49 83 40 93C48 96 58 96 63 92C57 83 59 74 55 62Z" fill="url(#st)"/>' +
+      '<path d="M15 65C26 53 34 37 42 22C45 16 48 14 52 16C60 34 72 52 85 65C66 71 34 71 15 65Z" fill="url(#cp)"/>' +
+      '<path d="M51 17C51 9 59 6 62 10C64 14 59 16 57 13" stroke="#3fa0ff" stroke-width="3.6" fill="none" stroke-linecap="round"/>' +
+      '<path d="M28 60C38 54 46 44 50 30M58 62C62 52 62 42 56 30" stroke="#a9dcff" stroke-width="2.4" fill="none" opacity=".55" stroke-linecap="round"/>' +
+      gloss("M30 52C35 44 39 36 43 28") },
+    { name: "violet spots", c: "#a35cff", svg:
+      '<defs>' + glow("#a35cff") + cap("#dcbcff", "#9b5cff", "#4f22a3") + stemG("#c9f0ff", "#3d6fe0") + '</defs>' + halo + sparks +
+      '<path d="M43 56C42 70 41 82 36 93C44 96 57 96 64 93C59 82 58 70 57 56Z" fill="url(#st)"/>' +
+      '<path d="M10 57C10 34 28 19 50 19C72 19 90 34 90 57C70 64 30 64 10 57Z" fill="url(#cp)"/>' +
+      '<path d="M11 57C30 63 70 63 89 57" stroke="#d9c2ff" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+      '<g fill="#ffe066"><circle cx="31" cy="35" r="5"/><circle cx="53" cy="28" r="5.5"/><circle cx="72" cy="40" r="4.5"/><circle cx="43" cy="48" r="3.6"/><circle cx="24" cy="50" r="3"/><circle cx="63" cy="51" r="3.2"/></g>' +
+      gloss("M20 40C25 30 33 24 42 22") },
+  ];
+  const mushroomSheet = document.createElement("style");
+  mushroomSheet.textContent = MUSHROOMS.map((f, k) => ".mu-" + k + "{--c:" + f.c + ";--img:url(\"data:image/svg+xml," +
+    encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' + f.svg + "</svg>") + "\")}").join("\n");
+  document.head.appendChild(mushroomSheet);
+
+  // The Forest look: a dark, magical mushroom forest behind the game (prototype only, to try the mood).
+  // The forest behind the screens. Only the start screen gets the tall glowing mushrooms: it has free
+  // space at the sides; the game, How to play and Leaderboard screens stay clear of them.
+  const forest = (withMushrooms) => {
+    const bud = (x, y, r, c) => '<circle cx="' + x + '" cy="' + y + '" r="' + (r * 3) + '" fill="url(#' + c + ')"/><circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="#fff6d0"/>';
+    const vine = (x, len, sway) => '<path d="M' + x + ' -5C' + (x + sway) + ' ' + (len * 0.35) + ' ' + (x - sway) + ' ' + (len * 0.7) + ' ' + (x + sway / 2) + ' ' + len + '" stroke="#0c1c28" stroke-width="2.4" fill="none"/>' + bud(x + sway / 2, len + 3, 2.2, "bg");
+    // A big mushroom whose cap glows: stem from (x, base) up to (x+lean, top); cap width w.
+    const shroom = (x, base, top, lean, w, glow, capTop, capBot) =>
+      '<ellipse cx="' + (x + lean) + '" cy="' + top + '" rx="' + (w * 1.6) + '" ry="' + (w * 1.1) + '" fill="url(#' + glow + ')"/>' +
+      '<path d="M' + (x - w * 0.2) + ' ' + base + 'C' + (x - w * 0.12) + ' ' + ((base + top) / 2) + ' ' + (x + lean - w * 0.14) + ' ' + (top + 12) + ' ' + (x + lean - w * 0.1) + ' ' + (top + 2) +
+      'L' + (x + lean + w * 0.1) + ' ' + (top + 2) + 'C' + (x + lean + w * 0.14) + ' ' + (top + 12) + ' ' + (x + w * 0.12) + ' ' + ((base + top) / 2) + ' ' + (x + w * 0.2) + ' ' + base + 'Z" fill="#2f2848"/>' +
+      '<path d="M' + (x + lean - w) + ' ' + (top + 4) + 'C' + (x + lean - w) + ' ' + (top - w * 1.05) + ' ' + (x + lean + w) + ' ' + (top - w * 1.05) + ' ' + (x + lean + w) + ' ' + (top + 4) + 'C' + (x + lean + w * 0.5) + ' ' + (top + 9) + ' ' + (x + lean - w * 0.5) + ' ' + (top + 9) + ' ' + (x + lean - w) + ' ' + (top + 4) + 'Z" fill="url(#' + capTop + ')"/>' +
+      '<path d="M' + (x + lean - w * 0.92) + ' ' + (top + 5) + 'C' + (x + lean - w * 0.4) + ' ' + (top + 10) + ' ' + (x + lean + w * 0.4) + ' ' + (top + 10) + ' ' + (x + lean + w * 0.92) + ' ' + (top + 5) + '" stroke="' + capBot + '" stroke-width="2" fill="none" opacity=".8"/>';
+    const flies = [[48,210,3],[92,330,2.2],[140,150,2.6],[176,470,2],[214,250,2.8],[262,120,2.2],[300,350,2.6],[346,220,3],[360,520,2.2],[64,560,2.4],[128,620,2],[280,600,2.6],[230,700,2],[330,690,2.2],[20,380,2],[388,420,2.2]];
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice"><defs>' +
+      '<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#060b18"/><stop offset=".35" stop-color="#0d2434"/><stop offset=".62" stop-color="#11263a"/><stop offset="1" stop-color="#0d0a1f"/></linearGradient>' +
+      '<radialGradient id="lt" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#7fe6d6" stop-opacity=".42"/><stop offset=".5" stop-color="#4fa9c7" stop-opacity=".14"/><stop offset="1" stop-color="#4fa9c7" stop-opacity="0"/></radialGradient>' +
+      '<linearGradient id="mist" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fd8e0" stop-opacity="0"/><stop offset=".5" stop-color="#8fd8e0" stop-opacity=".09"/><stop offset="1" stop-color="#8fd8e0" stop-opacity="0"/></linearGradient>' +
+      '<radialGradient id="ff"><stop offset="0" stop-color="#fff3b8"/><stop offset=".3" stop-color="#ffd978" stop-opacity=".7"/><stop offset="1" stop-color="#ffd978" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="bg"><stop offset="0" stop-color="#9ff5e4" stop-opacity=".8"/><stop offset="1" stop-color="#9ff5e4" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="gT"><stop offset="0" stop-color="#5ff0d8" stop-opacity=".38"/><stop offset="1" stop-color="#5ff0d8" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="gP"><stop offset="0" stop-color="#ff7ad9" stop-opacity=".34"/><stop offset="1" stop-color="#ff7ad9" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="gV"><stop offset="0" stop-color="#a98bff" stop-opacity=".34"/><stop offset="1" stop-color="#a98bff" stop-opacity="0"/></radialGradient>' +
+      '<linearGradient id="cT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b8fff1"/><stop offset="1" stop-color="#2fb7a6"/></linearGradient>' +
+      '<linearGradient id="cP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffc2ef"/><stop offset="1" stop-color="#d0409e"/></linearGradient>' +
+      '<linearGradient id="cV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9caff"/><stop offset="1" stop-color="#6c4fd0"/></linearGradient>' +
+      '<linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bff7ee" stop-opacity=".09"/><stop offset="1" stop-color="#bff7ee" stop-opacity="0"/></linearGradient>' +
+      '</defs>' +
+      '<rect width="400" height="800" fill="url(#sky)"/>' +
+      '<ellipse cx="200" cy="300" rx="210" ry="240" fill="url(#lt)"/>' +
+      '<ellipse cx="200" cy="760" rx="260" ry="150" fill="url(#gV)" opacity=".7"/>' +
+      '<g fill="url(#beam)"><path d="M150 -10L196 -10L236 560L176 560Z"/><path d="M226 -10L250 -10L300 520L262 520Z"/><path d="M96 -10L118 -10L150 480L120 480Z"/></g>' +
+      // far trees: a soft canopy line in the mist
+      '<g fill="#173a4b" opacity=".45"><circle cx="40" cy="250" r="60"/><circle cx="120" cy="215" r="70"/><circle cx="210" cy="230" r="58"/><circle cx="290" cy="205" r="72"/><circle cx="370" cy="240" r="62"/>' +
+      '<rect x="112" y="250" width="12" height="430"/><rect x="204" y="270" width="10" height="410"/><rect x="290" y="250" width="13" height="430"/></g>' +
+      '<rect x="0" y="300" width="400" height="160" fill="url(#mist)"/>' +
+      // middle trees: twisting trunks
+      '<g stroke="#10283a" fill="none" stroke-linecap="round"><path d="M74 820C80 640 58 470 86 330C96 280 82 220 96 150" stroke-width="20"/><path d="M86 330C110 300 130 280 150 238" stroke-width="8"/>' +
+      '<path d="M330 820C322 650 344 480 318 340C308 290 324 230 312 160" stroke-width="22"/><path d="M318 340C292 312 270 290 254 250" stroke-width="8"/></g>' +
+      '<g fill="#10283a"><circle cx="92" cy="140" r="64"/><circle cx="40" cy="170" r="48"/><circle cx="316" cy="150" r="70"/><circle cx="372" cy="186" r="50"/></g>' +
+      '<rect x="0" y="470" width="400" height="140" fill="url(#mist)"/>' +
+      // near canopy and hanging vines with glowing buds
+      '<g fill="#0a1722"><circle cx="0" cy="20" r="90"/><circle cx="120" cy="-20" r="80"/><circle cx="260" cy="-26" r="80"/><circle cx="400" cy="10" r="96"/></g>' +
+      vine(70, 120, 8) + vine(150, 70, -6) + vine(236, 96, 7) + vine(330, 140, -8) + vine(384, 90, 5) +
+      // hills
+      '<path d="M0 690C70 660 150 680 210 670C280 658 340 676 400 664V800H0Z" fill="#140f2a"/>' +
+      '<path d="M0 740C90 716 170 738 240 730C310 722 360 738 400 730V800H0Z" fill="#0c0919"/>' +
+      // ferns along the ground (glowing tips on the start screen only)
+      [[150, 735, 1], [196, 742, -1], [250, 736, 1], [8, 742, 1], [392, 748, -1]].map(([x, y, d]) =>
+        '<g stroke="#163a3e" stroke-width="2.4" fill="none" stroke-linecap="round"><path d="M' + x + ' ' + y + 'C' + (x + d * 4) + ' ' + (y - 16) + ' ' + (x + d * 12) + ' ' + (y - 24) + ' ' + (x + d * 20) + ' ' + (y - 26) + '"/>' +
+        '<path d="M' + x + ' ' + y + 'C' + (x - d * 2) + ' ' + (y - 18) + ' ' + (x - d * 8) + ' ' + (y - 28) + ' ' + (x - d * 14) + ' ' + (y - 32) + '"/><path d="M' + x + ' ' + y + 'C' + x + ' ' + (y - 14) + ' ' + (x + d * 2) + ' ' + (y - 26) + ' ' + (x + d * 3) + ' ' + (y - 36) + '"/></g>' +
+        (withMushrooms ? '<circle cx="' + (x + d * 20) + '" cy="' + (y - 26) + '" r="5" fill="url(#bg)"/><circle cx="' + (x - d * 14) + '" cy="' + (y - 32) + '" r="5" fill="url(#bg)"/><circle cx="' + (x + d * 3) + '" cy="' + (y - 36) + '" r="5" fill="url(#bg)"/>' : "")).join("") +
+      // tall glowing mushrooms on long legs at the sides, smaller ones along the bottom (start screen only)
+      (withMushrooms ?
+        shroom(30, 800, 300, 16, 24, "gT", "cT", "#1f8f84") +
+        shroom(372, 800, 350, -16, 21, "gP", "cP", "#9c2a78") +
+        shroom(60, 800, 690, 6, 15, "gV", "cV", "#4a33a0") +
+        shroom(342, 800, 708, -5, 14, "gT", "cT", "#1f8f84") +
+        shroom(150, 800, 752, -2, 10, "gP", "cP", "#9c2a78") +
+        shroom(262, 800, 758, 3, 9, "gV", "cV", "#4a33a0") : "") +
+      // fireflies
+      // (on the other screens, none near the bottom, where the buttons and page dots are)
+      flies.filter(([, y]) => withMushrooms || y < 560).map(([x, y, r]) => '<circle cx="' + x + '" cy="' + y + '" r="' + (r * 2.6) + '" fill="url(#ff)"/>').join("") +
+      '</svg>';
+  };
+  const forestSheet = document.createElement("style");
+  const forestUrl = (withMushrooms) => 'linear-gradient(rgba(8,10,24,.28),rgba(8,10,24,.38)),url("data:image/svg+xml,' + encodeURIComponent(forest(withMushrooms)) + '")';
+  forestSheet.textContent = '.phone.forest .screen{background-image:' + forestUrl(false) + '}' +
+    '.phone.forest #screen-menu{background-image:' + forestUrl(true) + ';background-size:cover;background-position:center}';
+  document.head.appendChild(forestSheet);
+
   // Picks 7 of the 9 creatures for a game; index = color number.
   function pickCreatures() {
     const all = CREATURE_IMAGES.map((_, k) => k);
@@ -494,6 +664,7 @@ body {
   const DEFAULT_KINDS = [0, 1, 2, 3, 4, 5, 6];
   const kindsNow = () => (S && S.creatures) || DEFAULT_KINDS;
   function kindClass(color) {
+    if (skin === "mushrooms") return "creature mu-" + color; // drawn like creatures: a picture with a soft shadow
     return skin === "creatures" ? "creature k-" + kindsNow()[color] : "c-" + COLORS[color];
   }
   function ballEl(color, extra) { const d = document.createElement("div"); d.className = "ball " + kindClass(color) + (extra ? " " + extra : ""); return d; }
@@ -522,7 +693,7 @@ body {
     const cx = (col(i) + 0.5) * 100 / N, cy = (row(i) + 0.5) * 100 / N;
     for (let k = 0; k < 7; k++) {
       const p = document.createElement("div");
-      p.className = "p " + (skin === "creatures" ? "k-" + S.creatures[color] : "c-" + COLORS[color]);
+      p.className = "p " + (skin === "mushrooms" ? "mu-" + color : skin === "creatures" ? "k-" + S.creatures[color] : "c-" + COLORS[color]);
       const a = (k / 7) * Math.PI * 2 + Math.random() * 0.6, d = 5 + Math.random() * 5;
       p.style.left = cx + "%"; p.style.top = cy + "%";
       p.style.setProperty("--dx", (Math.cos(a) * d) + "cqw");
@@ -818,7 +989,9 @@ body {
       if (now === "menu") renderMenu();
       if (now === "howto") renderHowto();
     }));
-    try { setSkin(localStorage.getItem(SKIN_KEY) === "balls" ? "balls" : "creatures"); } catch (e) { setSkin("creatures"); }
+    phone.classList.add("forest"); // the one look: a dark, magical mushroom forest
+
+    try { const saved = localStorage.getItem(SKIN_KEY); setSkin(saved === "balls" || saved === "mushrooms" ? saved : "creatures"); } catch (e) { setSkin("creatures"); }
 
     recordLeftoverScore();
     const restored = (data && data.S) || load();
