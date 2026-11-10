@@ -1,3 +1,4 @@
+using System.Linq;
 using Lines.Core;
 using Lines.UI;
 using Lines.View;
@@ -82,6 +83,23 @@ namespace Lines.Tests
             view.Show(board, 99000, "You're #10, Last!", showPlayAgain: true);
             Assert.AreEqual(9, view.HighlightedRow);
             Assert.Less(view.ScrollPosition, 0.01f, "Scrolled to the bottom on a 16:9 screen");
+        }
+
+        [Test]
+        public void Names_AreDrawn()
+        {
+            var board = new Leaderboard();
+            board.Add(110, "nat", 1000);
+            board.Add(54, "A long name here", 2000);
+            view.Show(board, 2000, "You're #2, nat!", showPlayAgain: true);
+            for (int i = 1; i <= 2; i++)
+            {
+                var name = view.transform.Find($"List/Rows/Row {i}/Name").GetComponent<TMPro.TextMeshProUGUI>();
+                name.ForceMeshUpdate();
+                Assert.Greater(name.textInfo.characterCount, 0, $"Row {i}");
+                Assert.AreEqual(name.text.Length, name.textInfo.characterInfo.Take(name.textInfo.characterCount).Count(c => c.isVisible || c.character == ' '),
+                    $"Row {i}: every letter shows");
+            }
         }
 
         [Test]

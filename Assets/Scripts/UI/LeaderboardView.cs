@@ -241,7 +241,9 @@ namespace Lines.UI
             row.Name.fontSize = NameSize * u;
             row.Date.text = DateText(entry.time);
             row.Date.fontSize = DateSize * u;
-            float nameH = NameSize * 1.25f * u, dateH = DateSize * 1.25f * u;
+            // Boxes as tall as the font's own lines: a name that doesn't fit its box would vanish (it can
+            // only be shortened with "…" sideways).
+            float nameH = row.Name.GetPreferredValues("Ag").y, dateH = row.Date.GetPreferredValues("Ag").y;
             float textTop = h / 2f + (nameH + dateH) / 2f;
             Place(row.Name.rectTransform, whoX, textTop - nameH, whoW, nameH);
             Place(row.Date.rectTransform, whoX, textTop - nameH - dateH, whoW, dateH);
