@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#15101C">
+<title>Emo Party — прототип</title>
+<style>
+  :root {
+    --pink: #FF2FB3;
+    --pink2: #FF7AD9;
+    --violet: #9B5CFF;
+    --cyan: #2DE2E6;
+    --acid: #39FF88;
+    --bg: #15101C;
+    --ink: #FCEBFF;
+    --muted: #C9B3D3;
+    --cw: 90px;
+    --ch: 120px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #0b080e; color: var(--ink); overflow: hidden;
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent; user-select: none; }
+  body { display: flex; justify-content: center; align-items: center; }
+
+  /* Телефон: на ПК — вертикальная рамка 9:19.5, на телефоне — весь экран */
+  #phone { position: relative; height: 100dvh; width: min(100vw, calc(100dvh * 0.4615));
+    overflow: hidden; background: var(--bg); }
+  @media (min-width: 700px) {
+    #phone { height: min(100dvh - 32px, 900px); width: calc(min(100dvh - 32px, 900px) * 0.4615);
+      border-radius: 28px; box-shadow: 0 0 0 8px #241a2a, 0 0 40px rgba(255, 47, 179, .35); }
+  }
+
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column;
+    padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom); }
+  .screen.active { display: flex; }
+
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  .btn { min-height: 52px; min-width: 200px; padding: 0 28px; border-radius: 26px; font-size: 18px; font-weight: 700;
+    letter-spacing: .04em; color: var(--ink); background: rgba(21, 16, 28, .85);
+    border: 2px solid var(--pink); box-shadow: 0 0 12px rgba(255, 47, 179, .55), inset 0 0 10px rgba(255, 47, 179, .25);
+    text-shadow: 0 0 6px rgba(255, 47, 179, .8); transition: transform .1s; }
+  .btn:active { transform: scale(.96); }
+  .btn.alt { border-color: var(--cyan); box-shadow: 0 0 12px rgba(45, 226, 230, .5); text-shadow: 0 0 6px rgba(45, 226, 230, .8); }
+  .icon-btn { width: 48px; height: 48px; border-radius: 14px; font-size: 20px; font-weight: 800;
+    border: 2px solid var(--pink2); background: rgba(21, 16, 28, .8); box-shadow: 0 0 8px rgba(255, 122, 217, .5); }
+
+  .neon { color: #fff; text-shadow: 0 0 4px #fff, 0 0 10px var(--pink), 0 0 22px var(--pink), 0 0 40px var(--pink); }
+
+  /* ---------- Фон меню: кирпичная стена с граффити и объявлениями ---------- */
+  .wall {
+    background:
+      radial-gradient(ellipse at 50% 35%, rgba(255, 47, 179, .18), transparent 60%),
+      linear-gradient(rgba(21, 16, 28, .45), rgba(21, 16, 28, .8)),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='56'%3E%3Crect width='112' height='56' fill='%23301f2b'/%3E%3Cg fill='%23472c3c'%3E%3Crect x='2' y='2' width='52' height='24' rx='2'/%3E%3Crect x='58' y='2' width='52' height='24' rx='2'/%3E%3Crect x='-26' y='30' width='52' height='24' rx='2'/%3E%3Crect x='30' y='30' width='52' height='24' rx='2'/%3E%3Crect x='86' y='30' width='52' height='24' rx='2'/%3E%3C/g%3E%3C/svg%3E");
+  }
+  .decor { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .graf { position: absolute; font-weight: 900; font-style: italic; opacity: .85; }
+  .flyer { position: absolute; padding: 8px 10px; width: 108px; font-size: 10px; line-height: 1.25; font-weight: 800;
+    text-transform: uppercase; color: #2a1d2b; background: #efe6d8; box-shadow: 0 3px 8px rgba(0, 0, 0, .5); }
+  .flyer::before { content: ""; position: absolute; top: -7px; left: 50%; width: 38px; height: 14px; margin-left: -19px;
+    background: rgba(255, 255, 255, .45); transform: rotate(-4deg); }
+  .flyer b { display: block; font-size: 13px; color: var(--pink); }
+  .flyer.dark { background: #1d1424; color: var(--muted); border: 1px solid var(--violet); }
+  .flyer.dark b { color: var(--acid); }
+
+  #menu { justify-content: center; align-items: center; gap: 16px; text-align: center; }
+  #menu .logo { font-size: 56px; line-height: .9; font-weight: 900; font-style: italic; transform: rotate(-6deg); margin-bottom: 8px; }
+  #menu .logo small { display: block; font-size: 18px; font-style: normal; letter-spacing: .3em; color: var(--cyan);
+    text-shadow: 0 0 8px var(--cyan); margin-top: 10px; }
+  #menu .best { min-height: 20px; font-size: 14px; color: var(--muted); }
+
+  #splash { justify-content: center; align-items: center; background: var(--bg); }
+  #splash .logo { font-size: 60px; font-weight: 900; font-style: italic; transform: rotate(-6deg); animation: flicker 1.4s ease-in; }
+  @keyframes flicker { 0%, 18%, 22%, 40% { opacity: .1 } 20%, 45%, 100% { opacity: 1 } }
+
+  /* ---------- Игровое поле: пробковая доска объявлений ---------- */
+  .cork {
+    background:
+      linear-gradient(rgba(21, 16, 28, .6), rgba(21, 16, 28, .72)),
+      radial-gradient(circle at 30% 30%, #b08657 0 1px, transparent 1.6px) 0 0 / 7px 7px,
+      radial-gradient(circle at 70% 70%, #5e4127 0 1px, transparent 1.8px) 0 0 / 9px 9px,
+      #8a6640;
+    box-shadow: inset 0 0 0 10px #3b2718, inset 0 0 0 12px #5a3d26, inset 0 0 40px rgba(0, 0, 0, .7);
+  }
+  .note { position: absolute; width: 74px; height: 74px; padding: 8px; font-size: 9px; font-weight: 800;
+    text-transform: uppercase; line-height: 1.2; color: #2a1d2b; opacity: .55; box-shadow: 0 2px 5px rgba(0, 0, 0, .5); }
+  .note.p { background: var(--pink2); } .note.c { background: var(--cyan); } .note.g { background: var(--acid); }
+  .polaroid-deco { position: absolute; width: 64px; height: 76px; padding: 6px 6px 18px; background: #efe6d8; opacity: .45;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, .5); }
+  .polaroid-deco i { display: block; width: 100%; height: 100%; background: linear-gradient(135deg, var(--violet), var(--pink)); }
+
+  .hud { position: relative; z-index: 2; display: flex; align-items: center; gap: 10px; padding: 18px 6px 8px; }
+  .hud .stat { flex: 1; text-align: center; padding: 8px 6px; border-radius: 14px; background: rgba(21, 16, 28, .82);
+    border: 2px solid var(--violet); box-shadow: 0 0 8px rgba(155, 92, 255, .5); font-weight: 700; }
+  .hud .stat span { display: block; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+  .hud .stat b { font-size: 22px; font-variant-numeric: tabular-nums; }
+
+  #board { position: relative; z-index: 1; flex: 1; display: grid; place-content: center; padding: 12px 0 20px;
+    grid-template-columns: repeat(3, var(--cw)); grid-auto-rows: var(--ch); gap: 12px; }
+
+  /* ---------- Карточка ---------- */
+  .card { position: relative; width: var(--cw); height: var(--ch); perspective: 700px; padding: 0; }
+  .card::after { /* кнопка-булавка: карточка «приколота» к доске */
+    content: ""; position: absolute; z-index: 3; top: -5px; left: 50%; width: 12px; height: 12px; margin-left: -6px;
+    border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, var(--pink) 45%, #8a0f5e);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, .6); }
+  .card .inner { position: absolute; inset: 0; transition: transform .25s ease; transform-style: preserve-3d; }
+  .card.up .inner { transform: rotateY(180deg); }
+  .face { position: absolute; inset: 0; border-radius: 12px; overflow: hidden; backface-visibility: hidden;
+    -webkit-backface-visibility: hidden; }
+  .face.back { border: 2px solid var(--pink); box-shadow: 0 0 10px rgba(255, 47, 179, .6);
+    background: repeating-conic-gradient(#2a1630 0 25%, #15101C 0 50%) 0 0 / 18px 18px; display: grid; place-items: center; }
+  .face.back svg { width: 58%; }
+  .face.front { transform: rotateY(180deg); background: var(--bg); border: 2px solid var(--c);
+    box-shadow: 0 0 10px var(--c), inset 0 0 14px color-mix(in srgb, var(--c) 35%, transparent); }
+  .face.front svg { width: 100%; height: 100%; display: block; }
+  .card.matched .inner { animation: pulse .3s ease; }
+  .card.matched .front { animation: flash .7s ease; }
+  .card.miss .front { animation: shake .3s ease; }
+  @keyframes pulse { 0%, 100% { transform: rotateY(180deg) scale(1); } 50% { transform: rotateY(180deg) scale(1.12); } }
+  @keyframes flash { 30% { box-shadow: 0 0 26px 6px var(--pink), inset 0 0 30px var(--pink); } }
+  @keyframes shake { 25% { translate: -3px 0; } 75% { translate: 3px 0; } }
+
+  /* ---------- Оверлеи: пауза и победа ---------- */
+  .overlay { position: absolute; inset: 0; z-index: 10; display: none; flex-direction: column; align-items: center;
+    justify-content: center; gap: 14px; padding: 24px; text-align: center; background: rgba(11, 8, 14, .82); backdrop-filter: blur(3px); }
+  .overlay.active { display: flex; }
+  .overlay h2 { font-size: 34px; font-weight: 900; font-style: italic; margin-bottom: 4px; }
+  .stars { font-size: 46px; letter-spacing: 6px; }
+  .stars .on { color: var(--acid); text-shadow: 0 0 10px var(--acid), 0 0 24px var(--acid); }
+  .stars .off { color: #3a2d40; }
+  .result { font-size: 18px; line-height: 1.5; }
+  .best-line { font-size: 14px; color: var(--muted); }
+  .badge { display: none; padding: 6px 14px; border-radius: 14px; font-weight: 800; color: var(--bg); background: var(--acid);
+    box-shadow: 0 0 14px var(--acid); transform: rotate(-4deg); }
+  .badge.show { display: inline-block; }
+  .confetti { position: absolute; top: -30px; font-size: 22px; pointer-events: none; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110dvh) rotate(540deg); } }
+
+  /* ---------- Настройки ---------- */
+  #settings { gap: 14px; padding-top: calc(env(safe-area-inset-top) + 20px); }
+  #settings .top { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  #settings h2 { font-size: 28px; font-weight: 900; font-style: italic; }
+  .toggle { display: flex; align-items: center; justify-content: space-between; min-height: 56px; padding: 0 18px;
+    border-radius: 16px; background: rgba(21, 16, 28, .85); border: 2px solid #3a2d40; font-size: 18px; font-weight: 600; text-align: left; }
+  .toggle i { width: 52px; height: 30px; border-radius: 15px; background: #3a2d40; position: relative; transition: background .2s; }
+  .toggle i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--muted); transition: transform .2s, background .2s; }
+  .toggle.on { border-color: var(--pink); box-shadow: 0 0 8px rgba(255, 47, 179, .45); }
+  .toggle.on i { background: var(--pink); }
+  .toggle.on i::after { transform: translateX(22px); background: #fff; }
+  #settings .reset { margin-top: auto; margin-bottom: 28px; align-self: center; }
+  .toggle .chev { font-size: 26px; line-height: 1; color: var(--pink2); }
+
+  /* Окно «Правила игры» */
+  .rules-card { width: 100%; max-width: 360px; padding: 22px 20px 20px; border-radius: 20px; text-align: left;
+    background: rgba(21, 16, 28, .95); border: 2px solid var(--pink); box-shadow: 0 0 18px rgba(255, 47, 179, .45); }
+  .rules-card h2 { font-size: 26px; text-align: center; margin-bottom: 14px; }
+  .rules-card ol { counter-reset: r; list-style: none; display: grid; gap: 10px; margin-bottom: 20px; }
+  .rules-card li { counter-increment: r; position: relative; padding-left: 34px; font-size: 15px; line-height: 1.4; }
+  .rules-card li::before { content: counter(r); position: absolute; left: 0; top: 0; width: 24px; height: 24px;
+    border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 800; color: var(--bg);
+    background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+  .rules-card .btn { display: block; margin: 0 auto; }
+
+  /* Подсказка: игра только в вертикальной ориентации */
+  #rotate { display: none; position: fixed; inset: 0; z-index: 50; background: var(--bg); align-items: center;
+    justify-content: center; flex-direction: column; gap: 12px; font-size: 18px; text-align: center; padding: 24px; }
+  #rotate .ico { font-size: 52px; animation: turn 1.6s ease-in-out infinite; }
+  @keyframes turn { 50% { transform: rotate(-90deg); } }
+  @media (orientation: landscape) and (max-height: 520px) { #rotate { display: flex; } }
+</style>
+</head>
+<body>
+<div id="phone">
+
+  <!-- Заставка -->
+  <section id="splash" class="screen active" aria-label="Заставка">
+    <div class="logo neon">EMO PARTY</div>
+  </section>
+
+  <!-- Главное меню: стена с граффити и объявлениями -->
+  <section id="menu" class="screen wall" aria-label="Главное меню">
+    <div class="decor" aria-hidden="true">
+      <div class="graf" style="top:6%;left:6%;font-size:40px;color:var(--cyan);text-shadow:0 0 12px var(--cyan);transform:rotate(-18deg)">★</div>
+      <div class="graf" style="top:10%;right:10%;font-size:46px;color:var(--pink);text-shadow:0 0 14px var(--pink);transform:rotate(14deg)">♥</div>
+      <div class="graf" style="bottom:22%;left:8%;font-size:38px;color:var(--acid);text-shadow:0 0 12px var(--acid);transform:rotate(-8deg)">⚡</div>
+      <div class="graf" style="top:30%;left:4%;font-size:15px;color:var(--violet);text-shadow:0 0 8px var(--violet);transform:rotate(-80deg)">XOXO 2006</div>
+      <div class="graf" style="bottom:9%;right:6%;font-size:16px;color:var(--pink2);text-shadow:0 0 8px var(--pink2);transform:rotate(-6deg)">never grow up</div>
+      <div class="flyer" style="top:19%;right:6%;transform:rotate(7deg)"><b>Ищу группу</b>барабанщик со своей чёлкой</div>
+      <div class="flyer dark" style="bottom:26%;right:5%;transform:rotate(-5deg)"><b>Концерт</b>в пятницу, гараж №3</div>
+      <div class="flyer" style="bottom:5%;left:6%;transform:rotate(-9deg)"><b>Mixtape</b>обменяю диск на кассету</div>
+    </div>
+    <div class="logo neon">EMO<br>PARTY<small>найди пару</small></div>
+    <button class="btn" data-action="play">Играть</button>
+    <button class="btn alt" data-action="settings">Настройки</button>
+    <div class="best" id="menuBest"></div>
+  </section>
+
+  <!-- Игровое поле: доска объявлений -->
+  <section id="game" class="screen cork" aria-label="Игровое поле">
+    <div class="decor" aria-hidden="true">
+      <div class="note p" style="top:13%;left:4%;transform:rotate(-8deg)">Турнир по мемори</div>
+      <div class="note c" style="top:44%;right:3%;transform:rotate(6deg)">Игра недели</div>
+      <div class="note g" style="bottom:6%;left:8%;transform:rotate(5deg)">Не забудь зарядку для MP3</div>
+      <div class="polaroid-deco" style="bottom:10%;right:10%;transform:rotate(-10deg)"><i></i></div>
+      <div class="polaroid-deco" style="top:52%;left:2%;transform:rotate(8deg)"><i></i></div>
+    </div>
+    <div class="hud">
+      <div class="stat"><span>Ходы</span><b id="moves">0</b></div>
+      <div class="stat"><span>Время</span><b id="time">00:00</b></div>
+      <button class="icon-btn" data-action="pause" aria-label="Пауза">II</button>
+    </div>
+    <div id="board"></div>
+
+    <div id="pause" class="overlay" aria-label="Пауза">
+      <h2 class="neon">Пауза</h2>
+      <button class="btn" data-action="resume">Продолжить</button>
+      <button class="btn alt" data-action="restart">Заново</button>
+      <button class="btn alt" data-action="menu">В меню</button>
+    </div>
+
+    <div id="win" class="overlay" aria-label="Окно победы">
+      <h2 class="neon">Все пары найдены!</h2>
+      <div class="stars" id="stars"></div>
+      <div class="badge" id="badge">Новый рекорд!</div>
+      <div class="result" id="result"></div>
+      <div class="best-line" id="bestLine"></div>
+      <button class="btn" data-action="restart">Играть снова</button>
+      <button class="btn alt" data-action="menu">В меню</button>
+    </div>
+  </section>
+
+  <!-- Настройки -->
+  <section id="settings" class="screen wall" aria-label="Настройки">
+    <div class="top">
+      <button class="icon-btn" data-action="menu" aria-label="Назад">←</button>
+      <h2 class="neon">Настройки</h2>
+    </div>
+    <button class="toggle" data-toggle="sound">Звуки <i></i></button>
+    <button class="toggle" data-toggle="music">Музыка <i></i></button>
+    <button class="toggle" data-toggle="vibro">Вибрация <i></i></button>
+    <button class="toggle" data-action="rules">Правила игры <span class="chev">›</span></button>
+    <button class="btn alt reset" data-action="resetBest">Сбросить рекорд</button>
+
+    <div id="rules" class="overlay" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+      <div class="rules-card">
+        <h2 class="neon" id="rulesTitle">Правила игры</h2>
+        <ol>
+          <li>Нажми на карточку — она откроется.</li>
+          <li>Открой вторую: если картинки совпали, пара остаётся открытой.</li>
+          <li>Не совпали — запомни, где они лежат: карточки закроются.</li>
+          <li>Найди все 6 пар за наименьшее число ходов; ход — это две открытые карточки.</li>
+          <li>Звёзды: 3★ — до 9 ходов, 2★ — 10–13, 1★ — больше 13. Проиграть нельзя — можно только побить свой рекорд.</li>
+        </ol>
+        <button class="btn" data-action="closeRules">Понятно</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="rotate"><div class="ico">📱</div>Поверните телефон вертикально</div>
+
+<script>
+'use strict';
+
+// ---------- Данные пар (как CardData в Unity): 6 карточек из GDD ----------
+const heart = (x, y, s, fill) =>
+  `<path transform="translate(${x} ${y}) scale(${s})" d="M0,6 L-6,0 A3.7,3.7 0 0 1 0,-4 A3.7,3.7 0 0 1 6,0 Z" fill="${fill}"/>`;
+const label = (text, color) =>
+  `<text x="50" y="123" text-anchor="middle" font-size="8.5" font-weight="800" letter-spacing=".6" fill="${color}">${text}</text>`;
+const O = 'stroke="#FCEBFF" stroke-width="2.4" stroke-linejoin="round"';
+
+const CARDS = [
+  { id: 'EmoCat', color: '#FF2FB3', svg: `
+    <polygon points="22,50 29,20 45,40" fill="#1d1a24" ${O}/>
+    <polygon points="78,50 71,20 55,40" fill="#1d1a24" ${O}/>
+    <ellipse cx="50" cy="66" rx="34" ry="30" fill="#1d1a24" ${O}/>
+    <path d="M17,62 Q26,32 78,40 Q63,46 57,70 Q44,58 17,62Z" fill="#0e0c12" ${O}/>
+    <path d="M38,44 Q52,45 58,62" stroke="#FF2FB3" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="66" cy="69" rx="6" ry="6.5" fill="#39FF88"/><ellipse cx="66" cy="69" rx="1.8" ry="5" fill="#0e0c12"/>
+    <path d="M58,63 Q66,58 73,62 L77,59" stroke="#FCEBFF" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M47,79 L53,79 L50,83Z" fill="#FF2FB3"/>
+    <path d="M50,83 Q46,88 42,86 M50,83 Q54,88 58,86 M30,80 H16 M31,85 L18,89 M70,80 H84 M69,85 L82,89"
+      stroke="#FCEBFF" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    ${label('ЭМО-КОТИК', '#FF2FB3')}` },
+
+  { id: 'EmoBear', color: '#FF7AD9', svg: `
+    <circle cx="26" cy="36" r="12" fill="#FF7AD9" ${O}/><circle cx="26" cy="36" r="5" fill="#15101C"/>
+    <circle cx="74" cy="36" r="12" fill="#FF7AD9" ${O}/><circle cx="74" cy="36" r="5" fill="#15101C"/>
+    <circle cx="50" cy="60" r="30" fill="#FF7AD9" ${O}/>
+    <path d="M22,54 Q30,28 74,36 Q61,42 55,60 Q42,50 22,54Z" fill="#15101C" ${O}/>
+    <circle cx="63" cy="60" r="4.2" fill="#15101C"/><circle cx="64.4" cy="58.6" r="1.3" fill="#fff"/>
+    <ellipse cx="50" cy="74" rx="13" ry="9.5" fill="#FFD3F0" ${O}/>
+    <ellipse cx="50" cy="70" rx="4.5" ry="3.2" fill="#15101C"/>
+    <path d="M50,73 V77 M50,77 Q46,80 43,78 M50,77 Q54,80 57,78" stroke="#15101C" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    ${heart(32, 70, 0.75, '#9B5CFF')}
+    <path d="M27,67 l2,2 M35,66 l-1,2.5 M30,76 l1.5,-2" stroke="#FCEBFF" stroke-width="1" />
+    <rect x="22" y="88" width="56" height="12" rx="6" fill="#15101C" ${O}/>
+    <path d="M30,88 v12 M40,88 v12 M50,88 v12 M60,88 v12 M70,88 v12" stroke="#FF2FB3" stroke-width="5"/>
+    <rect x="60" y="96" width="10" height="16" rx="3" fill="#FF2FB3" ${O}/>
+    ${label('ЭМО-МИШКА', '#FF7AD9')}` },
+
+  { id: 'Polaroid', color: '#FF2FB3', svg: `
+    <rect x="29" y="70" width="42" height="38" rx="2" fill="#FCEBFF" stroke="#FF2FB3" stroke-width="2"/>
+    <rect x="33" y="80" width="34" height="22" fill="#15101C"/>
+    ${heart(50, 91, 1.05, '#FF2FB3')}
+    <rect x="14" y="26" width="72" height="50" rx="9" fill="#FF2FB3" ${O}/>
+    <rect x="14" y="26" width="72" height="13" rx="9" fill="#C8188A"/>
+    <rect x="14" y="33" width="72" height="6" fill="#C8188A"/>
+    <rect x="66" y="30" width="12" height="7" rx="2" fill="#FCEBFF"/>
+    <circle cx="25" cy="33" r="3" fill="#39FF88"/>
+    <circle cx="50" cy="56" r="15" fill="#15101C" ${O}/>
+    <circle cx="50" cy="56" r="7.5" fill="#2DE2E6"/><circle cx="46.5" cy="52.5" r="2.4" fill="#fff"/>
+    <rect x="22" y="74" width="56" height="3" rx="1.5" fill="#15101C"/>
+    ${label('ПОЛАРОИД', '#FF2FB3')}` },
+
+  { id: 'Mp3Player', color: '#2DE2E6', svg: `
+    <path d="M50,80 V88 C40,78 18,88 32,102 L50,112 L68,102 C82,88 60,78 50,88"
+      stroke="#FF2FB3" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="32" y="20" width="36" height="60" rx="7" fill="#2DE2E6" ${O}/>
+    <rect x="37" y="26" width="26" height="19" rx="2" fill="#15101C"/>
+    <path d="M41,41 v-4 M45,41 v-9 M49,41 v-6 M53,41 v-11 M57,41 v-5" stroke="#FF2FB3" stroke-width="2.4" stroke-linecap="round"/>
+    <circle cx="50" cy="63" r="11.5" fill="#FCEBFF"/><circle cx="50" cy="63" r="4.5" fill="#2DE2E6"/>
+    <path d="M50,53.5 v2.5 M50,70 v2.5 M40.5,63 h2.5 M57,63 h2.5" stroke="#15101C" stroke-width="1.6"/>
+    ${label('MP3-ПЛЕЕР', '#2DE2E6')}` },
+
+  { id: 'EnergyCan', color: '#9B5CFF', svg: `
+    <rect x="46" y="13" width="10" height="5" rx="2" fill="#D9D2E5"/>
+    <rect x="33" y="17" width="34" height="9" rx="3" fill="#D9D2E5" ${O}/>
+    <rect x="30" y="23" width="40" height="80" rx="8" fill="#9B5CFF" ${O}/>
+    <rect x="33" y="98" width="34" height="7" rx="3" fill="#D9D2E5" ${O}/>
+    <polygon points="55,33 37,65 49,65 43,92 64,56 52,56 59,33" fill="#39FF88" stroke="#15101C" stroke-width="2" stroke-linejoin="round"/>
+    <ellipse cx="37" cy="40" rx="1.6" ry="2.6" fill="#fff" opacity=".7"/>
+    <ellipse cx="63" cy="78" rx="1.6" ry="2.6" fill="#fff" opacity=".7"/>
+    <ellipse cx="36" cy="86" rx="1.3" ry="2.1" fill="#fff" opacity=".6"/>
+    ${label('ЭНЕРГЕТИК', '#9B5CFF')}` },
+
+  { id: 'BowSkull', color: '#FCEBFF', svg: `
+    <path d="M50,26 C28,26 20,42 22,57 C23,65 28,69 32,71 L32,84 L68,84 L68,71 C72,69 77,65 78,57 C80,42 72,26 50,26Z"
+      fill="#FCEBFF" stroke="#FF7AD9" stroke-width="2.4" stroke-linejoin="round"/>
+    ${heart(38, 55, 1.15, '#FF2FB3')}
+    ${heart(62, 55, 1.15, '#FF2FB3')}
+    <path d="M50,63 l-4,7 h8z" fill="#15101C"/>
+    <path d="M37,77 H63 M44,73 V84 M50,73 V84 M56,73 V84" stroke="#15101C" stroke-width="2"/>
+    <polygon points="66,27 52,16 54,36" fill="#FF2FB3" ${O}/>
+    <polygon points="66,27 80,16 79,36" fill="#FF2FB3" ${O}/>
+    <circle cx="66" cy="27" r="4.5" fill="#FF7AD9" ${O}/>
+    ${label('ЧЕРЕП С БАНТОМ', '#FCEBFF')}` },
+];
+
+const BACK_SVG = `<svg viewBox="0 0 60 60" aria-hidden="true">
+  <circle cx="30" cy="30" r="27" fill="#15101C" stroke="#FF2FB3" stroke-width="2.5"/>
+  <path transform="translate(30 31) scale(2.6)" d="M0,6 L-6,0 A3.7,3.7 0 0 1 0,-4 A3.7,3.7 0 0 1 6,0 Z" fill="#FF2FB3"/>
+  <polygon points="33,15 24,32 30,32 26,46 37,27 31,27 35,15" fill="#39FF88" stroke="#15101C" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>`;
+
+// ---------- Настройки и рекорд (как PlayerPrefs) ----------
+const STORE_KEY = 'emoParty.v1';
+const store = (() => {
+  let data = { sound: true, music: true, vibro: true, bestMoves: null, bestTime: null };
+  try { Object.assign(data, JSON.parse(localStorage.getItem(STORE_KEY) || '{}')); } catch (e) { /* хранилище недоступно */ }
+  return {
+    data,
+    save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch (e) { /* хранилище недоступно */ } },
+  };
+})();
+
+const $ = (sel) => document.querySelector(sel);
+const fmt = (ms) => {
+  const s = Math.floor(ms / 1000);
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+};
+const bestText = () => store.data.bestMoves == null ? ''
+  : `Рекорд: ${store.data.bestMoves} ходов, ${fmt(store.data.bestTime)}`;
+
+// ---------- Звук: синтез через Web Audio, без файлов ----------
+const audio = (() => {
+  let ctx = null, musicTimer = null, step = 0;
+  const ensure = () => {
+    if (!ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) ctx = new AC(); }
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  };
+  const tone = (freq, start, dur, { type = 'sine', vol = .15, cutoff = 4000, glide = null } = {}) => {
+    const c = ensure(); if (!c) return;
+    const t = c.currentTime + start;
+    const osc = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+    osc.type = type; osc.frequency.setValueAtTime(freq, t);
+    if (glide) osc.frequency.exponentialRampToValueAtTime(glide, t + dur);
+    f.type = 'lowpass'; f.frequency.value = cutoff;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(f).connect(g).connect(c.destination);
+    osc.start(t); osc.stop(t + dur + 0.02);
+  };
+  const noise = (start, dur, vol) => {
+    const c = ensure(); if (!c) return;
+    const t = c.currentTime + start;
+    const buf = c.createBuffer(1, Math.floor(c.sampleRate * dur), c.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    src.buffer = buf; f.type = 'highpass'; f.frequency.value = 1800; g.gain.value = vol;
+    src.connect(f).connect(g).connect(c.destination); src.start(t);
+  };
+  const sfx = {
+    // переворот — щелчок затвора полароида
+    flip() { noise(0, .045, .35); tone(1800, 0, .03, { type: 'square', vol: .05 }); noise(.06, .03, .2); },
+    // пара найдена — гитарный аккорд (ми мажор, «перебор»)
+    match() { [164.8, 246.9, 329.6, 415.3, 493.9].forEach((f, i) => tone(f, i * .018, .7, { type: 'sawtooth', vol: .06, cutoff: 1900 })); },
+    // не совпала — мягкий низкий тон
+    miss() { tone(170, 0, .32, { vol: .14, glide: 110 }); },
+    // победа — короткий поп-панк-рифф
+    win() {
+      [[329.6, .0], [392, .14], [440, .28], [493.9, .42], [440, .56], [587.3, .7], [659.3, .84]]
+        .forEach(([f, t]) => { tone(f, t, .2, { type: 'square', vol: .07, cutoff: 2600 }); tone(f / 2, t, .2, { type: 'sawtooth', vol: .05, cutoff: 900 }); });
+    },
+  };
+  // фон — спокойная петля из четырёх аккордов: Em – C – G – D
+  const CHORDS = [[164.8, 196, 246.9], [130.8, 164.8, 196], [196, 246.9, 293.7], [146.8, 185, 220]];
+  const playBar = () => {
+    CHORDS[step % 4].forEach((f, i) => tone(f, i * .12, 1.9, { type: 'triangle', vol: .025, cutoff: 1200 }));
+    tone(CHORDS[step % 4][0] / 2, 0, 1.9, { type: 'sine', vol: .04 });
+    step++;
+  };
+  return {
+    unlock: ensure,
+    play(name) { if (store.data.sound) sfx[name](); },
+    music(on) {
+      if (on && store.data.music && !musicTimer && ensure()) { playBar(); musicTimer = setInterval(playBar, 2000); }
+      if ((!on || !store.data.music) && musicTimer) { clearInterval(musicTimer); musicTimer = null; }
+    },
+  };
+})();
+const vibrate = (ms) => { if (store.data.vibro && navigator.vibrate) navigator.vibrate(ms); };
+
+// ---------- Экраны ----------
+function show(id) {
+  document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === id));
+  if (id === 'menu') $('#menuBest').textContent = bestText();
+  if (id === 'game') requestAnimationFrame(fitBoard);
+}
+
+// ---------- Подгонка сетки 3 × 4 (как BoardFitter.cs) ----------
+const COLS = 3, ROWS = 4, ASPECT = 0.75, GAP = 12;
+function fitBoard() {
+  const board = $('#board');
+  const r = board.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  let w = (r.width - GAP * (COLS - 1)) / COLS;
+  let h = (r.height - 32 - GAP * (ROWS - 1)) / ROWS;
+  if (w / h > ASPECT) w = h * ASPECT; else h = w / ASPECT;
+  document.documentElement.style.setProperty('--cw', `${Math.floor(w)}px`);
+  document.documentElement.style.setProperty('--ch', `${Math.floor(h)}px`);
+}
+new ResizeObserver(fitBoard).observe($('#board'));
+
+// ---------- Правила игры (как GameManager.cs) ----------
+const FLIP_MS = 250, MISMATCH_MS = 800, WIN_MS = 500;
+const game = { cards: [], first: null, second: null, locked: false, running: false, paused: false,
+  moves: 0, matches: 0, elapsed: 0, last: 0, timer: null };
+
+function shuffle(a) { // Фишер — Йетс
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+function newGame() {
+  clearInterval(game.timer);
+  $('#win').classList.remove('active');
+  $('#pause').classList.remove('active');
+  document.querySelectorAll('.confetti').forEach((c) => c.remove());
+
+  const deck = shuffle(CARDS.flatMap((c) => [c, c]));
+  const board = $('#board');
+  board.innerHTML = '';
+  game.cards = deck.map((data) => {
+    const el = document.createElement('button');
+    el.className = 'card';
+    el.setAttribute('aria-label', 'Закрытая карточка');
+    el.innerHTML = `<div class="inner">
+        <div class="face back">${BACK_SVG}</div>
+        <div class="face front" style="--c:${data.color}"><svg viewBox="0 0 100 130" aria-hidden="true">${data.svg}</svg></div>
+      </div>`;
+    const card = { data, el, up: false, matched: false };
+    el.addEventListener('click', () => onCardClick(card));
+    board.appendChild(el);
+    return card;
+  });
+
+  Object.assign(game, { first: null, second: null, locked: false, running: true, paused: false,
+    moves: 0, matches: 0, elapsed: 0, last: performance.now() });
+  updateHud();
+  game.timer = setInterval(tick, 200);
+  show('game');
+}
+
+function tick() {
+  const now = performance.now();
+  if (game.running && !game.paused) game.elapsed += now - game.last;
+  game.last = now;
+  $('#time').textContent = fmt(game.elapsed);
+}
+function updateHud() { $('#moves').textContent = game.moves; $('#time').textContent = fmt(game.elapsed); }
+
+function flip(card, up) {
+  card.up = up;
+  card.el.classList.toggle('up', up);
+  card.el.setAttribute('aria-label', up ? card.data.id : 'Закрытая карточка');
+}
+
+function onCardClick(card) {
+  if (game.locked || !game.running || game.paused || card.up || card.matched) return;
+  audio.play('flip');
+  flip(card, true);
+  if (!game.first) { game.first = card; return; }
+
+  game.second = card;
+  game.moves++;
+  updateHud();
+  game.locked = true;
+  setTimeout(checkPair, FLIP_MS);
+}
+
+function checkPair() {
+  const { first, second } = game;
+  if (first.data.id === second.data.id) {
+    [first, second].forEach((c) => { c.matched = true; c.el.classList.add('matched'); });
+    audio.play('match');
+    vibrate(40);
+    game.matches++;
+    game.first = game.second = null;
+    if (game.matches === CARDS.length) {
+      game.running = false;
+      tick();
+      setTimeout(win, WIN_MS);
+    } else {
+      game.locked = false;
+    }
+    return;
+  }
+  audio.play('miss');
+  [first, second].forEach((c) => c.el.classList.add('miss'));
+  setTimeout(() => {
+    [first, second].forEach((c) => { c.el.classList.remove('miss'); flip(c, false); });
+    setTimeout(() => { game.first = game.second = null; game.locked = false; }, FLIP_MS);
+  }, MISMATCH_MS);
+}
+
+// Звёзды из GDD: 3★ — до 9 ходов, 2★ — 10–13, 1★ — больше 13 (минимум — 6)
+const starsFor = (moves) => moves <= 9 ? 3 : moves <= 13 ? 2 : 1;
+
+function win() {
+  clearInterval(game.timer);
+  audio.play('win');
+  vibrate([60, 40, 60]);
+
+  const d = store.data;
+  const isRecord = d.bestMoves == null || game.moves < d.bestMoves || (game.moves === d.bestMoves && game.elapsed < d.bestTime);
+  if (isRecord) { d.bestMoves = game.moves; d.bestTime = game.elapsed; store.save(); }
+
+  const n = starsFor(game.moves);
+  $('#stars').innerHTML = [1, 2, 3].map((i) => `<span class="${i <= n ? 'on' : 'off'}">★</span>`).join('');
+  $('#result').innerHTML = `Ходов: <b>${game.moves}</b><br>Время: <b>${fmt(game.elapsed)}</b>`;
+  $('#bestLine').textContent = bestText();
+  $('#badge').classList.toggle('show', isRecord);
+  $('#win').classList.add('active');
+  confetti();
+}
+
+function confetti() {
+  const win = $('#win');
+  const colors = ['#FF2FB3', '#FF7AD9', '#9B5CFF', '#2DE2E6', '#39FF88'];
+  for (let i = 0; i < 36; i++) {
+    const s = document.createElement('span');
+    s.className = 'confetti';
+    s.textContent = i % 2 ? '♥' : '★';
+    s.style.left = `${Math.random() * 100}%`;
+    s.style.color = colors[i % colors.length];
+    s.style.textShadow = `0 0 8px ${colors[i % colors.length]}`;
+    s.style.animationDuration = `${2.2 + Math.random() * 2}s`;
+    s.style.animationDelay = `${Math.random() * .8}s`;
+    win.appendChild(s);
+  }
+}
+
+function setPaused(p) {
+  if (!game.running) return;
+  game.paused = p;
+  game.last = performance.now();
+  $('#pause').classList.toggle('active', p);
+}
+
+// ---------- Кнопки ----------
+const actions = {
+  play: newGame,
+  restart: newGame,
+  settings: () => { renderToggles(); show('settings'); },
+  menu: () => { clearInterval(game.timer); game.running = false; $('#pause').classList.remove('active'); show('menu'); },
+  rules: () => $('#rules').classList.add('active'),
+  closeRules: () => $('#rules').classList.remove('active'),
+  pause: () => setPaused(true),
+  resume: () => setPaused(false),
+  resetBest: () => {
+    if (!confirm('Сбросить рекорд?')) return;
+    store.data.bestMoves = store.data.bestTime = null; store.save();
+  },
+};
+function renderToggles() {
+  document.querySelectorAll('[data-toggle]').forEach((t) => t.classList.toggle('on', !!store.data[t.dataset.toggle]));
+}
+document.addEventListener('click', (e) => {
+  audio.unlock();
+  audio.music(true);
+  const a = e.target.closest('[data-action]');
+  if (a) { actions[a.dataset.action](); return; }
+  const t = e.target.closest('[data-toggle]');
+  if (t) {
+    const key = t.dataset.toggle;
+    store.data[key] = !store.data[key]; store.save(); renderToggles();
+    if (key === 'music') audio.music(store.data.music);
+  }
+});
+// Свернули вкладку — ставим на паузу, как мобильная игра
+document.addEventListener('visibilitychange', () => { if (document.hidden && game.running) setPaused(true); });
+
+// ---------- Заставка → меню ----------
+const toMenu = () => { if ($('#splash').classList.contains('active')) show('menu'); };
+$('#splash').addEventListener('click', toMenu);
+setTimeout(toMenu, 1500);
+</script>
+</body>
+</html>
