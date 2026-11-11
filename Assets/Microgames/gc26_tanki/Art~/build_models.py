@@ -1,6 +1,6 @@
 """Raises the flat tank drawings into 3D voxel models. The drawing stays the texture.
 
-usage: build_models.py <folder with player.png, enemy.png> <unity output folder> [<browser output folder>]
+usage: build_models.py <folder with the tank sprites> <unity output folder> [<browser output folder>]
 Needs Pillow. Each part of a tank is listed below with a height, in map cells; to change
 a model, edit the shapes and run the script again. Shape coordinates are pixels of the
 512x512 sprite, later shapes paint over earlier ones.
@@ -77,6 +77,54 @@ TANKS = {
         ],
     },
 }
+
+
+# The other tanks, drawn by build_variants.py from the two drawings above. They keep the
+# body of their drawing (everything but its barrel) and add their own guns and armour.
+ENEMY_BODY = TANKS["enemy"]["parts"][:-1]
+PLAYER_BODY = TANKS["player"]["parts"][:-1]
+
+
+def variant(body, cells, *extra):
+    return {"cells": cells, "parts": list(body) + list(extra)}
+
+
+TANKS.update({
+    "enemy_scout": variant(ENEMY_BODY, 1.31,
+        (rect(247, 64, 267, 156), 0.38, 0.48)),                                   # short gun
+    "enemy_gunner": variant(ENEMY_BODY, 1.31,
+        (rect(228, 140, 288, 176), 0.0, 0.5),                                     # wide mantlet
+        (rect(235, 0, 251, 156), 0.38, 0.48), (rect(263, 0, 279, 156), 0.38, 0.48)),  # twin guns
+    "enemy_heavy": variant(ENEMY_BODY, 1.31,
+        (rect(156, 120, 212, 328), 0.0, 0.38), (rect(300, 120, 356, 328), 0.0, 0.38),  # side skirts
+        (rect(216, 176, 300, 204), 0.0, 0.62),                                    # turret front plate
+        (rect(241, 28, 273, 160), 0.36, 0.5)),                                    # thick gun
+    "enemy_boss": variant(ENEMY_BODY, 1.31,
+        (rect(200, 196, 316, 300), 0.0, 0.62),                                    # armoured turret
+        (circle(258, 248, 22), 0.0, 0.7),                                         # glowing core
+        (rect(243, 0, 271, 170), 0.4, 0.52),                                      # forward gun
+        (rect(92, 226, 200, 262), 0.4, 0.52), (rect(316, 226, 424, 262), 0.4, 0.52)),  # side guns
+    "enemy_miner": variant(ENEMY_BODY, 1.31,
+        (rect(204, 336, 312, 420), 0.0, 0.36),                                    # mine rack
+        (circle(226, 358, 13), 0.0, 0.44), (circle(258, 358, 13), 0.0, 0.44), (circle(290, 358, 13), 0.0, 0.44),
+        (circle(226, 396, 13), 0.0, 0.44), (circle(258, 396, 13), 0.0, 0.44), (circle(290, 396, 13), 0.0, 0.44),
+        (rect(247, 80, 267, 156), 0.38, 0.48)),                                   # short gun
+    "enemy_fixer": variant(ENEMY_BODY, 1.31,
+        (rect(249, 96, 265, 156), 0.38, 0.48),                                    # small gun
+        (rect(284, 204, 380, 220), 0.6, 0.7),                                     # crane arm
+        (rect(368, 216, 384, 248), 0.3, 0.68)),                                   # hook
+    "enemy_rammer": variant(ENEMY_BODY, 1.31,
+        (rect(152, 28, 360, 76), 0.0, 0.36),                                      # ram plate
+        (rect(168, 0, 344, 32), 0.1, 0.26),                                       # spikes
+        (circle(228, 380, 14), 0.0, 0.42), (circle(288, 380, 14), 0.0, 0.42)),    # exhaust stacks
+    "player_squall": variant(PLAYER_BODY, 1.765,
+        (rect(236, 8, 252, 160), 0.42, 0.52), (rect(264, 8, 280, 160), 0.42, 0.52)),  # twin guns
+    "player_bastion": variant(PLAYER_BODY, 1.765,
+        (rect(148, 172, 196, 356), 0.0, 0.4), (rect(320, 172, 368, 356), 0.0, 0.4),  # side armour
+        (rect(240, 40, 276, 160), 0.4, 0.56)),                                    # heavy gun
+    "player_phantom": variant(PLAYER_BODY, 1.765,
+        (rect(250, 0, 266, 160), 0.42, 0.52)),                                    # long thin gun
+})
 
 
 def build_columns(image, parts):
