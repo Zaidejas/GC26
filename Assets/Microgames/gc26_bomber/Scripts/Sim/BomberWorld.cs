@@ -36,6 +36,8 @@ namespace GC26.Bomber
         public readonly List<BomberWall> Walls = new List<BomberWall>();
         public readonly List<BomberDoor> Doors = new List<BomberDoor>();
         public readonly List<BomberBarrel> Barrels = new List<BomberBarrel>();
+        /// <summary>Scorch marks and oil left by deaths and explosions this room; the view drains it into the floor.</summary>
+        public readonly List<(float x, float y, float r, Color32 c)> NewDecals = new List<(float, float, float, Color32)>();
         public BomberRoomState Room { get; private set; }
         public readonly List<List<string>>[] Plan = new List<List<string>>[3];
         public uint Seed { get; private set; }
@@ -102,7 +104,7 @@ namespace GC26.Bomber
         void EnterRoom(string type)
         {
             Room = new BomberRoomState { Type = type };
-            Enemies.Clear(); Shots.Clear(); Pickups.Clear(); Effects.Clear(); Particles.Clear(); Texts.Clear(); Walls.Clear(); Doors.Clear(); Barrels.Clear(); _barrelQueue.Clear();
+            Enemies.Clear(); Shots.Clear(); Pickups.Clear(); Effects.Clear(); Particles.Clear(); Texts.Clear(); Walls.Clear(); Doors.Clear(); Barrels.Clear(); _barrelQueue.Clear(); NewDecals.Clear();
             Room.Exits = NextOptions();
             var gaps = BuildBorder(Room.Exits);
             bool calm = type == "shop" || type == "chest" || type == "workbench" || type == "altar";
@@ -331,7 +333,7 @@ namespace GC26.Bomber
         void UpdatePlayer(float dt, BomberIntent it)
         {
             var mv = it.Move; if (mv.sqrMagnitude > 1f) mv.Normalize();
-            P.DashCd -= dt; P.ITime -= dt; P.FireCd -= dt; P.AltCd -= dt; P.TacCd -= dt; P.Bob += dt;
+            P.DashCd -= dt; P.ITime -= dt; P.FireCd -= dt; P.MuzzleT -= dt; P.AltCd -= dt; P.TacCd -= dt; P.Bob += dt;
             if (P.AbT > 0f) P.AbT -= dt; else P.AbCd -= dt;
 
             if (it.Dash && P.DashCd <= 0f && Core.CanFire)
@@ -344,7 +346,10 @@ namespace GC26.Bomber
             {
                 float sp = Speed * (Core.CanFire ? 1f : 0.55f) * (Combo >= 10 ? 1.1f : 1f), k = Mathf.Min(1f, dt * 18f);
                 P.Vx += (mv.x * sp - P.Vx) * k; P.Vy += (mv.y * sp - P.Vy) * k;
+                if (mv.sqrMagnitude > 0.01f && UnityEngine.Random.value < 0.55f) Particle(P.X - P.Vx * 0.04f, P.Y - P.Vy * 0.04f, -P.Vx * 0.3f, -P.Vy * 0.3f, 0.22f, new Color32(127, 227, 255, 140), 2.5f);
             }
+            if (Core.State == CoreState.Overdrive && UnityEngine.Random.value < 0.3f) Particle(P.X + (UnityEngine.Random.value - 0.5f) * 14f, P.Y + (UnityEngine.Random.value - 0.5f) * 14f, 0f, -50f, 0.3f, new Color32(255, 179, 71, 160), 2f);
+            if (Core.State == CoreState.Overheated && UnityEngine.Random.value < 0.4f) Spark(P.X + (UnityEngine.Random.value - 0.5f) * 12f, P.Y + (UnityEngine.Random.value - 0.5f) * 12f, new Color32(255, 154, 92, 255), 60f);
             MoveBody(P, P.Vx * dt, P.Vy * dt);
 
             if (it.ForsageToggle && Core.CanFire) { Governor.Forsage = !Governor.Forsage; Toast?.Invoke(Governor.Forsage ? "ФОРСАЖ: ядро разгоняется, урон +30%. Следи за перегревом!" : "Ядро в безопасной зоне", 1.4f); }
@@ -387,6 +392,7 @@ namespace GC26.Bomber
                 Dmg = ShotDamage * dmgMul * Core.DamageMultiplier, R = heavy ? 7f : 4f, Life = 1.4f, Heavy = heavy,
                 Color = Core.State == CoreState.Overdrive ? new Color32(255, 227, 154, 255) : new Color32(216, 248, 255, 255),
             });
+            P.MuzzleT = 0.06f;
             if (heavy) Shake?.Invoke(0.5f);
         }
 

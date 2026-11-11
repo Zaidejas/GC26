@@ -19,7 +19,8 @@ namespace GC26.Bomber
 
         BomberContext _ctx;
         Font _font;
-        RectTransform _safe, _frame;
+        RectTransform _safe, _frame, _bottom; // _bottom: RefW x RefH box glued to the bottom of the frame (controls live here)
+        float _frameH = RefH; Image _vignette, _lowHp, _shade;
         RawImage _worldImage;
         Image _fade, _flash;
 
@@ -31,7 +32,7 @@ namespace GC26.Bomber
         readonly List<Text> _doorLabels = new List<Text>();
 
         // controls
-        sealed class Btn { public string Id; public Vector2 Pos; public float R; public Color Col; public Image Bg, Cd, Rim, Glow; public Text Label, Sub; public bool Visible = true; }
+        sealed class Btn { public bool Top; public string Id; public Vector2 Pos; public float R; public Color Col; public Image Bg, Cd, Rim, Glow; public Text Label, Sub; public bool Visible = true; }
         readonly List<Btn> _btns = new List<Btn>();
         Image _joyBase, _joyKnob, _joyHint; Text _joyHintText;
         int _joyId = int.MinValue; Vector2 _joyStart, _joyNow;
@@ -63,7 +64,11 @@ namespace GC26.Bomber
 
             _worldImage = new GameObject("World", typeof(RectTransform)).AddComponent<RawImage>(); _worldImage.rectTransform.SetParent(_frame, false);
             _worldImage.texture = worldTexture; Place(_worldImage.rectTransform, 0, Top, RefW, 960f);
-            var shade = NewImage("ControlsShade", _frame, ctx.Art.UiGradient, new Color(0.01f, 0.015f, 0.03f, 0.75f)); Place(shade.rectTransform, 0, RefH - 300f, RefW, 300f);
+            _vignette = NewImage("Vignette", _frame, ctx.Art.UiVignette, new Color(0f, 0f, 0f, 0.55f)); Place(_vignette.rectTransform, 0, Top, RefW, 960f);
+            _lowHp = NewImage("LowHp", _frame, ctx.Art.UiVignette, new Color(1f, 0.12f, 0.24f, 0f)); Place(_lowHp.rectTransform, 0, Top, RefW, 960f);
+            _bottom = new GameObject("Bottom", typeof(RectTransform)).GetComponent<RectTransform>(); _bottom.SetParent(_frame, false);
+            _bottom.anchorMin = _bottom.anchorMax = new Vector2(0f, 0f); _bottom.pivot = new Vector2(0f, 0f); _bottom.anchoredPosition = Vector2.zero; _bottom.sizeDelta = new Vector2(RefW, RefH);
+            _shade = NewImage("ControlsShade", _bottom, ctx.Art.UiGradient, new Color(0.01f, 0.015f, 0.03f, 0.75f)); Place(_shade.rectTransform, 0, RefH - 300f, RefW, 300f);
             _fade = NewImage("Fade", _frame, ctx.Art.UiWhite, Color.black); Place(_fade.rectTransform, 0, Top, RefW, 960f);
 
             BuildHud();
@@ -91,8 +96,8 @@ namespace GC26.Bomber
             _room = NewText("Room", _frame, 15, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold); Place(_room.rectTransform, 14 + 7 * 22 + 6, 98, 170, 22);
             _weapon = NewText("Weapon", _frame, 14, TextAnchor.MiddleRight, new Color(0.5f, 0.89f, 1f), FontStyle.Bold); Place(_weapon.rectTransform, RefW - 220, 98, 208, 22);
             _combo = NewText("Combo", _frame, 22, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold); Place(_combo.rectTransform, 0, Top + 12, RefW, 30);
-            _toastBg = NewImage("ToastBg", _frame, _ctx.Art.UiWhite, new Color(0.04f, 0.06f, 0.12f, 0.88f));
-            _toast = NewText("Toast", _frame, 16, TextAnchor.MiddleCenter, Color.white, FontStyle.Normal); _toast.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _toastBg = NewImage("ToastBg", _bottom, _ctx.Art.UiWhite, new Color(0.04f, 0.06f, 0.12f, 0.88f));
+            _toast = NewText("Toast", _bottom, 16, TextAnchor.MiddleCenter, Color.white, FontStyle.Normal); _toast.horizontalOverflow = HorizontalWrapMode.Wrap;
             Place(_toastBg.rectTransform, 40, RefH * 0.6f, RefW - 80, 60); Place(_toast.rectTransform, 50, RefH * 0.6f, RefW - 100, 60);
         }
 
@@ -105,25 +110,26 @@ namespace GC26.Bomber
             AddBtn("emp", 184, RefH - 176, 37, "ЭМИ", new Color(0.62f, 0.82f, 1f));
             AddBtn("od", 300, RefH - 160, 40, "ФОРСАЖ", new Color(1f, 0.7f, 0.28f));
             AddBtn("alt", 310, RefH - 58, 37, "ЗАРЯД", new Color(1f, 0.82f, 0.48f));
-            AddBtn("pause", RefW - 34, 30, 24, "II", new Color(0.51f, 0.58f, 0.74f));
-            _joyHint = NewImage("JoyHint", _frame, _ctx.Art.UiRing, new Color(0.5f, 0.89f, 1f, 0.5f)); PlaceCircle(_joyHint.rectTransform, RefW - 110, RefH - 160, 60);
-            _joyHintText = NewText("JoyHintText", _frame, 14, TextAnchor.MiddleCenter, new Color(0.81f, 0.88f, 1f), FontStyle.Bold); _joyHintText.text = "Веди пальцем\nздесь";
+            AddBtn("pause", RefW - 34, 30, 24, "II", new Color(0.51f, 0.58f, 0.74f), _frame);
+            _joyHint = NewImage("JoyHint", _bottom, _ctx.Art.UiRing, new Color(0.5f, 0.89f, 1f, 0.5f)); PlaceCircle(_joyHint.rectTransform, RefW - 110, RefH - 160, 60);
+            _joyHintText = NewText("JoyHintText", _bottom, 14, TextAnchor.MiddleCenter, new Color(0.81f, 0.88f, 1f), FontStyle.Bold); _joyHintText.text = "Веди пальцем\nздесь";
             Place(_joyHintText.rectTransform, RefW - 190, RefH - 190, 160, 60);
             _joyBase = NewImage("JoyBase", _frame, _ctx.Art.UiRing, new Color(0.5f, 0.89f, 1f, 0.55f));
             _joyKnob = NewImage("JoyKnob", _frame, _ctx.Art.UiCircle, new Color(0.5f, 0.89f, 1f, 0.55f));
         }
 
-        void AddBtn(string id, float x, float y, float r, string label, Color col)
+        void AddBtn(string id, float x, float y, float r, string label, Color col, RectTransform parent = null)
         {
-            var b = new Btn { Id = id, Pos = new Vector2(x, y), R = r, Col = col };
-            b.Glow = NewImage(id + "Glow", _frame, _ctx.Art.UiCircle, new Color(col.r, col.g, col.b, 0f)); PlaceCircle(b.Glow.rectTransform, x, y, r + 8);
-            b.Bg = NewImage(id, _frame, _ctx.Art.UiCircle, new Color(0.027f, 0.043f, 0.086f, 0.72f)); PlaceCircle(b.Bg.rectTransform, x, y, r);
-            b.Cd = NewImage(id + "Cd", _frame, _ctx.Art.UiCircle, new Color(0, 0, 0, 0.6f)); PlaceCircle(b.Cd.rectTransform, x, y, r);
+            var _bottom = parent ? parent : this._bottom; // buttons are laid out in the bottom box unless told otherwise
+            var b = new Btn { Id = id, Pos = new Vector2(x, y), R = r, Col = col, Top = parent != null };
+            b.Glow = NewImage(id + "Glow", _bottom, _ctx.Art.UiCircle, new Color(col.r, col.g, col.b, 0f)); PlaceCircle(b.Glow.rectTransform, x, y, r + 8);
+            b.Bg = NewImage(id, _bottom, _ctx.Art.UiCircle, new Color(0.027f, 0.043f, 0.086f, 0.72f)); PlaceCircle(b.Bg.rectTransform, x, y, r);
+            b.Cd = NewImage(id + "Cd", _bottom, _ctx.Art.UiCircle, new Color(0, 0, 0, 0.6f)); PlaceCircle(b.Cd.rectTransform, x, y, r);
             b.Cd.type = Image.Type.Filled; b.Cd.fillMethod = Image.FillMethod.Radial360; b.Cd.fillOrigin = (int)Image.Origin360.Top; b.Cd.fillClockwise = false;
-            b.Rim = NewImage(id + "Rim", _frame, _ctx.Art.UiRing, col); PlaceCircle(b.Rim.rectTransform, x, y, r);
-            b.Label = NewText(id + "Label", _frame, r >= 50 ? 15 : label.Length > 6 ? 12 : 13, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold); b.Label.text = label;
+            b.Rim = NewImage(id + "Rim", _bottom, _ctx.Art.UiRing, col); PlaceCircle(b.Rim.rectTransform, x, y, r);
+            b.Label = NewText(id + "Label", _bottom, r >= 50 ? 15 : label.Length > 6 ? 12 : 13, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold); b.Label.text = label;
             Place(b.Label.rectTransform, x - r, y - r, r * 2, r * 2 - 10);
-            b.Sub = NewText(id + "Sub", _frame, 15, TextAnchor.MiddleCenter, col, FontStyle.Bold); Place(b.Sub.rectTransform, x - r, y, r * 2, r);
+            b.Sub = NewText(id + "Sub", _bottom, 15, TextAnchor.MiddleCenter, col, FontStyle.Bold); Place(b.Sub.rectTransform, x - r, y, r * 2, r);
             _btns.Add(b);
         }
 
@@ -212,7 +218,8 @@ namespace GC26.Bomber
                 }
                 foreach (var b in _btns)
                 {
-                    if (!b.Visible || Vector2.Distance(b.Pos, p) > b.R + 10f) continue;
+                    var bp = b.Top ? p : new Vector2(p.x, p.y - (_frameH - RefH));
+                    if (!b.Visible || Vector2.Distance(b.Pos, bp) > b.R + 10f) continue;
                     _held[id] = b.Id;
                     switch (b.Id)
                     {
@@ -258,11 +265,21 @@ namespace GC26.Bomber
         {
             var sa = Screen.safeArea; var full = new Vector2(Screen.width, Screen.height);
             if (full.x > 0 && full.y > 0) { _safe.anchorMin = new Vector2(sa.xMin / full.x, sa.yMin / full.y); _safe.anchorMax = new Vector2(sa.xMax / full.x, sa.yMax / full.y); _safe.offsetMin = _safe.offsetMax = Vector2.zero; }
-            var room = _safe.rect.size; if (room.x > 1f && room.y > 1f) _frame.localScale = Vector3.one * Mathf.Min(room.x / RefW, room.y / RefH);
+            var room = _safe.rect.size;
+            if (room.x > 1f && room.y > 1f)
+            {
+                // fit the width; a taller phone gets a taller frame (more station below the room) instead of black bars
+                float scale = room.x / RefW, h = room.y / scale;
+                if (h < RefH) { scale = room.y / RefH; h = RefH; }
+                h = Mathf.Min(h, RefH + 420f);
+                _frame.localScale = Vector3.one * scale;
+                if (Mathf.Abs(h - _frameH) > 0.5f) Resize(h);
+            }
             if (_toastT > 0f) { _toastT -= dt; if (_toastT <= 0f) NextToast(); } else if (_toastBg.enabled && _toasts.Count == 0) NextToast();
 
             var w = _ctx.World; var p = w.P; var core = w.Core;
             _fade.color = new Color(0, 0, 0, Mathf.Clamp01(w.Room.Fade / 0.35f));
+            _lowHp.color = new Color(1f, 0.12f, 0.24f, p.Hp <= 2 && w.Phase == BomberPhase.Play ? 0.35f + 0.2f * Mathf.Sin(w.Time * 6f) : 0f);
             _flash.color = new Color(1f, 0.24f, 0.31f, Mathf.Max(0f, w.Flash));
             _hudLine.color = p.Hp <= 2 ? new Color(1f, 0.13f, 0.27f) : new Color(1f, 0.35f, 0.43f);
             for (int i = 0; i < _hp.Count; i++)
@@ -344,6 +361,14 @@ namespace GC26.Bomber
                 tx.color = (Color)BomberData.RoomColor[d.Type]; Place(tx.rectTransform, (d.X0 + d.X1) / 2f - 80, Top + BomberData.Cell + 4, 160, 22);
             }
             for (int i = m; i < _doorLabels.Count; i++) _doorLabels[i].enabled = false;
+        }
+
+        void Resize(float h)
+        {
+            _frameH = h; _frame.sizeDelta = new Vector2(RefW, h);
+            float worldH = h - Top;
+            foreach (var rt in new[] { _worldImage.rectTransform, _fade.rectTransform, _vignette.rectTransform, _lowHp.rectTransform }) rt.sizeDelta = new Vector2(RefW, worldH);
+            _worldImage.texture = _ctx.View.SetViewHeight(worldH);
         }
 
         Text GetText(List<Text> list, int i, string name)

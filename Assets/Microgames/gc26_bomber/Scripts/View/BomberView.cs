@@ -19,7 +19,9 @@ namespace GC26.Bomber
         BomberContext _ctx;
         Transform _roomRoot, _dyn;
         int _builtRoom = -1;
-        Sprite _floor;
+        Sprite _floor, _shaft;
+        float _viewH = BomberData.H, _shake;
+        Vector3 _camBase;
         readonly Dictionary<string, Pool> _pools = new Dictionary<string, Pool>();
 
         sealed class Pool
@@ -44,15 +46,13 @@ namespace GC26.Bomber
         public void Init(BomberContext ctx)
         {
             _ctx = ctx;
-            Target = new RenderTexture(TexW, TexH, 16, RenderTextureFormat.ARGB32) { filterMode = FilterMode.Point, name = "gc26_bomber_World" };
             var camGo = ctx.Spawn("gc26_bomber_Camera", transform);
             Cam = camGo.AddComponent<Camera>();
-            Cam.orthographic = true; Cam.orthographicSize = BomberData.H / PxPerUnit / 2f;
-            Cam.clearFlags = CameraClearFlags.SolidColor; Cam.backgroundColor = Color.black; Cam.targetTexture = Target;
-            camGo.transform.position = new Vector3(BomberData.W / PxPerUnit / 2f, BomberData.H / PxPerUnit / 2f, -10f);
+            Cam.orthographic = true; Cam.clearFlags = CameraClearFlags.SolidColor; Cam.backgroundColor = Color.black;
+            SetViewHeight(BomberData.H);
             _roomRoot = ctx.Spawn("Room", transform).transform;
             _dyn = ctx.Spawn("Dynamic", transform).transform;
-            foreach (var (name, order) in new[] { ("pickup", 0), ("barrel", 1), ("fxUnder", 2), ("enemy", 10), ("enemyFx", 11), ("player", 20), ("shot", 30), ("fx", 35), ("part", 40) })
+            foreach (var (name, order) in new[] { ("light", -40), ("pickup", 0), ("barrel", 1), ("fxUnder", 2), ("enemy", 10), ("enemyFx", 11), ("player", 20), ("glow", 28), ("shot", 30), ("fx", 35), ("part", 40) })
                 _pools[name] = new Pool(_dyn, order);
         }
 
@@ -61,6 +61,24 @@ namespace GC26.Bomber
             if (Cam) Cam.targetTexture = null;
             if (Target) { Target.Release(); Destroy(Target); }
         }
+
+        /// <summary>
+        /// Height of the visible world in world px (>= the room). Taller phones see more of the station below the
+        /// room entrance instead of black bars. Recreates the render texture and returns it for the UI.
+        /// </summary>
+        public RenderTexture SetViewHeight(float h)
+        {
+            _viewH = Mathf.Max(BomberData.H, Mathf.Round(h / 2f) * 2f);
+            if (Target) { Cam.targetTexture = null; Target.Release(); Destroy(Target); }
+            Target = new RenderTexture(TexW, Mathf.RoundToInt(_viewH / 2f), 16, RenderTextureFormat.ARGB32) { filterMode = FilterMode.Point, name = "gc26_bomber_World" };
+            Cam.targetTexture = Target; Cam.orthographicSize = _viewH / PxPerUnit / 2f;
+            _camBase = new Vector3(BomberData.W / PxPerUnit / 2f, (2f * BomberData.H - _viewH) / PxPerUnit / 2f, -10f);
+            Cam.transform.position = _camBase;
+            _builtRoom = -1; // rebuild the floor so the shaft below the room fills the new space
+            return Target;
+        }
+
+        public void AddShake(float amount) => _shake = Mathf.Max(_shake, amount);
 
         static Vector3 U(float x, float y) => new Vector3(x / PxPerUnit, (H - y) / PxPerUnit, 0f);
         static Quaternion Rot(float a) { const float step = Mathf.PI / 8f; return Quaternion.Euler(0f, 0f, -Mathf.Round(a / step) * step * Mathf.Rad2Deg); }
@@ -72,6 +90,12 @@ namespace GC26.Bomber
             Cam.backgroundColor = (Color)BomberData.Sectors[w.Sector].Tint;
             foreach (var p in _pools.Values) p.Begin();
             float time = w.Time;
+            // screen shake
+            _shake = Mathf.Max(0f, _shake - Time.unscaledDeltaTime * 2.5f);
+            Cam.transform.position = _camBase + (_shake > 0f ? (Vector3)(Random.insideUnitCircle * _shake * 6f / PxPerUnit) : Vector3.zero);
+            // decals (scorch / oil) become children of the room, so they stay until the next room
+            foreach (var (dx, dy, dr, dc) in w.NewDecals) AddDecal(dx, dy, dr, dc);
+            w.NewDecals.Clear();
 
             // doors: glow when open, red bar when closed
             foreach (var d in w.Doors)
@@ -83,6 +107,8 @@ namespace GC26.Bomber
             }
             foreach (var p in w.Pickups)
             {
+                var pg = _pools["light"].Get(); pg.sprite = art.Glow; pg.color = p.Kind == "scrap" ? new Color(1f, 0.81f, 0.36f, 0.3f) : p.Kind == "repair" ? new Color(0.43f, 1f, 0.69f, 0.4f) : new Color(0.62f, 0.82f, 1f, 0.4f);
+                pg.transform.position = U(p.X, p.Y); pg.transform.localScale = Vector3.one * ((p.Kind == "scrap" ? 10f : 16f) / 32f);
                 var sr = _pools["pickup"].Get(); sr.sprite = p.Kind == "scrap" ? art.Scrap : p.Kind == "repair" ? art.Repair : art.EmpPickup;
                 sr.transform.position = U(p.X, p.Y); if (p.Kind == "scrap") sr.transform.localRotation = Rot(time * 3f + p.X);
             }
@@ -92,6 +118,8 @@ namespace GC26.Bomber
             DrawPlayer(w, art, time);
             foreach (var s in w.Shots)
             {
+                var g = _pools["glow"].Get(); g.sprite = art.Glow; var gc = s.Enemy ? new Color(1f, 0.3f, 0.4f, 0.55f) : new Color(0.5f, 0.89f, 1f, 0.35f); if (!s.Enemy && s.Heavy) gc.a = 0.6f; g.color = gc;
+                g.transform.position = U(s.X, s.Y); g.transform.localScale = Vector3.one * (s.R * (s.Enemy ? 3.4f : 3f) / 32f);
                 var sr = _pools["shot"].Get();
                 if (s.Enemy) { sr.sprite = art.EnemyShot; sr.color = (Color)s.Color; sr.transform.localScale = Vector3.one * (s.R / 5f) * 1.3f; }
                 else { sr.sprite = s.Heavy ? art.ShotHeavy : art.Shot; sr.color = (Color)s.Color; sr.transform.localRotation = Rot(Mathf.Atan2(s.Vy, s.Vx)); }
@@ -126,8 +154,12 @@ namespace GC26.Bomber
                 }
                 case "blast":
                 {
+                    var gl = _pools["glow"].Get(); gl.sprite = art.Glow; gl.color = new Color(1f, 0.75f, 0.4f, (1f - k) * 0.8f);
+                    gl.transform.position = U(e.X, e.Y); gl.transform.localScale = Vector3.one * (e.R * 2.2f / 32f);
                     var sr = _pools["fx"].Get(); sr.sprite = art.Disc; sr.color = new Color(1f, 0.67f, 0.27f, (1f - k) * 0.55f);
                     sr.transform.position = U(e.X, e.Y); sr.transform.localScale = Vector3.one * (e.R * (0.5f + 0.5f * k) / 32f);
+                    var core = _pools["fx"].Get(); core.sprite = art.Disc; core.color = new Color(1f, 1f, 0.85f, Mathf.Max(0f, 0.9f - k * 2.5f));
+                    core.transform.position = U(e.X, e.Y); core.transform.localScale = Vector3.one * (e.R * 0.45f / 32f);
                     break;
                 }
             }
@@ -146,7 +178,7 @@ namespace GC26.Bomber
             if (e.Flash > 0f) sr.color = new Color(1f, 0.55f, 0.55f);
             if (e.Kind == "turret") { var h = _pools["enemyFx"].Get(); h.sprite = art.TurretHead; h.transform.position = U(e.X, e.Y); h.transform.localRotation = Rot(e.St == "fire" ? e.AimA : e.Face); }
             if (e.Elite) Ring(e.X, e.Y, e.R + 6f, new Color(1f, 0.84f, 0.36f, 0.5f + 0.3f * Mathf.Sin(time * 6f)), "enemyFx");
-            if (e.St == "tele") Ring(e.X, e.Y, e.R + 3f, new Color(1f, 1f, 1f, 0.5f + 0.5f * Mathf.Sin(time * 40f)), "enemyFx");
+            if (e.St == "tele") { Ring(e.X, e.Y, e.R + 3f, new Color(1f, 1f, 1f, 0.5f + 0.5f * Mathf.Sin(time * 40f)), "enemyFx"); var tg = _pools["glow"].Get(); tg.sprite = art.Glow; tg.color = new Color(1f, 0.4f, 0.45f, 0.45f); tg.transform.position = U(e.X, e.Y); tg.transform.localScale = Vector3.one * (e.R * 3f / 32f); }
             if (e.St == "tele" && e.Kind == "kamikaze") { float kk = 1f - e.Tm / 0.55f; Ring(e.X, e.Y, 80f, new Color(1f, 0.3f, 0.3f, 0.9f), "fxUnder"); var f = _pools["fxUnder"].Get(); f.sprite = art.Disc; f.color = new Color(1f, 0.3f, 0.3f, 0.15f); f.transform.position = U(e.X, e.Y); f.transform.localScale = Vector3.one * (80f * Mathf.Max(0f, kk) / 32f); }
             if (e.Kind == "kamikaze") { var core = _pools["enemyFx"].Get(); core.sprite = art.Pixel; core.color = Mathf.Sin(time * (e.St == "tele" ? 40f : 10f)) > 0f ? Color.white : new Color(1f, 0.16f, 0.16f); core.transform.position = U(e.X, e.Y); core.transform.localScale = Vector3.one * 2f; }
             if (e.Hp < e.MaxHp)
@@ -163,6 +195,13 @@ namespace GC26.Bomber
             bool over = core.State == CoreState.Overheated;
             float alpha = p.ITime > 0f && p.DashT <= 0f && Mathf.FloorToInt(time * 20f) % 2 == 1 ? 0.45f : 1f;
             float bob = Mathf.Round(Mathf.Sin(time * 5f) * 0.8f) * 2f;
+            var light = _pools["light"].Get(); light.sprite = art.Glow; var lc = over ? new Color(1f, 0.3f, 0.35f) : HeatColor(core); lc.a = over ? 0.12f : 0.22f; light.color = lc;
+            light.transform.position = U(p.X, p.Y); light.transform.localScale = Vector3.one * ((core.State == CoreState.Overdrive ? 95f : 80f) / 32f);
+            if (p.MuzzleT > 0f)
+            {
+                var mf = _pools["glow"].Get(); mf.sprite = art.Glow; mf.color = new Color(1f, 0.95f, 0.78f, 0.85f);
+                mf.transform.position = U(p.X + Mathf.Cos(p.Aim) * 20f, p.Y + bob + Mathf.Sin(p.Aim) * 20f); mf.transform.localScale = Vector3.one * (16f / 32f);
+            }
             var shadow = _pools["fxUnder"].Get(); shadow.sprite = art.Pixel; shadow.color = new Color(0, 0, 0, 0.4f * alpha); shadow.transform.position = U(p.X, p.Y + 15f); shadow.transform.localScale = new Vector3(12f, 2f, 1f);
             var gun = _pools["player"].Get(); gun.sprite = art.Gun; gun.transform.position = U(p.X, p.Y + bob); gun.transform.localRotation = Rot(p.Aim); gun.color = new Color(1, 1, 1, alpha);
             var hull = _pools["player"].Get(); hull.sprite = art.Drone; hull.transform.position = U(p.X, p.Y + bob);
@@ -199,6 +238,19 @@ namespace GC26.Bomber
             var sr = _pools[pool].Get(); sr.sprite = _ctx.Art.Ring; sr.color = c; sr.transform.position = U(x, y); sr.transform.localScale = Vector3.one * (r / 32f);
         }
 
+        void AddDecal(float x, float y, float r, Color32 c)
+        {
+            var scorch = _ctx.Spawn("Decal", _roomRoot).AddComponent<SpriteRenderer>(); scorch.sprite = _ctx.Art.Glow; scorch.sortingOrder = -90;
+            scorch.color = new Color(0f, 0f, 0f, 0.5f); scorch.transform.position = U(x, y); scorch.transform.localScale = Vector3.one * (r * 2f / 32f);
+            for (int i = 0; i < 5; i++)
+            {
+                var d = _ctx.Spawn("Oil", _roomRoot).AddComponent<SpriteRenderer>(); d.sprite = _ctx.Art.Pixel; d.sortingOrder = -89;
+                var col = (Color)c; col.a = c.r + c.g + c.b < 30 ? 0.6f : 0.35f; d.color = col;
+                float a = Random.value * Mathf.PI * 2f, dist = Random.value * r; d.transform.position = U(x + Mathf.Cos(a) * dist, y + Mathf.Sin(a) * dist);
+                d.transform.localScale = Vector3.one * (1f + Random.value);
+            }
+        }
+
         void BuildRoom(BomberWorld w)
         {
             _builtRoom = w.RoomVersion;
@@ -209,6 +261,24 @@ namespace GC26.Bomber
             floor.sprite = _floor = _ctx.Art.MakeFloor(BomberData.GW, BomberData.GH, sec, BomberRng.Hash(w.Seed, (uint)(w.RoomVersion * 31 + w.Sector)));
             floor.transform.position = new Vector3(BomberData.W / PxPerUnit / 2f, BomberData.H / PxPerUnit / 2f, 0f);
             floor.sortingOrder = -100;
+            // maintenance shaft under the entrance: fills the extra height of tall phones
+            float extra = _viewH - BomberData.H;
+            _ctx.Art.Free(_shaft); _shaft = null;
+            if (extra > 1f)
+            {
+                int rows = Mathf.CeilToInt(extra / BomberData.Cell) + 1;
+                var dark = new BomberSectorDef { Floor = new Color32((byte)(sec.Floor.r * 0.6f), (byte)(sec.Floor.g * 0.6f), (byte)(sec.Floor.b * 0.65f), 255), Accent = sec.Accent, Tint = sec.Tint };
+                var shaft = _ctx.Spawn("Shaft", _roomRoot).AddComponent<SpriteRenderer>();
+                shaft.sprite = _shaft = _ctx.Art.MakeFloor(BomberData.GW, rows, dark, BomberRng.Hash(w.Seed, 777u));
+                shaft.transform.position = new Vector3(BomberData.W / PxPerUnit / 2f, -rows / 2f, 0f); shaft.sortingOrder = -100;
+                foreach (var side in new[] { 0, BomberData.GW - 1 })
+                {
+                    var wsr = _ctx.Spawn("ShaftWall", _roomRoot).AddComponent<SpriteRenderer>(); wsr.sprite = _ctx.Art.Wall; wsr.drawMode = SpriteDrawMode.Tiled;
+                    wsr.size = new Vector2(1f, rows); wsr.sortingOrder = -50; wsr.transform.position = new Vector3(side + 0.5f, -rows / 2f, 0f);
+                }
+                var veil = _ctx.Spawn("ShaftShade", _roomRoot).AddComponent<SpriteRenderer>(); veil.sprite = _ctx.Art.Pixel; veil.color = new Color(0f, 0f, 0f, 0.45f); veil.sortingOrder = -45;
+                veil.transform.position = new Vector3(BomberData.W / PxPerUnit / 2f, -rows / 2f, 0f); veil.transform.localScale = new Vector3(BomberData.W / 2f, rows * 16f, 1f);
+            }
             foreach (var wall in w.Walls)
             {
                 if (wall.DoorOut) continue;

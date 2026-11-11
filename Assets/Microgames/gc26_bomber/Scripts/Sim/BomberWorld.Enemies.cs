@@ -115,6 +115,7 @@ namespace GC26.Bomber
             if (!Enemies.Remove(e)) return;
             for (int k = 0; k < 16; k++) Spark(e.X, e.Y, e.Def.Color, 260f);
             AddRing(e.X, e.Y, e.R + 16f, e.Def.Color, 0.25f);
+            NewDecals.Add((e.X, e.Y, e.R, e.Def.Color));
             Kills++; Combo++; ComboT = 2.6f; MaxCombo = Mathf.Max(MaxCombo, Combo);
             if (Combo % 5 == 0)
             {
@@ -135,6 +136,8 @@ namespace GC26.Bomber
         {
             Shake?.Invoke(0.7f);
             Effects.Add(new BomberEffect { Kind = "blast", X = x, Y = y, R = r, T = 0.35f, Max = 0.35f });
+            Effects.Add(new BomberEffect { Kind = "ring", X = x, Y = y, R = r * 1.3f, T = 0.45f, Max = 0.45f, Color = new Color32(255, 200, 120, 255) });
+            NewDecals.Add((x, y, r * 0.8f, new Color32(0, 0, 0, 255)));
             for (int k = 0; k < 26; k++) Spark(x, y, k % 2 == 1 ? new Color32(255, 179, 71, 255) : new Color32(255, 90, 110, 255), 320f);
             if (hurtsPlayer && Dist(x, y, P.X, P.Y) < r + P.R) Hurt();
             foreach (var e in Enemies.ToArray()) if (Dist(x, y, e.X, e.Y) < r + e.R) DamageEnemy(e, dmg, Mathf.Atan2(e.Y - y, e.X - x), 200f);

@@ -18,7 +18,7 @@ namespace GC26.Bomber
                                 MR = Hex("#ff3048"), MY = Hex("#ffd65c"), MO = Hex("#ff8a3c"), MC = Hex("#9ff4ff"), Outline = Hex("#05070e");
 
         public Sprite Drone, Rotor, Gun, Lens, Shot, ShotHeavy, EnemyShot, Pixel, Ring, Disc, Scrap, Repair, EmpPickup, Barrel, Wall, TurretHead;
-        public Sprite UiCircle, UiRing, UiWhite, UiGradient;
+        public Sprite UiCircle, UiRing, UiWhite, UiGradient, UiVignette, Glow;
         readonly Dictionary<string, Sprite> _enemy = new Dictionary<string, Sprite>();
         readonly List<UnityEngine.Object> _owned = new List<UnityEngine.Object>();
 
@@ -45,6 +45,8 @@ namespace GC26.Bomber
                 c.Fill((x, y) => y > 8 && y < 9 && x > 5 && x < 11, Hex("#16203a"), false);
             }, outline: false, mesh: SpriteMeshType.FullRect);
             TurretHead = Build(16, 10, c => { c.Fill(c.Box(8, 3.8f, 15.5f, 6.2f), MN); c.Fill(c.Disc(7, 5, 3.6f), Hex("#ffcf5c")); c.Px(6, 4, MR); });
+            Glow = Radial(64, PixelsPerUnit * 2, (d) => Mathf.Pow(Mathf.Clamp01(1f - d), 2f));
+            UiVignette = Radial(128, 100, (d) => Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((d - 0.55f) / 0.9f)), square: true);
             UiCircle = Smooth(128, ring: false, 100, ui: true); UiRing = Smooth(128, ring: true, 100, ui: true);
             UiWhite = Build(1, 1, c => c.Px(0, 0, new Color32(255, 255, 255, 255)), outline: false);
             UiGradient = Build(1, 64, c => { for (int y = 0; y < 64; y++) c.Px(0, y, new Color32(255, 255, 255, (byte)(Mathf.SmoothStep(0f, 1f, y / 63f) * 255))); }, outline: false); UiGradient.texture.filterMode = FilterMode.Bilinear;
@@ -186,6 +188,22 @@ namespace GC26.Bomber
         }
 
         /// <summary>Additive brightness change (floor tiles), like the prototype's shade().</summary>
+        /// <summary>Soft radial texture: alpha = f(distance from centre / radius).</summary>
+        Sprite Radial(int size, float ppu, Func<float, float> f, bool square = false)
+        {
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp, name = "gc26_bomber_radial" };
+            var px = new Color32[size * size]; float h = size / 2f;
+            for (int y = 0; y < size; y++) for (int x = 0; x < size; x++)
+            {
+                float dx = (x + 0.5f - h) / h, dy = (y + 0.5f - h) / h, d = square ? Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) * 0.6f + Mathf.Sqrt(dx * dx + dy * dy) * 0.4f : Mathf.Sqrt(dx * dx + dy * dy);
+                px[y * size + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(f(d)) * 255));
+            }
+            tex.SetPixels32(px); tex.Apply(false, true);
+            var sprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), ppu);
+            _owned.Add(tex); _owned.Add(sprite);
+            return sprite;
+        }
+
         static Color32 Shade(Color32 c, float v)
         {
             byte Cl(float x) => (byte)Mathf.Clamp(x, 0, 255);

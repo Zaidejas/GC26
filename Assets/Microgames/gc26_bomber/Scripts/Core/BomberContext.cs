@@ -25,6 +25,7 @@ namespace GC26.Bomber
             UI = Spawn("gc26_bomber_UI").AddComponent<BomberPhoneUI>();
             UI.Init(this, View.Target);
             World.Toast += (m, t) => UI.Toast(m, t);
+            World.Shake += a => View.AddShake(a);
             Restart();
         }
 

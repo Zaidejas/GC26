@@ -11,7 +11,7 @@ namespace GC26.Bomber
     public sealed class BomberPlayerState : BomberBody
     {
         public int Hp, MaxHp;
-        public float Aim, ITime, DashT, DashCd, Dx, Dy = -1f, FireCd, AltCd, TacCd, AbCd, AbT, Bob;
+        public float MuzzleT, Aim, ITime, DashT, DashCd, Dx, Dy = -1f, FireCd, AltCd, TacCd, AbCd, AbT, Bob;
         public int Emp, Scrap;
         public bool Firing;
     }
