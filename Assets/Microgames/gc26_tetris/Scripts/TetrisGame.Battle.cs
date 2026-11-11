@@ -63,7 +63,7 @@ namespace GC26.Tetris
                 view.Effects.Shake(0.9f);
                 battleView.BotDefeated(battle.Level);
                 shownHpShare = 1f;
-                AddPopup(PopupSlot.Defeat, "БОТ ПОВЕРЖЕН!  +" + (Battle.DefeatPointsPerLevel * hit.BotLevel).ToString("N0"), -2.2f, 1.15f, 1.6f, 0.6f, view.AccentColor);
+                AddPopup(PopupSlot.Defeat, T("БОТ ПОВЕРЖЕН!  +", "BOT DOWN!  +") + (Battle.DefeatPointsPerLevel * hit.BotLevel).ToString("N0"), -2.2f, 1.15f, 1.6f, 0.6f, view.AccentColor);
             }
             else
             {
@@ -86,7 +86,7 @@ namespace GC26.Tetris
         void DrawBotPanel(float unit)
         {
             float x = HudLayout.BotCenter.x;
-            Label("Бот " + battle.Level + ": " + BattleView.NameFor(battle.Level), x, HudLayout.BotNameY, unit, 0.44f, TextAnchor.MiddleCenter, Bright);
+            Label(T("Бот ", "Bot ") + battle.Level + ": " + BattleView.NameFor(battle.Level, english), x, HudLayout.BotNameY, unit, 0.44f, TextAnchor.MiddleCenter, Bright);
 
             const float BarWidth = 4.3f, BarHeight = 0.5f;
             float BarY = HudLayout.BotBarY;
@@ -104,12 +104,12 @@ namespace GC26.Tetris
                 // The tall layout has no left column to spare, so coins and best score sit under the bot.
                 int best = Mathf.Max(Best(battleTable), game.Score);
                 Vector2 coins = HudLayout.CoinCounter;
-                Label("монеты " + Mathf.RoundToInt(shownCoins).ToString("N0"), coins.x, coins.y, unit, 0.5f * (1f + coinKick * 0.25f), TextAnchor.MiddleCenter, new Color(1f, 0.8f, 0.25f));
-                Label("рекорд " + best.ToString("N0") + "   ·   повержено " + battle.BotsDefeated, coins.x, coins.y - 0.62f, unit, 0.34f, TextAnchor.MiddleCenter, Muted);
+                Label(T("монеты ", "coins ") + Mathf.RoundToInt(shownCoins).ToString("N0"), coins.x, coins.y, unit, 0.5f * (1f + coinKick * 0.25f), TextAnchor.MiddleCenter, new Color(1f, 0.8f, 0.25f));
+                Label(T("рекорд ", "best ") + best.ToString("N0") + T("   ·   повержено ", "   ·   defeated ") + battle.BotsDefeated, coins.x, coins.y - 0.62f, unit, 0.34f, TextAnchor.MiddleCenter, Muted);
                 return;
             }
-            Label("Повержено: " + battle.BotsDefeated, x, -8.75f, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
-            Label("C запас   P пауза", x, -9.7f, unit, 0.34f, TextAnchor.MiddleCenter, Muted);
+            Label(T("Повержено: ", "Defeated: ") + battle.BotsDefeated, x, -8.75f, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
+            Label(T("C запас   P пауза", "C hold   P pause"), x, -9.7f, unit, 0.34f, TextAnchor.MiddleCenter, Muted);
         }
 
         void RelayoutBattle()

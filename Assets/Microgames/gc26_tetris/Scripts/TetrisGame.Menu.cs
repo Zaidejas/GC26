@@ -92,11 +92,12 @@ namespace GC26.Tetris
             for (int i = 0; i < MenuItems.Length; i++)
                 DrawMenuButton(i, unit);
 
-            DrawTablePanel("Марафон: лучшие очки", HudLayout.MenuTable(0), marathonTable, unit);
-            DrawTablePanel("Бой: лучшие очки", HudLayout.MenuTable(1), battleTable, unit);
-            Label("↑ ↓ выбрать    Enter подтвердить    или мышью", 0f, HudLayout.MenuHintY, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
+            DrawTablePanel(T("Марафон: лучшие очки", "Marathon: best scores"), HudLayout.MenuTable(0), marathonTable, unit);
+            DrawTablePanel(T("Бой: лучшие очки", "Battle: best scores"), HudLayout.MenuTable(1), battleTable, unit);
+            Label(T("↑ ↓ выбрать    Enter подтвердить    или мышью    L — English", "↑ ↓ select    Enter confirm    or use the mouse    L — русский"), 0f, HudLayout.MenuHintY, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
             Vector2 coins = HudLayout.MenuCoins;
-            Label("Монеты: " + coinsTotal.ToString("N0"), coins.x, coins.y, unit, 0.42f, TextAnchor.MiddleCenter, new Color(1f, 0.8f, 0.25f));
+            DrawLanguageButton(unit);
+            Label(T("Монеты: ", "Coins: ") + coinsTotal.ToString("N0"), coins.x, coins.y, unit, 0.42f, TextAnchor.MiddleCenter, new Color(1f, 0.8f, 0.25f));
         }
 
         void DrawMenuBackground()
@@ -296,40 +297,40 @@ namespace GC26.Tetris
             RoundedWorld(0f, cy - 0.2f, 14.6f, 16.9f, new Color(0.09f, 0.075f, 0.14f, 1f), 0.6f, 0f, unit);
             RoundedWorld(0f, cy - 0.2f, 14.6f, 16.9f, new Color(accent.r, accent.g, accent.b, 0.35f), 0.6f, 0.05f, unit);
 
-            Label("ПАУЗА", 0f, cy + 6.65f, unit, 1.25f, TextAnchor.MiddleCenter, accent);
+            Label(T("ПАУЗА", "PAUSED"), 0f, cy + 6.65f, unit, 1.25f, TextAnchor.MiddleCenter, accent);
             Label(PauseStats(), 0f, cy + 4.75f, unit, HudLayout.Portrait ? 0.42f : 0.5f, TextAnchor.MiddleCenter, Muted);
 
             for (int i = 0; i < PauseItems.Length; i++)
                 DrawButton(PauseText(PauseItems[i]), null, cy + PauseTopY - i * PauseStepY, PauseItemWidth, PauseItemHeight, pauseGlow[i], TitleColors[i], unit);
 
             if (!HudLayout.Portrait)
-                Label("P продолжить   R заново   Backspace в меню", 0f, cy - 7.65f, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
+                Label(T("P продолжить   R заново   Backspace в меню", "P resume   R restart   Backspace menu"), 0f, cy - 7.65f, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
         }
 
         string PauseText(PauseItem item)
         {
             switch (item)
             {
-                case PauseItem.Resume: return "Продолжить";
-                case PauseItem.Restart: return "Начать заново";
-                case PauseItem.Sound: return gameAudio.Muted ? "Звук: выкл." : "Звук: вкл.";
-                default: return "В главное меню";
+                case PauseItem.Resume: return T("Продолжить", "Resume");
+                case PauseItem.Restart: return T("Начать заново", "Restart");
+                case PauseItem.Sound: return T("Звук: ", "Sound: ") + OnOff(!gameAudio.Muted);
+                default: return T("В главное меню", "Main menu");
             }
         }
 
         string PauseStats()
         {
             if (game.Mode == GameMode.Battle)
-                return "Бой     счёт " + game.Score.ToString("N0") + "     бот " + battle.Level + "     монет +" + battle.CoinsEarned;
-            return "Марафон    счёт " + game.Score.ToString("N0") + "     линий " + game.Lines + "     уровень " + game.Level;
+                return T("Бой     счёт ", "Battle     score ") + game.Score.ToString("N0") + T("     бот ", "     bot ") + battle.Level + T("     монет +", "     coins +") + battle.CoinsEarned;
+            return T("Марафон    счёт ", "Marathon    score ") + game.Score.ToString("N0") + T("     линий ", "     lines ") + game.Lines + T("     уровень ", "     level ") + game.Level;
         }
 
-        static string MenuHint(MenuItem item)
+        string MenuHint(MenuItem item)
         {
             switch (item)
             {
-                case MenuItem.Marathon: return "играй, пока хватит места";
-                case MenuItem.Battle: return "линии бьют бота, комбо сильнее, падают монетки";
+                case MenuItem.Marathon: return T("играй, пока хватит места", "play for as long as there is room");
+                case MenuItem.Battle: return T("линии бьют бота, комбо сильнее, падают монетки", "lines hit the bot, combos hit harder, coins drop");
                 default: return null;
             }
         }

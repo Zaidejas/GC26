@@ -97,6 +97,7 @@ namespace GC26.Tetris
             view = new BoardView(transform, spriteMaterial);
             ReadCommandLine();
             LegacyRecords.Move();
+            LoadLanguage();
             LoadRecords();
             gameAudio = new GameAudio(gameObject, autoplay);
             CreateBattleView();
@@ -179,8 +180,8 @@ namespace GC26.Tetris
         string PlaceText()
         {
             if (lastPlace == 1)
-                return "Новый рекорд!\n";
-            return lastPlace > 1 ? "Место " + lastPlace + " в таблице\n" : "";
+                return T("Новый рекорд!\n", "New record!\n");
+            return lastPlace > 1 ? T("Место " + lastPlace + " в таблице\n", "Place " + lastPlace + " in the table\n") : "";
         }
 
         // --- main menu ------------------------------------------------------------------------
@@ -189,6 +190,7 @@ namespace GC26.Tetris
         {
             if (Pressed(Key.M))
                 gameAudio.ToggleMute();
+            HandleLanguageButton();
 
             if (HandleButtons(ref menuIndex, MenuItems.Length, MenuTopY, MenuStepY, MenuItemWidth, MenuItemHeight))
                 ActivateMenuItem();
@@ -238,10 +240,10 @@ namespace GC26.Tetris
         {
             switch (item)
             {
-                case MenuItem.Marathon: return "Марафон";
-                case MenuItem.Battle: return "Бой с ботом";
-                case MenuItem.Sound: return gameAudio.Muted ? "Звук: выкл." : "Звук: вкл.";
-                default: return exitToShell != null ? "В меню GC26" : "Выход";
+                case MenuItem.Marathon: return T("Марафон", "Marathon");
+                case MenuItem.Battle: return T("Бой с ботом", "Bot battle");
+                case MenuItem.Sound: return T("Звук: ", "Sound: ") + OnOff(!gameAudio.Muted);
+                default: return exitToShell != null ? T("В меню GC26", "Back to GC26") : T("Выход", "Exit");
             }
         }
 
@@ -295,13 +297,13 @@ namespace GC26.Tetris
                     gameAudio.Play("bomb");
                     view.Effects.Shake(1f);
                     view.Effects.Ring(center, new Color(tint.r, tint.g, tint.b, 0.6f), 9f, 0.35f);
-                    AddPopup(PopupSlot.Special, "БОМБА!" + points, -0.4f, 1.15f, BannerLife, 0.6f, tint);
+                    AddPopup(PopupSlot.Special, T("БОМБА!", "BOMB!") + points, -0.4f, 1.15f, BannerLife, 0.6f, tint);
                     break;
                 case SpecialKind.Lightning:
                     gameAudio.Play("zap");
                     view.Effects.Shake(0.55f);
                     view.Effects.Beam(center.x, 0f, Board.VisibleHeight, new Color(tint.r, tint.g, tint.b, 0.9f));
-                    AddPopup(PopupSlot.Special, "МОЛНИЯ!" + points, -0.4f, 1.15f, BannerLife, 0.6f, tint);
+                    AddPopup(PopupSlot.Special, T("МОЛНИЯ!", "LIGHTNING!") + points, -0.4f, 1.15f, BannerLife, 0.6f, tint);
                     break;
             }
         }
@@ -353,21 +355,21 @@ namespace GC26.Tetris
 
             if (count >= 4)
             {
-                AddPopup(PopupSlot.Lines, "ЧЕТЫРЕ ЛИНИИ!", 4.5f, 1.3f, BannerLife, 0.8f, view.AccentColor);
+                AddPopup(PopupSlot.Lines, T("ЧЕТЫРЕ ЛИНИИ!", "FOUR LINES!"), 4.5f, 1.3f, BannerLife, 0.8f, view.AccentColor);
                 Color ring = view.AccentColor;
                 ring.a = 0.45f;
                 view.Effects.Ring(new Vector2(0f, worldY), ring, 20f, 0.5f);
             }
             else if (count == 3)
             {
-                AddPopup(PopupSlot.Lines, "ТРИ ЛИНИИ!", 4.5f, 1.2f, BannerLife, 0.8f, view.AccentColor);
+                AddPopup(PopupSlot.Lines, T("ТРИ ЛИНИИ!", "THREE LINES!"), 4.5f, 1.2f, BannerLife, 0.8f, view.AccentColor);
             }
 
             if (clear.Combo >= 2)
             {
                 comboKick = 1f;
                 Color heat = Color.Lerp(new Color(1f, 0.85f, 0.4f), new Color(1f, 0.3f, 0.25f), (clear.Multiplier - 1.5f) / 2.5f);
-                AddPopup(PopupSlot.Combo, "КОМБО ×" + MultiplierText(clear.Multiplier), 2.3f, 1.2f, BannerLife, 0.6f, heat);
+                AddPopup(PopupSlot.Combo, T("КОМБО ×", "COMBO ×") + MultiplierText(clear.Multiplier), 2.3f, 1.2f, BannerLife, 0.6f, heat);
                 Color ring = heat;
                 ring.a = 0.4f;
                 view.Effects.Ring(new Vector2(0f, worldY), ring, 8f + Mathf.Min(clear.Combo, 7) * 1.2f, 0.35f);
@@ -379,7 +381,7 @@ namespace GC26.Tetris
             Debug.Log("[BlockDrop] Level " + level);
             view.SetLevel(level, false);
             gameAudio.Play("levelup");
-            AddPopup(PopupSlot.Level, "УРОВЕНЬ " + level, 6.6f, 1.6f, BannerLife + 0.4f, 0.5f, Color.white);
+            AddPopup(PopupSlot.Level, T("УРОВЕНЬ ", "LEVEL ") + level, 6.6f, 1.6f, BannerLife + 0.4f, 0.5f, Color.white);
             view.Effects.Ring(Vector2.zero, new Color(1f, 1f, 1f, 0.3f), 26f, 0.6f);
         }
 
@@ -558,6 +560,8 @@ namespace GC26.Tetris
             }
             if (Pressed(Key.M))
                 gameAudio.ToggleMute();
+            if (Pressed(Key.L))
+                SetLanguage(!english);
             // Enter after a game is the game-over screen's "new game" button.
             if (Pressed(Key.R))
                 StartNewGame();
@@ -636,25 +640,25 @@ namespace GC26.Tetris
             bool portrait = HudLayout.Portrait;
             Vector2 holdLabel = HudLayout.HoldLabel, nextLabel = HudLayout.NextLabel;
             float headerSize = portrait ? 0.45f : 0.55f;
-            Label("ЗАПАС", holdLabel.x, holdLabel.y, unit, headerSize, TextAnchor.MiddleCenter, Muted);
-            Label("ДАЛЕЕ", nextLabel.x, nextLabel.y, unit, headerSize, TextAnchor.MiddleCenter, Muted);
+            Label(T("ЗАПАС", "HOLD"), holdLabel.x, holdLabel.y, unit, headerSize, TextAnchor.MiddleCenter, Muted);
+            Label(T("ДАЛЕЕ", "NEXT"), nextLabel.x, nextLabel.y, unit, headerSize, TextAnchor.MiddleCenter, Muted);
 
-            Stat("СЧЁТ", Mathf.RoundToInt(shownScore).ToString("N0"), StatSlot.Score, unit, 1f + scoreKick * 0.35f);
-            Stat("УРОВЕНЬ", game.Level.ToString("N0"), StatSlot.Level, unit);
-            Stat("ЛИНИИ", game.Lines.ToString("N0"), StatSlot.Lines, unit);
+            Stat(T("СЧЁТ", "SCORE"), Mathf.RoundToInt(shownScore).ToString("N0"), StatSlot.Score, unit, 1f + scoreKick * 0.35f);
+            Stat(T("УРОВЕНЬ", "LEVEL"), game.Level.ToString("N0"), StatSlot.Level, unit);
+            Stat(T("ЛИНИИ", "LINES"), game.Lines.ToString("N0"), StatSlot.Lines, unit);
             if (game.Mode == GameMode.Battle)
             {
                 // In the tall layout the bot panel shows coins and the best score itself.
                 if (!portrait)
                 {
                     int best = Mathf.Max(Best(battleTable), game.Score);
-                    Label("рекорд " + best.ToString("N0"), BoardView.LeftPanelX, 1.2f, unit, 0.36f, TextAnchor.MiddleCenter, Muted);
-                    Stat("МОНЕТЫ", Mathf.RoundToInt(shownCoins).ToString("N0"), StatSlot.Second, unit, 1f + coinKick * 0.25f);
+                    Label(T("рекорд ", "best ") + best.ToString("N0"), BoardView.LeftPanelX, 1.2f, unit, 0.36f, TextAnchor.MiddleCenter, Muted);
+                    Stat(T("МОНЕТЫ", "COINS"), Mathf.RoundToInt(shownCoins).ToString("N0"), StatSlot.Second, unit, 1f + coinKick * 0.25f);
                 }
             }
             else
             {
-                Stat("РЕКОРД", Mathf.Max(bestScore, game.Score).ToString("N0"), StatSlot.Second, unit);
+                Stat(T("РЕКОРД", "BEST"), Mathf.Max(bestScore, game.Score).ToString("N0"), StatSlot.Second, unit);
             }
 
             // Keyboard hints and the side title only fit the wide layout.
@@ -669,8 +673,8 @@ namespace GC26.Tetris
             }
             else if (!portrait)
             {
-                Label("C запас   P пауза   R заново", BoardView.RightPanelX, -3.0f, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
-                Label("M звук: " + (gameAudio.Muted ? "выкл." : "вкл."), BoardView.RightPanelX, -3.7f, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
+                Label(T("C запас   P пауза   R заново", "C hold   P pause   R restart"), BoardView.RightPanelX, -3.0f, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
+                Label(T("M звук: ", "M sound: ") + OnOff(!gameAudio.Muted), BoardView.RightPanelX, -3.7f, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
             }
 
             if (game.Combo >= 1 && !game.IsFinished)
@@ -680,20 +684,20 @@ namespace GC26.Tetris
                 Vector2 combo = HudLayout.ComboLine;
                 if (portrait)
                 {
-                    Label("КОМБО " + game.Combo + "   ·   дальше ×" + MultiplierText(next), combo.x, combo.y, unit, 0.5f * (1f + comboKick * 0.3f), TextAnchor.MiddleCenter, view.AccentColor);
+                    Label(T("КОМБО ", "COMBO ") + game.Combo + T("   ·   дальше ×", "   ·   next ×") + MultiplierText(next), combo.x, combo.y, unit, 0.5f * (1f + comboKick * 0.3f), TextAnchor.MiddleCenter, view.AccentColor);
                 }
                 else
                 {
-                    Label("КОМБО " + game.Combo, combo.x, combo.y, unit, 0.6f, TextAnchor.MiddleCenter, view.AccentColor);
-                    Label("дальше ×" + MultiplierText(next), combo.x, combo.y - 0.9f, unit, 0.62f * (1f + comboKick * 0.4f), TextAnchor.MiddleCenter, Bright);
+                    Label(T("КОМБО ", "COMBO ") + game.Combo, combo.x, combo.y, unit, 0.6f, TextAnchor.MiddleCenter, view.AccentColor);
+                    Label(T("дальше ×", "next ×") + MultiplierText(next), combo.x, combo.y - 0.9f, unit, 0.62f * (1f + comboKick * 0.4f), TextAnchor.MiddleCenter, Bright);
                 }
             }
 
             if (game.Mode != GameMode.Battle)
             {
                 float legendX = HudLayout.LegendTextX;
-                Label("взрыв 5×5", legendX, HudLayout.LegendIcon(0).y, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
-                Label("весь столбец", legendX, HudLayout.LegendIcon(1).y, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
+                Label(T("взрыв 5×5", "blast 5×5"), legendX, HudLayout.LegendIcon(0).y, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
+                Label(T("весь столбец", "whole column"), legendX, HudLayout.LegendIcon(1).y, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
             }
 
             DrawPopups(unit);
@@ -702,10 +706,10 @@ namespace GC26.Tetris
             if (game.State == GameState.Paused)
                 DrawPauseMenu(unit);
             else if (game.State == GameState.GameOver && game.Mode == GameMode.Battle)
-                Overlay("БОЙ ОКОНЧЕН", "Счёт: " + game.Score.ToString("N0") + "\n" + PlaceText() +
-                    "Ботов: " + battle.BotsDefeated + "    монет: +" + battle.CoinsEarned, unit);
+                Overlay(T("БОЙ ОКОНЧЕН", "BATTLE OVER"), T("Счёт: ", "Score: ") + game.Score.ToString("N0") + "\n" + PlaceText() +
+                    T("Ботов: ", "Bots: ") + battle.BotsDefeated + T("    монет: +", "    coins: +") + battle.CoinsEarned, unit);
             else if (game.State == GameState.GameOver)
-                Overlay("ИГРА ОКОНЧЕНА", "Счёт: " + game.Score.ToString("N0") + "\n" + PlaceText().TrimEnd('\n'), unit);
+                Overlay(T("ИГРА ОКОНЧЕНА", "GAME OVER"), T("Счёт: ", "Score: ") + game.Score.ToString("N0") + "\n" + PlaceText().TrimEnd('\n'), unit);
         }
 
         static readonly Color Muted = new Color(0.68f, 0.65f, 0.76f);

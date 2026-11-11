@@ -26,6 +26,7 @@ namespace GC26.Tetris.View
         };
 
         static readonly string[] BotNames = { "Жестянка", "Гайка", "Болтун", "Шестерня", "Ржавчик", "Паяльник" };
+        static readonly string[] BotNamesEnglish = { "Tin Can", "Nut", "Chatterbolt", "Gear", "Rusty", "Solder" };
 
         sealed class Coin
         {
@@ -75,9 +76,10 @@ namespace GC26.Tetris.View
             root.SetActive(false);
         }
 
-        public static string NameFor(int level)
+        public static string NameFor(int level, bool english = false)
         {
-            return BotNames[(level - 1) % BotNames.Length];
+            string[] names = english ? BotNamesEnglish : BotNames;
+            return names[(level - 1) % names.Length];
         }
 
         public void Show(bool visible)

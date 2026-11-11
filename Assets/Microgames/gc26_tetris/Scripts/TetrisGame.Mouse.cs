@@ -162,14 +162,15 @@ namespace GC26.Tetris
             RoundedWorld(iconX - 0.17f, center.y, 0.2f, 0.62f, bars, 0.06f, 0f, unit);
             RoundedWorld(iconX + 0.17f, center.y, 0.2f, 0.62f, bars, 0.06f, 0f, unit);
             if (wide)
-                Label("Пауза", center.x + 0.35f, center.y, unit, 0.5f, TextAnchor.MiddleCenter, bars);
+                Label(T("Пауза", "Pause"), center.x + 0.35f, center.y, unit, 0.5f, TextAnchor.MiddleCenter, bars);
         }
 
         string ControlsHint()
         {
             return usingMouse
-                ? "мышь — ход   ЛКМ сброс   ПКМ или колесо поворот   клик по «Запасу» — запас"
-                : "← → ход   ↑ поворот   ↓ быстрее   Пробел сброс";
+                ? T("мышь — ход   ЛКМ сброс   ПКМ или колесо поворот   клик по «Запасу» — запас",
+                    "mouse moves   left click drops   right click or wheel turns   click HOLD to hold")
+                : T("← → ход   ↑ поворот   ↓ быстрее   Пробел сброс", "← → move   ↑ turn   ↓ faster   Space drop");
         }
 
         // --- game over --------------------------------------------------------------------------
@@ -209,7 +210,7 @@ namespace GC26.Tetris
             bool battleMode = game.Mode == GameMode.Battle;
             for (int i = 0; i < OverItems.Length; i++)
             {
-                string text = OverItems[i] == OverItem.Again ? (battleMode ? "Новый бой" : "Новая игра") : "В меню";
+                string text = OverItems[i] == OverItem.Again ? (battleMode ? T("Новый бой", "New battle") : T("Новая игра", "New game")) : T("В меню", "Menu");
                 DrawButton(text, null, OverTopY - i * OverStepY, OverItemWidth, OverItemHeight, overGlow[i], TitleColors[i], unit);
             }
         }

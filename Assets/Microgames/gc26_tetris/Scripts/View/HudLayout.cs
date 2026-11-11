@@ -119,6 +119,10 @@ namespace GC26.Tetris.View
             return Portrait ? new Vector2(0f, -4.3f - index * 5.1f) : new Vector2(index == 0 ? -4.65f : 4.65f, -6.9f);
         }
         public static float MenuHintY { get { return Portrait ? -13.3f : -9.95f; } }
+        /// <summary>The RU | EN switch in the main menu's top right corner.</summary>
+        public static Vector2 LanguageButtonCenter { get { return Portrait ? new Vector2(4.9f, 13.6f) : new Vector2(10.2f, 10.1f); } }
+        public static Vector2 LanguageButtonSize { get { return new Vector2(3f, 1.05f); } }
+
         public static Vector2 MenuCoins { get { return Portrait ? new Vector2(0f, -14.2f) : new Vector2(9.6f, -9.95f); } }
     }
 }
