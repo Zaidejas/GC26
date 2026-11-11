@@ -24,7 +24,32 @@ namespace GC26.Timetraveler
             _started = true;
             _exit = exit;
             LockPortrait();
+            StartGreyboxRunner();
             // TODO: load the save (MicrogameSave.Folder(Id)) and show the title screen
+        }
+
+        /// <summary>Week 1-2: go straight into the greybox runner for feel testing.</summary>
+        void StartGreyboxRunner()
+        {
+            if (GetComponent<RunnerSession>() != null) return;
+            var cam = FindOwnCamera();
+            if (cam == null)
+            {
+                Debug.LogError($"[{Id}] No camera in the game scene.");
+                return;
+            }
+            gameObject.AddComponent<RunnerSession>().Init(cam);
+        }
+
+        /// <summary>The camera in this game's own scene (the shell may have its own camera).</summary>
+        Camera FindOwnCamera()
+        {
+            foreach (var root in gameObject.scene.GetRootGameObjects())
+            {
+                var cam = root.GetComponentInChildren<Camera>(true);
+                if (cam != null) return cam;
+            }
+            return null;
         }
 
         void Start()
