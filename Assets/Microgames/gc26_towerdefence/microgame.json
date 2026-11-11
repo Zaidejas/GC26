@@ -1,0 +1,7 @@
+{
+  "id": "gc26_towerdefence",
+  "title": "Last Bastion",
+  "description": "Строй башни и защити замок от 10 волн врагов",
+  "entry_scene": "gc26_towerdefence_Main",
+  "authors": []
+}
