@@ -1,0 +1,7 @@
+{
+  "id": "gc26_2048_nastya",
+  "title": "Colours",
+  "description": "Slide and merge number tiles to reach 2048",
+  "entry_scene": "gc26_2048_nastya_Main",
+  "authors": ["Nastya"]
+}

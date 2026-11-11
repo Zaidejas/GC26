@@ -1,0 +1,8 @@
+{
+  "name": "GC26._2048Nastya",
+  "rootNamespace": "GC26._2048Nastya",
+  "references": [
+    "GC26.Core"
+  ],
+  "autoReferenced": false
+}
