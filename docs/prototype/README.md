@@ -1,6 +1,6 @@
 # Red Flags: browser prototype
 
-A simple HTML/CSS/JS version of the game described in `../04_Game_Design_Document.md`. Use it to try the rules and the controls before building the Unity version.
+A simple HTML/CSS/JS version of the game described in [../Game_Design_Document.md](../Game_Design_Document.md). Use it to try the rules and the controls before building the Unity version.
 
 ## Open it
 **Double-click `index.html`** (or drag it into a browser window). It works offline in any modern browser (Chrome, Edge, Firefox, Safari) on any computer: nothing to install, no internet, no server. Keep all files in this folder together.

@@ -1,5 +1,5 @@
 // Red Flags (Minesweeper) prototype.
-// Same rules as Board.cs in 02_Technical_Design.md.
+// Same rules as Board.cs in ../Technical_Design_Document.md.
 // Naming as in the docs: "mine" = hidden red flag, "flag" = player's yellow flag.
 
 // ---------------------------------------------------------------- rules ----

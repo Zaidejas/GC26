@@ -1,10 +1,16 @@
-# Minesweeper (Mobile): Technical Design
+# Red Flags: Technical Design Document
 
 **Target:** Android phones, portrait orientation. Unity 6000.5.6f1, URP, Input System package. The code also runs in the editor with a mouse, so you can test quickly without a phone.
 
 **Project:** the existing Unity project `GC26`, branch `gc26_minesweeper` of [Zaidejas/GC26](https://github.com/Zaidejas/GC26). It was created from the 3D URP template and already has the Input System (1.20) and Test Framework (1.7) packages.
 
-**Theme:** the player avoids hidden **red flags** and marks suspicious cells with **yellow flags** (see GDD 1.1). The code keeps the classic names: "mine" (`IsMine`, `MineCount`) = hidden red flag, "flag" (`IsFlagged`, `ToggleFlag`) = the player's yellow flag. Only sprites and on-screen text use the new names.
+**Theme:** the player avoids hidden **red flags** and marks suspicious cells with **yellow flags** (see Game_Design_Document.md, section 1.1). The code keeps the classic names: "mine" (`IsMine`, `MineCount`) = hidden red flag, "flag" (`IsFlagged`, `ToggleFlag`) = the player's yellow flag. Only sprites and on-screen text use the new names.
+
+**Related documents:** [Game_Design_Document.md](Game_Design_Document.md) (rules, screens, controls), [prototype/](prototype/README.md), [task board](https://github.com/users/Zaidejas/projects/6) (all tasks from section 9 as cards).
+
+**Get the project on a new computer:** `git clone -b gc26_minesweeper https://github.com/Zaidejas/GC26.git`, then open the `GC26` folder in Unity Hub (Add → Add project from disk). These documents are in `GC26/docs`.
+
+**Contents:** 1–7 architecture and code · 8 testing · 9 development plan and tasks · 10 progress tracking
 
 ## 1. Architecture
 
@@ -49,10 +55,12 @@ The main idea is to **separate the logic from the visuals**. The rules live in p
 | `LossLines` | Core | static class | Reads the loss lines text file and picks one line at random |
 
 ## 2. Scenes
+
 - `MainMenu`: title, three difficulty buttons with best times, settings button (sound, vibration). No Quit button; Android Back closes the app. **It is scene 0 in the Build Profiles scene list**, so the app always opens on the difficulty choice.
 - `Game`: Main Camera (+ `CameraController`), `GameManager`, `BoardView`, `InputHandler`, `AudioManager`, and a Canvas with a `SafeArea` panel holding the top bar (counter, face, timer, menu) and the bottom bar (flag-mode toggle).
 
 ## 3. Project settings for mobile
+
 | Setting | Value | Why |
 |---|---|---|
 | Platform | Android | Switch in File → Build Profiles |
@@ -985,6 +993,7 @@ Red flags are easier to see from a distance.
 - **Android Back button:** in `Update`, `if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)` load the `MainMenu` scene. In the menu the same check calls `Application.Quit()`
 
 ## 6. Unit test example (week 11)
+
 The Test Framework package is already installed in GC26. Create `Assets/Tests/EditMode/` with an assembly definition that references the `Core` assembly. This means `Scripts/Core` also needs its own `.asmdef`. Because `Board` doesn't depend on input, the same tests work for the mobile game.
 ```csharp
 using NUnit.Framework;     // the testing library used by Unity Test Framework
@@ -1035,8 +1044,484 @@ public class BoardTests
 More tests to write: the numbers match a hand-built board, flood fill stops at numbered cells, `IsWon` becomes true after all safe cells are revealed, chording does nothing when the flag count is wrong, the Expert board (16×30) gets exactly 99 mines, and `LossLines.Parse` skips empty and `#` lines while `PickRandom` returns "" for an empty list.
 
 ## 7. Conventions
+
 - Namespaces: `MineSweeper.Core`, `.View`, `.Managers`, `.UI`
 - Use `[SerializeField] private` fields instead of `public` fields for Inspector references
 - Grid origin is (0, 0) at the bottom left; x increases to the right and y increases upward
 - All gesture timings and sizes (`longPressTime`, `dragThreshold`, zoom limits) are Inspector fields so you can tune them on the phone without changing code
 - Commit messages in the form `Week 5: flood fill reveal`
+
+## 8. Testing
+
+Automated tests for `Board` and `LossLines` are in section 6. Everything below is checked by hand **on a real phone** (week 11) and on the release build (week 12).
+
+### 8.1 Test devices
+
+| Device | Android version | Screen (resolution, aspect) | Notch? | Tested in week |
+|---|---|---|---|---|
+| | | | | |
+| | | | | |
+
+Device Simulator profiles to check: a 16:9 phone, a tall 20:9 phone with a notch, a 4:3 tablet.
+
+### 8.2 Manual test checklist
+
+#### Gameplay
+- [ ] The first tap never hits a mine, on all three difficulties
+- [ ] The first tap on Beginner usually opens an area
+- [ ] Numbers are correct, including at corners and edges
+- [ ] Flood fill opens empty regions and stops at numbers
+- [ ] Flood fill doesn't open flagged cells
+- [ ] Tapping a flagged cell in reveal mode does nothing
+- [ ] You can't flag an opened cell
+- [ ] Chording works only when the flag count equals the number
+- [ ] Chording next to a wrong flag causes a loss
+- [ ] On a loss, all mines show, the tapped mine is red, and wrong flags are marked
+- [ ] On a win, all mines are auto-flagged
+- [ ] The board can't be changed after a win or loss (zoom and pan still work)
+
+#### Touch
+- [ ] A quick tap always opens the cell under the finger, also near the board edges
+- [ ] Long press flags after about 0.4 s, with a vibration
+- [ ] In flag mode a tap flags; long press still flags in both modes
+- [ ] Dragging pans the view and never opens or flags a cell
+- [ ] Pinch zooms in and out and never opens or flags a cell
+- [ ] The view can't be panned away from the board, and can't zoom out further than the whole board
+- [ ] Expert cells are comfortable to tap when zoomed in
+- [ ] The tile under the finger looks pressed and the face shows 😮; both reset on lift or drag
+- [ ] Tapping a button never opens the cell behind it
+
+#### UI and screens
+- [ ] The mine counter goes down and up with flags and can go negative
+- [ ] The timer starts on the first reveal, stops at the end, and caps at 999
+- [ ] The face changes correctly (normal / pressed / win / lose) and restarts on tap
+- [ ] Nothing is hidden behind the notch, camera hole, rounded corners or navigation bar
+- [ ] All buttons are easy to hit with a thumb
+- [ ] Layout is correct on every device in the Device Simulator list above
+- [ ] Rotating the phone doesn't change anything (portrait only)
+
+#### Android behaviour
+- [ ] Back in the game returns to the menu; Back in the menu closes the app
+- [ ] Home button, then return: the round continues and the timer didn't count the time away
+- [ ] Incoming phone call or screen lock mid-round: same as above
+- [ ] Sound follows the phone's media volume; the Sound setting mutes it
+- [ ] The Vibration setting turns vibration off
+
+#### Menu and saved data
+- [ ] Each difficulty loads the correct size and mine count (Expert = 16×30, 99 mines)
+- [ ] The best time is saved only after a win, and only if it's better
+- [ ] Best times, Sound and Vibration settings survive closing the app completely
+- [ ] Menu → Game → Menu works repeatedly with no errors
+
+#### Release build (week 12)
+- [ ] The signed APK installs and opens on a phone that isn't connected to Unity
+- [ ] The app icon and name look right on the home screen
+- [ ] The game runs smoothly (60 fps) and the phone doesn't get noticeably warm
+- [ ] No errors in the device log (Android Logcat package in Unity, filtered to the app)
+- [ ] The keystore and its passwords are backed up outside the Git repository
+
+## 9. Development plan and tasks
+
+**Time budget:** 13 weeks × 2 hours/week = **26 hours total**
+**Start:** week of 26 Oct 2026 → **Finish:** week of 18 Jan 2027 (adjust the dates to your actual start)
+
+### 9.1 Session routine
+
+Use the same rhythm every week so no time is lost:
+
+| Minutes | Activity |
+|---|---|
+| 0–10 | Read last week's notes (section 10.1), open the project, `git pull` |
+| 10–100 | Do the week's tasks |
+| 100–115 | Test in the **Device Simulator** (Window → General → Device Simulator); from week 4 on, also **Build And Run** to your phone at least once a week |
+| 115–120 | `git commit` and `git push`, write 2–3 lines in the weekly log (section 10.1): what's done, what's next, blockers |
+
+**Rule:** if a task takes longer than planned, cut a "Nice to have" item. Don't skip testing or committing.
+
+**Why test on a real phone often:** the Device Simulator shows screen size and notches correctly, but touch feel (tap accuracy, long-press timing, pinch) can only be judged with a real finger on a real screen.
+
+### 9.2 Milestones
+
+| Milestone | Week | Result |
+|---|---|---|
+| M1: Setup and logic | 2 | An empty app runs on the phone; board logic prints to the Console |
+| M2: Visible board | 4 | You can tap and long-press cells on the phone |
+| M3: Playable MVP | 7 | A complete game on the phone you can win and lose, with UI |
+| M4: Feature complete | 10 | Menu, difficulties, zoom/pan, chording, sound, vibration, best times |
+| M5: Release | 13 | Tested, signed Android build (APK/AAB) |
+
+### 9.3 Week-by-week plan and tasks
+
+**How to read this list**
+- **Estimate:** minutes of focused work. Each week's tasks add up to **90 minutes**. The other 30 minutes of the 2-hour session go to the routine: 10 min reviewing notes, 15 min testing (Device Simulator and phone), 5 min committing.
+- **Priority:** **Must** = needed for the MVP or release · **Should** = planned feature · **Could** = optional; drop it first if you're behind.
+- **Depends on:** tasks that must be finished first.
+- **Done when:** how you know the task is finished.
+- Track progress on the [task board](https://github.com/users/Zaidejas/projects/6); the IDs (MS-01 …) are the same.
+
+**Totals:** 66 tasks · 19.5 hours of task work + 6.5 hours of session routine = 26 hours.
+
+#### Month 1: Foundations
+
+##### Week 1: Setup, first phone build, C# refresher
+
+**Goal:** a working project that already runs on your phone. Getting the Android toolchain working early removes the biggest technical risk.
+- Install **Unity 6000.5.6f1** (the version the GC26 project uses) in Unity Hub with the **Android Build Support** module, including **OpenJDK** and **Android SDK & NDK Tools**
+- Install Visual Studio 2022 Community with the "Game development with Unity" workload, or VS Code with the Unity extension
+- Open the existing `GC26` project and make sure the branch `gc26_minesweeper` is checked out (`git status`). On a new computer, first run `git clone https://github.com/Zaidejas/GC26.git` and `git checkout gc26_minesweeper`
+- File → Build Profiles → **Switch Platform to Android**
+- Player Settings → Resolution and Presentation → Default Orientation: **Portrait**
+- The project was created from the 3D URP template, so set the Main Camera's **Projection to Orthographic** and add the **2D Sprite** package (Package Manager) for slicing sprites
+- Create the folder structure: `Assets/Scripts/{Core,View,UI,Managers}`, `Assets/Sprites`, `Assets/Prefabs`, `Assets/Audio` (`Assets/Scenes` and `Assets/Settings` already exist)
+- Git is already set up: check that `.gitignore` excludes `Library`, `Temp` and `Logs`, then commit the setup and push to `gc26_minesweeper`
+- On the phone: enable **Developer options** (tap "Build number" 7 times) and **USB debugging**; connect by USB and use **Build And Run** on an empty scene
+- C# refresher: classes, 2D arrays `int[,]`, `List<T>`, `Queue<T>`, enums, `Random`, MonoBehaviour basics (`Start`, `Update`, `[SerializeField]`)
+
+**Done when:** an empty app opens on your phone and the setup commit is on GitHub in `gc26_minesweeper`.
+
+**Tasks**
+
+| ✓ | ID | Task | Est. | Priority | Depends on | Done when |
+|---|---|---|---|---|---|---|
+| ☐ | MS-01 | Install Unity 6000.5.6f1 (the GC26 project's version) with Android Build Support (OpenJDK, Android SDK & NDK Tools) | 20 | Must | — | Unity 6000.5.6f1 with the Android module appears under Installs in Unity Hub |
+| ☐ | MS-02 | Install Visual Studio 2022 (Unity workload) or VS Code + Unity extension, and set it as the external script editor | 10 | Must | MS-01 | Double-clicking a script in Unity opens it with autocomplete working |
+| ☐ | MS-03 | Prepare the GC26 project on branch `gc26_minesweeper`: switch platform to Android, set Portrait, make the camera orthographic, add the 2D Sprite package, create the folders | 15 | Must | MS-01 | Platform shows Android, orientation is Portrait, camera is orthographic; `Scripts/{Core,View,UI,Managers}`, `Sprites`, `Prefabs`, `Scenes`, `Audio` exist |
+| ☐ | MS-04 | Check Git for the `gc26_minesweeper` branch: `.gitignore` excludes `Library`/`Temp`/`Logs`; commit the setup and push | 15 | Must | MS-03 | The setup commit is on GitHub in `gc26_minesweeper` and the `Library` folder is not in it |
+| ☐ | MS-05 | Enable Developer options and USB debugging on the phone; Build And Run an empty scene | 20 | Must | MS-03 | The empty app opens on the phone |
+| ☐ | MS-06 | C# refresher: classes, `int[,]`, `List<T>`, `Queue<T>`, enums, `Random`, MonoBehaviour basics | 10 | Must | — | You can explain what `Start`, `Update` and `[SerializeField]` do |
+
+##### Week 2: Board data model (pure C#)
+
+**Goal:** game logic that doesn't depend on graphics or platform.
+- Write the `Cell` class (fields: `IsMine`, `AdjacentMines`, `IsRevealed`, `IsFlagged`)
+- Write the `Board` class: constructor (width, height, mines), `Cell[,]` grid, `InBounds(x, y)`
+- Implement `PlaceMines(safeX, safeY)`, which places mines randomly and skips the 3×3 area around the first tap
+- Implement `CalculateNumbers()`, which counts mines in the 8 neighbours of each cell
+- Add a temporary `BoardDebug` MonoBehaviour that builds a board and prints it to the Console with `Debug.Log`
+
+**Done when:** pressing Play prints a correct grid of mines (`*`) and numbers. ✅ **Milestone M1**
+
+**Tasks**
+
+| ✓ | ID | Task | Est. | Priority | Depends on | Done when |
+|---|---|---|---|---|---|---|
+| ☐ | MS-07 | Write the `Cell` class | 10 | Must | MS-03 | The class has `IsMine`, `AdjacentMines`, `IsRevealed`, `IsFlagged` |
+| ☐ | MS-08 | Write the `Board` class: constructor, `Cell[,]` grid, `GetCell`, `InBounds`, `Neighbours` | 25 | Must | MS-07 | A board of any size can be created; corners return 3 neighbours |
+| ☐ | MS-09 | Implement `PlaceMines(safeX, safeY)` with the 3×3 safe area | 20 | Must | MS-08 | The exact number of red flags (mines in code) is placed and none lands in the safe area |
+| ☐ | MS-10 | Implement `CalculateNumbers()` | 15 | Must | MS-09 | Every safe cell stores its correct neighbour mine count |
+| ☐ | MS-11 | Write a temporary `BoardDebug` script that prints the board to the Console | 20 | Must | MS-10 | Play mode prints a readable grid of `*` and numbers that you check by hand |
+
+##### Week 3: Graphics and the visible grid
+
+**Goal:** see the board on a portrait screen.
+- Make or download sprites: hidden tile, revealed tile, numbers 1–8, **yellow flag** (player marker), **rectangular red flag** (the hazard), hit red flag (dark tile, bright border), crossed-out yellow flag. Use **at least 128×128 px**, because phone screens are high-resolution and small sprites look blurry. Kenney.nl has free tile packs
+- Import the sprites (Pixels Per Unit = sprite size; Compression: None or High Quality; mipmaps off)
+- Create the `Tile` prefab: `SpriteRenderer` + `BoxCollider2D` + `TileView` script
+- Write `BoardView`, which spawns one tile per cell at position (x, y) and keeps a `TileView[,]` array
+- Write `CameraController.Fit()`, which centres the camera on the board and zooms so the grid fits a **portrait** screen, leaving space for the top bar (counter, face, timer) and the bottom bar (flag-mode button)
+
+**Done when:** a 9×9 grid of hidden tiles appears in the Device Simulator on a typical phone.
+
+**Tasks**
+
+| ✓ | ID | Task | Est. | Priority | Depends on | Done when |
+|---|---|---|---|---|---|---|
+| ☐ | MS-12 | Find or draw sprites (at least 128×128 px): hidden, empty, 1–8, yellow flag (player marker), rectangular red flag (hazard), hit red flag, crossed-out yellow flag | 25 | Must | — | All 14 sprites are in `Assets/Sprites`; red and yellow flags are easy to tell apart on a phone |
+| ☐ | MS-13 | Set the sprite import settings (Pixels Per Unit = sprite size, Compression None/High Quality, mipmaps off) | 10 | Must | MS-12 | Sprites look sharp on a high-resolution screen and each one is 1 world unit wide |
+| ☐ | MS-14 | Create the `Tile` prefab (SpriteRenderer + BoxCollider2D) and the `TileView` script | 20 | Must | MS-13 | The prefab exists with all sprites assigned in the Inspector |
+| ☐ | MS-15 | Write `BoardView.Build()` to spawn one tile per cell | 20 | Must | MS-08, MS-14 | A 9×9 grid of hidden tiles appears in Play mode |
+| ☐ | MS-16 | Write `CameraController.Fit()` for portrait screens, with space for the top and bottom bars | 15 | Must | MS-15 | The whole board is visible and centred in the Device Simulator on a phone |
+
+##### Week 4: Touch input: tap and long press
+
+**Goal:** the player can interact with the board using a finger.
+- Write `InputHandler` using the Input System's `Pointer.current`. It works with touch on the phone **and** with the mouse in the editor, so you can test quickly
+- Convert the touch position to world coordinates with `Camera.ScreenToWorldPoint` and round to a grid (x, y)
+- **Tap** (finger lifted quickly without moving) → `Board.Reveal(x, y)` → `BoardView` refreshes the tile
+- **Long press** (finger held still for about 0.4 s) → `Board.ToggleFlag(x, y)`. A flagged cell can't be revealed
+- `TileView.Refresh(Cell)` chooses the correct sprite from the cell's state
+- Test on the phone and tune the long-press time until it feels right
+
+**Done when:** you can open cells and place flags with your finger on the phone. ✅ **Milestone M2**
+
+**Tasks**
+
+| ✓ | ID | Task | Est. | Priority | Depends on | Done when |
+|---|---|---|---|---|---|---|
+| ☐ | MS-17 | Write `InputHandler` with `Pointer.current`: screen position → grid (x, y), tap detection (lift without moving) | 25 | Must | MS-15 | A tap logs the correct cell, on the phone and with the mouse in the editor |
+| ☐ | MS-18 | A tap opens a single cell and redraws it | 15 | Must | MS-17 | The tapped tile shows its number, an empty tile or a red flag |
+| ☐ | MS-19 | Long press (0.4 s held still) toggles a flag; implement `Board.ToggleFlag` | 25 | Must | MS-17 | Long press places and removes a flag; a flagged cell can't be opened |
+| ☐ | MS-20 | Finish `TileView.Refresh()` for every cell state | 10 | Must | MS-14 | Each state shows the right sprite |
+| ☐ | MS-21 | Test tap and long press on the phone; tune `longPressTime` | 15 | Must | MS-18, MS-19 | Taps always hit the cell under the finger and long press feels natural |
+
+#### Month 2: A playable game
+
+##### Week 5: Flood fill and the safe first tap
+
+**Goal:** the core Minesweeper "feel".
+- Implement flood fill in `Board.Reveal` with a `Queue<Vector2Int>` (BFS). When a revealed cell has 0 adjacent mines, add its hidden, unflagged neighbours to the queue
+- Return the list of changed cells so the view only redraws those
+- Generate mines lazily on the **first** tap, so the first tap is always safe and usually opens an area
+- Test on a 16×30 board **on the phone** to make sure it's fast
+
+**Done when:** tapping an empty area opens a whole region the way classic Minesweeper does.
+
+**Tasks**
+
+| ✓ | ID | Task | Est. | Priority | Depends on | Done when |
+|---|---|---|---|---|---|---|
+| ☐ | MS-22 | Implement flood fill in `Board.Reveal()` with a `Queue` (BFS) | 35 | Must | MS-18 | Tapping a 0 opens the whole empty region and its numbered border |
+| ☐ | MS-23 | Make `Reveal()` return the changed cells, and add `BoardView.RefreshCells()` | 15 | Must | MS-22 | Only the changed tiles are redrawn |
+| ☐ | MS-24 | Place the red flags (mines in code) on the first tap instead of when the board is created | 20 | Must | MS-09, MS-22 | 20 first taps in a row are all safe and each opens an area |
+| ☐ | MS-25 | Test flood fill on a 16×30 board on the phone for speed and correctness | 20 | Must | MS-22 | No lag or errors; flood fill never opens flagged cells |
+
+##### Week 6: Game states, win and loss
+
+**Goal:** the game has a beginning and an end.
+- Create a `GameState` enum: `Ready`, `Playing`, `Won`, `Lost`
+- Write the `GameManager` MonoBehaviour, which owns the `Board`, the state and the rules
+- Loss: when a red flag is revealed, show all red flags, highlight the tapped one, mark wrongly placed yellow flags, block input
+- Win: when `revealedCount == width × height − mines`, auto-flag all mines and block input
+- Add `Restart()`, which destroys the old tiles and builds a new board. Use a temporary on-screen button until the real UI exists
+
+**Done when:** you can play a full round, win or lose, and restart.
+
+**Tasks**
+
+| ✓ | ID | Task | Est. | Priority | Depends on | Done when |
+|---|---|---|---|---|---|---|
+| ☐ | MS-26 | Create the `GameState` enum and the `GameManager` script (`OnTap`, `OnLongPress`); move input handling into it | 25 | Must | MS-24 | `GameManager` owns the Board and switches Ready → Playing on the first reveal |
+| ☐ | MS-27 | Handle a loss: show all red flags, highlight the hit one, cross out wrong yellow flags, block input | 25 | Must | MS-26 | Opening a red flag ends the round and the board can't be changed |
+| ☐ | MS-28 | Handle a win: detect it, cover the remaining red flags with yellow flags, block input | 20 | Must | MS-26 | Opening the last safe cell ends the round as a win |
+| ☐ | MS-29 | Add `NewGame()` restart, with a temporary on-screen button | 20 | Must | MS-26 | The button gives a fresh board in any state with no leftover tiles and every cell hidden |
+
+##### Week 7: Mobile user interface
+
+**Goal:** a touch-friendly top bar and bottom bar.
+- Add a Canvas with a **Canvas Scaler**: "Scale With Screen Size", reference resolution 1080×1920, Match = 0.5. This keeps the UI the same relative size on every phone
+- Add a `SafeArea` script on the UI root panel so nothing is hidden behind the notch, camera hole or rounded corners
+- Top bar with TextMeshPro text: mine counter (mines − flags, can go negative) and timer (starts on the first tap, stops at the end, capped at 999)
+- Restart button with a face that changes: 🙂 normal / 😮 while a finger is held on the board / 😎 win / 😵 loss
+- Bottom bar with a big **flag-mode toggle** (⛏ reveal / 🚩 flag). All buttons at least ~48 dp (about 130 px at the reference resolution) so they're easy to hit
+- Win and lose message panels. The lose panel shows one random line from `Assets/Text/loss_lines.txt` (one line per entry) under the "lost" message, using the `LossLines` helper
+- Use C# events (`event Action`) from `GameManager` so the UI doesn't poll every frame
+- Make sure touches on buttons don't also tap the board
+
+**Done when:** the MVP is fully playable **on the phone**. ✅ **Milestone M3.** Tag it in Git: `git tag v0.1-mvp`
+
+**Tasks**
+
+| ✓ | ID | Task | Est. | Priority | Depends on | Done when |
+|---|---|---|---|---|---|---|
+| ☐ | MS-30 | Add a Canvas with Canvas Scaler (Scale With Screen Size, 1080×1920, Match 0.5), EventSystem and TextMeshPro | 10 | Must | — | Text appears at the same relative size on different phones in the Device Simulator |
+| ☐ | MS-31 | Add the `SafeArea` script on the UI root panel | 10 | Must | MS-30 | UI stays clear of the notch on a notched phone in the Device Simulator |
+| ☐ | MS-32 | Top bar: red flag counter (red flags − yellow flags) and timer (starts on first reveal, stops at the end, caps at 999) | 15 | Must | MS-29, MS-30 | Both update correctly; the counter can go negative |
+| ☐ | MS-33 | Face button with 🙂 / 😮 / 😎 / 😵 states that restarts on tap; remove the temporary button | 15 | Must | MS-30 | The face matches the state and tapping it restarts |
+| ☐ | MS-34 | Bottom bar: flag-mode toggle (⛏ / yellow flag) calling `GameManager.ToggleFlagMode()` | 15 | Must | MS-26, MS-30 | In flag mode a tap flags; the button shows the active mode |
+| ☐ | MS-35 | Win and loss message panel with Play again and Menu buttons; the loss panel shows a random line from `Assets/Text/loss_lines.txt` (`LossLines` helper; create the file with a few lines) | 15 | Must | MS-30 | The panel appears at the end of a round; each loss shows a line from the file; a line added to the file appears without code changes |
+| ☐ | MS-36 | Stop touches on UI from reaching the board; build to the phone; tag `v0.1-mvp` | 10 | Must | MS-33, MS-34 | Tapping buttons never opens a tile; a full round works on the phone; the tag is on GitHub |
+
+##### Week 8: Difficulty levels, main menu, Back button
+
+**Goal:** replayability and normal Android navigation.
+- Create a `DifficultySettings` ScriptableObject (name, width, height, mines) and three assets: Beginner 9×9/10, Intermediate 16×16/40, Expert **16×30**/99
+- Add a `MainMenu` scene with three big difficulty buttons and make it **scene 0** in Build Profiles, so the game always starts from the difficulty choice. There's **no Quit button**: on Android, players leave with the Back or Home button
+- Pass the chosen difficulty to the game scene with a static `GameSession` class, then load it with `SceneManager.LoadScene`
+- **Android Back button:** in the game it returns to the menu; in the menu it closes the app. In the Input System the Back button arrives as the **Escape** key
+- Test the layout in the Device Simulator on several shapes: a 16:9 phone, a tall 20:9 phone with a notch, and a 4:3 tablet
+
+**Done when:** you can choose any level from the menu, and Back behaves as expected on the phone.
+
+**Tasks**
+
+| ✓ | ID | Task | Est. | Priority | Depends on | Done when |
+|---|---|---|---|---|---|---|
+| ☐ | MS-37 | Create the `DifficultySettings` ScriptableObject and the Beginner 9×9/10, Intermediate 16×16/40, Expert 16×30/99 assets | 15 | Should | MS-26 | Three assets exist with the correct sizes and mine counts |
+| ☐ | MS-38 | Create the static `GameSession` class and read it in `NewGame()` | 5 | Should | MS-37 | The game uses `GameSession.Selected`, or the default if it's empty |
+| ☐ | MS-39 | Build the `MainMenu` scene (scene 0, the first screen): title, three large difficulty cards, settings button; no Quit button | 30 | Should | MS-38 | The app opens on this screen; the layout matches the sketch in Game_Design_Document.md and sits inside the safe area |
+| ☐ | MS-40 | Scene loading, Menu button, and Android Back (Escape key): game → menu, menu → quit | 15 | Should | MS-39 | Back behaves correctly on the phone; Menu → Game → Menu works repeatedly with no errors |
+| ☐ | MS-41 | Test all screens in the Device Simulator on a 16:9 phone, a 20:9 notched phone and a 4:3 tablet | 25 | Should | MS-40 | Board and UI fit on all three with nothing hidden or overlapping |
+
+#### Month 3: Polish, testing, release
+
+##### Week 9: Zoom, pan and advanced gameplay
+
+**Goal:** big boards are comfortable to play on a small screen.
+- **Pinch to zoom** in `CameraController`: two fingers change `orthographicSize`, limited between a minimum and the "whole board visible" size
+- **Drag to pan** with one finger. The camera can't leave the board, and a drag never counts as a tap
+- Chording: tapping a revealed number whose adjacent flags equal its number reveals all its other neighbours
+- Best time per difficulty: save it with `PlayerPrefs.SetFloat("best_" + name, time)` and show it in the menu, plus a "New record!" message
+- Pause the timer while the app is in the background (`OnApplicationPause`)
+
+**Done when:** Expert is playable on a phone with zoom and pan, and best times survive closing the app.
+
+**Tasks**
+
+| ✓ | ID | Task | Est. | Priority | Depends on | Done when |
+|---|---|---|---|---|---|---|
+| ☐ | MS-42 | Pinch to zoom in `CameraController`, limited between the minimum size and "whole board visible" | 25 | Should | MS-16 | Pinching zooms smoothly on the phone and never ends in a tap |
+| ☐ | MS-43 | One-finger drag to pan, clamped to the board; a drag never counts as a tap | 15 | Should | MS-42 | The view follows the finger and can't leave the board |
+| ☐ | MS-44 | Chording: tapping an opened number calls `Board.Chord()` | 15 | Should | MS-22 | It opens neighbours only when the flag count equals the number; a wrong flag causes a loss |
+| ☐ | MS-45 | Save and load the best time per difficulty with `PlayerPrefs` | 15 | Should | MS-28, MS-37 | A best time survives closing and reopening the app |
+| ☐ | MS-46 | Show best times on the menu cards and "New record!" on the win panel | 10 | Should | MS-45 | Cards show a time or "—"; the message appears only on a record |
+| ☐ | MS-47 | Pause the timer while the app is in the background (`OnApplicationPause`) | 10 | Should | MS-32 | Pressing Home for 30 s doesn't add 30 s to the timer |
+
+##### Week 10: Audio, vibration and polish
+
+**Goal:** make it feel good in the hand.
+- Add an `AudioManager` with clips for tap, flag, flood reveal, explosion and win (free sounds from Kenney.nl or freesound.org; check the licence)
+- Add a settings panel with **Sound** and **Vibration** on/off, saved in `PlayerPrefs`
+- Vibration (`Handheld.Vibrate()`) when a flag is placed by long press and when you lose
+- Pressed highlight: the tile under the finger looks pressed while held (this replaces the mouse "hover" effect, which doesn't exist on touch screens)
+- Optional small effects: tile pop on reveal, camera shake on explosion
+
+**Done when:** the game has sound, vibration and visual feedback. ✅ **Milestone M4**
+
+**Tasks**
+
+| ✓ | ID | Task | Est. | Priority | Depends on | Done when |
+|---|---|---|---|---|---|---|
+| ☐ | MS-48 | Find sound effects: tap, flag, flood fill, loss (hitting a red flag), win (check the licences) | 15 | Should | — | 5 clips are in `Assets/Audio`, with licences noted |
+| ☐ | MS-49 | Write `AudioManager` and play the sounds on game events | 20 | Should | MS-48 | Each event in the feedback table in Game_Design_Document.md plays its sound |
+| ☐ | MS-50 | Settings panel with Sound and Vibration toggles, saved in `PlayerPrefs` | 15 | Should | MS-39, MS-49 | Both settings stay as chosen after reopening the app |
+| ☐ | MS-51 | `Haptics` helper: vibrate on long-press flag and on loss | 10 | Should | MS-50 | The phone buzzes on those events only when Vibration is on |
+| ☐ | MS-52 | Pressed tile highlight and 😮 face while a finger is held on the board | 10 | Should | MS-33 | The tile under the finger darkens and the face changes; both reset on lift or drag |
+| ☐ | MS-53 | Tile "pop" animation when opened | 10 | Could | MS-23 | Opened tiles scale up briefly and back |
+| ☐ | MS-54 | Camera shake on loss | 10 | Could | MS-27 | The camera shakes briefly and returns to its exact position |
+
+##### Week 11: Automated tests and bug fixing
+
+**Goal:** confidence that the logic is correct.
+- The **Unity Test Framework** is already installed in GC26: create an assembly definition for `Scripts/Core` and an Edit Mode test assembly that references it
+- Write tests for `Board`: the mine count is correct, the first-tap area has no mines, the numbers are correct on a hand-made board, flood fill stops at numbers, a flagged cell can't be revealed, the win is detected, chording works
+- Go through the manual test checklist (section 8.2) **on the real phone**
+- Fix the bugs you find (keep a bug list in section 10.2)
+
+**Done when:** all tests pass and there are no known critical bugs.
+
+**Tasks**
+
+| ✓ | ID | Task | Est. | Priority | Depends on | Done when |
+|---|---|---|---|---|---|---|
+| ☐ | MS-55 | Unity Test Framework (already installed): create a `Core` asmdef and an Edit Mode test asmdef | 15 | Must | MS-08 | An empty test runs green in the Test Runner window |
+| ☐ | MS-56 | Write unit tests for `Board` (mine count, safe area, numbers, flood fill, flags, win, chord, Expert 16×30) and `LossLines` (skips empty and `#` lines, empty list) | 35 | Must | MS-55 | At least 9 tests, all passing |
+| ☐ | MS-57 | Run through the manual test checklist (section 8.2) **on the phone** | 25 | Must | MS-46 | Every item is checked; failures are added to the bug list |
+| ☐ | MS-58 | Fix the bugs found | 15 | Must | MS-57 | No High-severity bugs left open |
+
+##### Week 12: Android build and settings
+
+**Goal:** an app that installs and runs like a real mobile game.
+- Player Settings: company name, product name, **package name** (e.g. `com.yourname.minesweeper`), version, **adaptive icon**, splash screen, portrait only
+- Other Settings: Scripting Backend **IL2CPP**, Target Architectures **ARM64** (both required by Google Play), Minimum API Level as suggested by Unity 6, Target API Level = latest installed
+- Set `Application.targetFrameRate = 60` so animations are smooth; remove debug scripts and `Debug.Log` spam
+- Create a **keystore** (Publishing Settings) and make a signed release build: **APK** for sharing and testing, **AAB** if you want Google Play. Back up the keystore and passwords safely; you can't update a Play app without them
+- Test on 2 or more devices if possible: notch, Back button, phone call or lock screen mid-game, returning to the app
+
+**Done when:** a signed APK installs and runs correctly on a phone that isn't connected to Unity.
+
+**Tasks**
+
+| ✓ | ID | Task | Est. | Priority | Depends on | Done when |
+|---|---|---|---|---|---|---|
+| ☐ | MS-59 | Player Settings: package name, version, adaptive icon, splash, portrait only, IL2CPP + ARM64, minimum/target API level | 20 | Must | — | All settings are filled in and a build succeeds with them |
+| ☐ | MS-60 | Remove `BoardDebug` and unneeded `Debug.Log` calls; set `Application.targetFrameRate = 60` | 10 | Must | — | The Console is clean during normal play and the game runs at 60 fps |
+| ☐ | MS-61 | Create a keystore and make a signed release build (APK; AAB if publishing); back up the keystore outside Git | 20 | Must | MS-59, MS-60 | A signed APK installs on the phone without Unity; the keystore has a backup |
+| ☐ | MS-62 | Test the release build on 2+ devices: notch, Back button, phone call / lock screen mid-game, return to app | 25 | Must | MS-61 | Everything behaves as described in the edge-case table in Game_Design_Document.md |
+| ☐ | MS-63 | Upload the AAB to Google Play internal testing | 15 | Could | MS-61 | The app installs from the Play internal-testing link |
+
+##### Week 13: Buffer, release and review
+
+**Goal:** finish cleanly. This week also covers tasks that slipped earlier.
+- Finish anything still open from weeks 1–12
+- Write the `README.md` in the repository: description, controls, screenshots, how to build
+- Optional: upload the AAB to **Google Play internal testing** (needs a one-time Google Play developer account fee), or share the APK on itch.io
+- Tag the release: `git tag v1.0`
+- Write a retrospective (section 10.3): what went well, what was hard, what you would do next
+
+**Done when:** v1.0 is released. ✅ **Milestone M5**
+
+**Tasks**
+
+| ✓ | ID | Task | Est. | Priority | Depends on | Done when |
+|---|---|---|---|---|---|---|
+| ☐ | MS-64 | Finish any tasks that slipped from earlier weeks | 40 | Must | — | No Must tasks left open |
+| ☐ | MS-65 | Write the repository `README.md`: description, touch controls, phone screenshots, build steps | 20 | Must | MS-61 | The README is visible on GitHub |
+| ☐ | MS-66 | Tag `v1.0`, then fill in the retrospective (section 10.3). Optional: share the APK on itch.io | 30 | Must | MS-65 | The tag is on GitHub and the retrospective is written |
+
+### 9.4 Critical path
+
+These tasks depend on each other in a chain. If one of them is late, everything after it is late too, so finish them first:
+
+MS-05 (phone build) → MS-07 → MS-08 → MS-14/MS-15 → MS-17 → MS-18 → MS-22 → MS-24 → MS-26 → MS-27/MS-28 → MS-30–MS-36 (MVP) → MS-37–MS-40 → MS-55–MS-58 → MS-61 → MS-66
+
+### 9.5 If you fall behind
+
+Cut tasks in this order:
+1. **Could:** MS-53, MS-54, MS-63, and the itch.io upload in MS-66
+2. **Should, polish:** MS-52, MS-51, MS-50
+3. **Should, features:** MS-44 (chording), MS-45/MS-46 (best times), MS-47 (pause timer)
+
+**Don't cut zoom and pan (MS-42, MS-43) unless you also drop Expert** or shrink it to 16×24; without zoom, Expert cells are too small for a finger.
+
+Don't cut testing (MS-55–MS-58) or the signed Android build (MS-61, MS-62).
+
+### 9.6 Risks and how to handle them
+
+| Risk | Sign | What to do |
+|---|---|---|
+| Android build setup fails | Errors about the SDK, NDK or JDK | It's done in week 1 on purpose. Reinstall the Android module from Unity Hub; let Unity use its own bundled SDK/JDK instead of other installs |
+| Phone not detected | Build And Run can't find a device | Check USB debugging, accept the "Allow USB debugging" prompt on the phone, try another cable, set the USB mode to "File transfer" |
+| No phone available | — | Use the Device Simulator for layout, and the Android Emulator (Android Studio) for running builds |
+| Cells too small to tap | Wrong cells get opened on Expert | Pinch zoom (week 9); if zoom is cut, drop Expert or reduce it to 16×24 |
+| Taps and drags confused | Panning opens cells | Use a movement threshold (~20 px) before a touch counts as a drag; tune it on the phone |
+| Different screen shapes | UI hidden by the notch or overlapping the board | Canvas Scaler + SafeArea; test several devices in the Device Simulator |
+| Behind schedule | A milestone is late by more than 1 week | Drop Nice-to-have items first, then Should-have items; week 13 is the buffer |
+| Stuck on a bug for more than 30 minutes | No progress in a session | Write it in the weekly log (section 10.1), move to the next task, search or ask for help later |
+| Lost work or keystore | Broken project, lost signing key | Commit and push every session; keep the keystore **outside** the Git repository with a backup copy |
+
+### 9.7 Learning resources
+
+- Unity Learn: learn.unity.com ("Unity Essentials", "Junior Programmer")
+- Unity Manual: "Android" section (setup, building, Player settings) and "Device Simulator"
+- Input System package docs: "Touch support" and "Pointer"
+- Microsoft C# docs: learn.microsoft.com/dotnet/csharp
+- Android design guidelines (touch target sizes): developer.android.com/design
+- Free 2D art and sounds: kenney.nl
+- Gitignore template: github.com/github/gitignore/blob/main/Unity.gitignore
+
+## 10. Progress tracking
+
+Task status is tracked on the [task board](https://github.com/users/Zaidejas/projects/6) (Todo → In Progress → Done). Use the tables below for notes, bugs and the final review.
+
+### 10.1 Weekly log
+
+| Week | Date | Planned | Done? | Hours | Notes / blockers / next step |
+|---|---|---|---|---|---|
+| 1 | | Setup, Android toolchain, first phone build | ☐ | | |
+| 2 | | Board data model (M1) | ☐ | | |
+| 3 | | Sprites, Tile prefab, BoardView, portrait camera | ☐ | | |
+| 4 | | Touch input: tap and long press (M2) | ☐ | | |
+| 5 | | Flood fill, safe first tap | ☐ | | |
+| 6 | | Game states, win/lose, restart | ☐ | | |
+| 7 | | Mobile UI: safe area, top bar, flag-mode button (M3) | ☐ | | |
+| 8 | | Difficulties, main menu, Back button | ☐ | | |
+| 9 | | Pinch zoom, pan, chording, best times, pause | ☐ | | |
+| 10 | | Audio, vibration, settings, polish (M4) | ☐ | | |
+| 11 | | Unit tests, phone testing, bug fixing | ☐ | | |
+| 12 | | Signed Android build, device testing | ☐ | | |
+| 13 | | Buffer, README, release (M5) | ☐ | | |
+
+**Total hours:** ___ / 26
+
+### 10.2 Bug list
+
+| # | Found (week) | Device | Description | Severity (High/Med/Low) | Fixed (week) |
+|---|---|---|---|---|---|
+| 1 | | | | | |
+
+### 10.3 Retrospective (week 13)
+
+- **What went well:**
+- **What was hard:**
+- **What I learned:**
+- **What I'd add next:**

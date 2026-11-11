@@ -1,15 +1,17 @@
-# Minesweeper (Mobile): Game Design Document (GDD)
+# Red Flags: Game Design Document (GDD)
 
 | | |
 |---|---|
-| **Title** | MineSweeper |
+| **Title** | Red Flags (a Minesweeper-style game) |
 | **Genre** | Single-player logic / puzzle game |
 | **Engine** | Unity 6000.5.6f1 (URP), C#; project GC26, branch `gc26_minesweeper` |
 | **Platform** | Android phones (main); Android tablets supported; iOS optional later |
 | **Orientation** | Portrait only |
 | **Input** | Touch: tap, long press, drag, pinch; Android Back button |
 | **Target player** | Anyone who likes short logic puzzles on the go; one round lasts from 10 seconds to a few minutes, playable one-handed on small boards |
-| **Related documents** | [01_Project_Plan.md](01_Project_Plan.md), [02_Technical_Design.md](02_Technical_Design.md), [03_Progress_Tracker.md](03_Progress_Tracker.md), [05_Task_List.md](05_Task_List.md) |
+| **Related documents** | [Technical_Design_Document.md](Technical_Design_Document.md) (architecture, code, development plan and tasks), [prototype/](prototype/README.md) (playable browser prototype), [task board](https://github.com/users/Zaidejas/projects/6) |
+
+> **How to open:** this is a Markdown file; it opens in any text editor and looks best in VS Code (`Ctrl+Shift+V`) or on GitHub. The prototype opens by double-clicking `prototype/index.html`.
 
 ---
 
@@ -33,7 +35,40 @@ The rules are classic Minesweeper, but the theme is **"avoid the red flags"**:
 
 All text the player sees says "red flags", never "mines". In the rest of this document, "mine" means a hidden red flag and "flag" means the player's yellow flag.
 
----
+### 1.2 Scope
+
+#### Must have (MVP, done by the end of week 7)
+
+- A grid of cells with randomly placed red flags, shown in portrait mode
+- Every new board starts with all cells hidden; nothing is revealed until the player taps
+- **Tap** reveals a cell; **long press** places or removes a flag (with a short vibration)
+- A **flag-mode toggle button**: while it's on, a tap places a flag instead of revealing
+- Numbers show how many mines touch each cell
+- Revealing an empty (0) cell automatically opens its neighbours (flood fill)
+- The first tap is always safe
+- Win when every safe cell is revealed; lose when a red flag is revealed
+- On a loss, the pop-up shows one random line from a list under the "lost" message; the list is a text file you can add lines to later
+- UI: mine counter, timer, restart button, all inside the phone's **safe area** (clear of the notch and rounded corners)
+- Runs on a real Android phone
+
+#### Should have (weeks 8–10)
+
+- Three difficulty levels designed for portrait: Beginner 9×9 with 10 mines, Intermediate 16×16 with 40, **Expert 16×30** with 99 (the classic 30×16 board turned upright)
+- A main menu scene; the Android **Back** button works
+- **Pinch to zoom and drag to pan**, needed so Expert cells are big enough to tap
+- Chording: tap a revealed number whose flags are all placed to open its remaining neighbours
+- Best times saved with `PlayerPrefs`
+- Timer pauses when the app goes to the background
+- Sound effects, vibration, settings for sound and vibration on/off
+
+#### Nice to have (only if there is time left)
+
+- Small animations (tile pop, camera shake)
+- Google Play internal-testing release
+- iOS build (needs a Mac and an Apple developer account)
+- A custom board size
+
+What is left out of the game is listed in section 10.
 
 ## 2. Game elements
 
@@ -80,8 +115,6 @@ Boards are arranged for a **tall, portrait** screen.
 | Custom *(optional)* | Chosen by the player | Chosen by the player (at most cells − 9) | — | — |
 
 Expert is the classic 30×16 board turned upright, so it has the same difficulty as the original.
-
----
 
 ## 3. Rules
 
@@ -143,8 +176,6 @@ Rules for flags:
 - The board can't be changed any more after a win or loss, but the player can still zoom and pan to look at it.
 - The player can restart (face button or **Play again**) or return to the menu (**Menu** button or Android **Back**).
 
----
-
 ## 4. Controls
 
 | Gesture | Where | Action |
@@ -162,8 +193,6 @@ Rules for flags:
 | Android **Back** | Main menu | Close the app |
 
 All buttons are at least 48 dp (about 9 mm) so they're easy to hit with a thumb. The flag-mode button is at the bottom, within thumb reach.
-
----
 
 ## 5. User flow
 
@@ -220,9 +249,8 @@ All buttons are at least 48 dp (about 9 mm) so they're easy to hit with a thumb.
 6. Wins in 142 s → "New record!" → the best time for Expert is updated in the menu.
 7. Taps **Play again** at once to try for a better time.
 
----
-
 ## 6. Screens
+
 All layouts are **portrait** and stay inside the phone's **safe area** (clear of the notch, camera hole and rounded corners).
 
 ### 6.1 Main Menu (difficulty choice, the first screen)
@@ -303,8 +331,6 @@ A panel that slides up from the bottom, so the board stays visible above it and 
 - The panel's text box wraps long lines, but lines should be short (about 80 characters or less) to read well on a phone.
 - If the list is empty, only the "lost" message is shown.
 
----
-
 ## 7. Feedback: audio, vibration and visuals
 
 | Event | Visual | Sound | Vibration |
@@ -320,9 +346,8 @@ A panel that slides up from the bottom, so the board stays visible above it and 
 
 Sound and vibration can each be turned off in the settings; the choices are remembered. Sound volume follows the phone's media volume.
 
----
-
 ## 8. Saved data
+
 Stored locally on the phone with `PlayerPrefs`:
 
 | Key | Value |
@@ -332,8 +357,6 @@ Stored locally on the phone with `PlayerPrefs`:
 | `vibration` | 1 = on, 0 = off |
 
 No account, internet connection or special permissions are needed. Uninstalling the app deletes this data.
-
----
 
 ## 9. Edge cases
 
@@ -358,12 +381,12 @@ No account, internet connection or special permissions are needed. Uninstalling 
 | Loss lines list is empty | Only the "lost" message is shown |
 | Very long loss line | The text wraps inside the panel |
 
----
-
 ## 10. Out of scope
+
 Landscape mode, desktop and web versions, multiplayer, online leaderboards, ads and in-app purchases, saving an unfinished round, guaranteed "no-guess" boards, and replays.
 
 ## 11. Possible future ideas
+
 - iOS version
 - Save and resume an unfinished round
 - Lighter, shorter haptic "ticks" using a native haptics plugin
@@ -372,3 +395,7 @@ Landscape mode, desktop and web versions, multiplayer, online leaderboards, ads 
 - Daily puzzle with a shared seed
 - Statistics: games played, win rate, longest streak
 - Google Play Games achievements
+
+## 12. Prototype
+
+A simple playable browser version of these rules is in [prototype/](prototype/README.md). Open `prototype/index.html` in any browser (no installation or internet needed) to try the rules, touch controls and loss lines before building the Unity version. It leaves out zoom/pan, sounds and settings.
