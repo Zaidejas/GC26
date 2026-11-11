@@ -1078,7 +1078,7 @@ namespace GC26.Spinv
             }
             else
             {
-                var title = MakeText(canvas, "Title", "SPACE INVADERS", 110, TextAlignmentOptions.Center, center, new Vector2(0f, 250f), new Vector2(1200f, 200f));
+                var title = MakeText(canvas, "Title", "TINY UFO", 110, TextAlignmentOptions.Center, center, new Vector2(0f, 250f), new Vector2(1200f, 200f));
                 title.color = PlayerColor;
             }
 
@@ -1168,7 +1168,7 @@ namespace GC26.Spinv
             intro.noise.raycastTarget = false;
             Stretch(intro.noise.rectTransform);
 
-            string[] texts = { "SPACE INVADERS SYSTEM", "ROM CHECK ........ OK", "RAM CHECK ........ OK", "PHOSPHOR WARMUP ... OK", "TAP TO START" };
+            string[] texts = { "TINY UFO SYSTEM", "ROM CHECK ........ OK", "RAM CHECK ........ OK", "PHOSPHOR WARMUP ... OK", "TAP TO START" };
             intro.lines = new TMP_Text[texts.Length];
             for (int i = 0; i < texts.Length; i++)
             {

@@ -1,6 +1,6 @@
 {
   "id": "gc26_spinv",
-  "title": "Space Invaders",
+  "title": "Tiny UFO",
   "description": "Аркадные захватчики: классика из 5 волн, бесконечная аркада и боссы",
   "entry_scene": "gc26_spinv_Main",
   "authors": ["Артур Шрамченко"]

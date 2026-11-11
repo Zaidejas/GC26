@@ -205,6 +205,8 @@ MonoBehaviour:
   explosionPrefab: {fileID: 7945268817373450162, guid: 2e12b8054a73abe4eb7387ecb16ef531, type: 3}
   gravity: 10
   radius: 1.5
+  bunkerTouchRadius: 0.15
+  bunkerBreakRadius: 0.6
   spinSpeed: 120
   ringColor: {r: 1, g: 0.34, b: 0.29, a: 0.55}
 --- !u!1 &8764784686438722034

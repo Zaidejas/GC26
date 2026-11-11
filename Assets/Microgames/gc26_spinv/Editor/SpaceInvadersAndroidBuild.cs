@@ -12,6 +12,7 @@ namespace GC26.Spinv
     {
         const string OutputPath = "Builds/SpaceInvaders.apk";
         public const string ResultPath = "Builds/last_android_build.txt";
+        const string IconPath = SpaceInvadersBuilder.RootDir + "/Sprites/app_icon.png";
 
         [MenuItem("Tools/Space Invaders/Build Android APK")]
         public static void Build()
@@ -19,11 +20,17 @@ namespace GC26.Spinv
             Directory.CreateDirectory("Builds");
             File.Delete(ResultPath);
 
-            PlayerSettings.productName = "Space Invaders";
+            PlayerSettings.productName = "Tiny UFO"; // так игра называется на телефоне
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.gc26.spaceinvaders");
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+            // Иконка приложения: капсула-пришелец с выстрелом на тёмном фоне
+            var icon = AssetDatabase.LoadAssetAtPath<Texture2D>(IconPath);
+            if (icon != null)
+                PlayerSettings.SetIcons(NamedBuildTarget.Unknown, new[] { icon }, IconKind.Application);
+            else
+                Debug.LogWarning("Space Invaders: app icon not found at " + IconPath);
             EditorUserBuildSettings.buildAppBundle = false;
             AssetDatabase.SaveAssets();
 
