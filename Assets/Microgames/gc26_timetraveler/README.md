@@ -3,7 +3,7 @@
 - Ветка: `game/gc26_timetraveler`
 - Неймспейс: `GC26.Timetraveler`
 - Стартовая сцена: `Scenes/gc26_timetraveler_Main.unity` (`TimetravelerGame` на объекте `TimetravelerRoot`)
-- Команда:
+- Команда: Ilona Kostiuk
 - Game Design Document: https://claude.ai/artifact/FmYnjxVwHUhJNiAVmtr1rZ
 
 Time Traveler Runner: a portrait 2D story runner. The game locks the screen to portrait while it runs
