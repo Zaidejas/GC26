@@ -34,6 +34,9 @@ namespace GC26.Timetraveler
         public const string MapNodeLocked = "map_node_locked";
         public const string MapGate = "map_gate";         // tiled
         public const string MapPlayer = "map_player";
+        public const string MapNpc = "map_npc";
+        public const string MapShop = "map_shop";
+        public const string MapMinigame = "map_minigame";
 
         // ---- menu ----
         public const string MenuBackground = "menu_background";

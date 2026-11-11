@@ -62,6 +62,7 @@ namespace GC26.Timetraveler
         GUIStyle _bigStyle;
         GUIStyle _smallStyle;
         GUIStyle _centerStyle;
+        readonly TimetravelerUi _ui = new TimetravelerUi();
 
         public int DistanceMeters =>
             _traveler == null ? 0 : Mathf.Max(0, Mathf.RoundToInt((_traveler.transform.position.x - _track.StartX) * MetersPerUnit));
@@ -135,6 +136,7 @@ namespace GC26.Timetraveler
             if (_traveler == null) return;
             _input.IgnoreRect = PauseButtonRectInput();
             _input.Update();
+            _ui.Update();
 
             if (_input.PausePressed)
             {
@@ -432,7 +434,7 @@ namespace GC26.Timetraveler
 
             if (!_paused)
             {
-                if (!_traveler.IsDead && GUI.Button(PauseButtonRectGui(), "II", buttonStyle)) Pause();
+                if (!_traveler.IsDead && _ui.Button(PauseButtonRectGui(), "II", buttonStyle)) Pause();
                 return;
             }
 
@@ -444,8 +446,8 @@ namespace GC26.Timetraveler
             var w = Mathf.Min(Screen.width * 0.6f, unit * 12f);
             var x = (Screen.width - w) / 2f;
             var h = unit * 2.4f;
-            if (GUI.Button(new Rect(x, Screen.height * 0.42f, w, h), "Resume", buttonStyle)) Resume();
-            if (GUI.Button(new Rect(x, Screen.height * 0.42f + h + unit, w, h), IsEndless ? "To menu" : "To map", buttonStyle)) Leave();
+            if (_ui.Button(new Rect(x, Screen.height * 0.42f, w, h), "Resume", buttonStyle)) Resume();
+            if (_ui.Button(new Rect(x, Screen.height * 0.42f + h + unit, w, h), IsEndless ? "To menu" : "To map", buttonStyle)) Leave();
         }
 
         void DrawResults(float unit)
@@ -460,8 +462,8 @@ namespace GC26.Timetraveler
             var w = Mathf.Min(Screen.width * 0.6f, unit * 12f);
             var x = (Screen.width - w) / 2f;
             var h = unit * 2.4f;
-            if (GUI.Button(new Rect(x, Screen.height * 0.45f, w, h), "Continue", buttonStyle)) Leave();
-            if (GUI.Button(new Rect(x, Screen.height * 0.45f + h + unit, w, h), "Play again", buttonStyle)) StartRun();
+            if (_ui.Button(new Rect(x, Screen.height * 0.45f, w, h), "Continue", buttonStyle)) Leave();
+            if (_ui.Button(new Rect(x, Screen.height * 0.45f + h + unit, w, h), "Play again", buttonStyle)) StartRun();
         }
     }
 }

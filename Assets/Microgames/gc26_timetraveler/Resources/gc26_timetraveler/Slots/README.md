@@ -41,7 +41,10 @@ Put a PNG here with the **exact name from the table** and the game shows it inst
 | `map_node.png` | точка уровня, открыта | 32×32 | растянуть |
 | `map_node_done.png` | точка уровня, пройдена | 32×32 | растянуть |
 | `map_node_locked.png` | точка уровня, закрыта | 32×32 | растянуть |
-| `map_player.png` | герой на карте (нет — берётся кадр бега) | 32×48 | центр внизу |
+| `map_player.png` | герой на карте (нет — берётся кадр бега) | 32×48 | как есть |
+| `map_npc.png` | NPC на карте | 26×26 | растянуть |
+| `map_shop.png` | магазин | 26×26 | растянуть |
+| `map_minigame.png` | мини-игра | 26×26 | растянуть |
 
 ## Menu / Меню
 

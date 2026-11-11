@@ -16,6 +16,7 @@ namespace GC26.Timetraveler
         Action _play, _endless, _exit;
         Texture2D _backgroundArt, _logoArt;
         GUIStyle _title, _text, _button;
+        readonly TimetravelerUi _ui = new TimetravelerUi();
 
         public void Init(Camera cam, TimetravelerSave save, Action play, Action endless, Action exit)
         {
@@ -30,6 +31,7 @@ namespace GC26.Timetraveler
 
         void Update()
         {
+            _ui.Update();
             var kb = UnityEngine.InputSystem.Keyboard.current;
             if (kb == null) return;
             if (kb.enterKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame) _play?.Invoke();
@@ -66,18 +68,18 @@ namespace GC26.Timetraveler
             var h = unit * 2.6f;
             var y = Screen.height * 0.42f;
 
-            if (GUI.Button(new Rect(x, y, w, h), _save.LevelsDone == 0 ? "Play" : "Continue", _button)) _play?.Invoke();
+            if (_ui.Button(new Rect(x, y, w, h), _save.LevelsDone == 0 ? "Play" : "Continue", _button)) _play?.Invoke();
             y += h + unit;
 
             GUI.enabled = _save.EndlessOpen;
             var endlessLabel = _save.EndlessOpen ? "Endless run" : "Endless run (finish the Age of Dinosaurs)";
-            if (GUI.Button(new Rect(x, y, w, h), endlessLabel, _button)) _endless?.Invoke();
+            if (_ui.Button(new Rect(x, y, w, h), endlessLabel, _button)) _endless?.Invoke();
             GUI.enabled = true;
             if (Application.isEditor && _save.LevelsDone < TimetravelerLevels.Era1.Length)
                 GUI.Label(new Rect(x, y + h, w, unit * 1.2f), "(open in the editor for testing)", _text);
             y += h + unit * 1.6f;
 
-            if (GUI.Button(new Rect(x, y, w, h), "Exit to GC26 menu", _button)) _exit?.Invoke();
+            if (_ui.Button(new Rect(x, y, w, h), "Exit to GC26 menu", _button)) _exit?.Invoke();
 
             GUI.Label(new Rect(0, Screen.height - safe.y - unit * 2f, Screen.width, unit * 1.5f), "by Ilona Kostiuk", _text);
         }

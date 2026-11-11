@@ -8,14 +8,20 @@ namespace GC26.Timetraveler
     /// The "open world": a top-down map the traveler walks around freely. Each timeline is a region
     /// stacked upwards; level nodes sit on a path. Stand on a node to see its panel and press Play.
     /// Locked timelines are behind a gate. Walk: drag/hold a finger (or the mouse) where to go, or WASD / arrows.
-    /// Art slots: map_ground, map_path, map_gate (tiled), map_node, map_node_done, map_node_locked, map_player.
+    /// The map is bigger than the screen: the camera follows the traveler both ways and stops at the map edges.
+    /// NPC / shop / minigame spots are placeholders ("coming soon") for the later systems.
+    /// Art slots: map_ground, map_path, map_gate (tiled), map_node, map_node_done, map_node_locked, map_player,
+    /// map_npc, map_shop, map_minigame.
     /// </summary>
     public class WorldMap : MonoBehaviour
     {
         const float WalkSpeed = 9f;
         const float NodeSize = 2f;
         const float NodeReach = 1.6f;
-        const float EdgeMargin = 7.8f;   // the 16.9-unit wide view must keep the traveler visible
+        const float PlaceSize = 1.6f;
+        const float MapBottom = -6f;
+        const float CameraSmoothTime = 0.15f;
+        const float LookAbove = 3f;      // the camera looks a little ahead (up the map)
 
         static readonly Color GroundPlayable = new Color(0.30f, 0.42f, 0.24f);
         static readonly Color GroundLocked = new Color(0.25f, 0.25f, 0.28f);
@@ -26,6 +32,9 @@ namespace GC26.Timetraveler
         static readonly Color NodeEndless = new Color(0.7f, 0.45f, 0.95f);
         static readonly Color GateColor = new Color(0.55f, 0.2f, 0.2f);
         static readonly Color Background = new Color(0.08f, 0.1f, 0.08f);
+        static readonly Color NpcColor = new Color(0.35f, 0.85f, 0.8f);
+        static readonly Color ShopColor = new Color(0.85f, 0.6f, 0.3f);
+        static readonly Color MinigameColor = new Color(0.95f, 0.5f, 0.75f);
 
         public event Action<Vector2> PositionChanged;
 
@@ -38,11 +47,15 @@ namespace GC26.Timetraveler
         SpriteRenderer _playerRenderer;
         Vector2? _walkTarget;
         float _maxY;
+        float _viewTop;                 // highest world y the camera may show
+        Vector3 _cameraVelocity;
+        TimetravelerPlace _nearPlace;
 
         TimetravelerLevel _nearLevel;
         bool _nearEndless;
         Rect _panelRect, _menuButtonRect;   // GUI coordinates: pointer presses there do not walk
         GUIStyle _label, _title, _button, _nodeLabel;
+        readonly TimetravelerUi _ui = new TimetravelerUi();
 
         public void Init(Camera cam, TimetravelerSave save, Vector2? start, Action<TimetravelerLevel> playLevel,
             Action playEndless, Action back)
@@ -59,8 +72,9 @@ namespace GC26.Timetraveler
 
             BuildRegions();
             BuildLevels();
+            BuildPlaces();
             BuildPlayer(start ?? DefaultStart());
-            SnapCamera();
+            MoveCamera(snap: true);
         }
 
         // ---------- building ----------
@@ -71,7 +85,7 @@ namespace GC26.Timetraveler
             var lastPlayableTop = 0f;
             foreach (var era in TimetravelerLevels.Eras)
             {
-                var bottom = era.MapBottom - (era.MapBottom == 0f ? 6f : 0f);   // a bit of land below the first node
+                var bottom = era.MapBottom == 0f ? MapBottom : era.MapBottom;   // a bit of land below the first node
                 var height = era.MapBottom + TimetravelerLevels.EraHeight - bottom;
                 if (era.Playable)
                 {
@@ -90,6 +104,19 @@ namespace GC26.Timetraveler
             _shapes.Box(transform, "MapGate", -w, lastPlayableTop - 1f, w * 2f, 1f, GateColor, sortingOrder: -5,
                 slot: TimetravelerArt.MapGate, tile: true);
             _maxY = lastPlayableTop - 2.5f;
+            _viewTop = lastPlayableTop + 10f;   // peek at the locked timeline above the gate
+        }
+
+        void BuildPlaces()
+        {
+            foreach (var place in TimetravelerLevels.Places)
+            {
+                var (color, slot) = place.Kind == PlaceKind.Shop ? (ShopColor, TimetravelerArt.MapShop)
+                    : place.Kind == PlaceKind.Minigame ? (MinigameColor, TimetravelerArt.MapMinigame)
+                    : (NpcColor, TimetravelerArt.MapNpc);
+                _shapes.Box(transform, "MapPlace_" + place.Name, place.MapPosition.x - PlaceSize / 2f,
+                    place.MapPosition.y - PlaceSize / 2f, PlaceSize, PlaceSize, color, sortingOrder: -2, slot: slot);
+            }
         }
 
         void BuildLevels()
@@ -165,6 +192,7 @@ namespace GC26.Timetraveler
 
         void Update()
         {
+            _ui.Update();
             var move = Vector2.zero;
             var kb = Keyboard.current;
             if (kb != null)
@@ -205,8 +233,9 @@ namespace GC26.Timetraveler
             }
             if (_playerRenderer != null && Mathf.Abs(move.x) > 0.01f) _playerRenderer.flipX = move.x < 0f;
 
-            pos.x = Mathf.Clamp(pos.x, -EdgeMargin, EdgeMargin);
-            pos.y = Mathf.Clamp(pos.y, -4f, _maxY);
+            var edge = TimetravelerLevels.MapHalfWidth - 1.2f;
+            pos.x = Mathf.Clamp(pos.x, -edge, edge);
+            pos.y = Mathf.Clamp(pos.y, MapBottom + 2f, _maxY);
             if ((Vector2)_player.position != pos)
             {
                 _player.position = pos;
@@ -216,23 +245,43 @@ namespace GC26.Timetraveler
             FindNearNode(pos);
         }
 
-        void LateUpdate() => SnapCamera();
+        void LateUpdate() => MoveCamera(snap: false);
 
-        void SnapCamera()
+        /// <summary>Follows the traveler in x and y, smoothly, never showing past the map edges.</summary>
+        void MoveCamera(bool snap)
         {
             if (_player == null) return;
-            var half = _camera.orthographicSize;
-            var y = Mathf.Clamp(_player.position.y + 4f, -6f + half, _maxY + 12f);
-            _camera.transform.position = new Vector3(0f, y, _camera.transform.position.z);
+            var halfH = _camera.orthographicSize;
+            var halfW = halfH * _camera.aspect;
+            var mapHalf = TimetravelerLevels.MapHalfWidth;
+
+            var target = new Vector3(_player.position.x, _player.position.y + LookAbove, _camera.transform.position.z);
+            target.x = halfW >= mapHalf ? 0f : Mathf.Clamp(target.x, -mapHalf + halfW, mapHalf - halfW);
+            target.y = Mathf.Clamp(target.y, MapBottom + halfH, Mathf.Max(MapBottom + halfH, _viewTop - halfH));
+
+            if (snap)
+            {
+                _camera.transform.position = target;
+                _cameraVelocity = Vector3.zero;
+            }
+            else
+            {
+                _camera.transform.position = Vector3.SmoothDamp(_camera.transform.position, target, ref _cameraVelocity,
+                    CameraSmoothTime, Mathf.Infinity, Time.unscaledDeltaTime);
+            }
         }
 
         void FindNearNode(Vector2 pos)
         {
             _nearLevel = null;
             _nearEndless = false;
+            _nearPlace = null;
             foreach (var level in TimetravelerLevels.Era1)
                 if (Vector2.Distance(pos, level.MapPosition) < NodeReach) _nearLevel = level;
             if (_nearLevel == null && Vector2.Distance(pos, TimetravelerLevels.EndlessMapPosition) < NodeReach) _nearEndless = true;
+            if (_nearLevel == null && !_nearEndless)
+                foreach (var place in TimetravelerLevels.Places)
+                    if (Vector2.Distance(pos, place.MapPosition) < NodeReach) _nearPlace = place;
         }
 
         void PlayNear()
@@ -261,6 +310,8 @@ namespace GC26.Timetraveler
             // Node and region labels, placed over the world.
             foreach (var level in TimetravelerLevels.Era1) WorldLabel(level.MapPosition, level.Title, unit);
             WorldLabel(TimetravelerLevels.EndlessMapPosition, "∞", unit);
+            foreach (var place in TimetravelerLevels.Places)
+                WorldLabel(place.MapPosition + new Vector2(0f, 1.6f), place.Name, unit, _label);
             foreach (var era in TimetravelerLevels.Eras)
                 WorldLabel(new Vector2(0f, era.MapBottom + TimetravelerLevels.EraHeight - 3f),
                     era.Playable ? era.Name : era.Name + "  (locked)", unit, _title);
@@ -268,13 +319,14 @@ namespace GC26.Timetraveler
             var safe = Screen.safeArea;
             var top = Screen.height - safe.yMax;
             _menuButtonRect = new Rect(safe.x + unit * 0.5f, top + unit * 0.5f, unit * 5f, unit * 2f);
-            if (GUI.Button(_menuButtonRect, "Menu", _button)) _back?.Invoke();
+            if (_ui.Button(_menuButtonRect, "Menu", _button)) _back?.Invoke();
             GUI.Label(new Rect(safe.x, top + unit * 0.5f, safe.width - unit, unit * 2f), $"Coins: {_save.Coins}",
                 new GUIStyle(_label) { alignment = TextAnchor.MiddleRight });
 
             _panelRect = Rect.zero;
             if (_nearLevel != null) LevelPanel(_nearLevel, unit);
             else if (_nearEndless) EndlessPanel(unit);
+            else if (_nearPlace != null) PlacePanel(_nearPlace, unit);
             else GUI.Label(new Rect(0, Screen.height - safe.y - unit * 3f, Screen.width, unit * 2.5f),
                 "Walk to a level: hold where to go, or WASD / arrows", _label);
         }
@@ -310,9 +362,18 @@ namespace GC26.Timetraveler
                 : _save.IsOpen(level) ? "New!" : "Locked: finish the previous level first";
             GUI.Label(new Rect(r.x, r.y + unit * 2f, r.width, unit * 1.4f), $"{level.LengthMeters} m   {status}", _label);
             GUI.enabled = _save.IsOpen(level);
-            if (GUI.Button(new Rect(r.x + r.width * 0.2f, r.y + unit * 4f, r.width * 0.6f, unit * 2.6f), "Play  (Enter)", _button))
+            if (_ui.Button(new Rect(r.x + r.width * 0.2f, r.y + unit * 4f, r.width * 0.6f, unit * 2.6f), "Play  (Enter)", _button))
                 _playLevel?.Invoke(level);
             GUI.enabled = true;
+        }
+
+        void PlacePanel(TimetravelerPlace place, float unit)
+        {
+            var r = _panelRect = PanelRect(unit);
+            DrawPanelBack(r);
+            GUI.Label(new Rect(r.x, r.y + unit * 0.4f, r.width, unit * 1.6f), place.Name, _title);
+            var what = place.Kind == PlaceKind.Shop ? "Shop" : place.Kind == PlaceKind.Minigame ? "Minigame" : "NPC (diary)";
+            GUI.Label(new Rect(r.x, r.y + unit * 2.4f, r.width, unit * 2.5f), $"{what}: coming soon", _label);
         }
 
         void EndlessPanel(float unit)
@@ -323,7 +384,7 @@ namespace GC26.Timetraveler
             GUI.Label(new Rect(r.x, r.y + unit * 2f, r.width, unit * 1.4f),
                 _save.EndlessOpen ? $"Best {_save.BestMeters} m" : "Finish all levels of this timeline first", _label);
             GUI.enabled = _save.EndlessOpen;
-            if (GUI.Button(new Rect(r.x + r.width * 0.2f, r.y + unit * 4f, r.width * 0.6f, unit * 2.6f), "Run  (Enter)", _button))
+            if (_ui.Button(new Rect(r.x + r.width * 0.2f, r.y + unit * 4f, r.width * 0.6f, unit * 2.6f), "Run  (Enter)", _button))
                 _playEndless?.Invoke();
             GUI.enabled = true;
         }
