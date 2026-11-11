@@ -332,6 +332,7 @@ namespace GC26.Tetris
                 case MenuItem.Marathon: return T("играй, пока хватит места", "play for as long as there is room");
                 case MenuItem.Battle: return T("линии бьют бота, комбо сильнее, падают монетки", "lines hit the bot, combos hit harder, coins drop");
                 case MenuItem.Shop: return T("бусты для боя и скины блоков за монеты", "battle boosters and block skins for coins");
+                case MenuItem.Achievements: return T("цели с наградой в монетах", "goals that pay coins");
                 default: return null;
             }
         }

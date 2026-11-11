@@ -113,10 +113,10 @@ namespace GC26.Tetris.View
         // --- menu -----------------------------------------------------------------------------
 
         public static float MenuTitleY { get { return Portrait ? 10.6f : 7.3f; } }
-        public static float MenuTopY { get { return Portrait ? 6.6f : 4.3f; } }
+        public static float MenuTopY { get { return Portrait ? 7.2f : 5.0f; } }
         public static Vector2 MenuTable(int index)
         {
-            return Portrait ? new Vector2(0f, -4.3f - index * 5.1f) : new Vector2(index == 0 ? -4.65f : 4.65f, -6.9f);
+            return Portrait ? new Vector2(0f, -4.6f - index * 5.1f) : new Vector2(index == 0 ? -4.65f : 4.65f, -6.9f);
         }
         public static float MenuHintY { get { return Portrait ? -13.3f : -9.95f; } }
         // --- shop -----------------------------------------------------------------------------
@@ -128,6 +128,16 @@ namespace GC26.Tetris.View
         public static float ShopItemWidth { get { return Portrait ? 12.6f : 15f; } }
         public static float ShopItemHeight { get { return Portrait ? 1.5f : 1.38f; } }
         public static float ShopMessageY { get { return Portrait ? -5.3f : -7.2f; } }
+
+        // --- achievements ---------------------------------------------------------------------
+
+        public static float AchievementsTitleY { get { return Portrait ? 13.2f : 9.7f; } }
+        public static float AchievementsCountY { get { return Portrait ? 11.9f : 8.6f; } }
+        public static float AchievementsTopY { get { return Portrait ? 10.5f : 7.4f; } }
+        public static float AchievementsStepY { get { return Portrait ? 1.62f : 1.17f; } }
+        public static float AchievementsRowHeight { get { return Portrait ? 1.42f : 1.02f; } }
+        public static float AchievementsWidth { get { return Portrait ? 12.8f : 16f; } }
+        public static float AchievementsBackY { get { return Portrait ? -11.6f : -8.5f; } }
 
         /// <summary>The RU | EN switch in the main menu's top right corner.</summary>
         public static Vector2 LanguageButtonCenter { get { return Portrait ? new Vector2(4.9f, 13.6f) : new Vector2(10.2f, 10.1f); } }

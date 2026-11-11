@@ -178,6 +178,10 @@ namespace GC26.Tetris.EditorTools
                 { "Lines during the warning cancel garbage rows", LinesBlockAttack },
                 { "Defeating the bot calls off its attack", DefeatStopsAttack },
                 { "Garbage lifts the falling piece, or ends the game", MatchTakesGarbage },
+                { "Achievement keys are unique and targets make sense", AchievementsWellFormed },
+                { "Totals add up and unlock once", AchievementTotals },
+                { "Bests keep the highest value", AchievementBests },
+                { "Achievements survive saving, damaged saves don't break them", AchievementsRoundTrip },
             };
 
             int failures = 0;
@@ -1110,6 +1114,55 @@ namespace GC26.Tetris.EditorTools
             full.GameEnded += () => ended = true;
             full.AddGarbage(Board.VisibleHeight + 2, 0);
             Check(ended && full.State == GameState.GameOver, "a full well ends the game");
+        }
+
+        static void AchievementsWellFormed()
+        {
+            var keys = new HashSet<string>();
+            foreach (Achievement a in TetrisAchievements.All)
+            {
+                Check(keys.Add(a.Key), "duplicate key " + a.Key);
+                Check(a.Target > 0 && a.Reward > 0, "target and reward of " + a.Key);
+                Check(!a.Key.Contains(",") && !a.Key.Contains(";") && !a.Key.Contains("="), "key can't be saved: " + a.Key);
+            }
+        }
+
+        static void AchievementTotals()
+        {
+            var ach = new TetrisAchievements();
+            List<Achievement> first = ach.Report(AchievementStat.LinesTotal, 1);
+            Check(first.Count == 1 && first[0].Key == "first_line", "first line");
+            Check(ach.Report(AchievementStat.LinesTotal, 1).Count == 0, "unlocks only once");
+            for (int i = 0; i < 97; i++)
+                Check(ach.Report(AchievementStat.LinesTotal, 1).Count == 0, "too early at " + ach.Value(AchievementStat.LinesTotal));
+            List<Achievement> hundred = ach.Report(AchievementStat.LinesTotal, 4);
+            Check(hundred.Count == 1 && hundred[0].Key == "lines100" && ach.Value(AchievementStat.LinesTotal) == 103, "hundred lines");
+            Check(ach.UnlockedCount == 2, "two unlocked");
+        }
+
+        static void AchievementBests()
+        {
+            var ach = new TetrisAchievements();
+            ach.Report(AchievementStat.Combo, 4);
+            ach.Report(AchievementStat.Combo, 2);
+            Check(ach.Value(AchievementStat.Combo) == 4, "best kept");
+            List<Achievement> both = ach.Report(AchievementStat.Combo, 12);
+            Check(both.Count == 2, "a long combo unlocks both combo goals: " + both.Count);
+            Check(ach.Report(AchievementStat.Score, 75876).Count == 2, "an old record counts for both score goals");
+            Check(ach.Report(AchievementStat.Score, -5).Count == 0 && ach.Value(AchievementStat.Score) == 75876, "nonsense ignored");
+        }
+
+        static void AchievementsRoundTrip()
+        {
+            var ach = new TetrisAchievements();
+            ach.Report(AchievementStat.Bombs, 12);
+            ach.Report(AchievementStat.Level, 7);
+            ach.Report(AchievementStat.BotsTotal, 1);
+            TetrisAchievements copy = TetrisAchievements.Parse(ach.Serialize());
+            Check(copy.Serialize() == ach.Serialize(), "round trip: " + copy.Serialize());
+            Check(copy.UnlockedCount == 2 && copy.Value(AchievementStat.Level) == 7, "same content");
+            TetrisAchievements broken = TetrisAchievements.Parse("v=x,-3,5;u=nope,combo5,;junk");
+            Check(broken.UnlockedCount == 1 && broken.Value(AchievementStat.LinesTotal) == 0 && broken.Value(AchievementStat.Combo) == 5, "garbage skipped");
         }
 
         // Finds a seed that spawns the wanted piece first.

@@ -56,6 +56,14 @@ namespace GC26.Tetris
                 PlayerPrefs.Save();
             }
 
+            Track(AchievementStat.Score, game.Score);
+            if (hit.Defeated)
+            {
+                Track(AchievementStat.BotsTotal, 1);
+                Track(AchievementStat.BotsInBattle, battle.BotsDefeated);
+            }
+            if (hit.AttackStopped)
+                Track(AchievementStat.AttacksBlocked, 1);
             if (hit.AttackStopped)
             {
                 Debug.Log("[BlockDrop] Attack stopped, blocked=" + hit.Blocked + " defeated=" + hit.Defeated);

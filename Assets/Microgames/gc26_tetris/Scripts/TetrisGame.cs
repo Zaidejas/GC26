@@ -63,14 +63,14 @@ namespace GC26.Tetris
         readonly List<Popup> popups = new List<Popup>();
 
         // Main menu. Items are laid out in world units so they scale with the window, like the rest of the HUD.
-        enum MenuItem { Marathon, Battle, Shop, Sound, Exit }
+        enum MenuItem { Marathon, Battle, Shop, Achievements, Sound, Exit }
 
-        static readonly MenuItem[] MenuItems = { MenuItem.Marathon, MenuItem.Battle, MenuItem.Shop, MenuItem.Sound, MenuItem.Exit };
+        static readonly MenuItem[] MenuItems = { MenuItem.Marathon, MenuItem.Battle, MenuItem.Shop, MenuItem.Achievements, MenuItem.Sound, MenuItem.Exit };
 
         static float MenuTopY { get { return HudLayout.MenuTopY; } }
-        const float MenuStepY = 1.9f;
+        const float MenuStepY = 1.7f;
         const float MenuItemWidth = 12f;
-        const float MenuItemHeight = 1.6f;
+        const float MenuItemHeight = 1.45f;
 
         GameMode mode = GameMode.Marathon;
         bool inMenu = true;
@@ -110,6 +110,7 @@ namespace GC26.Tetris
         {
             // The shell unloads the scene; code-made textures, sprites and clips go with it.
             RuntimeAssets.ReleaseAll();
+            SaveAchievements();
         }
 
         // --- GC26 shell ------------------------------------------------------------------------
@@ -143,6 +144,7 @@ namespace GC26.Tetris
             battleTable = Leaderboard.Parse(PlayerPrefs.GetString(recordsPrefix + BattleTableName, ""), false);
 
             LoadShop();
+            LoadAchievements();
 
             // A best score from before the table existed becomes its first entry.
             if (bestScore > 0 && marathonTable.Entries.Count == 0)
@@ -219,6 +221,9 @@ namespace GC26.Tetris
                 case MenuItem.Shop:
                     OpenShop();
                     break;
+                case MenuItem.Achievements:
+                    OpenAchievements();
+                    break;
                 case MenuItem.Sound:
                     gameAudio.ToggleMute();
                     Debug.Log("[BlockDrop] Menu: sound muted=" + gameAudio.Muted);
@@ -237,6 +242,7 @@ namespace GC26.Tetris
         void BackToMenu()
         {
             Debug.Log("[BlockDrop] Back to menu");
+            SaveAchievements();
             // In the menu first, so the background game never takes the boosters.
             inMenu = true;
             StartNewGame();
@@ -250,6 +256,7 @@ namespace GC26.Tetris
                 case MenuItem.Marathon: return T("Марафон", "Marathon");
                 case MenuItem.Battle: return T("Бой с ботом", "Bot battle");
                 case MenuItem.Shop: return T("Магазин", "Shop");
+                case MenuItem.Achievements: return T("Достижения", "Achievements") + "  " + achievements.UnlockedCount + "/" + TetrisAchievements.All.Length;
                 case MenuItem.Sound: return T("Звук: ", "Sound: ") + OnOff(!gameAudio.Muted);
                 default: return exitToShell != null ? T("В меню GC26", "Back to GC26") : T("Выход", "Exit");
             }
@@ -296,6 +303,8 @@ namespace GC26.Tetris
             Debug.Log("[BlockDrop] Special " + result.Kind + " at " + result.X + "," + result.Y +
                       " removed=" + result.Removed.Count + " points=" + result.Points + " score=" + game.Score);
             view.BurstRemoved(result);
+            Track(result.Kind == SpecialKind.Bomb ? AchievementStat.Bombs : AchievementStat.Lightnings, 1);
+            Track(AchievementStat.Score, game.Score);
             Vector2 center = BoardView.GridPosition(result.X, result.Y);
             Color tint = SpecialIcons.ColorOf(result.Kind);
             string points = result.Points > 0 ? "  +" + result.Points.ToString("N0") : "";
@@ -340,6 +349,9 @@ namespace GC26.Tetris
         void OnLinesCleared(LineClear clear)
         {
             int count = clear.Rows.Count;
+            Track(AchievementStat.LinesTotal, count);
+            Track(AchievementStat.LinesAtOnce, count);
+            Track(AchievementStat.Combo, clear.Combo);
             Debug.Log("[BlockDrop] Clear rows=" + count + " points=" + clear.Points + " combo=" + clear.Combo +
                       " multiplier=" + clear.Multiplier.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                       " score=" + game.Score + " level=" + game.Level);
@@ -387,6 +399,7 @@ namespace GC26.Tetris
         void OnLevelChanged(int level)
         {
             Debug.Log("[BlockDrop] Level " + level);
+            Track(AchievementStat.Level, level);
             view.SetLevel(level, false);
             gameAudio.Play("levelup");
             AddPopup(PopupSlot.Level, T("УРОВЕНЬ ", "LEVEL ") + level, 6.6f, 1.6f, BannerLife + 0.4f, 0.5f, Color.white);
@@ -396,6 +409,8 @@ namespace GC26.Tetris
         void OnGameEnded()
         {
             Debug.Log("[BlockDrop] Game over, score " + game.Score);
+            Track(AchievementStat.Score, game.Score);
+            SaveAchievements();
             sessionBest = Mathf.Max(sessionBest, game.Score);
             gameAudio.Play("gameover");
             view.Effects.Shake(0.8f);
@@ -447,8 +462,11 @@ namespace GC26.Tetris
             {
                 if (inShop)
                     UpdateShop();
+                else if (inAchievements)
+                    UpdateAchievementsScreen();
                 else
                     UpdateMenu();
+                UpdateAchievementToasts();
                 UpdateMenuLooks(Time.deltaTime);
                 view.Render(game, Time.deltaTime);
                 UpdateJuice(Time.deltaTime);
@@ -478,6 +496,7 @@ namespace GC26.Tetris
             bool softDrop = Held(Key.DownArrow) || Held(Key.S);
             game.Tick(Time.deltaTime, softDrop);
             UpdateBotAttacks(Time.deltaTime);
+            UpdateAchievementToasts();
             view.Render(game, Time.deltaTime);
             UpdateJuice(Time.deltaTime);
             mainCamera.backgroundColor = view.BackgroundColor;
@@ -647,8 +666,11 @@ namespace GC26.Tetris
             {
                 if (inShop)
                     DrawShop(unit);
+                else if (inAchievements)
+                    DrawAchievementsScreen(unit);
                 else
                     DrawMenu(unit);
+                DrawAchievementToast(unit);
                 return;
             }
 
@@ -717,6 +739,7 @@ namespace GC26.Tetris
             }
 
             DrawPopups(unit);
+            DrawAchievementToast(unit);
 
             DrawPauseButton(unit);
             if (game.State == GameState.Paused)
@@ -853,6 +876,7 @@ namespace GC26.Tetris
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + BattleTableName);
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + CoinsName);
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + ShopName);
+                    PlayerPrefs.DeleteKey(TestRecordsPrefix + AchievementsName);
                     PlayerPrefs.Save();
                 }
             }
