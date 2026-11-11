@@ -169,6 +169,41 @@ button:focus-visible { outline: 3px solid var(--paper); outline-offset: 2px; }
 #legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 14px; font-size: clamp(11px, calc(var(--u) * 3.2), 13px); text-align: left; color: var(--muted); width: 100%; }
 #legend span { display: flex; align-items: center; gap: 6px; min-width: 0; }
 #legend i { flex: none; width: 11px; height: 11px; border-radius: 2px; }
+/* Stars under level numbers and on result screens. */
+.stars { display: block; margin-top: 3px; font: 400 11px/1 var(--body); letter-spacing: 1px; color: rgba(255, 242, 217, .25); }
+.stars b { color: #FFD34D; font-weight: 400; text-shadow: 0 0 6px rgba(255, 211, 77, .6); }
+.bigStars { font: 400 clamp(30px, calc(var(--u) * 10), 44px)/1 var(--display); letter-spacing: 6px; color: rgba(255, 242, 217, .2); }
+.bigStars b { color: #FFD34D; font-weight: 400; text-shadow: 0 0 14px rgba(255, 211, 77, .8); }
+.grid.six { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid.six button { min-height: 78px; font-size: clamp(14px, calc(var(--u) * 4.2), 18px); }
+.grid button.assault { background: linear-gradient(#7A3B33, #4A2420); }
+/* Garage: one card per tank with its drawing. */
+.garage { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.garage > div { display: grid; grid-template-columns: 64px 1fr auto; gap: 2px 12px; align-items: center; padding: 8px 10px; text-align: left; background: rgba(255, 242, 217, .06); box-shadow: inset 0 0 0 1px rgba(255, 242, 217, .08);
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+.garage > div.chosen { background: rgba(53, 242, 208, .12); box-shadow: inset 0 0 0 2px rgba(53, 242, 208, .6); }
+.garage img { grid-row: 1 / 4; width: 64px; height: 64px; image-rendering: pixelated; object-fit: contain; transform: scale(1.35); }
+.garage strong { font-family: var(--display); font-weight: 400; font-size: clamp(15px, calc(var(--u) * 4.4), 19px); }
+.garage p { grid-column: 2; font-size: clamp(11px, calc(var(--u) * 3.1), 13px) !important; color: var(--muted) !important; text-shadow: none !important; }
+.garage p.power { color: var(--mark) !important; }
+.garage button { grid-column: 3; grid-row: 1 / 4; min-width: 88px; min-height: 48px; padding: 4px 10px; border: 0; color: #fff; font-family: var(--display); font-size: clamp(12px, calc(var(--u) * 3.6), 15px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: linear-gradient(#F27A4C, #C24A24); clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+.garage button span { display: inline-flex; align-items: center; gap: 4px; font: 600 12px/1 var(--body); color: #FFE6D2; }
+.garage button span svg { width: 13px; height: 13px; }
+.garage button.pick { background: linear-gradient(#2FD3BC, #168C80); color: #0E1A1C; }
+.garage button:disabled { background: rgba(255, 242, 217, .1); color: var(--muted); cursor: default; }
+/* Awards: a row each with a progress bar. */
+.awards { display: flex; flex-direction: column; gap: 6px; width: 100%; max-height: 52vh; overflow-y: auto; }
+.awards > div { display: grid; grid-template-columns: 30px 1fr auto; gap: 1px 10px; align-items: center; padding: 7px 10px; text-align: left; background: rgba(255, 242, 217, .05); }
+.awards > div.done { background: rgba(255, 211, 77, .12); box-shadow: inset 3px 0 0 #FFD34D; }
+.awards svg { grid-row: 1 / 3; width: 26px; height: 26px; }
+.awards > div:not(.done) svg { filter: grayscale(1) opacity(.45); }
+.awards strong { font-size: clamp(13px, calc(var(--u) * 3.8), 15px); }
+.awards small { grid-column: 2; font-size: 12px; color: var(--muted); }
+.awards em { grid-column: 3; grid-row: 1 / 3; font-style: normal; font-size: 12px; color: #E8C060; white-space: nowrap; }
+.awards i { grid-column: 2; display: block; height: 4px; background: rgba(255, 255, 255, .12); }
+.awards i b { display: block; height: 100%; background: var(--mark); }
 #turn { position: fixed; inset: 0; z-index: 4; display: none; align-items: center; justify-content: center; text-align: center; padding-block: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: var(--night); font: 400 22px/1.3 var(--display); color: var(--sand); }
 #turn small { display: block; margin-top: 10px; font: 400 14px/1.4 var(--body); color: var(--muted); }
 #turnGo { margin-top: 16px; }
@@ -182,7 +217,7 @@ button:focus-visible { outline: 3px solid var(--paper); outline-offset: 2px; }
   <div id="levelName"></div>
   <div id="hearts" role="img" aria-label="Жизни"></div>
   <div id="stats">
-    <div class="stat">Врагов <b id="sLeft">0</b></div>
+    <div class="stat"><span id="sLeftLabel">Врагов</span> <b id="sLeft">0</b></div>
     <div class="stat" id="starStat" hidden>Звезда <b id="sStar">1</b></div>
     <div class="stat">Очки <b id="sScore">0</b></div>
   </div>
@@ -194,7 +229,7 @@ button:focus-visible { outline: 3px solid var(--paper); outline-offset: 2px; }
 </div>
 <div id="fire" hidden>ОГОНЬ</div>
 <div id="super" hidden><span>УДАР</span></div>
-<div id="bossBar" hidden>БОСС<div><b></b></div></div>
+<div id="bossBar" hidden><span>БОСС</span><div><b></b></div></div>
 <div id="toast" role="status"></div>
 
 <div id="overlay" hidden><div id="art"></div><div id="card"></div></div>
@@ -215,7 +250,7 @@ button:focus-visible { outline: 3px solid var(--paper); outline-offset: 2px; }
 "use strict";
 // ---- Rules: mirrors Assets/Scripts/Core/GameSim.cs in the Unity project ----
 const W = 11, H = 17, STEP = 1 / 60;
-const T = { Empty: 0, Crate: 1, Concrete: 2, Net: 3, Water: 4, Oil: 5, Base: 6 };
+const T = { Empty: 0, Crate: 1, Concrete: 2, Net: 3, Water: 4, Oil: 5, Base: 6, Core: 7, Turret: 8 };
 const Up = 0, Right = 1, Down = 2, Left = 3;
 const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
 const TUNE = { half: .42, turnWindow: .3, lives: 3, maxUpgrade: 3, carrierEvery: 4, crateRouteCost: 4, lineCheck: .3,
@@ -225,8 +260,17 @@ const TUNE = { half: .42, turnWindow: .3, lives: 3, maxUpgrade: 3, carrierEvery:
   gunSpeed: [9, 10.5, 12, 12.5, 13.5, 14.5], gunDamage: [1, 1, 1, 2, 2, 3], fireCooldown: [.32, .27, .23, .19, .16, .13],
   fireBullets: [1, 1, 2, 2, 3, 3], driveSpeed: [3.2, 3.45, 3.7, 3.95, 4.2, 4.45],
   // The star's temporary gun, the reactor strike and the boss.
-  starTime: 20, starBoost: 3, survivalSuperNeed: 6, superDamage: 4, superHalf: .8, bossEvery: 5, bossBombDamage: 5 };
+  starTime: 20, starBoost: 3, survivalSuperNeed: 6, superDamage: 4, superHalf: .8, bossEvery: 5, bossBombDamage: 5,
+  // New enemies: the miner leaves mines, the fixer mends the tanks around it, the rammer blows itself up.
+  mineEvery: 3.5, mineMax: 3, mineArm: .6, fixEvery: 3, fixRange: 2.6, ramBlast: 1.3,
+  // Abilities of the player's tanks.
+  volleyDamage: 2, domeShield: 6, domeStun: 3, domeRange: 4, dashCells: 4, cloak: 3,
+  // Assault: the enemy reactor and its turrets.
+  coreHp: 12, coreHpStep: 2, turretHp: 3, turretEvery: 1.7, turretBullet: 7.5, turretRange: 8, turretScore: 500, turretParts: 3,
+  assaultSuperNeed: 5, assaultSpawnDelay: 1.4 };
 const superNeed = level => 4 + Math.floor(level / 3);
+const assaultParts = level => 10 + level * 3, coreHp = level => TUNE.coreHp + level * TUNE.coreHpStep;
+
 const levelParts = level => 5 + level, waveParts = wave => 3 + wave, bossHp = number => 16 + number * 4;
 const STAT_NAMES = ["Броня", "Пушка", "Скорострельность", "Скорость"];
 const STAT_NOTES = ["+1 к здоровью танка", "Снаряды быстрее, на 3-м уровне двойной урон", "Быстрее перезарядка, на 2-м уровне второй снаряд", "Танк ездит быстрее"];
@@ -245,91 +289,145 @@ const DIFFICULTY = {
 };
 // How often enemies act smart on each level, before the difficulty's bonus.
 const LEVEL_SMARTNESS = [.1, .2, .3, .4, .5, .5, .55, .6, .65, .7, .7, .75, .8, .8, .85, .85, .9, .9, .95, .95];
+// Each kind has its own model, drawn by Art~/build_variants.py from the enemy drawing.
 const KINDS = {
-  R: { speed: 1.9, bullet: 6.5, hp: 1, score: 100, parts: 1, tint: 0xFFFFFF, scale: 1, rate: 1 },
-  S: { speed: 3.2, bullet: 6.5, hp: 1, score: 200, parts: 2, tint: 0xFFFF8C, scale: .85, rate: 1 },
-  G: { speed: 1.9, bullet: 10, hp: 1, score: 300, parts: 2, tint: 0xB8CCFF, scale: 1, rate: .7 },
-  H: { speed: 1.4, bullet: 6.5, hp: 3, score: 400, parts: 3, tint: 0x9E8C8C, scale: 1.14, rate: 1 },
-  X: { speed: 1.3, bullet: 8, hp: 20, score: 3000, parts: 20, tint: 0xFF8C80, scale: 1.5, rate: 1 },
-  P: { tint: 0xFFFFFF, scale: 1 }
+  R: { name: "Рейдер", speed: 1.9, bullet: 6.5, hp: 1, score: 100, parts: 1, scale: 1, rate: 1, model: "enemy" },
+  S: { name: "Разведчик", speed: 3.2, bullet: 6.5, hp: 1, score: 200, parts: 2, scale: .85, rate: 1, model: "enemy_scout" },
+  G: { name: "Стрелок", speed: 1.9, bullet: 10, hp: 1, score: 300, parts: 2, scale: 1, rate: .7, model: "enemy_gunner" },
+  H: { name: "Тяжёлый", speed: 1.4, bullet: 6.5, hp: 3, score: 400, parts: 3, scale: 1.14, rate: 1, model: "enemy_heavy" },
+  M: { name: "Минёр", speed: 2, bullet: 6.5, hp: 2, score: 300, parts: 2, scale: 1, rate: 1.2, model: "enemy_miner" },
+  F: { name: "Ремонтник", speed: 1.8, bullet: 6.5, hp: 2, score: 350, parts: 3, scale: 1, rate: 1.4, model: "enemy_fixer" },
+  K: { name: "Таран", speed: 3.5, bullet: 0, hp: 1, score: 250, parts: 2, scale: .95, rate: 0, model: "enemy_rammer" },
+  X: { name: "Босс", speed: 1.3, bullet: 8, hp: 20, score: 3000, parts: 20, scale: 1.5, rate: 1, model: "enemy_boss" },
+  P: { scale: 1 }
 };
+// The player's tanks: each from the player's drawing, each with its own ability on the strike button.
+const TANKS = {
+  guard: { name: "Страж", model: "player", hp: 0, speed: 0, cool: 1, need: 0, price: 0, ability: "strike",
+    note: "Ровный танк без слабых мест.", power: "Удар реактора: луч до края карты" },
+  squall: { name: "Шквал", model: "player_squall", hp: -1, speed: .35, cool: .8, need: 0, price: 80, ability: "volley",
+    note: "Быстрый, стреляет чаще, но броня тоньше.", power: "Залп: пробивные снаряды во все 4 стороны" },
+  bastion: { name: "Бастион", model: "player_bastion", hp: 2, speed: -.45, cool: 1.15, need: 1, price: 120, ability: "dome",
+    note: "Медленный, зато +2 к здоровью.", power: "Купол: щит на 6 с, враги рядом оглушены" },
+  phantom: { name: "Призрак", model: "player_phantom", hp: 0, speed: .2, cool: 1, need: -1, price: 160, ability: "dash",
+    note: "Ловкий, способность копится быстрее.", power: "Рывок: прыжок на 4 клетки и невидимость 3 с" }
+};
+const TANK_IDS = Object.keys(TANKS);
 const BONUS = ["Star", "Bomb", "Shield", "Fort", "Freeze", "Life"];
 const BONUS_COLOR = { Star: 0xFFD34D, Bomb: 0xFF6B4A, Shield: 0x6FF2E0, Fort: 0xC9D1D6, Freeze: 0x8CC8FF, Life: 0x7CE05A };
 const BONUS_TEXT = { Star: "Звезда: орудие сильнее на 20 секунд", Bomb: "Граната: все враги уничтожены", Shield: "Щит на 8 секунд", Fort: "База укреплена бетоном", Freeze: "Враги заморожены", Life: "Дополнительная жизнь" };
 
-// Generated from Assets/Scripts/Core/Levels.cs.
+// Generated from Scripts/Rules/Levels.cs by Tools~/sync_levels.py.
 const LEVELS = [
   { name: "Первый рубеж", waves: "RRSRRSRRSRRS", rows: ["E....E....E", ".##%%.%%##.", "...%%@%%...", ".#.......#.", ".###...###.", "....#.#....", "##.#.@.#.##", "...#...#...", ".@@.....@@.", "...##.##...", "##.#...#.##", "...........", ".###.@.###.", "...#...#...", ".#...P...#.", ".##.###.##.", "....#B#...."] },
   { name: "Канал", waves: "RRSSRGRSGRRSGR", rows: ["E....E....E", ".#.......#.", ".###.#.###.", ".....#.....", "%%.......%%", "%%.@@.@@.%%", "%%.@@.@@.%%", "...........", ".~~~...~~~.", ".~~~.#.~~~.", ".~~~.#.~~~.", "...........", "###.###.###", "...........", ".@.#.P.#.@.", ".@.#####.@.", "....#B#...."] },
-  { name: "Мазутный двор", waves: "SSRGSRGRHSRGSRGH", rows: ["E..#.E.#..E", "##.......##", ".#.##.##.#.", "...........", ".@@..@..@@.", ".@@.###.@@.", "....###....", "##...@...##", "...==.==...", ".##==.==##.", "...==.==...", "%%.==.==.%%", "%%.......%%", "%%.#...#.%%", "...#.P.#...", ".#########.", "....#B#...."] },
-  { name: "Узкие проходы", waves: "GRSHGRSHGRSGHRSGRH", rows: ["E....E....E", ".@@#...#@@.", "...#.@.#...", "##.#...#.##", ".....#.....", "..%%...%%..", "~~%%@@@%%~~", "~~%%@@@%%~~", "..%%...%%..", ".....#.....", "##.#...#.##", "...#.@.#...", ".###.@.###.", "...........", "@@...P...@@", ".##.###.##.", "....#B#...."] },
-  { name: "Последний заслон", waves: "HSGHRGSHRGHSGRHGSHGX", rows: ["E....E....E", ".##.#@#.##.", "...........", "##.%%.%%.##", "...%%.%%...", ".@#%%#%%#@.", "=@.......@=", "=..@@.@@..=", "=..@@.@@..=", "=@.......@=", ".@#%%#%%#@.", "...%%.%%...", "##.%%.%%.##", "...........", ".@~~.P.~~@.", ".@~~###~~@.", "....#B#...."] },
-  { name: "Перекрёсток", waves: "RRSGRSGRRHSGRS", rows: ["E....E....E", ".#.#...#.#.", ".#.#.@.#.#.", "...........", "@@.##.##.@@", "...#...#...", ".#...%...#.", ".#.%%%%%.#.", "...%%@%%...", ".#.%%%%%.#.", ".#...%...#.", "...#...#...", "@@.##.##.@@", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Речной брод", waves: "SRGSRGHRSGRSHG", rows: ["E....E....E", "...#...#...", ".@.#.#.#.@.", ".@.......@.", "...~~.~~...", "#..~~.~~..#", "#.........#", ".~~.###.~~.", ".~~.....~~.", "....#.#....", ".##.#.#.##.", "...........", "~~.@...@.~~", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Скользкий склон", waves: "GSRHSGRSHGRSGHR", rows: ["E....E....E", ".##.....##.", "...=====...", ".@.=.#.=.@.", ".@.=.#.=.@.", "...=====...", "##.......##", "...#.@.#...", ".#.#...#.#.", ".#...=...#.", "...#=@=#...", ".....=.....", ".@##...##@.", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Лабиринт", waves: "HGSRGHSRGSHRGSHG", rows: ["E....E....E", ".@@@.#.@@@.", ".....#.....", ".#.@@@@@.#.", ".#.......#.", ".#.#.@.#.#.", "...#...#...", "@@.#.#.#.@@", ".....#.....", ".@@.....@@.", "...#.@.#...", ".#.#...#.#.", ".#.......#.", "...@@.@@...", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Логово", waves: "GSHRGSHRGSHRGSX", rows: ["E....E....E", "...........", ".@@.....@@.", ".@.......@.", "...#.#.#...", ".%%.....%%.", ".%%.@@@.%%.", ".%%.....%%.", "...#.#.#...", ".~~.....~~.", ".~~.#.#.~~.", "...........", "##.@...@.##", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Сеть", waves: "SSGHRSGHSRGHSGRH", rows: ["E....E....E", "%%%%...%%%%", "%#%%.#.%%#%", "%%%%...%%%%", "...........", ".@.%%%%%.@.", ".@.%#%#%.@.", "...%%%%%...", "##.......##", "...%%.%%...", ".#.%%#%%.#.", "...........", "%%.#...#.%%", "%%.......%%", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Бетонный пояс", waves: "HGHSRGHSGHRSGHSG", rows: ["E....E....E", ".#.......#.", ".#.@@.@@.#.", "...@...@...", "@@...#...@@", ".....#.....", ".@@@...@@@.", "...........", ".#.@@.@@.#.", ".#.......#.", "...#.@.#...", "@@.#...#.@@", ".....@.....", ".##.....##.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Затопленный квартал", waves: "GSGHSRGHSGHSRGHSG", rows: ["E....E....E", ".##.~~~.##.", ".#..~~~..#.", "....~~~....", ".~~.....~~.", ".~~.#.#.~~.", "....#.#....", "##.......##", "...~~.~~...", ".#.~~.~~.#.", ".#.......#.", "...#.@.#...", "~~.#...#.~~", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Мазутный порт", waves: "HSGHSGRHSGHSGHRSG", rows: ["E....E....E", ".==.....==.", ".==.#.#.==.", "....#.#....", ".@.=====.@.", "...=.@.=...", ".#.=...=.#.", ".#.=====.#.", "...........", "##.@=.=@.##", "...=...=...", ".#.=.#.=.#.", ".#.......#.", "...@...@...", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Стальная крепость", waves: "HGSHGSHRGSHGSHGX", rows: ["E....E....E", "...........", ".@@#...#@@.", ".@.......@.", ".@.##@##.@.", "...#...#...", ".....@.....", "@@.#...#.@@", "...#.#.#...", ".%%.....%%.", ".%%.@.@.%%.", "...........", ".@#.....#@.", ".@.......@.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Ущелье", waves: "GHSGHSGHRGSHGSHGH", rows: ["E....E....E", ".@.......@.", ".@@.#.#.@@.", ".@@.....@@.", ".@@.@.@.@@.", "....#.#....", ".@@.....@@.", ".@@.#.#.@@.", "....%.%....", ".@@.%.%.@@.", ".@@.....@@.", "....#.#....", ".@@.....@@.", ".@...@...@.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Острова", waves: "SHGSHGSHGRSHGSHGSH", rows: ["E....E....E", ".~~.....~~.", ".~#.#.#.#~.", "...........", "~~.@@.@@.~~", "~~.......~~", "..#.~~~.#..", "..#.~@~.#..", "..#.~~~.#..", "~~.......~~", "~~.@@.@@.~~", "...........", ".~#.#.#.#~.", ".~~.....~~.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Минное поле", waves: "HHGSHGSHGHSGHSGHGS", rows: ["E....E....E", ".#.#.#.#.#.", "...........", "#.=.#.#.=.#", "..=.....=..", ".#=#.@.#=#.", "...........", "=.#.=.=.#.=", "..#.....#..", ".@..#=#..@.", "....=.=....", ".#.#...#.#.", "...........", "=.#.@.@.#.=", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Последняя линия", waves: "HGHSGHGSHGHSGHSGHGH", rows: ["E....E....E", ".@.#.#.#.@.", ".@.......@.", "...@%%%@...", ".#.%%%%%.#.", ".#.%%@%%.#.", "...%%%%%...", "@@.......@@", "...#~~~#...", ".#.#~~~#.#.", ".#.......#.", "...@#.#@...", ".@.......@.", ".@.#...#.@.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Сердце реактора", waves: "HGSHGHSGHGSHGHSGHGX", rows: ["E....E....E", "...........", ".@@.@.@.@@.", "...........", ".#%%.#.%%#.", ".#%%...%%#.", "...........", "@@.@#.#@.@@", ".....@.....", ".~~.....~~.", ".~~.#.#.~~.", "...........", ".@.%%.%%.@.", ".@.......@.", ".#...P...#.", ".##.###.##.", "....#B#...."] }
+  { name: "Мазутный двор", waves: "SSRGSMGRHSRMSRGH", rows: ["E..#.E.#..E", "##.......##", ".#.##.##.#.", "...........", ".@@..@..@@.", ".@@.###.@@.", "....###....", "##...@...##", "...==.==...", ".##==.==##.", "...==.==...", "%%.==.==.%%", "%%.......%%", "%%.#...#.%%", "...#.P.#...", ".#########.", "....#B#...."] },
+  { name: "Узкие проходы", waves: "GRSHGMSHGRSMHRSGRM", rows: ["E....E....E", ".@@#...#@@.", "...#.@.#...", "##.#...#.##", ".....#.....", "..%%...%%..", "~~%%@@@%%~~", "~~%%@@@%%~~", "..%%...%%..", ".....#.....", "##.#...#.##", "...#.@.#...", ".###.@.###.", "...........", "@@...P...@@", ".##.###.##.", "....#B#...."] },
+  { name: "Последний заслон", waves: "HSGHRMSHRGHMGRHGSMGX", rows: ["E....E....E", ".##.#@#.##.", "...........", "##.%%.%%.##", "...%%.%%...", ".@#%%#%%#@.", "=@.......@=", "=..@@.@@..=", "=..@@.@@..=", "=@.......@=", ".@#%%#%%#@.", "...%%.%%...", "##.%%.%%.##", "...........", ".@~~.P.~~@.", ".@~~###~~@.", "....#B#...."] },
+  { name: "Перекрёсток", waves: "RRSGRMFRRHSMRF", rows: ["E....E....E", ".#.#...#.#.", ".#.#.@.#.#.", "...........", "@@.##.##.@@", "...#...#...", ".#...%...#.", ".#.%%%%%.#.", "...%%@%%...", ".#.%%%%%.#.", ".#...%...#.", "...#...#...", "@@.##.##.@@", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Речной брод", waves: "SRGSRMFRSGRMHF", rows: ["E....E....E", "...#...#...", ".@.#.#.#.@.", ".@.......@.", "...~~.~~...", "#..~~.~~..#", "#.........#", ".~~.###.~~.", ".~~.....~~.", "....#.#....", ".##.#.#.##.", "...........", "~~.@...@.~~", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Скользкий склон", waves: "GSRKSMFSHGKMGFR", rows: ["E....E....E", ".##.....##.", "...=====...", ".@.=.#.=.@.", ".@.=.#.=.@.", "...=====...", "##.......##", "...#.@.#...", ".#.#...#.#.", ".#...=...#.", "...#=@=#...", ".....=.....", ".@##...##@.", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Лабиринт", waves: "HGSKGMFRGSKMGFHG", rows: ["E....E....E", ".@@@.#.@@@.", ".....#.....", ".#.@@@@@.#.", ".#.......#.", ".#.#.@.#.#.", "...#...#...", "@@.#.#.#.@@", ".....#.....", ".@@.....@@.", "...#.@.#...", ".#.#...#.#.", ".#.......#.", "...@@.@@...", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Логово", waves: "GSHKGMFRGSKMGFX", rows: ["E....E....E", "...........", ".@@.....@@.", ".@.......@.", "...#.#.#...", ".%%.....%%.", ".%%.@@@.%%.", ".%%.....%%.", "...#.#.#...", ".~~.....~~.", ".~~.#.#.~~.", "...........", "##.@...@.##", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Сеть", waves: "SSGKRMFHSRKMSFRH", rows: ["E....E....E", "%%%%...%%%%", "%#%%.#.%%#%", "%%%%...%%%%", "...........", ".@.%%%%%.@.", ".@.%#%#%.@.", "...%%%%%...", "##.......##", "...%%.%%...", ".#.%%#%%.#.", "...........", "%%.#...#.%%", "%%.......%%", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Бетонный пояс", waves: "HGHKRMFSGHKMGFSG", rows: ["E....E....E", ".#.......#.", ".#.@@.@@.#.", "...@...@...", "@@...#...@@", ".....#.....", ".@@@...@@@.", "...........", ".#.@@.@@.#.", ".#.......#.", "...#.@.#...", "@@.#...#.@@", ".....@.....", ".##.....##.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Затопленный квартал", waves: "GSGKSMFHSGKMRFHSG", rows: ["E....E....E", ".##.~~~.##.", ".#..~~~..#.", "....~~~....", ".~~.....~~.", ".~~.#.#.~~.", "....#.#....", "##.......##", "...~~.~~...", ".#.~~.~~.#.", ".#.......#.", "...#.@.#...", "~~.#...#.~~", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Мазутный порт", waves: "HSGKSMFHSGKMGFRSG", rows: ["E....E....E", ".==.....==.", ".==.#.#.==.", "....#.#....", ".@.=====.@.", "...=.@.=...", ".#.=...=.#.", ".#.=====.#.", "...........", "##.@=.=@.##", "...=...=...", ".#.=.#.=.#.", ".#.......#.", "...@...@...", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Стальная крепость", waves: "HGSKGMFRGSKMSFGX", rows: ["E....E....E", "...........", ".@@#...#@@.", ".@.......@.", ".@.##@##.@.", "...#...#...", ".....@.....", "@@.#...#.@@", "...#.#.#...", ".%%.....%%.", ".%%.@.@.%%.", "...........", ".@#.....#@.", ".@.......@.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Ущелье", waves: "GHSKHMFHRGKMGFHGH", rows: ["E....E....E", ".@.......@.", ".@@.#.#.@@.", ".@@.....@@.", ".@@.@.@.@@.", "....#.#....", ".@@.....@@.", ".@@.#.#.@@.", "....%.%....", ".@@.%.%.@@.", ".@@.....@@.", "....#.#....", ".@@.....@@.", ".@...@...@.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Острова", waves: "SHGKHMFHGRKMGFHGSK", rows: ["E....E....E", ".~~.....~~.", ".~#.#.#.#~.", "...........", "~~.@@.@@.~~", "~~.......~~", "..#.~~~.#..", "..#.~@~.#..", "..#.~~~.#..", "~~.......~~", "~~.@@.@@.~~", "...........", ".~#.#.#.#~.", ".~~.....~~.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Минное поле", waves: "HHGKHMFHGHKMHFGHGK", rows: ["E....E....E", ".#.#.#.#.#.", "...........", "#.=.#.#.=.#", "..=.....=..", ".#=#.@.#=#.", "...........", "=.#.=.=.#.=", "..#.....#..", ".@..#=#..@.", "....=.=....", ".#.#...#.#.", "...........", "=.#.@.@.#.=", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Последняя линия", waves: "HGHKGMFSHGKMGFSGHKH", rows: ["E....E....E", ".@.#.#.#.@.", ".@.......@.", "...@%%%@...", ".#.%%%%%.#.", ".#.%%@%%.#.", "...%%%%%...", "@@.......@@", "...#~~~#...", ".#.#~~~#.#.", ".#.......#.", "...@#.#@...", ".@.......@.", ".@.#...#.@.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Сердце реактора", waves: "HGSKGMFGHGKMGFSGHKX", rows: ["E....E....E", "...........", ".@@.@.@.@@.", "...........", ".#%%.#.%%#.", ".#%%...%%#.", "...........", "@@.@#.#@.@@", ".....@.....", ".~~.....~~.", ".~~.#.#.~~.", "...........", ".@.%%.%%.@.", ".@.......@.", ".#...P...#.", ".##.###.##.", "....#B#...."] }
 ];
 const SURVIVAL = { name: "Арена", waves: "", rows: ["E....E....E", "...........", ".@.#...#.@.", "...#.@.#...", ".##.....##.", ".....%.....", ".@.%%%%%.@.", "...%.@.%...", ".#.%%%%%.#.", ".#...%...#.", "...........", ".@@.#.#.@@.", ".....#.....", ".#.......#.", ".#...P...#.", ".##.###.##.", "....#B#...."] };
+const ASSAULT = [
+  { name: "Передовой пост", waves: "RRSRGRSR", rows: ["E.........E", "...#.C.#...", "...#####...", ".T.......T.", "...........", ".##.....##.", "....%%%....", ".@..%%%..@.", "...........", "##.##.##.##", "...........", ".%%.....%%.", ".%%.#.#.%%.", "...........", ".#.......#.", "...........", ".....P....."] },
+  { name: "Мостовая застава", waves: "RSGRMSRGRS", rows: ["E....@....E", "..#.#C#.#..", "..#.....#..", "....T.T....", ".@.......@.", "...........", "~~~.~~~.~~~", "~~~.~~~.~~~", "...........", ".#.......#.", ".#.%%.%%.#.", "...%%.%%...", "...........", ".@@.#.#.@@.", "...........", ".#...P...#.", "..........."] },
+  { name: "Мазутный склад", waves: "SGMRKSGRMFS", rows: ["E.........E", ".=.@#C#@.=.", ".=.#...#.=.", "...........", ".T.==.==.T.", "...==.==...", ".#.......#.", ".#.@@.@@.#.", "...........", "=.##...##.=", "=.........=", "...%%.%%...", ".@.%%.%%.@.", "...........", ".#.==.==.#.", ".....P.....", "..........."] },
+  { name: "Бетонная цитадель", waves: "HGRMHFKGRSH", rows: ["E....T....E", "..@@@C@@@..", "..@.....@..", "..@.#.#.@..", ".T.......T.", "....@.@....", ".##.....##.", "...........", ".@@.#.#.@@.", "...........", "##.%%.%%.##", "...%%.%%...", ".T.......T.", "...........", ".#.@...@.#.", ".....P.....", "..........."] },
+  { name: "Лесной форт", waves: "GSMKRFGHSMKG", rows: ["E.%%%.%%%.E", "..%%#C#%%..", "..%#...#%..", ".T.......T.", "%%%..%..%%%", "%%%.%%%.%%%", "...........", ".#.%%.%%.#.", ".#.......#.", "...#~~~#...", "...........", "%%.......%%", "%%.#.#.#.%%", "...........", ".@.......@.", ".....P.....", "..........."] },
+  { name: "Сердце врага", waves: "HGKMFHGXKMFHG", rows: ["E....@....E", "..@#.C.#@..", "..@#####@..", ".T...@...T.", "...........", ".@@.#.#.@@.", ".T.......T.", "...~~.~~...", ".#.~~.~~.#.", "...........", "==.#...#.==", "...........", ".%%.@.@.%%.", ".%%.....%%.", "...........", ".#...P...#.", "..........."] }
+];
+// End of generated maps.
 
 const rnd = (a, b) => a + Math.random() * (b - a);
-const solid = t => t === T.Crate || t === T.Concrete || t === T.Water || t === T.Base;
+const solid = t => t === T.Crate || t === T.Concrete || t === T.Water || t === T.Base || t === T.Core || t === T.Turret;
+// Tiles a shot cannot pass and a gunner cannot see through.
+const blocksSight = t => t === T.Crate || t === T.Concrete || t === T.Core || t === T.Turret;
 const inBounds = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
 
 function Sim() {
-  const s = { tiles: [], hp: [], enemies: [], bullets: [], events: [], fortCells: [], spawns: [], score: 0, lives: TUNE.lives, level: 0, phase: "playing", freeze: 0, fort: 0, bonus: null, nextId: 1,
-    mode: "campaign", stats: [0, 0, 0, 0], star: 0, starTimer: 0, charge: 0, need: superNeed(0), parts: 0, wave: 0, choices: [], superCut: 0 };
+  const s = { tiles: [], hp: [], enemies: [], bullets: [], mines: [], turrets: [], events: [], fortCells: [], spawns: [], score: 0, lives: TUNE.lives, level: 0, phase: "playing", freeze: 0, fort: 0, bonus: null, nextId: 1,
+    mode: "campaign", stats: [0, 0, 0, 0], star: 0, starTimer: 0, charge: 0, need: superNeed(0), parts: 0, wave: 0, choices: [], superCut: 0,
+    tank: "guard", cloak: 0, time: 0, livesLost: 0, coreHp: 0, coreMax: 0, turretCount: 0, starsWon: 0 };
   const emit = (kind, x, y, extra) => s.events.push(Object.assign({ kind, x, y }, extra));
+  const tankDef = () => TANKS[s.tank] || TANKS.guard;
+  const clamp01 = v => Math.max(0, Math.min(1, v));
 
-  s.left = () => (s.waves.length - s.cursor) + s.enemies.length;
+  s.left = () => s.mode === "assault" ? s.coreHp : (s.waves.length - s.cursor) + s.enemies.length;
   s.settings = DIFFICULTY.Normal;
   s.setDifficulty = name => { s.settings = DIFFICULTY[name]; };
 
-  s.maxHp = () => TUNE.baseHp + s.stats[0];
+  // The chosen tank changes the workshop's numbers a little and picks the ability.
+  s.maxHp = () => Math.max(1, TUNE.baseHp + s.stats[0] + tankDef().hp);
+  s.driveSpeed = () => TUNE.driveSpeed[s.stats[3]] + tankDef().speed;
+  s.cooldown = () => TUNE.fireCooldown[s.stats[2]] * tankDef().cool;
+  s.ability = () => tankDef().ability;
+  const needFor = base => Math.max(2, base + tankDef().need);
   s.superReady = () => s.charge >= s.need;
   s.boss = () => s.enemies.find(e => e.kind === "X") || null;
-  s.isBossLevel = () => s.mode === "campaign" ? s.waves.includes("X") : s.wave % TUNE.bossEvery === 0;
-  s.levelName = () => s.mode === "survival" ? "Выживание, волна " + s.wave : (s.level + 1) + ". " + LEVELS[s.level].name;
+  s.isBossLevel = () => s.mode === "survival" ? s.wave % TUNE.bossEvery === 0 : s.waves.includes("X");
+  s.levelName = () => s.mode === "survival" ? "Выживание, волна " + s.wave
+    : s.mode === "assault" ? "Штурм " + (s.level + 1) + ". " + ASSAULT[s.level].name : (s.level + 1) + ". " + LEVELS[s.level].name;
+  s.mapCount = () => s.mode === "assault" ? ASSAULT.length : LEVELS.length;
   s.bulletSpeed = () => TUNE.gunSpeed[s.stats[1]] + (s.star >= 1 ? TUNE.starBoost : 0);
   s.maxBullets = () => TUNE.fireBullets[s.stats[2]] + (s.star >= 2 ? 1 : 0);
+  // Stars: one for the win, one for losing no tank on this map, one for beating the par time.
+  s.par = () => s.mode === "assault" ? 60 + s.turretCount * 12 : 40 + s.waves.length * 7;
+  s.stars = () => 1 + (s.livesLost === 0 ? 1 : 0) + (s.time <= s.par() ? 1 : 0);
+  const visible = () => s.player.alive && s.cloak <= 0;
 
   s.load = function (index) {
     s.level = index;
-    s.smart = Math.max(0, Math.min(1, LEVEL_SMARTNESS[index] + s.settings.smartBonus));
+    if (s.mode === "assault") {
+      s.smart = clamp01(.35 + .1 * index + s.settings.smartBonus);
+      loadMap(ASSAULT[index].rows, ASSAULT[index].waves);
+      s.need = needFor(TUNE.assaultSuperNeed);
+      s.coreHp = s.coreMax = coreHp(index);
+      return;
+    }
+    s.smart = clamp01(LEVEL_SMARTNESS[index] + s.settings.smartBonus);
     loadMap(LEVELS[index].rows, LEVELS[index].waves);
-    s.need = superNeed(index);
+    s.need = needFor(superNeed(index));
   };
   // A campaign run from the chosen level, with the workshop's upgrades.
-  s.startCampaign = function (index, stats) {
-    Object.assign(s, { mode: "campaign", stats: stats.slice(), score: 0, lives: TUNE.lives, parts: 0 });
+  s.startCampaign = function (index, stats, tank) {
+    Object.assign(s, { mode: "campaign", stats: stats.slice(), tank: tank || "guard", score: 0, lives: TUNE.lives, parts: 0 });
+    s.load(index);
+  };
+  // Assault: no reactor to keep, the enemy's one to break.
+  s.startAssault = function (index, stats, tank) {
+    Object.assign(s, { mode: "assault", stats: stats.slice(), tank: tank || "guard", score: 0, lives: TUNE.lives, parts: 0 });
     s.load(index);
   };
   // Endless waves on the arena, with a choice of upgrade after each one.
-  s.startSurvival = function (stats) {
-    Object.assign(s, { mode: "survival", stats: stats.slice(), score: 0, lives: TUNE.lives, parts: 0, superCut: 0, wave: 1, level: 0 });
+  s.startSurvival = function (stats, tank) {
+    Object.assign(s, { mode: "survival", stats: stats.slice(), tank: tank || "guard", score: 0, lives: TUNE.lives, parts: 0, superCut: 0, wave: 1, level: 0 });
     s.smart = survivalSmart(1);
     loadMap(SURVIVAL.rows, survivalWave(1));
-    s.need = TUNE.survivalSuperNeed;
+    s.need = needFor(TUNE.survivalSuperNeed);
   };
   s.takeParts = () => { const parts = s.parts; s.parts = 0; return parts; };
-  const survivalSmart = wave => Math.max(0, Math.min(1, .2 + .05 * wave + s.settings.smartBonus));
-  // More and tougher enemies each wave, a boss every fifth one.
+  const survivalSmart = wave => clamp01(.2 + .05 * wave + s.settings.smartBonus);
+  // More and tougher enemies each wave, the new kinds from wave 3, a boss every fifth one.
   function survivalWave(wave) {
     let list = "";
     const heavy = Math.min(.4, .05 * wave);
     for (let i = 0; i < 5 + wave; i++) {
       const roll = Math.random();
-      list += roll < heavy ? "H" : roll < heavy + .25 ? "G" : roll < heavy + .5 ? "S" : "R";
+      list += roll < heavy ? "H" : roll < heavy + .2 ? "G" : roll < heavy + .4 ? "S"
+        : wave >= 3 && roll < heavy + .5 ? "M" : wave >= 4 && roll < heavy + .58 ? "F" : wave >= 5 && roll < heavy + .66 ? "K" : "R";
     }
     return wave % TUNE.bossEvery === 0 ? list + "X" : list;
   }
@@ -339,13 +437,13 @@ function Sim() {
     if (stat >= 0 && stat < 4) {
       s.stats[stat] = Math.min(TUNE.survivalMax, s.stats[stat] + 1);
       if (p.alive) {
-        p.speed = TUNE.driveSpeed[s.stats[3]];
+        p.speed = s.driveSpeed();
         if (stat === 0) { p.maxHp = s.maxHp(); p.hp = Math.min(p.maxHp, p.hp + 1); }
       }
     } else if (upgrade === "repair") { s.lives++; if (p.alive) p.hp = p.maxHp; }
     else if (upgrade === "super") { s.superCut = Math.min(s.superCut + 1, TUNE.survivalSuperNeed - 3); s.charge += 2; }
     else if (upgrade === "fort") startFort(30);
-    s.need = TUNE.survivalSuperNeed - s.superCut;
+    s.need = needFor(TUNE.survivalSuperNeed - s.superCut);
     s.wave++;
     s.smart = survivalSmart(s.wave);
     Object.assign(s, { waves: survivalWave(s.wave), cursor: 0, spawnTimer: 1.5, clearTimer: 0, choices: [], phase: "playing" });
@@ -355,35 +453,37 @@ function Sim() {
     s.choices = [];
     while (s.choices.length < 3 && pool.length) s.choices.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
   }
-  // For checks: fill the strike's charge, and fire it as the button would.
+  // For checks: fill the ability's charge, and fire it as the button would.
   s.fillSuper = () => { while (!s.superReady()) addCharge(); };
-  s.useSuper = () => { if (s.phase === "playing" && s.player.alive && s.superReady()) superStrike(); };
+  s.useSuper = () => { if (s.phase === "playing" && s.player.alive && s.superReady()) useAbility(); };
 
   function loadMap(rows, waves) {
     s.baseRoutesStale = s.playerRouteStale = true;
-    const def = { rows };
-    Object.assign(s, { enemies: [], bullets: [], events: [], fortCells: [], spawns: [], bonus: null, phase: "playing", freeze: 0, fort: 0, waves, cursor: 0, spawnerIndex: 0, spawnTimer: .5, clearTimer: 0, respawnTimer: 0,
-      star: 0, starTimer: 0, charge: 0, choices: [] });
+    Object.assign(s, { enemies: [], bullets: [], mines: [], turrets: [], events: [], fortCells: [], spawns: [], bonus: null, phase: "playing", freeze: 0, fort: 0, waves, cursor: 0, looped: false, spawnerIndex: 0, spawnTimer: .5, clearTimer: 0, respawnTimer: 0,
+      star: 0, starTimer: 0, charge: 0, choices: [], cloak: 0, time: 0, livesLost: 0, starsWon: 0 });
     s.tiles = []; s.hp = [];
     for (let x = 0; x < W; x++) { s.tiles.push(new Array(H).fill(0)); s.hp.push(new Array(H).fill(0)); }
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      const c = def.rows[y][x];
+      const c = rows[y][x];
       let t = T.Empty;
       if (c === "#") t = T.Crate; else if (c === "@") t = T.Concrete; else if (c === "%") t = T.Net;
       else if (c === "~") t = T.Water; else if (c === "=") t = T.Oil;
       else if (c === "B") { t = T.Base; s.baseX = x; s.baseY = y; }
+      else if (c === "C") { t = T.Core; s.baseX = x; s.baseY = y; }
+      else if (c === "T") { t = T.Turret; s.turrets.push({ id: -(s.nextId++), x, y, hp: TUNE.turretHp, dir: Down, fireIn: rnd(.8, 1.6) }); }
       else if (c === "P") { s.spawnX = x; s.spawnY = y; }
       else if (c === "E") s.spawns.push([x, y]);
       s.tiles[x][y] = t;
       s.hp[x][y] = t === T.Crate ? TUNE.crateHp : 0;
     }
+    s.turretCount = s.turrets.length;
     spawnPlayer();
   }
-  s.newGame = function () { s.startCampaign(0, s.stats); };
-  s.next = function () { if (s.level + 1 < LEVELS.length) s.load(s.level + 1); };
+  s.newGame = function () { s.startCampaign(0, s.stats, s.tank); };
+  s.next = function () { if (s.level + 1 < s.mapCount()) s.load(s.level + 1); };
 
   function spawnPlayer() {
-    s.player = { id: s.nextId++, isPlayer: true, kind: "P", x: s.spawnX + .5, y: s.spawnY + .5, dir: Up, speed: TUNE.driveSpeed[s.stats[3]], hp: s.maxHp(), maxHp: s.maxHp(), hurt: 0, alive: true, moving: false, shield: TUNE.respawnShield, spawn: 0, cool: 0, slide: 0, carrier: false };
+    s.player = { id: s.nextId++, isPlayer: true, kind: "P", x: s.spawnX + .5, y: s.spawnY + .5, dir: Up, speed: s.driveSpeed(), hp: s.maxHp(), maxHp: s.maxHp(), hurt: 0, alive: true, moving: false, shield: TUNE.respawnShield, spawn: 0, cool: 0, slide: 0, carrier: false };
   }
 
   function blocksTank(t, o, x, y) {
@@ -398,13 +498,13 @@ function Sim() {
     if (x0 < 0 || y0 < 0 || x1 >= W || y1 >= H) return false;
     for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) if (solid(s.tiles[cx][cy])) return false;
     if (t !== s.player && s.player.alive && blocksTank(t, s.player, x, y)) return false;
-    for (const o of s.enemies) if (o !== t && blocksTank(t, o, x, y)) return false;
+    for (const o of s.enemies) if (o !== t && o.alive && blocksTank(t, o, x, y)) return false;
     return true;
   }
   function anyTankAt(x, y) {
     const size = TUNE.half * 2;
     if (s.player.alive && Math.abs(s.player.x - x) < size && Math.abs(s.player.y - y) < size) return true;
-    return s.enemies.some(e => Math.abs(e.x - x) < size && Math.abs(e.y - y) < size);
+    return s.enemies.some(e => e.alive && Math.abs(e.x - x) < size && Math.abs(e.y - y) < size);
   }
   function moveForward(t, step) {
     for (let i = 0; i < 5; i++) {
@@ -424,13 +524,6 @@ function Sim() {
     if (open && offset <= TUNE.turnWindow) return true;
     return !canOccupy(t, t.x + DX[t.dir] * .05, t.y + DY[t.dir] * .05);
   }
-  function snap(t) {
-    let x = t.x, y = t.y;
-    if (t.dir === Left || t.dir === Right) x = Math.floor(x) + .5; else y = Math.floor(y) + .5;
-    if (!canOccupy(t, x, y)) return false;
-    t.x = x; t.y = y;
-    return true;
-  }
   function drive(t, want, dt) {
     if (want === null || want === undefined) {
       const cx = Math.floor(t.x), cy = Math.floor(t.y);
@@ -442,11 +535,19 @@ function Sim() {
     if (want !== t.dir) {
       const perp = ((want + t.dir) & 1) === 1;
       if (!perp) t.dir = want;
-      else if (shouldTurnNow(t, want) && snap(t)) t.dir = want;
+      else if (shouldTurnNow(t, want) && snapTurn(t)) t.dir = want;
     }
     t.moving = moveForward(t, t.speed * dt);
   }
-  const bulletsOf = t => s.bullets.reduce((n, b) => n + (b.owner === t.id ? 1 : 0), 0);
+  // Before a quarter turn the tank lines up with the row or column it is leaving.
+  function snapTurn(t) {
+    let x = t.x, y = t.y;
+    if (t.dir === Left || t.dir === Right) x = Math.floor(x) + .5; else y = Math.floor(y) + .5;
+    if (!canOccupy(t, x, y)) return false;
+    t.x = x; t.y = y;
+    return true;
+  }
+  const bulletsOf = t => s.bullets.reduce((n, b) => n + (b.owner === t.id && !b.volley ? 1 : 0), 0);
   function fire(t, speed, pierce, damage) {
     s.bullets.push({ owner: t.id, fromPlayer: !!t.isPlayer, pierce, damage: damage || 1, x: t.x + DX[t.dir] * .5, y: t.y + DY[t.dir] * .5, dir: t.dir, speed, alive: true });
     emit("shot", t.x, t.y, { isPlayer: !!t.isPlayer });
@@ -463,10 +564,10 @@ function Sim() {
     p.hurt = Math.max(0, p.hurt - dt);
     p.cool = Math.max(0, p.cool - dt);
     drive(p, input.move, dt);
-    if (input.super && s.superReady()) superStrike();
+    if (input.super && s.superReady()) useAbility();
     if (input.fire && p.cool <= 0 && bulletsOf(p) < s.maxBullets()) {
       fire(p, s.bulletSpeed(), s.star >= 3, TUNE.gunDamage[s.stats[1]]);
-      p.cool = TUNE.fireCooldown[s.stats[2]];
+      p.cool = s.cooldown();
     }
   }
   function hurtPlayer() {
@@ -477,24 +578,66 @@ function Sim() {
     p.hurt = TUNE.hurt;
     emit("playerHit", p.x, p.y);
   }
-  // The reactor strike: a wide beam along the barrel that hurts every enemy in it and clears crates on its line.
+
+  // ---- Abilities: one per tank, charged by kills ----
+  function useAbility() {
+    s.charge = 0;
+    const a = s.ability();
+    if (a === "volley") volley();
+    else if (a === "dome") dome();
+    else if (a === "dash") dash();
+    else superStrike();
+  }
+  // Guard: a wide beam along the barrel that hurts everything in it and clears crates on its line.
   function superStrike() {
     const p = s.player, dir = p.dir, horizontal = dir === Left || dir === Right;
-    s.charge = 0;
-    emit("super", p.x, p.y, { dir });
+    emit("super", p.x, p.y, { dir, ability: "strike" });
     const inBeam = (x, y) => (horizontal ? Math.abs(y - p.y) : Math.abs(x - p.x)) <= TUNE.superHalf && (horizontal ? (x - p.x) * DX[dir] : (y - p.y) * DY[dir]) > 0;
     for (const e of s.enemies) if (e.alive && e.spawn <= 0 && inBeam(e.x, e.y)) damageEnemy(e, TUNE.superDamage, false);
     for (const b of s.bullets) if (!b.fromPlayer && inBeam(b.x, b.y)) b.alive = false;
+    for (const m of s.mines) if (inBeam(m.x, m.y)) { m.gone = true; emit("mineShot", m.x, m.y); }
+    s.mines = s.mines.filter(m => !m.gone);
     let x = Math.floor(p.x), y = Math.floor(p.y);
     for (;;) {
       x += DX[dir]; y += DY[dir];
       if (!inBounds(x, y)) break;
-      if (s.tiles[x][y] !== T.Crate) continue;
-      s.tiles[x][y] = T.Empty; s.hp[x][y] = 0; s.baseRoutesStale = true;
-      emit("tile", x, y, { debris: true });
+      const t = s.tiles[x][y];
+      if (t === T.Crate) { s.tiles[x][y] = T.Empty; s.hp[x][y] = 0; s.baseRoutesStale = true; emit("tile", x, y, { debris: true }); }
+      else if (t === T.Turret) damageTurret(turretAt(x, y), TUNE.superDamage);
+      else if (t === T.Core) damageCore(TUNE.superDamage, x, y);
     }
     s.bullets = s.bullets.filter(b => b.alive);
     s.enemies = s.enemies.filter(e => e.alive);
+  }
+  // Squall: two piercing shells each way.
+  function volley() {
+    const p = s.player;
+    emit("super", p.x, p.y, { dir: p.dir, ability: "volley" });
+    for (let d = 0; d < 4; d++) for (const side of [-.22, .22]) {
+      const ox = d === Up || d === Down ? side : 0, oy = d === Up || d === Down ? 0 : side;
+      s.bullets.push({ owner: p.id, fromPlayer: true, pierce: true, volley: true, damage: TUNE.volleyDamage, x: p.x + DX[d] * .5 + ox, y: p.y + DY[d] * .5 + oy, dir: d, speed: s.bulletSpeed() + 2, alive: true });
+    }
+  }
+  // Bastion: a shield, and the tanks close by stand still for a while.
+  function dome() {
+    const p = s.player;
+    p.shield = Math.max(p.shield, TUNE.domeShield);
+    emit("super", p.x, p.y, { dir: p.dir, ability: "dome" });
+    for (const e of s.enemies) if (e.alive && Math.hypot(e.x - p.x, e.y - p.y) <= TUNE.domeRange) { e.stun = TUNE.domeStun; e.moving = false; }
+    for (const b of s.bullets) if (!b.fromPlayer && Math.hypot(b.x - p.x, b.y - p.y) <= TUNE.domeRange) b.alive = false;
+    s.bullets = s.bullets.filter(b => b.alive);
+  }
+  // Phantom: jumps ahead until something blocks it, then the enemy loses sight of it.
+  function dash() {
+    const p = s.player, fromX = p.x, fromY = p.y;
+    for (let moved = 0; moved < TUNE.dashCells; moved += .1) {
+      const x = p.x + DX[p.dir] * .1, y = p.y + DY[p.dir] * .1;
+      if (!canOccupy(p, x, y)) break;
+      p.x = x; p.y = y;
+    }
+    s.cloak = TUNE.cloak;
+    s.playerRouteStale = true;
+    emit("super", fromX, fromY, { dir: p.dir, ability: "dash", toX: p.x, toY: p.y });
   }
   function addCharge() {
     if (s.charge >= s.need) return;
@@ -506,33 +649,51 @@ function Sim() {
     p.alive = false;
     p.hp = 0;
     emit("playerDown", p.x, p.y);
-    s.lives--; s.star = 0; s.starTimer = 0;
+    s.lives--; s.livesLost++; s.star = 0; s.starTimer = 0; s.cloak = 0;
     s.respawnTimer = TUNE.respawn;
     if (s.lives <= 0) { s.phase = "over"; s.reason = "lives"; }
   }
 
   function updateSpawner(dt) {
-    if (s.cursor >= s.waves.length || !s.spawns.length) return;
+    if (!s.spawns.length) return;
+    if (s.cursor >= s.waves.length) {
+      // In an assault the defenders keep coming until their reactor falls.
+      if (s.mode !== "assault" || !s.waves.length) return;
+      s.cursor = 0; s.looped = true;
+    }
     s.spawnTimer -= dt;
-    if (s.spawnTimer > 0 || s.enemies.length >= s.settings.maxEnemies) return;
-    const kind = s.waves[s.cursor], k = KINDS[kind], isBoss = kind === "X";
+    const max = s.mode === "assault" ? Math.max(2, s.settings.maxEnemies - 1) : s.settings.maxEnemies;
+    if (s.spawnTimer > 0 || s.enemies.length >= max) return;
+    const kind = s.waves[s.cursor], k = KINDS[kind] || KINDS.R, isBoss = kind === "X";
+    if (isBoss && s.looped) { s.cursor++; return; }
     // The boss waits for the field to clear a little, and always comes from the middle gate.
     if (isBoss && s.enemies.length > 1) return;
     for (let i = 0; i < s.spawns.length; i++) {
       const index = isBoss ? (Math.floor(s.spawns.length / 2) + i) % s.spawns.length : (s.spawnerIndex + i) % s.spawns.length;
       const [cx, cy] = s.spawns[index];
       if (anyTankAt(cx + .5, cy + .5)) continue;
-      const hp = isBoss ? bossHp(s.mode === "survival" ? Math.floor(s.wave / TUNE.bossEvery) : Math.floor(s.level / TUNE.bossEvery) + 1) : k.hp;
-      s.enemies.push({ id: s.nextId++, kind, x: cx + .5, y: cy + .5, dir: Down, want: Down, speed: k.speed * s.settings.speed, role: isBoss ? "breaker" : roleFor(kind), hold: 0, lineIn: 0, hp, maxHp: hp, alive: true, moving: false,
-        spawn: TUNE.spawnFlash * (isBoss ? 2 : 1), shield: 0, slide: 0, carrier: isBoss || (s.cursor + 1) % TUNE.carrierEvery === 0, think: rnd(.3, 1), fireIn: isBoss ? 1.5 : rnd(.6, 1.6) });
+      const bossNumber = s.mode === "survival" ? Math.floor(s.wave / TUNE.bossEvery) : s.mode === "assault" ? 1 + Math.floor(s.level / 2) : Math.floor(s.level / TUNE.bossEvery) + 1;
+      const hp = isBoss ? bossHp(bossNumber) : k.hp;
+      s.enemies.push({ id: s.nextId++, kind: KINDS[kind] ? kind : "R", x: cx + .5, y: cy + .5, dir: Down, want: Down, speed: k.speed * s.settings.speed, role: roleFor(kind), hold: 0, lineIn: 0, hp, maxHp: hp, alive: true, moving: false,
+        spawn: TUNE.spawnFlash * (isBoss ? 2 : 1), shield: 0, slide: 0, carrier: isBoss || (s.cursor + 1) % TUNE.carrierEvery === 0, think: rnd(.3, 1), fireIn: isBoss ? 1.5 : rnd(.6, 1.6),
+        stun: 0, mineIn: rnd(1.5, TUNE.mineEvery), fixIn: TUNE.fixEvery });
       if (isBoss) emit("boss", cx + .5, cy + .5);
       s.cursor++;
       s.spawnerIndex = (s.spawnerIndex + i + 1) % s.spawns.length;
-      s.spawnTimer = s.settings.spawnDelay;
+      s.spawnTimer = s.settings.spawnDelay * (s.mode === "assault" ? TUNE.assaultSpawnDelay : 1);
       return;
     }
   }
   function roleFor(kind) {
+    if (s.mode === "assault") {
+      // Defenders: some guard their reactor, the rest hunt the attacker.
+      if (kind === "F") return "guard";
+      return kind !== "K" && kind !== "X" && s.cursor % 3 === 0 ? "guard" : "hunter";
+    }
+    if (kind === "X") return "breaker";
+    if (kind === "K") return "breaker";
+    if (kind === "M") return "hunter";
+    if (kind === "F") return "rusher";
     if (kind === "S") return "rusher";
     if (kind === "G") return "hunter";
     if (kind === "H") return "breaker";
@@ -597,7 +758,7 @@ function Sim() {
     refreshRoutes();
     let route = s.baseRoute;
     if (e.role === "breaker") route = s.breakerRoute;
-    else if (e.role === "hunter" && s.player.alive) route = s.playerRoute;
+    else if (e.role === "hunter" && visible()) route = s.playerRoute;
     const sx = Math.floor(e.x), sy = Math.floor(e.y);
     let best = route[sx][sy], step = null;
     const first = Math.floor(Math.random() * 4);
@@ -609,7 +770,7 @@ function Sim() {
   }
   function playerWillBeAt(x, y, seconds) {
     const p = s.player;
-    if (!p.alive) return false;
+    if (!visible()) return false;
     const travel = p.moving ? p.speed * seconds : 0;
     return x === Math.floor(p.x + DX[p.dir] * travel) && y === Math.floor(p.y + DY[p.dir] * travel);
   }
@@ -624,7 +785,7 @@ function Sim() {
         if (!inBounds(x, y)) break;
         const t = s.tiles[x][y];
         if (t === T.Base) return d;
-        if (t === T.Crate || t === T.Concrete) break;
+        if (blocksSight(t)) break;
         if (playerLine === null && playerWillBeAt(x, y, distance / speed)) playerLine = d;
       }
     }
@@ -646,7 +807,7 @@ function Sim() {
       if (step !== null) return step;
     }
     if (Math.random() < .65) {
-      const hunt = s.player.alive && Math.random() < .4;
+      const hunt = visible() && Math.random() < .4;
       const dx = (hunt ? s.player.x : s.baseX + .5) - e.x, dy = (hunt ? s.player.y : s.baseY + .5) - e.y;
       let preferX = Math.abs(dx) >= Math.abs(dy);
       if (Math.random() < .3) preferX = !preferX;
@@ -657,19 +818,20 @@ function Sim() {
   }
   function targetInLine(e) {
     let x = Math.floor(e.x), y = Math.floor(e.y);
-    const px = s.player.alive ? Math.floor(s.player.x) : -1, py = s.player.alive ? Math.floor(s.player.y) : -1;
+    const px = visible() ? Math.floor(s.player.x) : -1, py = visible() ? Math.floor(s.player.y) : -1;
     for (;;) {
       x += DX[e.dir]; y += DY[e.dir];
       if (!inBounds(x, y)) return false;
       if (x === px && y === py) return true;
       const t = s.tiles[x][y];
       if (t === T.Base) return true;
-      if (t === T.Crate || t === T.Concrete) return false;
+      if (blocksSight(t)) return false;
     }
   }
   function updateEnemy(e, dt) {
     if (e.spawn > 0) { e.spawn -= dt; return; }
     if (s.freeze > 0) { e.moving = false; return; }
+    if (e.stun > 0) { e.stun -= dt; e.moving = false; return; }
     e.think -= dt;
     e.lineIn -= dt;
     e.hold = Math.max(0, e.hold - dt);
@@ -677,7 +839,7 @@ function Sim() {
     const blocked = !e.moving && !holding;
     const along = (e.dir === Left || e.dir === Right) ? e.x : e.y;
     const atCentre = Math.abs(along - (Math.floor(along) + .5)) < .1;
-    if (s.smart > 0 && e.lineIn <= 0 && atCentre) {
+    if (s.smart > 0 && e.lineIn <= 0 && atCentre && e.kind !== "K") {
       e.lineIn = TUNE.lineCheck;
       if (Math.random() < s.smart) takeLineShot(e);
       holding = e.hold > 0;
@@ -689,6 +851,9 @@ function Sim() {
     }
     // A tank in ambush only turns; once it faces its target it stays put and shoots.
     drive(e, holding && e.dir === e.want ? null : e.want, dt);
+    if (e.kind === "K") { ramCheck(e); return; }
+    if (e.kind === "M") layMine(e, dt, atCentre);
+    if (e.kind === "F") mendAround(e, dt);
     const lined = targetInLine(e) || (s.smart > 0 && crateAhead(e));
     e.fireIn -= lined ? dt * 3 : dt;
     if (e.kind === "X") {
@@ -706,18 +871,127 @@ function Sim() {
       e.fireIn = rnd(.8, 1.9) * KINDS[e.kind].rate * s.settings.fire;
     }
   }
-  // Kills made by the strike itself do not charge the next one.
+  // The miner leaves a mine behind on its way, a few at a time.
+  function layMine(e, dt, atCentre) {
+    e.mineIn -= dt;
+    if (e.mineIn > 0 || !atCentre) return;
+    const x = Math.floor(e.x), y = Math.floor(e.y);
+    const mine = s.mines.filter(m => m.owner === e.id).length;
+    if (mine >= TUNE.mineMax || s.mines.some(m => m.cx === x && m.cy === y) || (x === s.spawnX && y === s.spawnY)) { e.mineIn = 1; return; }
+    s.mines.push({ owner: e.id, cx: x, cy: y, x: x + .5, y: y + .5, arm: TUNE.mineArm });
+    e.mineIn = TUNE.mineEvery;
+    emit("mineLaid", x + .5, y + .5);
+  }
+  // The fixer mends one point on every hurt tank around it.
+  function mendAround(e, dt) {
+    e.fixIn -= dt;
+    if (e.fixIn > 0) return;
+    e.fixIn = TUNE.fixEvery;
+    for (const o of s.enemies) {
+      if (o === e || !o.alive || o.spawn > 0 || o.hp >= o.maxHp) continue;
+      if (Math.hypot(o.x - e.x, o.y - e.y) > TUNE.fixRange) continue;
+      o.hp++;
+      emit("heal", o.x, o.y);
+    }
+  }
+  // The rammer blows up next to the player, at the reactor, or against a crate in its way.
+  function ramCheck(e) {
+    const p = s.player;
+    const near = p.alive && Math.abs(p.x - e.x) < 1.05 && Math.abs(p.y - e.y) < 1.05;
+    const x = Math.floor(e.x) + DX[e.dir], y = Math.floor(e.y) + DY[e.dir];
+    const ahead = inBounds(x, y) ? s.tiles[x][y] : T.Concrete;
+    if (near || ahead === T.Base || (!e.moving && ahead === T.Crate)) ramBlast(e);
+  }
+  function ramBlast(e) {
+    e.alive = false; e.hp = 0;
+    emit("ramBlast", e.x, e.y);
+    const r = TUNE.ramBlast;
+    for (let y = Math.floor(e.y - r); y <= Math.floor(e.y + r); y++) for (let x = Math.floor(e.x - r); x <= Math.floor(e.x + r); x++) {
+      if (!inBounds(x, y) || Math.hypot(x + .5 - e.x, y + .5 - e.y) > r) continue;
+      const t = s.tiles[x][y];
+      if (t === T.Crate) { s.tiles[x][y] = T.Empty; s.hp[x][y] = 0; s.baseRoutesStale = true; emit("tile", x, y, { debris: true }); }
+      else if (t === T.Base) destroyBase(x, y);
+    }
+    if (s.player.alive && Math.hypot(s.player.x - e.x, s.player.y - e.y) <= r) hurtPlayer();
+  }
+  function updateMines(dt) {
+    const p = s.player;
+    for (const m of s.mines) {
+      m.arm = Math.max(0, m.arm - dt);
+      if (m.arm > 0 || !p.alive || Math.abs(p.x - m.x) > .55 || Math.abs(p.y - m.y) > .55) continue;
+      m.gone = true;
+      emit("mineBlast", m.x, m.y);
+      hurtPlayer();
+    }
+    s.mines = s.mines.filter(m => !m.gone);
+  }
+  // Turrets guard the enemy reactor: they shoot along a clear line at the player.
+  const turretAt = (x, y) => s.turrets.find(t => t.x === x && t.y === y && t.hp > 0);
+  function turretLine(t) {
+    const px = Math.floor(s.player.x), py = Math.floor(s.player.y);
+    for (let d = 0; d < 4; d++) {
+      let x = t.x, y = t.y;
+      for (let i = 0; i < TUNE.turretRange; i++) {
+        x += DX[d]; y += DY[d];
+        if (!inBounds(x, y) || blocksSight(s.tiles[x][y])) break;
+        if (x === px && y === py) return d;
+      }
+    }
+    return null;
+  }
+  function updateTurrets(dt) {
+    for (const t of s.turrets) {
+      if (t.hp <= 0) continue;
+      t.fireIn -= dt;
+      if (s.freeze > 0 || t.fireIn > 0 || !visible() || s.bullets.some(b => b.owner === t.id)) continue;
+      const d = turretLine(t);
+      if (d === null) { t.fireIn = .25; continue; }
+      t.dir = d;
+      s.bullets.push({ owner: t.id, fromPlayer: false, pierce: false, damage: 1, x: t.x + .5 + DX[d] * .55, y: t.y + .5 + DY[d] * .55, dir: d, speed: TUNE.turretBullet, alive: true });
+      emit("shot", t.x + .5, t.y + .5, { isPlayer: false });
+      t.fireIn = TUNE.turretEvery * s.settings.fire;
+    }
+  }
+  function damageTurret(t, damage) {
+    if (!t) return;
+    t.hp -= damage;
+    if (t.hp > 0) { emit("tankHit", t.x + .5, t.y + .5); return; }
+    s.tiles[t.x][t.y] = T.Empty; s.baseRoutesStale = true;
+    s.score += TUNE.turretScore; s.parts += TUNE.turretParts;
+    addCharge();
+    emit("tile", t.x, t.y, { debris: true });
+    emit("turretDown", t.x + .5, t.y + .5);
+  }
+  function damageCore(damage, x, y) {
+    if (s.coreHp <= 0) return;
+    s.coreHp = Math.max(0, s.coreHp - damage);
+    if (s.coreHp > 0) { emit("coreHit", x + .5, y + .5); return; }
+    s.tiles[x][y] = T.Empty;
+    emit("tile", x, y);
+    emit("coreDown", x + .5, y + .5);
+    // With their reactor gone, the defenders go up with it.
+    for (const e of s.enemies) if (e.alive) destroyEnemy(e, false);
+    s.enemies = s.enemies.filter(e => e.alive);
+    s.bullets = s.bullets.filter(b => b.fromPlayer);
+    s.mines = [];
+  }
+  // Kills made by an ability do not charge the next one.
   function destroyEnemy(e, charges) {
     e.alive = false; e.hp = 0;
     s.score += KINDS[e.kind].score;
     s.parts += KINDS[e.kind].parts;
     if (charges !== false) addCharge();
-    emit("tankDown", e.x, e.y, { boss: e.kind === "X" });
+    emit("tankDown", e.x, e.y, { boss: e.kind === "X", enemy: e.kind });
   }
   function damageEnemy(e, damage, charges) {
     if (e.carrier) { e.carrier = false; spawnBonus(); }
     e.hp -= damage;
     if (e.hp > 0) emit("tankHit", e.x, e.y); else destroyEnemy(e, charges);
+  }
+  function destroyBase(x, y) {
+    s.tiles[x][y] = T.Empty;
+    s.phase = "over"; s.reason = "base";
+    emit("tile", x, y); emit("baseDown", x + .5, y + .5);
   }
 
   function hitTile(b, x, y) {
@@ -725,7 +999,7 @@ function Sim() {
     if (t === T.Crate) {
       b.alive = false;
       s.hp[x][y] = b.pierce ? 0 : s.hp[x][y] - 1;
-      if (s.hp[x][y] <= 0) { s.tiles[x][y] = T.Empty; s.baseRoutesStale = true; }
+      if (s.hp[x][y] <= 0) { s.tiles[x][y] = T.Empty; s.baseRoutesStale = true; emit("crate", x + .5, y + .5); }
       emit("tile", x, y, { debris: true }); emit("spark", b.x, b.y);
       return true;
     }
@@ -737,9 +1011,19 @@ function Sim() {
     }
     if (t === T.Base) {
       b.alive = false;
-      s.tiles[x][y] = T.Empty;
-      s.phase = "over"; s.reason = "base";
-      emit("tile", x, y); emit("baseDown", x + .5, y + .5);
+      destroyBase(x, y);
+      return true;
+    }
+    if (t === T.Turret) {
+      b.alive = false;
+      emit("spark", b.x, b.y);
+      if (b.fromPlayer) damageTurret(turretAt(x, y), b.damage);
+      return true;
+    }
+    if (t === T.Core) {
+      b.alive = false;
+      emit("spark", b.x, b.y);
+      if (b.fromPlayer) damageCore(b.damage, x, y);
       return true;
     }
     return false;
@@ -750,6 +1034,9 @@ function Sim() {
     if (hitTile(b, x, y)) return;
     const h = TUNE.half;
     if (b.fromPlayer) {
+      for (const m of s.mines) {
+        if (Math.abs(m.x - b.x) < .35 && Math.abs(m.y - b.y) < .35) { b.alive = false; m.gone = true; emit("mineShot", m.x, m.y); s.mines = s.mines.filter(o => !o.gone); return; }
+      }
       for (const e of s.enemies) {
         if (!e.alive || e.spawn > 0) continue;
         if (Math.abs(e.x - b.x) < h && Math.abs(e.y - b.y) < h) { b.alive = false; damageEnemy(e, b.damage); return; }
@@ -785,7 +1072,9 @@ function Sim() {
     for (let y = 0; y < H; y++) for (let x = 1; x < W - 1; x++) if (s.tiles[x][y] === T.Empty) free.push([x, y]);
     if (!free.length) return;
     const [x, y] = free[Math.floor(Math.random() * free.length)];
-    s.bonus = { kind: BONUS[Math.floor(Math.random() * BONUS.length)], x, y, timer: TUNE.bonusLife };
+    // No reactor of our own to fortify in an assault.
+    const kinds = s.mode === "assault" ? BONUS.filter(k => k !== "Fort") : BONUS;
+    s.bonus = { kind: kinds[Math.floor(Math.random() * kinds.length)], x, y, timer: TUNE.bonusLife };
   }
   function applyBonus(kind) {
     s.score += TUNE.bonusScore;
@@ -793,10 +1082,11 @@ function Sim() {
     else if (kind === "Bomb") {
       for (const e of s.enemies) if (e.spawn <= 0) { if (e.kind === "X") damageEnemy(e, TUNE.bossBombDamage); else destroyEnemy(e); }
       s.enemies = s.enemies.filter(e => e.alive);
+      s.mines = [];
       emit("bomb", s.player.x, s.player.y);
     }
     else if (kind === "Shield") s.player.shield = TUNE.shieldBonus;
-    else if (kind === "Fort") startFort(TUNE.fort);
+    else if (kind === "Fort") { if (s.mode !== "assault") startFort(TUNE.fort); }
     else if (kind === "Freeze") s.freeze = TUNE.freeze;
     else s.lives++;
   }
@@ -842,12 +1132,16 @@ function Sim() {
 
   s.tick = function (dt, input) {
     if (s.phase !== "playing") return;
+    s.time += dt;
     s.freeze = Math.max(0, s.freeze - dt);
+    s.cloak = Math.max(0, s.cloak - dt);
     if (s.starTimer > 0) { s.starTimer -= dt; if (s.starTimer <= 0) s.star = 0; }
     updateFort(dt);
     updatePlayer(dt, input);
-    for (const e of s.enemies) updateEnemy(e, dt);
+    for (const e of s.enemies) if (e.alive) updateEnemy(e, dt);
+    updateTurrets(dt);
     updateBullets(dt);
+    updateMines(dt);
     updateSpawner(dt);
     updateBonus(dt);
     if (s.phase === "playing" && s.left() <= 0) {
@@ -859,8 +1153,9 @@ function Sim() {
           offerChoices();
           s.phase = "choice";
         } else {
-          s.parts += levelParts(s.level);
-          s.phase = s.level + 1 < LEVELS.length ? "cleared" : "victory";
+          s.starsWon = s.stars();
+          s.parts += s.mode === "assault" ? assaultParts(s.level) : levelParts(s.level);
+          s.phase = s.level + 1 < s.mapCount() ? "cleared" : "victory";
         }
       }
     }
@@ -906,6 +1201,7 @@ function box(parent, x, y, z, sx, sy, sz, color, glow, flat) {
 }
 const worldRoot = new THREE.Group(); scene.add(worldRoot);
 const tileRoot = new THREE.Group(); worldRoot.add(tileRoot);
+let turretHeads = new Map(), mineViews = [], rings = [];
 let tileViews = [], tankViews = new Map(), bulletViews = [], debris = [], bonusView = null, bonusViewKind = null, reactorCore = null, clock = 0, shake = 0;
 const home = new THREE.Vector3();
 
@@ -1008,14 +1304,29 @@ function refreshTile(sim, x, y) {
     box(c, sh, .028, -sh, .28, .01, .16, 0x4C3F6B, false, true);
   } else if (t === T.Base) {
     reactorCore = buildReactor(c);
+  } else if (t === T.Core) {
+    reactorCore = buildReactor(c, true);
+  } else if (t === T.Turret) {
+    turretHeads.set(x + "," + y, buildTurret(c));
   }
 }
-function buildReactor(parent) {
-  box(parent, 0, .08, 0, .94, .16, .94, 0x3C4A57);
+function buildReactor(parent, enemy) {
+  const frame = enemy ? 0x5A3A34 : 0x3C4A57, glow = enemy ? 0xFF5A3C : 0x6FF2E0;
+  box(parent, 0, .08, 0, .94, .16, .94, frame);
   const drum = new THREE.Mesh(unitCyl, mat(0x2B2E33)); drum.position.y = .36; drum.scale.set(.62, .2, .62); drum.castShadow = true; parent.add(drum);
-  const core = new THREE.Mesh(unitCyl, mat(0x6FF2E0, true)); core.position.y = .66; core.scale.set(.34, .2, .34); parent.add(core);
-  for (const [px, pz] of [[-.36, -.36], [.36, -.36], [-.36, .36], [.36, .36]]) box(parent, px, .42, pz, .1, .5, .1, 0x3C4A57);
+  const core = new THREE.Mesh(unitCyl, mat(glow, true)); core.position.y = .66; core.scale.set(.34, .2, .34); parent.add(core);
+  for (const [px, pz] of [[-.36, -.36], [.36, -.36], [-.36, .36], [.36, .36]]) box(parent, px, .42, pz, .1, enemy ? .7 : .5, .1, frame);
+  if (enemy) for (const [px, pz] of [[-.36, -.36], [.36, -.36], [-.36, .36], [.36, .36]]) box(parent, px, .8, pz, .12, .08, .12, glow, true);
   return core;
+}
+// A turret of the enemy fortress: a concrete pad, a drum and a gun that turns to its target.
+function buildTurret(parent) {
+  tileModel(parent, "concrete").scale.set(1, .55, 1);
+  const head = new THREE.Group(); head.position.y = .52; parent.add(head);
+  const drum = new THREE.Mesh(unitCyl, mat(0x4A3A3A)); drum.scale.set(.5, .12, .5); drum.castShadow = true; head.add(drum);
+  box(head, 0, .16, -.36, .14, .12, .62, 0x2E2626);
+  box(head, 0, .2, 0, .16, .06, .16, 0xFF5A3C, true);
+  return head;
 }
 function buildLevel(sim) {
   clearGroup(tileRoot);
@@ -1029,6 +1340,11 @@ function buildLevel(sim) {
   beams = [];
   if (bonusView) worldRoot.remove(bonusView);
   bonusView = null; reactorCore = null;
+  turretHeads = new Map();
+  for (const m of mineViews) worldRoot.remove(m);
+  mineViews = [];
+  for (const r of rings) worldRoot.remove(r.m);
+  rings = [];
   tileViews = [];
   for (let x = 0; x < W; x++) tileViews.push(new Array(H).fill(null));
   buildGround();
@@ -1037,11 +1353,12 @@ function buildLevel(sim) {
 }
 // Models come from Art/build_models.py: the drawings raised into 3D, with the drawing as texture.
 const loader = new THREE.TextureLoader();
-const SPRITES = {
-  player: { texture: loader.load("tanks/player.png"), geometry: null },
-  enemy: { texture: loader.load("tanks/enemy.png"), geometry: null }
-};
-for (const s of Object.values(SPRITES)) s.texture.magFilter = THREE.NearestFilter;
+const MODEL_NAMES = [...new Set(Object.values(KINDS).map(k => k.model).filter(Boolean).concat(Object.values(TANKS).map(t => t.model)))];
+const SPRITES = {};
+for (const name of MODEL_NAMES) {
+  SPRITES[name] = { texture: loader.load("tanks/" + name + ".png"), geometry: null };
+  SPRITES[name].texture.magFilter = THREE.NearestFilter;
+}
 function loadModel(name) {
   return loadGeometry("tanks/" + name + "_model.json").then(g => { SPRITES[name].geometry = g; });
 }
@@ -1050,12 +1367,13 @@ function loadTile(name) {
 }
 const spriteMats = new Map();
 // glow lifts the dark drawings off the sand; 0 leaves a layer lit only by the scene.
-function spriteMat(name, tint, glow, glowColor) {
-  const key = name + tint + "/" + glow + "/" + glowColor;
+function spriteMat(name, tint, glow, glowColor, opacity) {
+  const key = name + tint + "/" + glow + "/" + glowColor + "/" + (opacity || 1);
   if (!spriteMats.has(key)) {
     const map = SPRITES[name].texture;
     const options = { map, color: tint };
     if (glow) Object.assign(options, { emissive: glowColor, emissiveMap: map, emissiveIntensity: glow });
+    if (opacity) Object.assign(options, { transparent: true, opacity, depthWrite: false });
     spriteMats.set(key, new THREE.MeshLambertMaterial(options));
   }
   return spriteMats.get(key);
@@ -1101,8 +1419,8 @@ function buildTank(tank) {
   const k = KINDS[tank.kind];
   const root = new THREE.Group(), model = new THREE.Group();
   root.add(model); worldRoot.add(root);
-  const name = tank.isPlayer ? "player" : "enemy";
-  const body = new THREE.Mesh(SPRITES[name].geometry, spriteMat(name, k.tint, .45, k.tint));
+  const name = tank.isPlayer ? (tank.model || TANKS[sim.tank].model) : k.model;
+  const body = new THREE.Mesh(SPRITES[name].geometry, spriteMat(name, 0xFFFFFF, .45, 0xFFFFFF));
   body.scale.setScalar(k.scale);
   body.castShadow = true;
   body.receiveShadow = true;
@@ -1126,7 +1444,9 @@ function buildTank(tank) {
     const a = i * Math.PI / 2;
     box(shield, Math.cos(a) * .56, .32, Math.sin(a) * .56, .1, .1, .1, 0x6FF2E0, true);
   }
-  return { root, model, paint, normal: paint[0].material, flash: spriteMat(name, 0xFFFFFF, 2.4, 0xFFE699), shield, ring, bar };
+  return { root, model, paint, normal: paint[0].material, flash: spriteMat(name, 0xFFFFFF, 2.4, 0xFFE699), shield, ring, bar,
+    // a see-through look while cloaked, and a cold one while stunned by the dome
+    ghost: spriteMat(name, 0xD8B8FF, .8, 0xB040FF, .35), stun: spriteMat(name, 0x9CC8FF, 1.1, 0x5AA8FF) };
 }
 const yaw = d => -d * Math.PI / 2;
 function angleTo(from, to, maxStep) {
@@ -1148,8 +1468,9 @@ function syncTank(tank, dt) {
   v.model.position.y = tank.moving ? Math.sin(clock * 30) * .012 : 0;
   v.model.visible = tank.spawn <= 0 || ((clock * 12) % 1) < .5;
   const flashing = tank.carrier && ((clock * 3) % 1) < .5;
-  for (const p of v.paint) p.material = flashing ? v.flash : v.normal;
-  if (v.ring) v.ring.scale.setScalar(1 + Math.sin(clock * 4) * .06);
+  const look = tank.isPlayer && sim.cloak > 0 ? v.ghost : tank.stun > 0 ? v.stun : flashing ? v.flash : v.normal;
+  for (const p of v.paint) p.material = look;
+  if (v.ring) { v.ring.scale.setScalar(1 + Math.sin(clock * 4) * .06); v.ring.material.color.setHex(sim.cloak > 0 ? 0xC060FF : 0x35F2D0); }
   if (v.bar) {
     const count = tank.isPlayer ? tank.maxHp : BOSS_SEGMENTS;
     if (count !== v.bar.count) { v.root.remove(v.bar); v.bar = buildHealthBar(count, tank.isPlayer ? 1.3 : 1.7); v.root.add(v.bar); }
@@ -1178,6 +1499,14 @@ function strikeBeam(x, y, dir) {
   beams.push({ m, life: .45 });
   for (let step = .5; step < length; step += 1.2) burst(x + DX[dir] * step, y + DY[dir] * step, 0x8FFFF0, 3, 2);
 }
+// A flat ring on the ground that grows and fades: the dome, mine blasts, the rammer.
+function ring(x, y, color, size, seconds) {
+  const m = new THREE.Mesh(new THREE.RingGeometry(.8, 1, 40), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .8, side: THREE.DoubleSide, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2;
+  m.position.set(x, .06, y);
+  worldRoot.add(m);
+  rings.push({ m, life: seconds, max: seconds, size });
+}
 function syncWorld(sim, dt) {
   clock += dt;
   for (let i = beams.length - 1; i >= 0; i--) {
@@ -1198,6 +1527,30 @@ function syncWorld(sim, dt) {
     m.visible = !!b;
     if (b) { m.position.set(b.x, .42, b.y); m.rotation.y = yaw(b.dir); }
   });
+  // Mines: a dark disc with a red light that blinks faster once armed.
+  while (mineViews.length < sim.mines.length) {
+    const g = new THREE.Group();
+    const disc = new THREE.Mesh(unitCyl, mat(0x2A2622)); disc.scale.set(.42, .03, .42); disc.position.y = .06; disc.castShadow = true; g.add(disc);
+    g.light = box(g, 0, .12, 0, .1, .05, .1, 0xFF3B30, true);
+    worldRoot.add(g); mineViews.push(g);
+  }
+  mineViews.forEach((g, i) => {
+    const m = sim.mines[i];
+    g.visible = !!m;
+    if (m) { g.position.set(m.x, 0, m.y); g.light.visible = ((clock * (m.arm > 0 ? 2 : 5)) % 1) < .5; }
+  });
+  for (const t of sim.turrets) {
+    const head = turretHeads.get(t.x + "," + t.y);
+    if (head && t.hp > 0) head.rotation.y = angleTo(head.rotation.y, yaw(t.dir), 8 * dt);
+  }
+  for (let i = rings.length - 1; i >= 0; i--) {
+    const r = rings[i];
+    r.life -= dt;
+    if (r.life <= 0) { worldRoot.remove(r.m); rings.splice(i, 1); continue; }
+    const k = 1 - r.life / r.max;
+    r.m.scale.setScalar(.2 + k * r.size);
+    r.m.material.opacity = r.life / r.max * .8;
+  }
   const b = sim.bonus;
   if (!b || !bonusView || bonusViewKind !== b.kind) {
     if (bonusView) worldRoot.remove(bonusView);
@@ -1223,7 +1576,11 @@ function syncWorld(sim, dt) {
     d.m.position.x += d.vx * dt; d.m.position.y += d.vy * dt; d.m.position.z += d.vz * dt;
     d.m.rotation.x += 7 * dt; d.m.rotation.y += 5 * dt;
   }
-  if (reactorCore) { const p = .34 + Math.sin(clock * 3) * .03; reactorCore.scale.set(p, .2, p); }
+  if (reactorCore) {
+    // The enemy reactor beats faster as it weakens.
+    const rate = sim.mode === "assault" && sim.coreMax ? 3 + 9 * (1 - sim.coreHp / sim.coreMax) : 3;
+    const p = .34 + Math.sin(clock * rate) * .03; reactorCore.scale.set(p, .2, p);
+  }
   camera.position.set(home.x + (Math.random() - .5) * shake * .5, home.y + (Math.random() - .5) * shake * .5, home.z);
   shake = Math.max(0, shake - dt * 1.2);
 }
@@ -1357,7 +1714,9 @@ let state = "title", accumulator = 0, last = performance.now(), toastTimer = 0, 
 // Everything kept between visits, in one localStorage entry.
 const SAVE_KEY = "steel-line-save";
 function loadSave() {
-  const data = { unlocked: 0, parts: 0, upgrades: [0, 0, 0, 0], best: 0, bestWave: 0, difficulty: "Normal", sound: true, vibration: true };
+  const data = { unlocked: 0, parts: 0, upgrades: [0, 0, 0, 0], best: 0, bestWave: 0, difficulty: "Normal", sound: true, vibration: true,
+    tank: "guard", owned: ["guard"], stars: [], assaultUnlocked: 0, assaultStars: [], awards: [],
+    counters: { kills: 0, bosses: 0, crates: 0, mines: 0, abilities: 0, turrets: 0, flawless: 0 } };
   let stored = null;
   try { stored = JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); } catch (e) { stored = null; }
   if (!stored) {
@@ -1369,7 +1728,13 @@ function loadSave() {
     } catch (e) { /* storage is optional */ }
     return data;
   }
+  const counters = data.counters;
   Object.assign(data, stored);
+  data.counters = Object.assign(counters, stored.counters || {});
+  for (const key of ["owned", "stars", "assaultStars", "awards"]) if (!Array.isArray(data[key])) data[key] = [];
+  if (!data.owned.includes("guard")) data.owned.unshift("guard");
+  if (!TANKS[data.tank] || !data.owned.includes(data.tank)) data.tank = "guard";
+  data.assaultUnlocked = Math.max(0, Math.min(ASSAULT.length - 1, data.assaultUnlocked | 0));
   if (!Array.isArray(data.upgrades) || data.upgrades.length !== 4) data.upgrades = [0, 0, 0, 0];
   data.upgrades = data.upgrades.map(level => Math.max(0, Math.min(TUNE.workshopMax, level | 0)));
   data.unlocked = Math.max(0, Math.min(LEVELS.length - 1, data.unlocked | 0));
@@ -1409,8 +1774,46 @@ const ICON_PATHS = {
   speed: '<path d="M3 17a9 9 0 1 1 18 0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M12 17l5-7" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>',
   repair: '<path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z" fill="currentColor"/>',
   charge: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="12" cy="12" r="4" fill="currentColor"/>',
-  fort: '<path d="M3 21V9h3V6h3v3h2V6h2v3h2V6h3v3h3v12z" fill="currentColor"/>'
+  fort: '<path d="M3 21V9h3V6h3v3h2V6h2v3h2V6h3v3h3v12z" fill="currentColor"/>',
+  assault: '<path d="M4 20l7-7M14 4l6 6-9 9-6-6zM15 5l4 4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
+  tank: '<path d="M3 15h18v4H3zM6 11h10v4H6zM11 9h9v2h-9z" fill="currentColor"/>',
+  medal: '<circle cx="12" cy="15" r="6" fill="#E8C060"/><path d="M8 2h3l2 6-3 1zM16 2h-3l-2 6 3 1z" fill="#C24A24"/><path d="M12 12l1 2h2l-1.6 1.3.6 2.2-2-1.3-2 1.3.6-2.2L9 14h2z" fill="#7A5A1E"/>',
+  star: '<path d="M12 2l3 7h7l-5.6 4.4L18.5 21 12 16.6 5.5 21l2.1-7.6L2 9h7z" fill="#FFD34D"/>'
 };
+// Awards: each pays parts once, the first time its goal is reached.
+const sumStars = list => list.reduce((n, v) => n + (v | 0), 0);
+const AWARDS = [
+  { id: "first", name: "Первый подбитый", text: "Подбей 1 танк", reward: 5, goal: 1, value: s => s.counters.kills },
+  { id: "hunter", name: "Охотник", text: "Подбей 100 танков", reward: 30, goal: 100, value: s => s.counters.kills },
+  { id: "veteran", name: "Ветеран", text: "Подбей 500 танков", reward: 80, goal: 500, value: s => s.counters.kills },
+  { id: "boss", name: "Гроза боссов", text: "Победи босса", reward: 25, goal: 1, value: s => s.counters.bosses },
+  { id: "bosses", name: "Укротитель", text: "Победи 4 боссов", reward: 60, goal: 4, value: s => s.counters.bosses },
+  { id: "crates", name: "Сносим всё", text: "Разбей 200 ящиков", reward: 20, goal: 200, value: s => s.counters.crates },
+  { id: "sapper", name: "Сапёр", text: "Расстреляй 10 мин", reward: 20, goal: 10, value: s => s.counters.mines },
+  { id: "power", name: "Сила реактора", text: "Используй способность 25 раз", reward: 25, goal: 25, value: s => s.counters.abilities },
+  { id: "flawless", name: "Без царапин", text: "Пройди карту, не потеряв ни одного танка", reward: 15, goal: 1, value: s => s.counters.flawless },
+  { id: "stars10", name: "Звёздный", text: "Собери 10 звёзд", reward: 30, goal: 10, value: s => sumStars(s.stars) + sumStars(s.assaultStars) },
+  { id: "stars60", name: "Безупречный", text: "Собери все 60 звёзд кампании", reward: 150, goal: 60, value: s => sumStars(s.stars) },
+  { id: "wave10", name: "Несгибаемый", text: "Дойди до 10-й волны в выживании", reward: 50, goal: 10, value: s => s.bestWave },
+  { id: "breaker", name: "Штурмовик", text: "Возьми первую крепость", reward: 30, goal: 1, value: s => s.assaultStars.filter(Boolean).length },
+  { id: "conqueror", name: "Покоритель", text: "Возьми все 6 крепостей", reward: 100, goal: 6, value: s => s.assaultStars.filter(Boolean).length },
+  { id: "garage", name: "Коллекционер", text: "Собери все 4 танка", reward: 50, goal: 4, value: s => s.owned.length }
+];
+const toasts = [];
+function checkAwards() {
+  for (const a of AWARDS) {
+    if (save.awards.includes(a.id) || a.value(save) < a.goal) continue;
+    save.awards.push(a.id);
+    save.parts += a.reward;
+    toasts.push("Награда «" + a.name + "»: +" + a.reward + " деталей");
+  }
+  writeSave();
+}
+function starText(count, total) {
+  let html = "";
+  for (let i = 0; i < (total || 3); i++) html += i < count ? "<b>★</b>" : "★";
+  return html;
+}
 function icon(name) {
   const box = document.createElement("span");
   box.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + (ICON_PATHS[name] || "") + "</svg>";
@@ -1509,8 +1912,10 @@ function showTitle() {
   chips.className = "chips";
   chips.append(chip("part", save.parts, "деталей"), chip("trophy", save.best, "рекорд"));
   if (save.bestWave) chips.appendChild(chip("wave", save.bestWave, "волна"));
+  chips.appendChild(chip("star", sumStars(save.stars) + sumStars(save.assaultStars), "звёзд"));
   screen("Стальной рубеж", "",
-    [["Кампания", showLevels, "play"], ["Выживание", startSurvival, "wave"], ["Мастерская", showWorkshop, "wrench"], ["Настройки", () => showSettings(showTitle), "gear"]],
+    [["Кампания", showLevels, "play"], ["Штурм", showAssault, "assault"], ["Выживание", startSurvival, "wave"], ["Гараж", showGarage, "tank"],
+     ["Мастерская", showWorkshop, "wrench"], ["Награды", showAwards, "medal"], ["Настройки", () => showSettings(showTitle), "gear"]],
     null, true, { art: "menu", logo: true, above: chips });
 }
 function showLevels() {
@@ -1527,6 +1932,7 @@ function showLevels() {
       b.textContent = String(i + 1);
       if (boss) { const tag = document.createElement("small"); tag.textContent = "босс"; b.appendChild(tag); }
       if (boss) b.classList.add("boss");
+      const stars = document.createElement("span"); stars.className = "stars"; stars.innerHTML = starText(save.stars[i] | 0); b.appendChild(stars);
       if (i === save.unlocked) b.classList.add("next");
     } else {
       b.appendChild(icon("lock"));
@@ -1543,7 +1949,98 @@ function showLevels() {
   const box = document.createElement("div");
   box.style.cssText = "display:flex;flex-direction:column;gap:10px;width:100%";
   box.append(grid, name);
-  screen("Кампания", "Пройди уровень, чтобы открыть следующий.", [["Назад", showTitle, "back"]], box, false, { art: "map" });
+  screen("Кампания", "Пройди уровень, чтобы открыть следующий. Звёзды: победа, без потерь, быстрее нормы.", [["Назад", showTitle, "back"]], box, false, { art: "map" });
+}
+// Assault: six enemy fortresses, each opens the next.
+function showAssault() {
+  const grid = document.createElement("div");
+  grid.className = "grid six";
+  const name = document.createElement("p");
+  name.className = "levelName";
+  name.textContent = ASSAULT[save.assaultUnlocked].name;
+  ASSAULT.forEach((map, i) => {
+    const b = document.createElement("button");
+    const open = i <= save.assaultUnlocked;
+    if (open) {
+      b.textContent = String(i + 1);
+      b.classList.add(i === save.assaultUnlocked ? "next" : "assault");
+      const stars = document.createElement("span"); stars.className = "stars"; stars.innerHTML = starText(save.assaultStars[i] | 0); b.appendChild(stars);
+    } else {
+      b.appendChild(icon("lock"));
+      b.setAttribute("aria-label", "Крепость " + (i + 1) + " закрыта");
+    }
+    b.title = map.name;
+    b.disabled = !open;
+    b.addEventListener("click", () => { initAudio(); startAssault(i); });
+    const show = () => { if (open) name.textContent = (i + 1) + ". " + map.name; };
+    b.addEventListener("pointerenter", show);
+    b.addEventListener("focus", show);
+    grid.appendChild(b);
+  });
+  const box = document.createElement("div");
+  box.style.cssText = "display:flex;flex-direction:column;gap:10px;width:100%";
+  box.append(grid, name);
+  screen("Штурм", "Теперь нападаешь ты: пробейся к вражескому реактору и разбей его. Турели бьют по прямой.", [["Назад", showTitle, "back"]], box, false, { art: "arena" });
+}
+// Garage: pick a tank, or buy one with parts.
+function showGarage() {
+  const list = document.createElement("div");
+  list.className = "garage";
+  for (const id of TANK_IDS) {
+    const t = TANKS[id], owned = save.owned.includes(id);
+    const row = document.createElement("div");
+    if (save.tank === id) row.className = "chosen";
+    const pic = document.createElement("img"); pic.src = "tanks/" + t.model + ".png"; pic.alt = "";
+    const title = document.createElement("strong"); title.textContent = t.name;
+    const note = document.createElement("p"); note.textContent = t.note;
+    const power = document.createElement("p"); power.className = "power"; power.textContent = t.power;
+    const b = document.createElement("button");
+    if (save.tank === id) { b.textContent = "Выбран"; b.disabled = true; }
+    else if (owned) {
+      b.textContent = "Выбрать"; b.className = "pick";
+      b.addEventListener("click", () => { initAudio(); save.tank = id; writeSave(); showGarage(); });
+    } else {
+      b.textContent = "Купить";
+      const price = document.createElement("span"); price.append(icon("part"), String(t.price)); b.appendChild(price);
+      b.disabled = save.parts < t.price;
+      b.addEventListener("click", () => {
+        initAudio();
+        if (save.parts < t.price) return;
+        save.parts -= t.price;
+        save.owned.push(id);
+        save.tank = id;
+        tone(440, 1320, .22, .07, "triangle");
+        checkAwards();
+        showGarage();
+      });
+    }
+    row.append(pic, title, b, note, power);
+    list.appendChild(row);
+  }
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  chips.appendChild(chip("part", save.parts, "деталей"));
+  screen("Гараж", "У каждого танка своя способность на кнопке внизу.", [["Назад", showTitle, "back"]], list, false, { art: "workshop", above: chips });
+}
+function showAwards() {
+  const list = document.createElement("div");
+  list.className = "awards";
+  for (const a of AWARDS) {
+    const done = save.awards.includes(a.id), value = Math.min(a.goal, a.value(save));
+    const row = document.createElement("div");
+    if (done) row.className = "done";
+    row.appendChild(icon("medal"));
+    const title = document.createElement("strong"); title.textContent = a.name;
+    const reward = document.createElement("em"); reward.textContent = done ? "получено" : "+" + a.reward;
+    const text = document.createElement("small"); text.textContent = a.text + (a.goal > 1 && !done ? " (" + value + "/" + a.goal + ")" : "");
+    const bar = document.createElement("i"); const fill = document.createElement("b"); fill.style.width = value / a.goal * 100 + "%"; bar.appendChild(fill);
+    row.append(title, reward, text, bar);
+    list.appendChild(row);
+  }
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  chips.append(chip("medal", save.awards.length + "/" + AWARDS.length, "наград"), chip("star", sumStars(save.stars) + sumStars(save.assaultStars), "звёзд"));
+  screen("Награды", "", [["Назад", showTitle, "back"]], list, false, { art: "victory", above: chips });
 }
 function showWorkshop() {
   const shop = document.createElement("div");
@@ -1596,7 +2093,7 @@ function showSettings(back) {
 function toMenu() {
   state = "title";
   sim.setDifficulty(save.difficulty);
-  sim.startCampaign(save.unlocked, stats());
+  sim.startCampaign(save.unlocked, stats(), save.tank);
   buildLevel(sim);
   setPlayingChrome(false);
   showTitle();
@@ -1617,16 +2114,22 @@ function beginBattle() {
 function startLevel(index) {
   if (index > save.unlocked) return;
   sim.setDifficulty(save.difficulty);
-  sim.startCampaign(index, stats());
+  sim.startCampaign(index, stats(), save.tank);
+  beginBattle();
+}
+function startAssault(index) {
+  if (index > save.assaultUnlocked) return;
+  sim.setDifficulty(save.difficulty);
+  sim.startAssault(index, stats(), save.tank);
   beginBattle();
 }
 function startGame() { startLevel(save.unlocked); }
 function startSurvival() {
   sim.setDifficulty(save.difficulty);
-  sim.startSurvival(stats());
+  sim.startSurvival(stats(), save.tank);
   beginBattle();
 }
-function retry() { if (sim.mode === "survival") startSurvival(); else startLevel(sim.level); }
+function retry() { if (sim.mode === "survival") startSurvival(); else if (sim.mode === "assault") startAssault(sim.level); else startLevel(sim.level); }
 function nextLevel() {
   sim.next();
   beginBattle();
@@ -1635,7 +2138,7 @@ function pauseScreen() {
   screen("Пауза", controlsHelp(), [["Продолжить", togglePause, "play"], ["Настройки", () => showSettings(pauseScreen), "gear"], ["Начать заново", retry, "retry"], ["В меню", toMenu, "home"]], null, true, { art: pauseArt() });
 }
 function pauseArt() {
-  return sim.mode === "survival" ? "arena" : "menu";
+  return sim.mode === "campaign" ? "menu" : "arena";
 }
 function togglePause() {
   if (state === "playing") {
@@ -1663,13 +2166,33 @@ function handleEvents() {
     else if (e.kind === "tile") { refreshTile(sim, e.x, e.y); if (e.debris) burst(e.x + .5, e.y + .5, 0xA9713C, 5, 2.2); }
     else if (e.kind === "spark") { burst(e.x, e.y, 0xFFE9A8, 3, 1.6); tone(1400, 900, .05, .02); }
     else if (e.kind === "tankHit") { burst(e.x, e.y, 0xFFB057, 8, 2.4); tone(900, 500, .07, .05); }
-    else if (e.kind === "tankDown") { burst(e.x, e.y, 0xFF8A3D, 18, 3.4); noise(.3, .22); shake = Math.max(shake, .12); }
+    else if (e.kind === "tankDown") { burst(e.x, e.y, 0xFF8A3D, 18, 3.4); noise(.3, .22); shake = Math.max(shake, .12); save.counters.kills++; if (e.boss) save.counters.bosses++; }
     else if (e.kind === "playerDown") { burst(e.x, e.y, 0x6FF2E0, 24, 3.8); noise(.6, .3); shake = Math.max(shake, .3); vibrate(120); }
     else if (e.kind === "baseDown") { burst(e.x, e.y, 0x6FF2E0, 40, 5); noise(.8, .35); shake = .5; }
     else if (e.kind === "bomb") { noise(.6, .3); shake = .4; }
     else if (e.kind === "playerHit") { burst(e.x, e.y, 0x6FF2E0, 10, 2.6); noise(.25, .2); shake = Math.max(shake, .15); vibrate(40); }
-    else if (e.kind === "super") { strikeBeam(e.x, e.y, e.dir); noise(.7, .32); tone(220, 1600, .35, .08, "sawtooth"); shake = .45; vibrate(80); }
-    else if (e.kind === "superReady") { tone(440, 1320, .22, .07, "triangle"); showToast("Удар реактора готов!"); }
+    else if (e.kind === "super") {
+      save.counters.abilities++;
+      vibrate(80);
+      if (e.ability === "volley") { burst(e.x, e.y, 0xFFA040, 16, 3); ring(e.x, e.y, 0xFFA040, 1.6, .35); noise(.4, .25); tone(300, 900, .2, .07, "sawtooth"); shake = .25; }
+      else if (e.ability === "dome") { ring(e.x, e.y, 0x9CFF5A, TUNE.domeRange, .6); ring(e.x, e.y, 0x6FF2E0, TUNE.domeRange * .7, .45); tone(180, 720, .5, .08, "triangle"); shake = .2; }
+      else if (e.ability === "dash") {
+        const steps = 8;
+        for (let i = 0; i <= steps; i++) burst(e.x + (e.toX - e.x) * i / steps, e.y + (e.toY - e.y) * i / steps, 0xC060FF, 2, 1.2);
+        tone(900, 200, .25, .06, "sawtooth");
+      }
+      else { strikeBeam(e.x, e.y, e.dir); noise(.7, .32); tone(220, 1600, .35, .08, "sawtooth"); shake = .45; }
+    }
+    else if (e.kind === "mineLaid") tone(260, 220, .06, .02, "triangle");
+    else if (e.kind === "mineBlast") { burst(e.x, e.y, 0xFF5A3C, 16, 3.2); ring(e.x, e.y, 0xFF5A3C, 1.2, .4); noise(.4, .28); shake = Math.max(shake, .2); vibrate(60); }
+    else if (e.kind === "mineShot") { burst(e.x, e.y, 0xFFB057, 10, 2.4); ring(e.x, e.y, 0xFFB057, .9, .3); noise(.2, .15); save.counters.mines++; }
+    else if (e.kind === "heal") { burst(e.x, e.y, 0x7CE05A, 4, 1.2); tone(700, 1100, .08, .02, "triangle"); }
+    else if (e.kind === "ramBlast") { burst(e.x, e.y, 0xFF7A2A, 26, 4); ring(e.x, e.y, 0xFF7A2A, TUNE.ramBlast + .4, .5); noise(.6, .32); shake = Math.max(shake, .35); }
+    else if (e.kind === "crate") save.counters.crates++;
+    else if (e.kind === "turretDown") { burst(e.x, e.y, 0xFF5A3C, 20, 3.6); noise(.4, .25); shake = Math.max(shake, .2); save.counters.turrets++; }
+    else if (e.kind === "coreHit") { burst(e.x, e.y, 0xFF5A3C, 6, 2.2); tone(500, 300, .08, .05); }
+    else if (e.kind === "coreDown") { burst(e.x, e.y, 0xFF5A3C, 50, 5.5); ring(e.x, e.y, 0xFF5A3C, 5, .9); noise(1, .4); shake = .6; vibrate(150); showToast("Вражеский реактор уничтожен!"); }
+    else if (e.kind === "superReady") { tone(440, 1320, .22, .07, "triangle"); showToast(ABILITY_NAME[sim.ability()] + " готов!"); }
     else if (e.kind === "boss") { noise(.6, .3); shake = .3; showToast("Босс на поле!"); }
     else if (e.kind === "pickup") { burst(e.x, e.y, BONUS_COLOR[e.bonus], 10, 2.4); tone(440, 1320, .22, .07, "triangle"); showToast(BONUS_TEXT[e.bonus]); }
   }
@@ -1688,19 +2211,29 @@ function showHearts(lives) {
   box.innerHTML = html;
   box.setAttribute("aria-label", "Жизни: " + lives);
 }
+const ABILITY_LABEL = { strike: "УДАР", volley: "ЗАЛП", dome: "КУПОЛ", dash: "РЫВОК" };
+const ABILITY_NAME = { strike: "Удар реактора", volley: "Залп", dome: "Купол", dash: "Рывок" };
 function updateHud() {
   $("levelName").textContent = sim.levelName();
   showHearts(Math.max(sim.lives, 0));
-  $("sLeft").textContent = sim.left();
+  $("sLeftLabel").textContent = sim.mode === "assault" ? "Турелей" : "Врагов";
+  $("sLeft").textContent = sim.mode === "assault" ? sim.turrets.filter(t => t.hp > 0).length : sim.left();
   $("sScore").textContent = sim.score;
   $("starStat").hidden = sim.star <= 0;
   if (sim.star > 0) $("sStar").textContent = sim.star + " · " + Math.ceil(sim.starTimer) + "с";
   const sup = $("super");
   sup.style.setProperty("--charge", Math.min(100, sim.charge / sim.need * 100));
   sup.classList.toggle("ready", sim.superReady());
-  const boss = sim.boss();
-  $("bossBar").hidden = !boss || boss.spawn > 0;
-  if (boss) $("bossBar").querySelector("b").style.width = Math.max(0, boss.hp / boss.maxHp * 100) + "%";
+  sup.firstChild.textContent = ABILITY_LABEL[sim.ability()];
+  // The bar on top: the boss while it is out, otherwise the enemy reactor in an assault.
+  const boss = sim.boss(), bar = $("bossBar");
+  if (boss && boss.spawn <= 0) {
+    bar.hidden = false; bar.firstChild.textContent = "БОСС";
+    bar.querySelector("b").style.width = Math.max(0, boss.hp / boss.maxHp * 100) + "%";
+  } else if (sim.mode === "assault" && sim.coreMax) {
+    bar.hidden = false; bar.firstChild.textContent = "ВРАЖЕСКИЙ РЕАКТОР " + sim.coreHp + "/" + sim.coreMax;
+    bar.querySelector("b").style.width = Math.max(0, sim.coreHp / sim.coreMax * 100) + "%";
+  } else bar.hidden = true;
 }
 // Stores parts, records and newly opened levels as soon as a level or wave ends, then shows the result.
 function checkPhase() {
@@ -1708,9 +2241,19 @@ function checkPhase() {
   lastParts = sim.takeParts();
   save.parts += lastParts;
   save.best = Math.max(save.best, sim.score);
+  const won = sim.phase === "cleared" || sim.phase === "victory";
   if (sim.mode === "survival") save.bestWave = Math.max(save.bestWave, sim.phase === "choice" ? sim.wave : sim.wave - 1);
-  else if (sim.phase === "cleared") save.unlocked = Math.max(save.unlocked, Math.min(sim.level + 1, LEVELS.length - 1));
-  writeSave();
+  else if (sim.mode === "assault") {
+    if (won) {
+      save.assaultStars[sim.level] = Math.max(save.assaultStars[sim.level] | 0, sim.starsWon);
+      save.assaultUnlocked = Math.max(save.assaultUnlocked, Math.min(sim.level + 1, ASSAULT.length - 1));
+    }
+  } else if (won) {
+    save.stars[sim.level] = Math.max(save.stars[sim.level] | 0, sim.starsWon);
+    if (sim.phase === "cleared") save.unlocked = Math.max(save.unlocked, Math.min(sim.level + 1, LEVELS.length - 1));
+  }
+  if (won && sim.livesLost === 0) save.counters.flawless++;
+  checkAwards();
   setPlayingChrome(false);
   $("hud").hidden = false;
   if (sim.phase === "choice") { state = "choice"; showWaveChoice(); return; }
@@ -1721,10 +2264,22 @@ function checkPhase() {
     const d = document.createElement("div"), b = document.createElement("b"), s = document.createElement("span");
     b.textContent = value; s.textContent = label; d.append(b, s); tiles.appendChild(d);
   }
-  const where = sim.mode === "survival" ? "Волна " + sim.wave + "." : (sim.level + 1) + ". " + LEVELS[sim.level].name;
-  if (sim.phase === "cleared") screen("Уровень пройден", where, [["Дальше", nextLevel, "next"], ["В меню", toMenu, "home"]], tiles, false, { art: "victory", tone: "win" });
-  else if (sim.phase === "victory") screen("Рубеж удержан!", "Все 20 уровней пройдены.", [["Выживание", startSurvival, "wave"], ["В меню", toMenu, "home"]], tiles, false, { art: "victory", tone: "win" });
-  else screen(sim.reason === "base" ? "Реактор уничтожен" : "Танки закончились", where, [["Ещё раз", retry, "retry"], ["Мастерская", () => { toMenu(); showWorkshop(); }, "wrench"], ["В меню", toMenu, "home"]], tiles, false, { art: "defeat", tone: "lose" });
+  const where = sim.mode === "survival" ? "Волна " + sim.wave + "." : sim.levelName() + ".";
+  // Stars won, with what each one was for.
+  const stars = document.createElement("div");
+  stars.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:4px";
+  if (won) {
+    const big = document.createElement("div"); big.className = "bigStars"; big.innerHTML = starText(sim.starsWon); stars.appendChild(big);
+    const why = document.createElement("p");
+    why.textContent = "Победа" + (sim.livesLost === 0 ? " · без потерь" : "") + (sim.time <= sim.par() ? " · быстрее " + Math.round(sim.par()) + " с" : " · норма " + Math.round(sim.par()) + " с");
+    stars.appendChild(why);
+  }
+  const above = won ? stars : null;
+  if (sim.mode === "assault" && sim.phase === "cleared") screen("Крепость взята", where, [["Дальше", nextLevel, "next"], ["В меню", toMenu, "home"]], tiles, false, { art: "victory", tone: "win", above });
+  else if (sim.mode === "assault" && sim.phase === "victory") screen("Все крепости взяты!", "Вражеские реакторы погашены.", [["В меню", toMenu, "home"]], tiles, false, { art: "victory", tone: "win", above });
+  else if (sim.phase === "cleared") screen("Уровень пройден", where, [["Дальше", nextLevel, "next"], ["В меню", toMenu, "home"]], tiles, false, { art: "victory", tone: "win", above });
+  else if (sim.phase === "victory") screen("Рубеж удержан!", "Все 20 уровней пройдены.", [["Штурм", showAssault, "assault"], ["В меню", toMenu, "home"]], tiles, false, { art: "victory", tone: "win", above });
+  else screen(sim.reason === "base" ? "Реактор уничтожен" : "Танки закончились", where, [["Ещё раз", retry, "retry"], ["Гараж", () => { toMenu(); showGarage(); }, "tank"], ["В меню", toMenu, "home"]], tiles, false, { art: "defeat", tone: "lose" });
 }
 const UPGRADE_ICON = { armor: "armor", gun: "gun", fire: "rate", speed: "speed", repair: "repair", super: "charge", fort: "fort" };
 function showWaveChoice() {
@@ -1762,10 +2317,11 @@ function frame(now) {
   }
   syncWorld(sim, state === "paused" ? 0 : dt);
   if (toastTimer > 0) { toastTimer -= dt; if (toastTimer <= 0) $("toast").classList.remove("on"); }
+  else if (toasts.length) showToast(toasts.shift());
   renderer.render(scene, camera);
 }
 
-window.__steelLine = { sim, renderer, camera, get state() { return state; }, get save() { return save; }, startGame, startLevel, startSurvival, showLevels, showWorkshop, showSettings, writeSave };
+window.__steelLine = { sim, renderer, camera, get state() { return state; }, get save() { return save; }, startGame, startLevel, startSurvival, startAssault, showLevels, showAssault, showGarage, showAwards, showWorkshop, showSettings, writeSave, checkAwards };
 // ---- Loading screen: the reactor charges while the player's tank circles it ----
 const SPLASH = { radius: 3, turnRate: 1.9, chargeSeconds: 2.4, turnSeconds: .25, shotSeconds: .55, topAngle: Math.PI * 1.5 };
 let splash = null;
@@ -1814,7 +2370,7 @@ function startSplash() {
     arcs.push(m);
   }
 
-  const view = buildTank({ isPlayer: true, kind: "P" });
+  const view = buildTank({ isPlayer: true, kind: "P", model: TANKS[save.tank].model });
   view.ring.visible = view.bar.visible = view.shield.visible = false;
   group.add(view.root);
 
@@ -1899,9 +2455,10 @@ function finishSplash() {
 }
 fitCamera();
 const loadBonus = name => loadGeometry("bonuses/" + name + ".json").then(g => { bonusGeo[name] = g; });
-loadModel("player").then(() => {
+const splashModel = TANKS[save.tank].model;
+loadModel(splashModel).then(() => {
   startSplash();
-  const jobs = [loadModel("enemy")].concat(TILE_NAMES.map(loadTile), Object.values(BONUS_MODEL).map(loadBonus));
+  const jobs = MODEL_NAMES.filter(n => n !== splashModel).map(loadModel).concat(TILE_NAMES.map(loadTile), Object.values(BONUS_MODEL).map(loadBonus));
   let done = 0;
   jobs.forEach(job => job.then(() => { done++; if (splash) splash.real = done / jobs.length; }));
   return Promise.all(jobs);
