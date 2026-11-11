@@ -1,6 +1,6 @@
 # 🐍 Science Snake — Game Design Document
 
-> **GDD** · рабочее название · [оригинал в Google Docs](https://docs.google.com/document/d/1ias3MrEGeJViLIlTGnDJIdscI9s4r638mBwv-0fzWWo/edit?usp=drivesdk)
+> **GDD** · рабочее название · [оригинал в Google Docs](https://docs.google.com/document/d/1ias3MrEGeJViLIlTGnDJIdscI9s4r638mBwv-0fzWWo/edit?usp=drivesdk) · [▶ играть в прототип](https://raw.githack.com/Zaidejas/GC26/gc26_science_snake/docs/snake_prototype.html)
 
 
 |                       |                                                                   |
