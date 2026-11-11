@@ -1,0 +1,20 @@
+{
+  "name": "GC26._2048.Tests",
+  "rootNamespace": "GC26._2048.Tests",
+  "references": [
+    "GC26._2048",
+    "UnityEngine.TestRunner",
+    "UnityEditor.TestRunner"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll"
+  ],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ]
+}

@@ -2,7 +2,10 @@
   "name": "GC26._2048",
   "rootNamespace": "GC26._2048",
   "references": [
-    "GC26.Core"
+    "GC26.Core",
+    "UnityEngine.UI",
+    "Unity.TextMeshPro",
+    "Unity.InputSystem"
   ],
   "autoReferenced": false
 }
