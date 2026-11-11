@@ -45,6 +45,18 @@ static class Program
         Test("kills and cleared levels earn parts", PartsAreEarned);
         Test("survival offers three upgrades after each wave", SurvivalOffersChoices);
         Test("20 bot survival runs keep every invariant", SurvivalBotRuns);
+        Test("the garage tanks change health, speed and fire rate", TanksChangeNumbers);
+        Test("the squall's volley fires piercing shells all four ways", VolleyWorks);
+        Test("the bastion's dome shields the tank and stuns the enemies close by", DomeWorks);
+        Test("the phantom dashes ahead and the enemy loses sight of it", DashAndCloakWork);
+        Test("a miner lays mines, a mine hurts the player, a shot clears it", MinesWork);
+        Test("a fixer mends the hurt tanks around it", FixerMends);
+        Test("a rammer blows up against a crate and next to the player", RammerBlowsUp);
+        Test("assault maps have one enemy reactor and gates that reach the player", AssaultMapsAreWellFormed);
+        Test("turrets shoot along a clear line and fall after three hits", TurretsWork);
+        Test("breaking the enemy reactor wins the assault", CoreWinsAssault);
+        Test("stars count the win, no tank lost and the par time", StarsAreEarned);
+        Test("bot assaults with every tank keep every invariant", AssaultBotRuns);
 
         Console.WriteLine(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         return failures == 0 ? 0 : 1;
@@ -128,7 +140,7 @@ static class Program
             }
             Check(bases == 1 && players == 1 && enemies > 0, level.Name + ": bad markers");
             foreach (char c in level.Waves)
-                Check("RSGHX".IndexOf(c) >= 0, level.Name + ": unknown wave " + c);
+                Check("RSGHXMFK".IndexOf(c) >= 0, level.Name + ": unknown wave " + c);
             if (level == Levels.Survival) continue;
             bool bossLevel = (index + 1) % Tuning.BossEvery == 0;
             Check(bossLevel ? level.Waves.IndexOf('X') == level.Waves.Length - 1 : level.Waves.IndexOf('X') < 0,
@@ -827,6 +839,291 @@ static class Program
         }
         Console.WriteLine("      bot's best survival wave: " + bestWave);
         Check(bestWave >= 2, "the bot should get past the first wave at least once");
+    }
+    // ---- Garage tanks, new enemies, assault, stars ----
+
+    // A blank test map with the chosen garage tank.
+    static GameSim SimWith(PlayerTank tank, string waves, params (int x, int y, char c)[] cells)
+    {
+        var sim = new GameSim(7);
+        sim.StartCampaign(0, new PlayerStats(), tank);
+        sim.LoadMap(Blank(cells), waves == "" ? "R" : waves);
+        sim.Smartness = 0f;
+        return sim;
+    }
+
+    static Tank PlaceEnemy(GameSim sim, EnemyKind kind, float x, float y, int hp = 1)
+    {
+        var enemy = new Tank { Id = 500 + sim.Enemies.Count, Kind = kind, X = x, Y = y, Dir = Dir.Down, Want = Dir.Down, Speed = Tuning.EnemySpeed(kind),
+            BulletSpeed = Tuning.EnemyBulletSpeed(kind), Hp = hp, MaxHp = Math.Max(hp, Tuning.EnemyHp(kind)), ThinkTimer = 99f, FireTimer = 99f, MineTimer = 99f, FixTimer = 99f };
+        sim.Enemies.Add(enemy);
+        return enemy;
+    }
+
+    static void TanksChangeNumbers()
+    {
+        var stats = new PlayerStats();
+        var guard = SimWith(PlayerTank.Guard, "");
+        var squall = SimWith(PlayerTank.Squall, "");
+        var bastion = SimWith(PlayerTank.Bastion, "");
+        var phantom = SimWith(PlayerTank.Phantom, "");
+        Check(guard.MaxHp == Tuning.BaseHp && guard.Ability == Ability.Strike, "guard is the plain tank");
+        Check(squall.MaxHp == Tuning.BaseHp - 1 && squall.PlayerSpeed > guard.PlayerSpeed && squall.PlayerCooldown < guard.PlayerCooldown, "squall: thinner, faster, quicker gun");
+        Check(bastion.MaxHp == Tuning.BaseHp + 2 && bastion.PlayerSpeed < guard.PlayerSpeed, "bastion: tougher and slower");
+        Check(bastion.Player.Hp == bastion.MaxHp, "bastion spawns with its extra health");
+        Check(phantom.SuperNeed == guard.SuperNeed - 1, "phantom charges its ability faster");
+        Check(squall.Ability == Ability.Volley && bastion.Ability == Ability.Dome && phantom.Ability == Ability.Dash, "abilities");
+        foreach (PlayerTank tank in Enum.GetValues(typeof(PlayerTank)))
+            Check(TankDef.For(tank).Name.Length > 0 && TankDef.For(tank).Model.Length > 0, "every tank has a name and a model");
+    }
+
+    static void VolleyWorks()
+    {
+        var sim = SimWith(PlayerTank.Squall, "", (2, 1, '#'), (6, 5, '@'));
+        sim.FillSuper();
+        sim.Events.Clear();
+        sim.Tick(Dt, new PlayerInput { Super = true });
+        Check(sim.Events.Exists(e => e.Kind == GameEventKind.Volley), "volley event");
+        Check(sim.Bullets.Count == 8 && sim.Bullets.TrueForAll(b => b.Pierce && b.Volley && b.FromPlayer), "eight piercing shells");
+        Check(sim.Bullets.Exists(b => b.Dir == Dir.Up) && sim.Bullets.Exists(b => b.Dir == Dir.Down)
+            && sim.Bullets.Exists(b => b.Dir == Dir.Left) && sim.Bullets.Exists(b => b.Dir == Dir.Right), "all four ways");
+        sim.Tick(Dt, new PlayerInput { Fire = true });
+        Check(sim.Bullets.Exists(b => !b.Volley), "the gun still fires while the volley flies");
+        Run(sim, 1.5f);
+        Check(sim.Tiles[2, 1] == Tile.Empty && sim.Tiles[6, 5] == Tile.Empty, "the volley breaks a crate and concrete");
+    }
+
+    static void DomeWorks()
+    {
+        var sim = SimWith(PlayerTank.Bastion, "");
+        Tank close = PlaceEnemy(sim, EnemyKind.Raider, 4.5f, 5.5f);
+        Tank far = PlaceEnemy(sim, EnemyKind.Raider, 9.5f, 12.5f);
+        sim.Bullets.Add(new Bullet { OwnerId = close.Id, X = 3.5f, Y = 5.5f, Dir = Dir.Left, Speed = 0.1f });
+        sim.FillSuper();
+        sim.Player.ShieldTimer = 0f;
+        sim.Tick(Dt, new PlayerInput { Super = true });
+        Check(sim.Player.ShieldTimer > Tuning.DomeShield - 0.1f, "the dome is a shield");
+        Check(close.StunTimer > 0f && far.StunTimer <= 0f, "only the close enemy is stunned");
+        Check(!sim.Bullets.Exists(b => !b.FromPlayer), "enemy shots inside the dome are gone");
+        float x = close.X, y = close.Y;
+        close.Want = Dir.Up;
+        Run(sim, 1f);
+        Check(close.X == x && close.Y == y, "a stunned enemy stands still");
+    }
+
+    static void DashAndCloakWork()
+    {
+        var sim = SimWith(PlayerTank.Phantom, "", (6, 5, '@'));
+        sim.Player.Dir = Dir.Right;
+        sim.FillSuper();
+        sim.Tick(Dt, new PlayerInput { Super = true });
+        Check(Math.Abs(sim.Player.X - 5.5f) < 0.15f, "the dash stops at the wall, got " + sim.Player.X);
+        Check(sim.CloakTimer > 0f && !sim.PlayerVisible, "cloaked after the dash");
+        Tank hunter = PlaceEnemy(sim, EnemyKind.Gunner, 7.5f, 9.5f);
+        Check(sim.FindLineShot(hunter) == null, "a cloaked player gives no shot");
+        Run(sim, Tuning.CloakTime + 0.1f);
+        Check(sim.PlayerVisible, "visible again after the cloak");
+        hunter.X = sim.Player.X; hunter.Y = 9.5f;
+        Check(sim.FindLineShot(hunter) == Dir.Up, "seen again once the cloak ends");
+    }
+
+    static void MinesWork()
+    {
+        var sim = Sim("");
+        Tank miner = PlaceEnemy(sim, EnemyKind.Miner, 6.5f, 9.5f, 2);
+        miner.MineTimer = 0f;
+        miner.Speed = 0f;
+        sim.Tick(Dt, default);
+        Check(sim.Mines.Count == 1 && sim.Mines[0].CellX == 6 && sim.Mines[0].CellY == 9, "a mine under the miner");
+        sim.Enemies.Clear();
+
+        // The player drives onto the armed mine.
+        Run(sim, Tuning.MineArm + 0.1f);
+        sim.Player.ShieldTimer = 0f;
+        sim.Player.X = 6.5f; sim.Player.Y = 9.3f;
+        int hp = sim.Player.Hp;
+        sim.Tick(Dt, default);
+        Check(sim.Mines.Count == 0 && sim.Player.Hp == hp - 1, "the mine goes off under the player");
+
+        // A shot clears a mine.
+        var shot = Sim("");
+        Tank other = PlaceEnemy(shot, EnemyKind.Miner, 2.5f, 9.5f, 2);
+        other.MineTimer = 0f;
+        other.Speed = 0f;
+        shot.Tick(Dt, default);
+        shot.Enemies.Clear();
+        shot.Events.Clear();
+        Shoot(shot, Dir.Down);
+        Check(shot.Mines.Count == 0, "a shot clears the mine");
+        Check(shot.Events.Exists(e => e.Kind == GameEventKind.MineShot), "mine shot event");
+    }
+
+    static void FixerMends()
+    {
+        var sim = Sim("");
+        Tank fixer = PlaceEnemy(sim, EnemyKind.Fixer, 6.5f, 10.5f, 2);
+        Tank hurt = PlaceEnemy(sim, EnemyKind.Heavy, 7.5f, 11.5f, 1);
+        Tank far = PlaceEnemy(sim, EnemyKind.Heavy, 1.5f, 15.5f, 1);
+        fixer.Speed = hurt.Speed = far.Speed = 0f;
+        fixer.FixTimer = 0f;
+        sim.Tick(Dt, default);
+        Check(hurt.Hp == 2, "the close heavy is mended, hp " + hurt.Hp);
+        Check(far.Hp == 1, "the far heavy is not");
+        Run(sim, Tuning.FixEvery * 2f + 0.1f);
+        Check(hurt.Hp == 3, "mended up to its full health only, hp " + hurt.Hp);
+    }
+
+    static void RammerBlowsUp()
+    {
+        var sim = Sim("", (6, 12, '#'), (7, 12, '#'));
+        Tank rammer = PlaceEnemy(sim, EnemyKind.Rammer, 6.5f, 10.5f);
+        rammer.Want = Dir.Down;
+        rammer.ThinkTimer = 99f;
+        Run(sim, 1.5f);
+        Check(!rammer.Alive, "the rammer blew up at the crate");
+        Check(sim.Tiles[6, 12] == Tile.Empty, "the crate in front is gone");
+        Check(sim.Bullets.Count == 0, "a rammer never fires");
+
+        var near = Sim("");
+        near.Player.ShieldTimer = 0f;
+        Tank other = PlaceEnemy(near, EnemyKind.Rammer, 2.5f, 7.5f);
+        other.Want = Dir.Up;
+        int hp = near.Player.Hp;
+        Run(near, 1.5f);
+        Check(!other.Alive && near.Player.Hp == hp - 1, "it blows up next to the player and hurts it");
+    }
+
+    static void AssaultMapsAreWellFormed()
+    {
+        Check(Levels.Assault.Length == 6, "six assault maps");
+        foreach (LevelDef level in Levels.Assault)
+        {
+            Check(level.Rows.Length == Levels.Height, level.Name + ": rows");
+            int cores = 0, players = 0, gates = 0, bases = 0;
+            foreach (string row in level.Rows)
+            {
+                Check(row.Length == Levels.Width, level.Name + ": width");
+                foreach (char c in row)
+                {
+                    Check(".#@%~=CTPE".IndexOf(c) >= 0, level.Name + ": unknown tile " + c);
+                    if (c == 'C') cores++;
+                    if (c == 'P') players++;
+                    if (c == 'E') gates++;
+                    if (c == 'B') bases++;
+                }
+            }
+            Check(cores == 1 && players == 1 && gates >= 2 && bases == 0, level.Name + ": markers");
+            foreach (char c in level.Waves) Check("RSGHXMFK".IndexOf(c) >= 0, level.Name + ": unknown wave " + c);
+        }
+        for (int i = 0; i < Levels.Assault.Length; i++)
+        {
+            var sim = new GameSim(3);
+            sim.StartAssault(i, new PlayerStats());
+            Check(sim.Mode == GameMode.Assault && sim.CoreHp == Tuning.CoreHp(i), "assault " + i + " starts with its reactor");
+            Check(sim.Tiles[sim.BaseX, sim.BaseY] == Tile.Core, "the reactor tile");
+            Check(sim.TurretCount > 0 && sim.TurretsLeft == sim.TurretCount, "turrets");
+            Check(sim.LevelName.StartsWith("Штурм"), "assault name");
+        }
+    }
+
+    static void TurretsWork()
+    {
+        var sim = new GameSim(3);
+        sim.StartAssault(0, new PlayerStats());
+        Turret turret = sim.Turrets[0];
+        sim.Enemies.Clear();
+        // Stand straight below the turret with nothing between.
+        sim.Player.X = turret.X + 0.5f;
+        sim.Player.Y = turret.Y + 3.5f;
+        sim.Player.ShieldTimer = 9f;
+        for (int y = turret.Y + 1; y <= turret.Y + 3; y++) sim.Tiles[turret.X, y] = Tile.Empty;
+        turret.FireTimer = 0f;
+        sim.Tick(Dt, default);
+        Check(sim.Bullets.Exists(b => b.OwnerId == turret.Id && b.Dir == Dir.Down), "the turret fires down the line");
+
+        for (int hit = 0; hit < Tuning.TurretHp; hit++)
+        {
+            sim.Bullets.Clear();
+            sim.Bullets.Add(new Bullet { OwnerId = sim.Player.Id, FromPlayer = true, X = turret.X + 0.5f, Y = turret.Y + 0.6f, Dir = Dir.Up, Speed = 1f });
+            sim.Tick(Dt, default);
+        }
+        Check(turret.Hp <= 0 && sim.Tiles[turret.X, turret.Y] == Tile.Empty, "three hits break the turret");
+        Check(sim.TurretsLeft == sim.TurretCount - 1, "one turret fewer");
+    }
+
+    static void CoreWinsAssault()
+    {
+        var sim = new GameSim(3);
+        sim.StartAssault(0, new PlayerStats());
+        int x = sim.BaseX, y = sim.BaseY;
+        int hp = sim.CoreHp;
+        sim.Enemies.Clear();
+        sim.Bullets.Add(new Bullet { OwnerId = -5, X = x + 0.5f, Y = y + 0.98f, Dir = Dir.Up, Speed = 1f });
+        sim.Tick(Dt, default);
+        Check(sim.CoreHp == hp, "enemy shots do not hurt their own reactor");
+        for (int guard = 0; sim.CoreHp > 0 && guard < 100; guard++)
+        {
+            sim.Bullets.Clear();
+            sim.Bullets.Add(new Bullet { OwnerId = sim.Player.Id, FromPlayer = true, Damage = 1, X = x + 0.5f, Y = y + 0.98f, Dir = Dir.Up, Speed = 1f });
+            sim.Tick(Dt, default);
+        }
+        Check(sim.Tiles[x, y] == Tile.Empty, "the reactor is gone");
+        Run(sim, Tuning.ClearDelay + 0.2f);
+        Check(sim.Phase == GamePhase.LevelCleared, "the assault is won, phase " + sim.Phase);
+        Check(sim.TakeParts() >= Tuning.AssaultParts(0), "parts for the assault");
+        Check(sim.StarsWon >= 1, "at least one star");
+        sim.NextLevel();
+        Check(sim.LevelIndex == 1 && sim.Mode == GameMode.Assault && sim.CoreHp == Tuning.CoreHp(1), "the next fortress");
+    }
+
+    static void StarsAreEarned()
+    {
+        // A quick clean win: three stars.
+        var sim = Sim("R", (10, 2, 'E'));
+        WaitForEnemies(sim, 1);
+        HitEnemy(sim, sim.Enemies[0]);
+        Run(sim, Tuning.ClearDelay + 0.2f);
+        Check(sim.Phase != GamePhase.Playing && sim.StarsWon == 3, "three stars, got " + sim.StarsWon);
+
+        // A tank lost: two at most.
+        var lost = Sim("R", (10, 2, 'E'));
+        lost.Player.ShieldTimer = 0f;
+        lost.Player.Hp = 1;
+        lost.Bullets.Add(new Bullet { OwnerId = -9, X = lost.Player.X, Y = lost.Player.Y, Dir = Dir.Up, Speed = 1f });
+        lost.Tick(Dt, default);
+        Check(lost.LivesLost == 1, "a tank lost");
+        WaitForEnemies(lost, 1);
+        HitEnemy(lost, lost.Enemies[0]);
+        Run(lost, Tuning.ClearDelay + 0.2f);
+        Check(lost.StarsWon == 2, "two stars after a loss, got " + lost.StarsWon);
+    }
+
+    static void AssaultBotRuns()
+    {
+        var rng = new Random(5);
+        int won = 0;
+        foreach (PlayerTank tank in Enum.GetValues(typeof(PlayerTank)))
+        {
+            for (int map = 0; map < Levels.Assault.Length; map++)
+            {
+                var sim = new GameSim(200 + map);
+                var stats = new PlayerStats();
+                for (int i = 0; i < 4; i++) stats.Levels[i] = 3;
+                sim.StartAssault(map, stats, tank);
+                Dir? move = Dir.Up;
+                for (int tick = 0; tick < 60 * 120 && sim.Phase == GamePhase.Playing; tick++)
+                {
+                    if (tick % 40 == 0) move = rng.NextDouble() < 0.6 ? Dir.Up : (Dir)rng.Next(4);
+                    if (tick % 300 == 0) sim.FillSuper();
+                    sim.Tick(Dt, new PlayerInput { Move = move, Fire = true, Super = tick % 300 == 1 });
+                    CheckInvariants(sim, map);
+                    Check(sim.CoreHp >= 0 && sim.CoreHp <= sim.CoreMax, "reactor health in range");
+                    sim.Events.Clear();
+                }
+                if (sim.Phase == GamePhase.LevelCleared || sim.Phase == GamePhase.Victory) won++;
+            }
+        }
+        Console.WriteLine("      bot assaults won: " + won + " of " + 4 * Levels.Assault.Length);
     }
 }
 }

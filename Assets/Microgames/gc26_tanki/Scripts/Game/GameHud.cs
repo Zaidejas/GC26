@@ -103,6 +103,9 @@ namespace GC26.Tanki.Game
                 case Page.LevelSelect: DrawLevelSelect(); return;
                 case Page.Workshop: DrawWorkshop(); return;
                 case Page.Settings: DrawSettings(); return;
+                case Page.Assault: DrawAssaultSelect(); return;
+                case Page.Garage: DrawGarage(); return;
+                case Page.Awards: DrawAwards(); return;
             }
 
             DrawTopBar();
@@ -207,25 +210,33 @@ namespace GC26.Tanki.Game
             float heartsLeft = DrawHearts(safe.xMax - 8f * unit, y + height * 0.5f, Mathf.Max(sim.Lives, 0));
             GUI.Label(new Rect(x, y, heartsLeft - x, height), sim.LevelName, label);
 
-            string stats = "Врагов " + sim.EnemiesLeft + "   Очки " + sim.Score;
+            string stats = (sim.Mode == GameMode.Assault ? "Турелей " + sim.TurretsLeft : "Врагов " + sim.EnemiesLeft) + "   Очки " + sim.Score;
             if (sim.StarLevel > 0) stats += "   Звезда " + sim.StarLevel + " · " + Mathf.CeilToInt(sim.StarTimer) + "с";
             GUI.Label(new Rect(x, y + height, safe.xMax - x, height), stats, label);
         }
 
-        // A wide bar under the top bar while a boss is on the field.
+        // A wide bar under the top bar: the boss while it is out, otherwise the enemy reactor in an assault.
         void DrawBossBar()
         {
-            Tank boss = game.Sim.Boss;
-            if (boss == null || boss.Spawning) return;
+            GameSim sim = game.Sim;
+            Tank boss = sim.Boss;
+            string caption = "БОСС";
+            float share;
+            if (boss != null && !boss.Spawning) share = Mathf.Clamp01(boss.Hp / (float)boss.MaxHp);
+            else if (sim.Mode == GameMode.Assault && sim.CoreMax > 0)
+            {
+                caption = "ВРАЖЕСКИЙ РЕАКТОР " + sim.CoreHp + "/" + sim.CoreMax;
+                share = Mathf.Clamp01(sim.CoreHp / (float)sim.CoreMax);
+            }
+            else return;
             Rect safe = SafeRect();
             float top = safe.y + 4f * unit + 26f * unit * 2f + 8f * unit;
             float left = Screen.width * 0.12f;
             float width = Screen.width * 0.76f;
             float height = 12f * unit;
-            GUI.Label(new Rect(left, top, width, 20f * unit), "БОСС", small);
+            GUI.Label(new Rect(left, top, width, 20f * unit), caption, small);
             float barY = top + 20f * unit;
             Fill(new Rect(left, barY, width, height), new Color(0.08f, 0.06f, 0.11f, 0.9f));
-            float share = Mathf.Clamp01(boss.Hp / (float)boss.MaxHp);
             Fill(new Rect(left + 2f * unit, barY + 2f * unit, (width - 4f * unit) * share, height - 4f * unit), new Color(1f, 0.33f, 0.28f));
         }
 
@@ -253,7 +264,7 @@ namespace GC26.Tanki.Game
             }
 
             superLabel.normal.textColor = ready ? new Color(0.1f, 0.07f, 0.14f) : new Color(1f, 0.95f, 0.85f, 0.75f);
-            GUI.Label(new Rect(centre.x - radius, centre.y - radius, radius * 2f, radius * 2f), "УДАР", superLabel);
+            GUI.Label(new Rect(centre.x - radius, centre.y - radius, radius * 2f, radius * 2f), GameRunner.AbilityLabel(sim.Ability), superLabel);
         }
 
         // Draws from the right edge inwards and returns the left edge of what it drew.
@@ -571,19 +582,222 @@ namespace GC26.Tanki.Game
             DrawLogo(y);
             y += logo + 14f * unit;
             string records = "Рекорд " + game.Save.BestScore;
-            if (game.Save.BestWave > 0) DrawChips(y, "Детали " + game.Save.Parts, records, "Волна " + game.Save.BestWave);
-            else DrawChips(y, "Детали " + game.Save.Parts, records);
+            string stars = "★ " + game.Save.TotalStars;
+            if (game.Save.BestWave > 0) DrawChips(y, "Детали " + game.Save.Parts, records, "Волна " + game.Save.BestWave, stars);
+            else DrawChips(y, "Детали " + game.Save.Parts, records, stars);
             y += 28f * unit + 16f * unit;
 
+            // The campaign on its own line, the other six in pairs, the exit at the bottom.
             Rect inner = DrawPlate(y, buttons);
-            switch (ButtonColumn(inner, inner.y, new[] { "КАМПАНИЯ", "ВЫЖИВАНИЕ", "МАСТЕРСКАЯ", "НАСТРОЙКИ", "ВЫХОД" }))
+            float gap = 10f * unit;
+            float width = Mathf.Min(inner.width, 320f * unit);
+            float x = inner.x + (inner.width - width) / 2f;
+            float half = (width - gap) / 2f;
+            float rowY = inner.y;
+            if (GUI.Button(new Rect(x, rowY, width, ButtonHeight), "КАМПАНИЯ", primary)) game.Open(Page.LevelSelect);
+            string[] pairs = { "ШТУРМ", "ВЫЖИВАНИЕ", "ГАРАЖ", "МАСТЕРСКАЯ", "НАГРАДЫ", "НАСТРОЙКИ" };
+            int font = quiet.fontSize;
+            quiet.fontSize = Mathf.RoundToInt(15 * unit);
+            for (int i = 0; i < pairs.Length; i++)
             {
-                case 0: game.Open(Page.LevelSelect); break;
-                case 1: game.StartSurvival(); break;
-                case 2: game.Open(Page.Workshop); break;
-                case 3: game.Open(Page.Settings); break;
-                case 4: game.Quit(); break;
+                var box = new Rect(x + (i % 2) * (half + gap), rowY + (ButtonHeight + gap) * (1 + i / 2), half, ButtonHeight);
+                if (!GUI.Button(box, pairs[i], quiet)) continue;
+                switch (i)
+                {
+                    case 0: game.Open(Page.Assault); break;
+                    case 1: game.StartSurvival(); break;
+                    case 2: game.Open(Page.Garage); break;
+                    case 3: game.Open(Page.Workshop); break;
+                    case 4: awardsPage = 0; game.Open(Page.Awards); break;
+                    case 5: game.Open(Page.Settings); break;
+                }
             }
+            quiet.fontSize = font;
+            if (GUI.Button(new Rect(x, rowY + (ButtonHeight + gap) * 4f, width, ButtonHeight), "ВЫХОД", quiet)) game.Quit();
+        }
+
+        static string StarLine(int stars) => new string('★', stars) + new string('☆', 3 - stars);
+
+        // ---------- Assault, garage, awards ----------
+
+        void DrawAssaultSelect()
+        {
+            DrawArt(Art.Arena);
+            const int columns = 3;
+            float gap = 8f * unit;
+            float textWidth = PlateWidth - Pad * 2f;
+            string help = "Теперь нападаешь ты: пробейся к вражескому реактору и разбей его. Турели бьют по прямой.";
+            float helpHeight = TextHeight(help, plateText, textWidth);
+            float cellHeight = 74f * unit;
+            float grid = 2f * cellHeight + gap;
+            float inner = helpHeight + 10f * unit + grid + 10f * unit + 22f * unit + 12f * unit + ButtonHeight;
+            float total = 84f * unit + inner + Pad * 2f;
+            float y = Mathf.Max(SafeRect().y + 8f * unit, (Screen.height - total) / 2f);
+
+            DrawHeading(y, "Штурм", Paper);
+            Rect area = DrawPlate(y + 84f * unit, inner);
+            GUI.Label(new Rect(area.x, area.y, area.width, helpHeight), help, plateText);
+
+            float top = area.y + helpHeight + 10f * unit;
+            float cell = (area.width - gap * (columns - 1)) / columns;
+            int unlocked = game.Save.AssaultUnlocked;
+            int shown = unlocked;
+            for (int i = 0; i < Levels.Assault.Length; i++)
+            {
+                var box = new Rect(area.x + i % columns * (cell + gap), top + i / columns * (cellHeight + gap), cell, cellHeight);
+                if (i > unlocked)
+                {
+                    GUI.Box(box, "закрыта", lockedTile);
+                    continue;
+                }
+                if (box.Contains(Event.current.mousePosition)) shown = i;
+                if (GUI.Button(box, (i + 1).ToString(), i == unlocked ? nextTile : bossTile)) game.StartAssault(i);
+                captionText.normal.textColor = i == unlocked ? Ink : new Color(1f, 0.85f, 0.4f);
+                GUI.Label(new Rect(box.x, box.yMax - 18f * unit, box.width, 14f * unit), StarLine(game.Save.AssaultStars[i]), captionText);
+                captionText.normal.textColor = Muted;
+            }
+
+            float nameY = top + grid + 10f * unit;
+            plateText.normal.textColor = Sand;
+            GUI.Label(new Rect(area.x, nameY, area.width, 22f * unit), (shown + 1) + ". " + Levels.Assault[shown].Name, plateText);
+            plateText.normal.textColor = Paper;
+            if (ButtonColumn(area, nameY + 34f * unit, new[] { "НАЗАД" }) == 0) game.Open(Page.Menu);
+        }
+
+        readonly System.Collections.Generic.Dictionary<string, Texture2D> tankPictures = new System.Collections.Generic.Dictionary<string, Texture2D>();
+
+        Texture2D TankPicture(string model)
+        {
+            if (!tankPictures.TryGetValue(model, out Texture2D picture))
+            {
+                picture = Resources.Load<Texture2D>("gc26_tanki/Tanks/" + model);
+                tankPictures[model] = picture;
+            }
+            return picture;
+        }
+
+        void DrawGarage()
+        {
+            DrawArt(Art.Workshop);
+            float rowHeight = 92f * unit;
+            float gap = 8f * unit;
+            int count = System.Enum.GetValues(typeof(PlayerTank)).Length;
+            float inner = 22f * unit + 10f * unit + count * rowHeight + (count - 1) * gap + 14f * unit + ButtonHeight;
+            float total = 84f * unit + 28f * unit + 12f * unit + inner + Pad * 2f;
+            float y = Mathf.Max(SafeRect().y + 8f * unit, (Screen.height - total) / 2f);
+
+            DrawHeading(y, "Гараж", Paper);
+            y += 84f * unit;
+            DrawChips(y, "Детали " + game.Save.Parts);
+            y += 28f * unit + 12f * unit;
+            Rect area = DrawPlate(y, inner);
+            GUI.Label(new Rect(area.x, area.y, area.width, 22f * unit), "У каждого танка своя способность", plateText);
+
+            float top = area.y + 32f * unit;
+            float buyWidth = 92f * unit;
+            float picture = 64f * unit;
+            for (int i = 0; i < count; i++)
+            {
+                var tank = (PlayerTank)i;
+                TankDef def = TankDef.For(tank);
+                bool owned = game.Save.Owns(tank);
+                bool chosen = game.Save.ChosenTank == tank;
+                var box = new Rect(area.x, top + i * (rowHeight + gap), area.width, rowHeight);
+                GUI.Box(box, GUIContent.none, chosen ? choice : row);
+
+                Texture2D art = TankPicture(def.Model);
+                if (art != null)
+                    GUI.DrawTexture(new Rect(box.x + 4f * unit, box.y + (rowHeight - picture) / 2f - 6f * unit, picture, picture + 12f * unit), art, ScaleMode.ScaleToFit);
+
+                float textLeft = box.x + picture + 10f * unit;
+                float textWidth = box.width - picture - buyWidth - 24f * unit;
+                GUI.Label(new Rect(textLeft, box.y + 4f * unit, textWidth, 24f * unit), def.Name, label);
+                GUI.Label(new Rect(textLeft, box.y + 27f * unit, textWidth, 30f * unit), def.Note, plateNote);
+                plateNote.normal.textColor = Mark;
+                GUI.Label(new Rect(textLeft, box.y + 56f * unit, textWidth, 32f * unit), def.Power, plateNote);
+                plateNote.normal.textColor = Muted;
+
+                var buy = new Rect(box.xMax - buyWidth - 8f * unit, box.y + (rowHeight - 50f * unit) / 2f, buyWidth, 50f * unit);
+                if (chosen)
+                {
+                    GUI.Label(buy, "Выбран", plateText);
+                    continue;
+                }
+                int font = primary.fontSize;
+                if (owned)
+                {
+                    quiet.fontSize = Mathf.RoundToInt(14 * unit);
+                    if (GUI.Button(buy, "Выбрать", quiet)) game.ChooseTank(tank);
+                    quiet.fontSize = Mathf.RoundToInt(18 * unit);
+                    continue;
+                }
+                bool affordable = game.Save.Parts >= def.Price;
+                GUIStyle buyStyle = affordable ? primary : quiet;
+                font = buyStyle.fontSize;
+                buyStyle.fontSize = Mathf.RoundToInt(14 * unit);
+                GUI.enabled = affordable;
+                if (GUI.Button(buy, "Купить\n" + def.Price + " дет.", buyStyle)) game.BuyTank(tank);
+                GUI.enabled = true;
+                buyStyle.fontSize = font;
+            }
+
+            if (ButtonColumn(area, top + count * rowHeight + (count - 1) * gap + 14f * unit, new[] { "НАЗАД" }) == 0) game.Open(Page.Menu);
+        }
+
+        int awardsPage;
+        const int AwardsPerPage = 6;
+
+        void DrawAwards()
+        {
+            DrawArt(Art.Victory);
+            var all = TankiAwards.All;
+            int pages = (all.Length + AwardsPerPage - 1) / AwardsPerPage;
+            awardsPage = Mathf.Clamp(awardsPage, 0, pages - 1);
+            float rowHeight = 50f * unit;
+            float gap = 6f * unit;
+            float inner = AwardsPerPage * rowHeight + (AwardsPerPage - 1) * gap + 12f * unit + ButtonHeight + 10f * unit + ButtonHeight;
+            float total = 84f * unit + 28f * unit + 12f * unit + inner + Pad * 2f;
+            float y = Mathf.Max(SafeRect().y + 8f * unit, (Screen.height - total) / 2f);
+
+            DrawHeading(y, "Награды", Paper);
+            y += 84f * unit;
+            DrawChips(y, "Получено " + game.Save.Awards.Count + "/" + all.Length, "★ " + game.Save.TotalStars);
+            y += 28f * unit + 12f * unit;
+            Rect area = DrawPlate(y, inner);
+
+            for (int i = 0; i < AwardsPerPage; i++)
+            {
+                int index = awardsPage * AwardsPerPage + i;
+                if (index >= all.Length) break;
+                TankiAwards.Award award = all[index];
+                bool done = game.Save.Awards.Contains(award.Id);
+                int value = Mathf.Min(award.Goal, award.Value(game.Save));
+                var box = new Rect(area.x, area.y + i * (rowHeight + gap), area.width, rowHeight);
+                GUI.Box(box, GUIContent.none, done ? choice : row);
+                float rewardWidth = 84f * unit;
+                float textWidth = box.width - rewardWidth - 20f * unit;
+                GUI.Label(new Rect(box.x + 10f * unit, box.y + 3f * unit, textWidth, 22f * unit), award.Name, label);
+                string text = award.Text + (award.Goal > 1 && !done ? " (" + value + "/" + award.Goal + ")" : "");
+                GUI.Label(new Rect(box.x + 10f * unit, box.y + 24f * unit, textWidth, 18f * unit), text, plateNote);
+                Fill(new Rect(box.x + 10f * unit, box.yMax - 6f * unit, textWidth, 3f * unit), new Color(1f, 1f, 1f, 0.12f));
+                Fill(new Rect(box.x + 10f * unit, box.yMax - 6f * unit, textWidth * value / award.Goal, 3f * unit), Mark);
+                captionText.normal.textColor = new Color(0.91f, 0.75f, 0.38f);
+                captionText.fontSize = Mathf.RoundToInt(12 * unit);
+                GUI.Label(new Rect(box.xMax - rewardWidth - 6f * unit, box.y, rewardWidth, rowHeight), done ? "получено" : "+" + award.Reward + " дет.", captionText);
+                captionText.fontSize = Mathf.RoundToInt(10 * unit);
+                captionText.normal.textColor = Muted;
+            }
+
+            float pagerY = area.y + AwardsPerPage * rowHeight + (AwardsPerPage - 1) * gap + 12f * unit;
+            float third = (area.width - 20f * unit) / 3f;
+            GUI.enabled = awardsPage > 0;
+            if (GUI.Button(new Rect(area.x, pagerY, third, ButtonHeight), "<", quiet)) awardsPage--;
+            GUI.enabled = true;
+            GUI.Label(new Rect(area.x + third + 10f * unit, pagerY, third, ButtonHeight), (awardsPage + 1) + " / " + pages, plateText);
+            GUI.enabled = awardsPage < pages - 1;
+            if (GUI.Button(new Rect(area.x + (third + 10f * unit) * 2f, pagerY, third, ButtonHeight), ">", quiet)) awardsPage++;
+            GUI.enabled = true;
+            if (ButtonColumn(area, pagerY + ButtonHeight + 10f * unit, new[] { "НАЗАД" }) == 0) game.Open(Page.Menu);
         }
 
         void DrawLevelSelect()
@@ -601,7 +815,7 @@ namespace GC26.Tanki.Game
 
             DrawHeading(y, "Кампания", Paper);
             Rect area = DrawPlate(y + 84f * unit, inner);
-            GUI.Label(new Rect(area.x, area.y, area.width, textHeight), "Пройди уровень, чтобы открыть следующий", plateText);
+            GUI.Label(new Rect(area.x, area.y, area.width, textHeight), "Звёзды: победа, без потерь, быстрее нормы", plateText);
 
             float top = area.y + textHeight + 10f * unit;
             float cell = (area.width - gap * (columns - 1)) / columns;
@@ -620,12 +834,10 @@ namespace GC26.Tanki.Game
                 if (box.Contains(Event.current.mousePosition)) shown = i;
                 GUIStyle style = i == unlocked ? nextTile : boss ? bossTile : tile;
                 if (GUI.Button(box, (i + 1).ToString(), style)) game.StartLevel(i);
-                if (boss)
-                {
-                    captionText.normal.textColor = i == unlocked ? Ink : new Color(1f, 0.82f, 0.78f);
-                    GUI.Label(new Rect(box.x, box.yMax - 17f * unit, box.width, 14f * unit), "БОСС", captionText);
-                    captionText.normal.textColor = Muted;
-                }
+                captionText.normal.textColor = i == unlocked ? Ink : boss ? new Color(1f, 0.82f, 0.78f) : new Color(1f, 0.85f, 0.4f);
+                string caption = StarLine(game.Save.Stars[i]) + (boss ? " БОСС" : "");
+                GUI.Label(new Rect(box.x, box.yMax - 17f * unit, box.width, 14f * unit), caption, captionText);
+                captionText.normal.textColor = Muted;
             }
 
             float nameY = top + grid + 10f * unit;
@@ -689,13 +901,13 @@ namespace GC26.Tanki.Game
             if (ButtonColumn(area, top + 4f * rowHeight + 3f * gap + 14f * unit, new[] { "НАЗАД" }) == 0) game.Open(Page.Menu);
         }
 
-        Art PauseArt => game.Sim.Mode == GameMode.Survival ? Art.Arena : Art.Menu;
+        Art PauseArt => game.Sim.Mode == GameMode.Campaign ? Art.Menu : Art.Arena;
 
         void DrawSettings()
         {
             DrawArt(game.Paused ? PauseArt : Art.Menu);
             float textWidth = PlateWidth - Pad * 2f;
-            string help = "Слева джойстик, справа огонь, внизу удар реактора";
+            string help = "Слева джойстик, справа огонь, внизу способность танка";
             float helpHeight = TextHeight(help, plateText, textWidth);
             float buttons = ColumnHeight(3, ButtonHeight, 10f * unit);
             float inner = helpHeight + 12f * unit + 22f * unit + 6f * unit + 44f * unit + 16f * unit + buttons;
@@ -747,30 +959,36 @@ namespace GC26.Tanki.Game
                 return;
             }
 
+            bool assault = sim.Mode == GameMode.Assault;
             switch (sim.Phase)
             {
                 case GamePhase.LevelCleared:
-                    switch (DrawResult(Art.Victory, "Уровень пройден", sim.LevelName, new Color(1f, 0.9f, 0.66f), "ДАЛЬШЕ", "В МЕНЮ"))
+                    switch (DrawResult(Art.Victory, assault ? "Крепость взята" : "Уровень пройден", sim.LevelName, new Color(1f, 0.9f, 0.66f), "ДАЛЬШЕ", "В МЕНЮ"))
                     {
                         case 0: game.ContinueToNextLevel(); break;
                         case 1: game.ToMenu(); break;
                     }
                     break;
                 case GamePhase.Victory:
-                    switch (DrawResult(Art.Victory, "Рубеж удержан!", "Все 20 уровней пройдены", new Color(1f, 0.9f, 0.66f), "ВЫЖИВАНИЕ", "В МЕНЮ"))
+                    string done = assault ? "Все крепости взяты!" : "Рубеж удержан!";
+                    string where = assault ? "Вражеские реакторы погашены" : "Все 20 уровней пройдены";
+                    switch (DrawResult(Art.Victory, done, where, new Color(1f, 0.9f, 0.66f), assault ? "ВЫЖИВАНИЕ" : "ШТУРМ", "В МЕНЮ"))
                     {
-                        case 0: game.StartSurvival(); break;
+                        case 0:
+                            if (assault) game.StartSurvival();
+                            else { game.ToMenu(); game.Open(Page.Assault); }
+                            break;
                         case 1: game.ToMenu(); break;
                     }
                     break;
                 case GamePhase.GameOver:
                     string headline = sim.Lives <= 0 ? "Танки закончились" : "Реактор уничтожен";
-                    switch (DrawResult(Art.Defeat, headline, sim.LevelName, new Color(1f, 0.54f, 0.47f), "ЕЩЁ РАЗ", "МАСТЕРСКАЯ", "В МЕНЮ"))
+                    switch (DrawResult(Art.Defeat, headline, sim.LevelName, new Color(1f, 0.54f, 0.47f), "ЕЩЁ РАЗ", "ГАРАЖ", "В МЕНЮ"))
                     {
                         case 0: game.Retry(); break;
                         case 1:
                             game.ToMenu();
-                            game.Open(Page.Workshop);
+                            game.Open(Page.Garage);
                             break;
                         case 2: game.ToMenu(); break;
                     }
@@ -785,7 +1003,7 @@ namespace GC26.Tanki.Game
         {
             DrawArt(PauseArt);
             float textWidth = PlateWidth - Pad * 2f;
-            string help = "Слева джойстик, справа огонь, внизу удар реактора";
+            string help = "Слева джойстик, справа огонь, внизу способность танка";
             float helpHeight = TextHeight(help, plateText, textWidth);
             float buttons = ColumnHeight(4, ButtonHeight, 10f * unit);
             float inner = helpHeight + 14f * unit + buttons;
@@ -809,7 +1027,9 @@ namespace GC26.Tanki.Game
             DrawArt(picture);
             float tiles = 62f * unit;
             float buttonsHeight = buttons.Length > 2 ? ColumnHeight(buttons.Length, ButtonHeight, 10f * unit) : ButtonHeight;
-            float inner = 22f * unit + 10f * unit + tiles + 14f * unit + buttonsHeight;
+            bool won = game.Sim.Phase == GamePhase.LevelCleared || game.Sim.Phase == GamePhase.Victory;
+            float starsHeight = won ? 62f * unit : 0f;
+            float inner = 22f * unit + 10f * unit + starsHeight + tiles + 14f * unit + buttonsHeight;
             float headlineHeight = 90f * unit;
             float y = Mathf.Max(SafeRect().y + 8f * unit, (Screen.height - headlineHeight - inner - Pad * 2f) / 2f);
 
@@ -817,11 +1037,27 @@ namespace GC26.Tanki.Game
             Rect area = DrawPlate(y + headlineHeight, inner);
             GUI.Label(new Rect(area.x, area.y, area.width, 22f * unit), where, plateText);
 
+            float top = area.y + 32f * unit;
+            if (won)
+            {
+                // Stars won, with what each one was for.
+                GameSim sim = game.Sim;
+                int fontBefore = valueText.fontSize;
+                valueText.fontSize = Mathf.RoundToInt(32 * unit);
+                valueText.normal.textColor = new Color(1f, 0.83f, 0.3f);
+                GUI.Label(new Rect(area.x, top, area.width, 36f * unit), StarLine(sim.StarsWon), valueText);
+                valueText.normal.textColor = Paper;
+                valueText.fontSize = fontBefore;
+                string why = "Победа" + (sim.LivesLost == 0 ? " · без потерь" : "")
+                    + (sim.Time <= sim.ParTime ? " · быстрее " : " · норма ") + Mathf.RoundToInt(sim.ParTime) + " с";
+                GUI.Label(new Rect(area.x, top + 36f * unit, area.width, 20f * unit), why, plateNote.alignment == TextAnchor.UpperLeft ? plateText : plateNote);
+                top += starsHeight;
+            }
+
             string[] values = { game.Sim.Score.ToString(), game.BestScore.ToString(), "+" + game.LastParts };
             string[] captions = { "ОЧКИ", "РЕКОРД", "ДЕТАЛЕЙ" };
             float gap = 8f * unit;
             float width = (area.width - gap * 2f) / 3f;
-            float top = area.y + 32f * unit;
             for (int i = 0; i < 3; i++)
             {
                 var box = new Rect(area.x + i * (width + gap), top, width, tiles);

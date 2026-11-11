@@ -101,6 +101,65 @@ namespace GC26.Tanki.Game
             if (game.Sim.Choices.Count > 0) game.ChooseUpgrade(game.Sim.Choices[0]);
             Debug.Log("SURVIVAL after choice phase=" + game.Sim.Phase + " wave=" + game.Sim.Wave);
 
+            // The garage, the awards and the assault pages, with every tank bought.
+            game.ToMenu();
+            game.Save.AssaultUnlocked = Rules.Levels.Assault.Length - 1;
+            game.Save.Parts = 500;
+            game.BuyTank(Rules.PlayerTank.Squall);
+            game.BuyTank(Rules.PlayerTank.Bastion);
+            game.BuyTank(Rules.PlayerTank.Phantom);
+            foreach (Page page in new[] { Page.Garage, Page.Awards, Page.Assault })
+            {
+                game.Open(page);
+                yield return new WaitForSeconds(0.4f);
+                ScreenCapture.CaptureScreenshot(Path.Combine(folder, "page_" + page + ".png"));
+                yield return new WaitForSeconds(0.2f);
+            }
+
+            // An assault with the Bastion, and its dome.
+            game.ChooseTank(Rules.PlayerTank.Bastion);
+            game.StartAssault(0);
+            yield return new WaitForSeconds(5f);
+            Debug.Log("ASSAULT core=" + game.Sim.CoreHp + "/" + game.Sim.CoreMax + " turrets=" + game.Sim.TurretsLeft + " tank=" + game.Sim.TankType);
+            ScreenCapture.CaptureScreenshot(Path.Combine(folder, "assault.png"));
+            yield return new WaitForSeconds(0.3f);
+            game.Sim.FillSuper();
+            game.Sim.UseSuper();
+            yield return new WaitForSeconds(0.2f);
+            ScreenCapture.CaptureScreenshot(Path.Combine(folder, "ability_dome.png"));
+            yield return new WaitForSeconds(0.3f);
+
+            // The Phantom's dash and cloak.
+            game.ChooseTank(Rules.PlayerTank.Phantom);
+            game.StartAssault(1);
+            yield return new WaitForSeconds(1.5f);
+            game.Sim.FillSuper();
+            game.Sim.UseSuper();
+            yield return new WaitForSeconds(0.25f);
+            ScreenCapture.CaptureScreenshot(Path.Combine(folder, "ability_dash.png"));
+            yield return new WaitForSeconds(0.3f);
+
+            // Every enemy kind side by side, frozen, with a mine, for the models.
+            game.ChooseTank(Rules.PlayerTank.Squall);
+            game.StartLevel(0);
+            yield return new WaitForSeconds(0.5f);
+            game.Sim.Enemies.Clear();
+            var kinds = (Rules.EnemyKind[])System.Enum.GetValues(typeof(Rules.EnemyKind));
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                game.Sim.Enemies.Add(new Rules.Tank { Id = 900 + i, Kind = kinds[i], X = 1.5f + i % 4 * 2.6f, Y = 7.5f + i / 4 * 2.2f, Dir = Rules.Dir.Down,
+                    Hp = 1, MaxHp = 1, ThinkTimer = 99f, FireTimer = 99f, MineTimer = 99f, FixTimer = 99f });
+                for (int y = 7; y <= 9 + i / 4 * 2; y++) game.Sim.Tiles[(int)(1.5f + i % 4 * 2.6f), y] = Rules.Tile.Empty;
+            }
+            game.Sim.Mines.Add(new Rules.Mine { CellX = 5, CellY = 12 });
+            game.Sim.ApplyBonus(Rules.BonusKind.Freeze);
+            game.World.BuildLevel(game.Sim);
+            yield return new WaitForSeconds(0.6f);
+            ScreenCapture.CaptureScreenshot(Path.Combine(folder, "enemies.png"));
+            yield return new WaitForSeconds(0.3f);
+            Debug.Log("AWARDS " + string.Join(",", game.Save.Awards) + " owned=" + game.Save.Owned.Count);
+
+            game.ChooseTank(Rules.PlayerTank.Guard);
             game.ToMenu();
             game.StartGame();
             yield return new WaitForSeconds(9f);

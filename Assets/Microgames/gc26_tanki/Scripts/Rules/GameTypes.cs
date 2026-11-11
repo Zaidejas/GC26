@@ -1,16 +1,18 @@
 namespace GC26.Tanki.Rules
 {
-    public enum Tile : byte { Empty, Crate, Concrete, Net, Water, Oil, Base }
+    /// <summary>Core is the enemy reactor and Turret its gun post, both only on assault maps.</summary>
+    public enum Tile : byte { Empty, Crate, Concrete, Net, Water, Oil, Base, Core, Turret }
 
     public enum Dir { Up, Right, Down, Left }
 
-    public enum EnemyKind { Raider, Scout, Gunner, Heavy, Boss }
+    /// <summary>New kinds go at the end, so saved numbers and arrays indexed by kind keep their meaning.</summary>
+    public enum EnemyKind { Raider, Scout, Gunner, Heavy, Boss, Miner, Fixer, Rammer }
 
     public enum BonusKind { Star, Bomb, Shield, Fort, Freeze, Life }
 
     public enum GamePhase { Playing, LevelCleared, GameOver, Victory, WaveCleared }
 
-    public enum GameMode { Campaign, Survival }
+    public enum GameMode { Campaign, Survival, Assault }
 
     /// <summary>The four things the player can improve in the workshop, and in survival after each wave.</summary>
     public enum Stat { Armor, Gun, FireRate, Speed }
@@ -20,8 +22,48 @@ namespace GC26.Tanki.Rules
 
     public enum Difficulty { Easy, Normal, Hard }
 
-    /// <summary>What a smart enemy goes after: the base, the player, or the base straight through crates.</summary>
-    public enum EnemyRole { Rusher, Hunter, Breaker }
+    /// <summary>What a smart enemy goes after: the base, the player, the base straight through crates,
+    /// or, in an assault, its own reactor to guard.</summary>
+    public enum EnemyRole { Rusher, Hunter, Breaker, Guard }
+
+    /// <summary>The player's tanks, bought in the garage. Each has its own ability on the strike button.</summary>
+    public enum PlayerTank { Guard, Squall, Bastion, Phantom }
+
+    public enum Ability { Strike, Volley, Dome, Dash }
+
+    /// <summary>How a player's tank differs from the workshop's numbers.</summary>
+    public struct TankDef
+    {
+        public string Name;
+        public string Model;
+        public int Hp;
+        public float Speed;
+        public float CooldownScale;
+        public int ChargeNeed;
+        public int Price;
+        public Ability Ability;
+        public string Note;
+        public string Power;
+
+        public static TankDef For(PlayerTank tank)
+        {
+            switch (tank)
+            {
+                case PlayerTank.Squall:
+                    return new TankDef { Name = "Шквал", Model = "player_squall", Hp = -1, Speed = 0.35f, CooldownScale = 0.8f, ChargeNeed = 0, Price = 80, Ability = Ability.Volley,
+                        Note = "Быстрый, стреляет чаще, но броня тоньше.", Power = "Залп: пробивные снаряды во все 4 стороны" };
+                case PlayerTank.Bastion:
+                    return new TankDef { Name = "Бастион", Model = "player_bastion", Hp = 2, Speed = -0.45f, CooldownScale = 1.15f, ChargeNeed = 1, Price = 120, Ability = Ability.Dome,
+                        Note = "Медленный, зато +2 к здоровью.", Power = "Купол: щит на 6 с, враги рядом оглушены" };
+                case PlayerTank.Phantom:
+                    return new TankDef { Name = "Призрак", Model = "player_phantom", Hp = 0, Speed = 0.2f, CooldownScale = 1f, ChargeNeed = -1, Price = 160, Ability = Ability.Dash,
+                        Note = "Ловкий, способность копится быстрее.", Power = "Рывок: прыжок на 4 клетки и невидимость 3 с" };
+                default:
+                    return new TankDef { Name = "Страж", Model = "player", Hp = 0, Speed = 0f, CooldownScale = 1f, ChargeNeed = 0, Price = 0, Ability = Ability.Strike,
+                        Note = "Ровный танк без слабых мест.", Power = "Удар реактора: луч до края карты" };
+            }
+        }
+    }
 
     public struct DifficultySettings
     {
@@ -60,7 +102,20 @@ namespace GC26.Tanki.Rules
         PlayerHit,
         SuperStrike,
         SuperReady,
-        BossSpawned
+        BossSpawned,
+        Volley,
+        Dome,
+        Dash,
+        MineLaid,
+        MineBlast,
+        MineShot,
+        Heal,
+        RamBlast,
+        CrateBroken,
+        TurretHit,
+        TurretDestroyed,
+        CoreHit,
+        CoreDestroyed
     }
 
     public struct GameEvent
@@ -71,6 +126,11 @@ namespace GC26.Tanki.Rules
         public bool IsPlayer;
         public BonusKind Bonus;
         public Dir Dir;
+        /// <summary>Which enemy a TankDestroyed event was about.</summary>
+        public EnemyKind Enemy;
+        /// <summary>Where a dash ended.</summary>
+        public float ToX;
+        public float ToY;
 
         public GameEvent(GameEventKind kind, float x, float y, bool isPlayer = false, BonusKind bonus = BonusKind.Star, Dir dir = Dir.Up)
         {
@@ -80,6 +140,9 @@ namespace GC26.Tanki.Rules
             IsPlayer = isPlayer;
             Bonus = bonus;
             Dir = dir;
+            Enemy = EnemyKind.Raider;
+            ToX = x;
+            ToY = y;
         }
     }
 
@@ -135,6 +198,10 @@ namespace GC26.Tanki.Rules
         public float LineTimer;
         public int MaxHp = 1;
         public float HurtTimer;
+        /// <summary>Stunned by the Bastion's dome: stands still.</summary>
+        public float StunTimer;
+        public float MineTimer;
+        public float FixTimer;
 
         public bool Spawning => SpawnTimer > 0f;
         public bool Shielded => ShieldTimer > 0f;
@@ -151,6 +218,30 @@ namespace GC26.Tanki.Rules
         public Dir Dir;
         public float Speed;
         public bool Alive = true;
+        /// <summary>Part of the Squall's volley: does not count against the gun's limit.</summary>
+        public bool Volley;
+    }
+
+    /// <summary>A mine left by a miner. It goes off under the player once armed.</summary>
+    public sealed class Mine
+    {
+        public int OwnerId;
+        public int CellX;
+        public int CellY;
+        public float Arm;
+        public float X => CellX + 0.5f;
+        public float Y => CellY + 0.5f;
+    }
+
+    /// <summary>A gun post of the enemy fortress, sitting on a Turret tile.</summary>
+    public sealed class Turret
+    {
+        public int Id;
+        public int X;
+        public int Y;
+        public int Hp;
+        public Dir Dir = Dir.Down;
+        public float FireTimer;
     }
 
     public sealed class Bonus
@@ -227,6 +318,34 @@ namespace GC26.Tanki.Rules
         public const int CrateHp = 2;
         public const int BonusScore = 500;
 
+        // New enemies: the miner leaves mines, the fixer mends the tanks around it, the rammer blows itself up.
+        public const float MineEvery = 3.5f;
+        public const int MineMax = 3;
+        public const float MineArm = 0.6f;
+        public const float FixEvery = 3f;
+        public const float FixRange = 2.6f;
+        public const float RamBlast = 1.3f;
+
+        // Abilities of the player's tanks.
+        public const int VolleyDamage = 2;
+        public const float DomeShield = 6f;
+        public const float DomeStun = 3f;
+        public const float DomeRange = 4f;
+        public const float DashCells = 4f;
+        public const float CloakTime = 3f;
+
+        // Assault: the enemy reactor and its turrets.
+        public const int TurretHp = 3;
+        public const float TurretEvery = 1.7f;
+        public const float TurretBulletSpeed = 7.5f;
+        public const int TurretRange = 8;
+        public const int TurretScore = 500;
+        public const int TurretParts = 3;
+        public const int AssaultSuperNeed = 5;
+        public const float AssaultSpawnDelay = 1.4f;
+        public static int CoreHp(int levelIndex) => 12 + levelIndex * 2;
+        public static int AssaultParts(int levelIndex) => 10 + levelIndex * 3;
+
         public static float EnemySpeed(EnemyKind kind)
         {
             switch (kind)
@@ -234,7 +353,50 @@ namespace GC26.Tanki.Rules
                 case EnemyKind.Scout: return 3.2f;
                 case EnemyKind.Heavy: return 1.4f;
                 case EnemyKind.Boss: return BossSpeed;
+                case EnemyKind.Miner: return 2f;
+                case EnemyKind.Fixer: return 1.8f;
+                case EnemyKind.Rammer: return 3.5f;
                 default: return 1.9f;
+            }
+        }
+
+        /// <summary>How much longer than usual this kind waits between shots.</summary>
+        public static float EnemyFireScale(EnemyKind kind)
+        {
+            switch (kind)
+            {
+                case EnemyKind.Gunner: return 0.7f;
+                case EnemyKind.Miner: return 1.2f;
+                case EnemyKind.Fixer: return 1.4f;
+                default: return 1f;
+            }
+        }
+
+        /// <summary>The model each kind wears, from Art~/build_variants.py.</summary>
+        public static string EnemyModel(EnemyKind kind)
+        {
+            switch (kind)
+            {
+                case EnemyKind.Scout: return "enemy_scout";
+                case EnemyKind.Gunner: return "enemy_gunner";
+                case EnemyKind.Heavy: return "enemy_heavy";
+                case EnemyKind.Boss: return "enemy_boss";
+                case EnemyKind.Miner: return "enemy_miner";
+                case EnemyKind.Fixer: return "enemy_fixer";
+                case EnemyKind.Rammer: return "enemy_rammer";
+                default: return "enemy";
+            }
+        }
+
+        public static float EnemyScale(EnemyKind kind)
+        {
+            switch (kind)
+            {
+                case EnemyKind.Scout: return 0.85f;
+                case EnemyKind.Heavy: return 1.14f;
+                case EnemyKind.Boss: return 1.5f;
+                case EnemyKind.Rammer: return 0.95f;
+                default: return 1f;
             }
         }
 
@@ -246,7 +408,13 @@ namespace GC26.Tanki.Rules
 
         public static int EnemyHp(EnemyKind kind)
         {
-            return kind == EnemyKind.Heavy ? 3 : 1;
+            switch (kind)
+            {
+                case EnemyKind.Heavy: return 3;
+                case EnemyKind.Miner:
+                case EnemyKind.Fixer: return 2;
+                default: return 1;
+            }
         }
 
         public static int EnemyScore(EnemyKind kind)
@@ -257,6 +425,9 @@ namespace GC26.Tanki.Rules
                 case EnemyKind.Gunner: return 300;
                 case EnemyKind.Heavy: return 400;
                 case EnemyKind.Boss: return 3000;
+                case EnemyKind.Miner: return 300;
+                case EnemyKind.Fixer: return 350;
+                case EnemyKind.Rammer: return 250;
                 default: return 100;
             }
         }
@@ -269,6 +440,9 @@ namespace GC26.Tanki.Rules
                 case EnemyKind.Gunner: return 2;
                 case EnemyKind.Heavy: return 3;
                 case EnemyKind.Boss: return 20;
+                case EnemyKind.Miner: return 2;
+                case EnemyKind.Fixer: return 3;
+                case EnemyKind.Rammer: return 2;
                 default: return 1;
             }
         }

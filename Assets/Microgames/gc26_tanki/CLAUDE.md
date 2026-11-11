@@ -28,11 +28,21 @@ with a menu shell. Read `RULES.md` at the repo root before changing anything.
 - `Resources/gc26_tanki/`: everything loaded with `Resources.Load("gc26_tanki/...")`; materials use URP Lit (`_BaseMap`, `_BaseColor`, `_Smoothness`, `_EmissionColor`)
 - `Tests~/`: rule checks without Unity
 - `Web~/steel-line.html`: browser version on three.js r128 with the same rules (save in localStorage `steel-line-save`)
-- `Art~/`: Python scripts (Pillow and numpy) that make the game's art
+- `Art~/`: Python scripts (Pillow and numpy) that make the game's art; `build_variants.py` draws every other tank from the two hand-made drawings (`player.png`, `enemy.png`), then `build_models.py` raises them into models
+- `Tools~/`: `assault_maps.txt` and `sync_levels.py`, which writes the assault maps into `Levels.cs` and copies every map into the page
 
 ## Keep in sync
 
 - The rules exist twice: in C# (`Scripts/Rules/`) and in JS (inside `Web~/steel-line.html`). When you change a rule, a number or a level, change both.
+- Maps: edit `Levels.cs` (campaign, arena) or `Tools~/assault_maps.txt` (assault), then run `python Tools~/sync_levels.py`.
+- Awards are listed twice too: `Scripts/Game/TankiAwards.cs` and `AWARDS` in the page.
+
+## Modes and content
+
+- Campaign (20 levels, bosses on 5/10/15/20), survival, and assault (6 fortresses: break the enemy reactor `C` past turrets `T`; defenders loop).
+- Enemies R S G H X plus miner M, fixer F, rammer K, each with its own model.
+- Garage tanks (`PlayerTank`, `TankDef`): Guard strike, Squall volley, Bastion dome, Phantom dash and cloak.
+- Stars per map (win, no tank lost, par time) and 15 awards paid in parts.
 
 ## Checks
 

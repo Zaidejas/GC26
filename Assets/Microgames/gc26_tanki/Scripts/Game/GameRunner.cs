@@ -8,7 +8,7 @@ using Random = UnityEngine.Random;
 namespace GC26.Tanki.Game
 {
     /// <summary>The menus the game can show around the battle.</summary>
-    public enum Page { Menu, LevelSelect, Workshop, Settings, Game }
+    public enum Page { Menu, LevelSelect, Workshop, Settings, Game, Assault, Garage, Awards }
 
     /// <summary>Ties the simulation to the view, sound, input and the save. Created by <see cref="TankiGame"/>.</summary>
     public sealed class GameRunner : MonoBehaviour
@@ -27,6 +27,7 @@ namespace GC26.Tanki.Game
         public int BestScore => Save.BestScore;
         public string Toast { get; private set; }
         public float ToastTimer { get; private set; }
+        readonly System.Collections.Generic.Queue<string> toasts = new System.Collections.Generic.Queue<string>();
 
         /// <summary>Parts earned on the level or wave that just ended, for the results screen.</summary>
         public int LastParts { get; private set; }
@@ -70,7 +71,7 @@ namespace GC26.Tanki.Game
             TankiPostFx.Create(transform, view);
             world = new WorldView(transform);
             gameObject.AddComponent<GameHud>().Init(this);
-            world.BeginSplash();
+            world.BeginSplash(TankDef.For(Save.ChosenTank).Model);
         }
 
         void UpdateSplash()
@@ -119,6 +120,7 @@ namespace GC26.Tanki.Game
             NoticePhaseChange();
 
             if (ToastTimer > 0f) ToastTimer -= Time.deltaTime;
+            else if (toasts.Count > 0) ShowToast(toasts.Dequeue());
         }
 
         void HandleEvents()
@@ -152,6 +154,8 @@ namespace GC26.Tanki.Game
                         Sound.Blast();
                         world.Burst(item.X, item.Y, WorldView.Hex("FF8A3D"), 18, 3.4f);
                         shake = Mathf.Max(shake, 0.12f);
+                        Save.Kills++;
+                        if (item.Enemy == EnemyKind.Boss) Save.Bosses++;
                         break;
                     case GameEventKind.PlayerDestroyed:
                         Sound.BigBlast();
@@ -176,13 +180,80 @@ namespace GC26.Tanki.Game
                         break;
                     case GameEventKind.SuperReady:
                         Sound.Pickup();
-                        ShowToast("Удар реактора готов!");
+                        ShowToast(AbilityName(Sim.Ability) + " готов!");
                         break;
                     case GameEventKind.SuperStrike:
                         Sound.BigBlast();
                         world.Strike(item.X, item.Y, item.Dir);
                         shake = 0.45f;
                         Vibrate();
+                        Save.Abilities++;
+                        break;
+                    case GameEventKind.Volley:
+                        Sound.Blast();
+                        world.Burst(item.X, item.Y, WorldView.Hex("FFA040"), 16, 3f);
+                        world.Ring(item.X, item.Y, WorldView.Hex("FFA040"), 1.6f, 0.35f);
+                        shake = 0.25f;
+                        Vibrate();
+                        Save.Abilities++;
+                        break;
+                    case GameEventKind.Dome:
+                        Sound.Pickup();
+                        world.Ring(item.X, item.Y, WorldView.Hex("9CFF5A"), Tuning.DomeRange, 0.6f);
+                        world.Ring(item.X, item.Y, WorldView.Hex("6FF2E0"), Tuning.DomeRange * 0.7f, 0.45f);
+                        shake = 0.2f;
+                        Vibrate();
+                        Save.Abilities++;
+                        break;
+                    case GameEventKind.Dash:
+                        Sound.Shot(true);
+                        for (int i = 0; i <= 8; i++)
+                            world.Burst(Mathf.Lerp(item.X, item.ToX, i / 8f), Mathf.Lerp(item.Y, item.ToY, i / 8f), WorldView.Hex("C060FF"), 2, 1.2f);
+                        Save.Abilities++;
+                        break;
+                    case GameEventKind.MineBlast:
+                        Sound.Blast();
+                        world.Burst(item.X, item.Y, WorldView.Hex("FF5A3C"), 16, 3.2f);
+                        world.Ring(item.X, item.Y, WorldView.Hex("FF5A3C"), 1.2f, 0.4f);
+                        shake = Mathf.Max(shake, 0.2f);
+                        Vibrate();
+                        break;
+                    case GameEventKind.MineShot:
+                        Sound.Spark();
+                        world.Burst(item.X, item.Y, WorldView.Hex("FFB057"), 10, 2.4f);
+                        world.Ring(item.X, item.Y, WorldView.Hex("FFB057"), 0.9f, 0.3f);
+                        Save.MinesShot++;
+                        break;
+                    case GameEventKind.Heal:
+                        world.Burst(item.X, item.Y, WorldView.Hex("7CE05A"), 4, 1.2f);
+                        break;
+                    case GameEventKind.RamBlast:
+                        Sound.BigBlast();
+                        world.Burst(item.X, item.Y, WorldView.Hex("FF7A2A"), 26, 4f);
+                        world.Ring(item.X, item.Y, WorldView.Hex("FF7A2A"), Tuning.RamBlast + 0.4f, 0.5f);
+                        shake = Mathf.Max(shake, 0.35f);
+                        break;
+                    case GameEventKind.CrateBroken:
+                        Save.Crates++;
+                        break;
+                    case GameEventKind.TurretHit:
+                    case GameEventKind.CoreHit:
+                        Sound.Spark();
+                        world.Burst(item.X, item.Y, WorldView.Hex("FF5A3C"), 6, 2.2f);
+                        break;
+                    case GameEventKind.TurretDestroyed:
+                        Sound.Blast();
+                        world.Burst(item.X, item.Y, WorldView.Hex("FF5A3C"), 20, 3.6f);
+                        shake = Mathf.Max(shake, 0.2f);
+                        Save.Turrets++;
+                        break;
+                    case GameEventKind.CoreDestroyed:
+                        Sound.BigBlast();
+                        world.Burst(item.X, item.Y, WorldView.Hex("FF5A3C"), 50, 5.5f);
+                        world.Ring(item.X, item.Y, WorldView.Hex("FF5A3C"), 5f, 0.9f);
+                        shake = 0.6f;
+                        Vibrate();
+                        ShowToast("Вражеский реактор уничтожен!");
                         break;
                     case GameEventKind.BossSpawned:
                         Sound.BigBlast();
@@ -201,7 +272,29 @@ namespace GC26.Tanki.Game
 #endif
         }
 
-        // Stores parts, records and newly opened levels as soon as a level or wave ends.
+        public static string AbilityName(Ability ability)
+        {
+            switch (ability)
+            {
+                case Ability.Volley: return "Залп";
+                case Ability.Dome: return "Купол";
+                case Ability.Dash: return "Рывок";
+                default: return "Удар реактора";
+            }
+        }
+
+        public static string AbilityLabel(Ability ability)
+        {
+            switch (ability)
+            {
+                case Ability.Volley: return "ЗАЛП";
+                case Ability.Dome: return "КУПОЛ";
+                case Ability.Dash: return "РЫВОК";
+                default: return "УДАР";
+            }
+        }
+
+        // Stores parts, records, stars and newly opened levels as soon as a level or wave ends.
         void NoticePhaseChange()
         {
             GamePhase phase = Sim.Phase;
@@ -217,11 +310,21 @@ namespace GC26.Tanki.Game
                 int reached = phase == GamePhase.WaveCleared ? Sim.Wave : Sim.Wave - 1;
                 Save.BestWave = Mathf.Max(Save.BestWave, reached);
             }
-            else if (phase == GamePhase.LevelCleared)
+            bool won = phase == GamePhase.LevelCleared || phase == GamePhase.Victory;
+            if (won && Sim.Mode == GameMode.Assault)
             {
-                Save.UnlockedLevel = Mathf.Max(Save.UnlockedLevel, Mathf.Min(Sim.LevelIndex + 1, Levels.All.Length - 1));
+                Save.AssaultStars[Sim.LevelIndex] = Mathf.Max(Save.AssaultStars[Sim.LevelIndex], Sim.StarsWon);
+                Save.AssaultUnlocked = Mathf.Max(Save.AssaultUnlocked, Mathf.Min(Sim.LevelIndex + 1, Levels.Assault.Length - 1));
             }
+            else if (won && Sim.Mode == GameMode.Campaign)
+            {
+                Save.Stars[Sim.LevelIndex] = Mathf.Max(Save.Stars[Sim.LevelIndex], Sim.StarsWon);
+                if (phase == GamePhase.LevelCleared)
+                    Save.UnlockedLevel = Mathf.Max(Save.UnlockedLevel, Mathf.Min(Sim.LevelIndex + 1, Levels.All.Length - 1));
+            }
+            if (won && Sim.LivesLost == 0) Save.Flawless++;
             Save.Save();
+            foreach (string line in TankiAwards.Check(Save)) toasts.Enqueue(line);
         }
 
         void ShowToast(string text)
@@ -280,7 +383,16 @@ namespace GC26.Tanki.Game
         {
             if (index > Save.UnlockedLevel) return;
             Sim.SetDifficulty(ChosenDifficulty);
-            Sim.StartCampaign(index, Save.Stats());
+            Sim.StartCampaign(index, Save.Stats(), Save.ChosenTank);
+            BeginBattle();
+        }
+
+        /// <summary>Starts an assault on a fortress, if it is open.</summary>
+        public void StartAssault(int index)
+        {
+            if (index > Save.AssaultUnlocked) return;
+            Sim.SetDifficulty(ChosenDifficulty);
+            Sim.StartAssault(index, Save.Stats(), Save.ChosenTank);
             BeginBattle();
         }
 
@@ -292,13 +404,14 @@ namespace GC26.Tanki.Game
         public void StartSurvival()
         {
             Sim.SetDifficulty(ChosenDifficulty);
-            Sim.StartSurvival(Save.Stats());
+            Sim.StartSurvival(Save.Stats(), Save.ChosenTank);
             BeginBattle();
         }
 
         public void Retry()
         {
             if (Sim.Mode == GameMode.Survival) StartSurvival();
+            else if (Sim.Mode == GameMode.Assault) StartAssault(Sim.LevelIndex);
             else StartLevel(Sim.LevelIndex);
         }
 
@@ -313,6 +426,18 @@ namespace GC26.Tanki.Game
             bool bought = Save.Buy(stat);
             if (bought) Sound.Pickup();
             return bought;
+        }
+
+        public void BuyTank(PlayerTank tank)
+        {
+            if (!Save.BuyTank(tank)) return;
+            Sound.Pickup();
+            foreach (string line in TankiAwards.Check(Save)) toasts.Enqueue(line);
+        }
+
+        public void ChooseTank(PlayerTank tank)
+        {
+            Save.ChooseTank(tank);
         }
 
         public void ChooseDifficulty(Difficulty difficulty)
@@ -340,7 +465,7 @@ namespace GC26.Tanki.Game
             Page = Page.Menu;
             Paused = false;
             Sim.SetDifficulty(ChosenDifficulty);
-            Sim.StartCampaign(Mathf.Min(Save.UnlockedLevel, Levels.All.Length - 1), Save.Stats());
+            Sim.StartCampaign(Mathf.Min(Save.UnlockedLevel, Levels.All.Length - 1), Save.Stats(), Save.ChosenTank);
             Sim.Events.Clear();
             ShowCurrentLevel();
         }

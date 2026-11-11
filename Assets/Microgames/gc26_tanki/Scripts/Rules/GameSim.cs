@@ -16,6 +16,8 @@ namespace GC26.Tanki.Rules
         public readonly List<Tank> Enemies = new List<Tank>();
         public readonly List<Bullet> Bullets = new List<Bullet>();
         public readonly List<GameEvent> Events = new List<GameEvent>();
+        public readonly List<Mine> Mines = new List<Mine>();
+        public readonly List<Turret> Turrets = new List<Turret>();
 
         public Tank Player { get; private set; }
         public Bonus Bonus { get; private set; }
@@ -25,6 +27,29 @@ namespace GC26.Tanki.Rules
         public int Lives { get; private set; }
         public GameMode Mode { get; private set; }
         public PlayerStats Stats { get; private set; } = new PlayerStats();
+
+        /// <summary>The tank picked in the garage: changes the numbers a little and picks the ability.</summary>
+        public PlayerTank TankType { get; private set; } = PlayerTank.Guard;
+        public TankDef TankInfo => TankDef.For(TankType);
+        public Ability Ability => TankInfo.Ability;
+
+        /// <summary>The Phantom's cloak: while it lasts the enemy cannot see the player.</summary>
+        public float CloakTimer { get; private set; }
+        public bool PlayerVisible => Player.Alive && CloakTimer <= 0f;
+
+        /// <summary>Seconds on this map and tanks lost on it, for the stars.</summary>
+        public float Time { get; private set; }
+        public int LivesLost { get; private set; }
+        /// <summary>Stars won on the map just cleared: one for the win, one for no tank lost, one for the par time.</summary>
+        public int StarsWon { get; private set; }
+        public float ParTime => Mode == GameMode.Assault ? 60f + TurretCount * 12f : 40f + waves.Length * 7f;
+        public int CurrentStars => 1 + (LivesLost == 0 ? 1 : 0) + (Time <= ParTime ? 1 : 0);
+
+        /// <summary>The enemy reactor in an assault.</summary>
+        public int CoreHp { get; private set; }
+        public int CoreMax { get; private set; }
+        public int TurretCount { get; private set; }
+        public int TurretsLeft => Turrets.FindAll(t => t.Hp > 0).Count;
 
         /// <summary>The star bonus's temporary gun level, 0 to 3, gone when its timer runs out or the tank is lost.</summary>
         public int StarLevel { get; private set; }
@@ -42,15 +67,21 @@ namespace GC26.Tanki.Rules
         public int Wave { get; private set; }
         public readonly List<RunUpgrade> Choices = new List<RunUpgrade>();
 
-        public int MaxHp => Tuning.BaseHp + Stats[Stat.Armor];
-        public bool IsBossLevel => Mode == GameMode.Campaign ? waves.IndexOf('X') >= 0 : Wave % Tuning.BossEvery == 0;
+        public int MaxHp => Math.Max(1, Tuning.BaseHp + Stats[Stat.Armor] + TankInfo.Hp);
+        public float PlayerSpeed => Tuning.DriveSpeed[Stats[Stat.Speed]] + TankInfo.Speed;
+        public float PlayerCooldown => Tuning.FireCooldown[Stats[Stat.FireRate]] * TankInfo.CooldownScale;
+        public bool IsBossLevel => Mode == GameMode.Survival ? Wave % Tuning.BossEvery == 0 : waves.IndexOf('X') >= 0;
         public Tank Boss => Enemies.Find(e => e.Kind == EnemyKind.Boss);
-        public string LevelName => Mode == GameMode.Survival ? "Выживание, волна " + Wave : (LevelIndex + 1) + ". " + Levels.All[LevelIndex].Name;
+        public string LevelName => Mode == GameMode.Survival ? "Выживание, волна " + Wave
+            : Mode == GameMode.Assault ? "Штурм " + (LevelIndex + 1) + ". " + Levels.Assault[LevelIndex].Name
+            : (LevelIndex + 1) + ". " + Levels.All[LevelIndex].Name;
+        public int MapCount => Mode == GameMode.Assault ? Levels.Assault.Length : Levels.All.Length;
         public int BaseX { get; private set; }
         public int BaseY { get; private set; }
         public float FreezeTimer { get; private set; }
         public float FortTimer { get; private set; }
-        public int EnemiesLeft => waveCursor < waves.Length ? waves.Length - waveCursor + Enemies.Count : Enemies.Count;
+        public int EnemiesLeft => Mode == GameMode.Assault ? CoreHp
+            : waveCursor < waves.Length ? waves.Length - waveCursor + Enemies.Count : Enemies.Count;
         public Difficulty Difficulty { get; private set; } = Difficulty.Normal;
         public DifficultySettings Settings { get; private set; } = DifficultySettings.For(Difficulty.Normal);
 
@@ -83,6 +114,7 @@ namespace GC26.Tanki.Rules
         int playerSpawnY;
         int superNeedCut;
         int bossesSpawned;
+        bool wavesLooped;
 
         public GameSim(int seed = 1)
         {
@@ -93,13 +125,14 @@ namespace GC26.Tanki.Rules
 
         public void NewGame()
         {
-            StartCampaign(0, Stats);
+            StartCampaign(0, Stats, TankType);
         }
 
         /// <summary>A campaign run from the chosen level, with the workshop's upgrades.</summary>
-        public void StartCampaign(int levelIndex, PlayerStats stats)
+        public void StartCampaign(int levelIndex, PlayerStats stats, PlayerTank tank = PlayerTank.Guard)
         {
             Mode = GameMode.Campaign;
+            TankType = tank;
             Stats = stats.Copy();
             Score = 0;
             Lives = Tuning.StartLives;
@@ -109,13 +142,26 @@ namespace GC26.Tanki.Rules
 
         public void NextLevel()
         {
-            if (LevelIndex + 1 < Levels.All.Length) LoadLevel(LevelIndex + 1);
+            if (LevelIndex + 1 < MapCount) LoadLevel(LevelIndex + 1);
+        }
+
+        /// <summary>Assault: no reactor of our own, the enemy's one to break past its turrets.</summary>
+        public void StartAssault(int levelIndex, PlayerStats stats, PlayerTank tank = PlayerTank.Guard)
+        {
+            Mode = GameMode.Assault;
+            TankType = tank;
+            Stats = stats.Copy();
+            Score = 0;
+            Lives = Tuning.StartLives;
+            PartsEarned = 0;
+            LoadLevel(levelIndex);
         }
 
         /// <summary>Endless waves on the arena, with a choice of upgrade after each one.</summary>
-        public void StartSurvival(PlayerStats stats)
+        public void StartSurvival(PlayerStats stats, PlayerTank tank = PlayerTank.Guard)
         {
             Mode = GameMode.Survival;
+            TankType = tank;
             Stats = stats.Copy();
             Score = 0;
             Lives = Tuning.StartLives;
@@ -125,8 +171,10 @@ namespace GC26.Tanki.Rules
             LevelIndex = 0;
             Smartness = SurvivalSmartness(Wave);
             LoadMap(Levels.Survival.Rows, SurvivalWave(Wave));
-            SuperNeed = Tuning.SurvivalSuperNeed;
+            SuperNeed = NeedFor(Tuning.SurvivalSuperNeed);
         }
+
+        int NeedFor(int need) => Math.Max(2, need + TankInfo.ChargeNeed);
 
         /// <summary>Hands over the parts earned so far, so the game can store them.</summary>
         public int TakeParts()
@@ -141,7 +189,7 @@ namespace GC26.Tanki.Rules
             return Math.Max(0f, Math.Min(1f, 0.2f + 0.05f * wave + Settings.SmartBonus));
         }
 
-        /// <summary>The enemies of a survival wave: more and tougher each time, a boss every fifth wave.</summary>
+        /// <summary>The enemies of a survival wave: more and tougher each time, the new kinds from wave 3, a boss every fifth wave.</summary>
         public string SurvivalWave(int wave)
         {
             var list = new System.Text.StringBuilder();
@@ -151,8 +199,11 @@ namespace GC26.Tanki.Rules
             {
                 double roll = rng.NextDouble();
                 if (roll < heavy) list.Append('H');
-                else if (roll < heavy + 0.25) list.Append('G');
-                else if (roll < heavy + 0.5) list.Append('S');
+                else if (roll < heavy + 0.2) list.Append('G');
+                else if (roll < heavy + 0.4) list.Append('S');
+                else if (wave >= 3 && roll < heavy + 0.5) list.Append('M');
+                else if (wave >= 4 && roll < heavy + 0.58) list.Append('F');
+                else if (wave >= 5 && roll < heavy + 0.66) list.Append('K');
                 else list.Append('R');
             }
             if (wave % Tuning.BossEvery == 0) list.Append('X');
@@ -178,7 +229,7 @@ namespace GC26.Tanki.Rules
                 case RunUpgrade.Speed:
                     var stat = (Stat)(int)upgrade;
                     Stats[stat] = Math.Min(Tuning.SurvivalMaxLevel, Stats[stat] + 1);
-                    if (Player.Alive) Player.Speed = Tuning.DriveSpeed[Stats[Stat.Speed]];
+                    if (Player.Alive) Player.Speed = PlayerSpeed;
                     break;
                 case RunUpgrade.Repair:
                     Lives++;
@@ -193,7 +244,7 @@ namespace GC26.Tanki.Rules
                     break;
             }
 
-            SuperNeed = Tuning.SurvivalSuperNeed - superNeedCut;
+            SuperNeed = NeedFor(Tuning.SurvivalSuperNeed - superNeedCut);
             Wave++;
             Smartness = SurvivalSmartness(Wave);
             waves = SurvivalWave(Wave);
@@ -233,9 +284,17 @@ namespace GC26.Tanki.Rules
         public void LoadLevel(int index)
         {
             LevelIndex = index;
+            if (Mode == GameMode.Assault)
+            {
+                Smartness = Math.Max(0f, Math.Min(1f, 0.35f + 0.1f * index + Settings.SmartBonus));
+                LoadMap(Levels.Assault[index].Rows, Levels.Assault[index].Waves);
+                SuperNeed = NeedFor(Tuning.AssaultSuperNeed);
+                CoreHp = CoreMax = Tuning.CoreHp(index);
+                return;
+            }
             Smartness = Math.Max(0f, Math.Min(1f, Tuning.LevelSmartness[index] + Settings.SmartBonus));
             LoadMap(Levels.All[index].Rows, Levels.All[index].Waves);
-            SuperNeed = Tuning.SuperNeed(index);
+            SuperNeed = NeedFor(Tuning.SuperNeed(index));
         }
 
         /// <summary>Loads any map. Public so tests can use small hand-made situations.</summary>
@@ -246,7 +305,14 @@ namespace GC26.Tanki.Rules
             Enemies.Clear();
             Bullets.Clear();
             Events.Clear();
+            Mines.Clear();
+            Turrets.Clear();
             Bonus = null;
+            CloakTimer = 0f;
+            Time = 0f;
+            LivesLost = 0;
+            StarsWon = 0;
+            wavesLooped = false;
             Phase = GamePhase.Playing;
             FreezeTimer = 0f;
             FortTimer = 0f;
@@ -259,7 +325,7 @@ namespace GC26.Tanki.Rules
             StarLevel = 0;
             StarTimer = 0f;
             SuperCharge = 0;
-            SuperNeed = Tuning.SuperNeed(LevelIndex);
+            SuperNeed = NeedFor(Tuning.SuperNeed(LevelIndex));
             bossesSpawned = 0;
             Choices.Clear();
             baseRoutesStale = true;
@@ -279,6 +345,11 @@ namespace GC26.Tanki.Rules
                         case '~': tile = Tile.Water; break;
                         case '=': tile = Tile.Oil; break;
                         case 'B': tile = Tile.Base; BaseX = x; BaseY = y; break;
+                        case 'C': tile = Tile.Core; BaseX = x; BaseY = y; break;
+                        case 'T':
+                            tile = Tile.Turret;
+                            Turrets.Add(new Turret { Id = -(nextId++), X = x, Y = y, Hp = Tuning.TurretHp, FireTimer = NextFloat(0.8f, 1.6f) });
+                            break;
                         case 'P': playerSpawnX = x; playerSpawnY = y; break;
                         case 'E': enemySpawns.Add((x, y)); break;
                     }
@@ -286,6 +357,7 @@ namespace GC26.Tanki.Rules
                     crateHp[x, y] = tile == Tile.Crate ? Tuning.CrateHp : 0;
                 }
             }
+            TurretCount = Turrets.Count;
             SpawnPlayer();
         }
 
@@ -293,19 +365,30 @@ namespace GC26.Tanki.Rules
 
         public static bool IsSolid(Tile tile)
         {
-            return tile == Tile.Crate || tile == Tile.Concrete || tile == Tile.Water || tile == Tile.Base;
+            return tile == Tile.Crate || tile == Tile.Concrete || tile == Tile.Water || tile == Tile.Base || tile == Tile.Core || tile == Tile.Turret;
+        }
+
+        /// <summary>Tiles a shot cannot pass and a gunner cannot see through.</summary>
+        public static bool BlocksSight(Tile tile)
+        {
+            return tile == Tile.Crate || tile == Tile.Concrete || tile == Tile.Core || tile == Tile.Turret;
         }
 
         public void Tick(float dt, PlayerInput input)
         {
             if (Phase != GamePhase.Playing) return;
 
+            Time += dt;
             FreezeTimer = Math.Max(0f, FreezeTimer - dt);
+            CloakTimer = Math.Max(0f, CloakTimer - dt);
             UpdateStar(dt);
             UpdateFort(dt);
             UpdatePlayer(dt, input);
-            foreach (Tank enemy in Enemies) UpdateEnemy(enemy, dt);
+            for (int i = 0; i < Enemies.Count; i++)
+                if (Enemies[i].Alive) UpdateEnemy(Enemies[i], dt);
+            UpdateTurrets(dt);
             UpdateBullets(dt);
+            UpdateMines(dt);
             UpdateSpawner(dt);
             UpdateBonus(dt);
             CheckLevelEnd(dt);
@@ -322,7 +405,7 @@ namespace GC26.Tanki.Rules
                 X = playerSpawnX + 0.5f,
                 Y = playerSpawnY + 0.5f,
                 Dir = Dir.Up,
-                Speed = Tuning.DriveSpeed[Stats[Stat.Speed]],
+                Speed = PlayerSpeed,
                 Hp = MaxHp,
                 MaxHp = MaxHp,
                 ShieldTimer = Tuning.RespawnShield
@@ -348,12 +431,12 @@ namespace GC26.Tanki.Rules
             Player.Cooldown = Math.Max(0f, Player.Cooldown - dt);
             Drive(Player, input.Move, dt);
 
-            if (input.Super && SuperReady) SuperStrike();
+            if (input.Super && SuperReady) UseAbility();
 
             if (input.Fire && Player.Cooldown <= 0f && BulletsOf(Player) < PlayerMaxBullets)
             {
                 Fire(Player, PlayerBulletSpeed, PlayerPierces, Tuning.GunDamage[Stats[Stat.Gun]]);
-                Player.Cooldown = Tuning.FireCooldown[Stats[Stat.FireRate]];
+                Player.Cooldown = PlayerCooldown;
             }
         }
 
@@ -380,8 +463,10 @@ namespace GC26.Tanki.Rules
             Player.Hp = 0;
             Events.Add(new GameEvent(GameEventKind.PlayerDestroyed, Player.X, Player.Y, true));
             Lives--;
+            LivesLost++;
             StarLevel = 0;
             StarTimer = 0f;
+            CloakTimer = 0f;
             respawnTimer = Tuning.RespawnDelay;
             if (Lives <= 0) Phase = GamePhase.GameOver;
         }
@@ -393,12 +478,23 @@ namespace GC26.Tanki.Rules
             if (StarTimer <= 0f) StarLevel = 0;
         }
 
-        // ---- Reactor strike ----
+        // ---- Abilities: one per tank, charged by kills ----
 
-        /// <summary>A wide beam along the player's facing: hurts every enemy in it and clears crates on its line.</summary>
-        void SuperStrike()
+        void UseAbility()
         {
             SuperCharge = 0;
+            switch (Ability)
+            {
+                case Ability.Volley: FireVolley(); break;
+                case Ability.Dome: RaiseDome(); break;
+                case Ability.Dash: DashAhead(); break;
+                default: SuperStrike(); break;
+            }
+        }
+
+        /// <summary>Guard: a wide beam along the player's facing. Hurts everything in it and clears crates on its line.</summary>
+        void SuperStrike()
+        {
             Dir dir = Player.Dir;
             bool horizontal = dir == Dir.Left || dir == Dir.Right;
             Events.Add(new GameEvent(GameEventKind.SuperStrike, Player.X, Player.Y, true, BonusKind.Star, dir));
@@ -410,6 +506,12 @@ namespace GC26.Tanki.Rules
             }
             foreach (Bullet bullet in Bullets)
                 if (!bullet.FromPlayer && InBeam(bullet.X, bullet.Y, dir, horizontal)) bullet.Alive = false;
+            Mines.RemoveAll(m =>
+            {
+                if (!InBeam(m.X, m.Y, dir, horizontal)) return false;
+                Events.Add(new GameEvent(GameEventKind.MineShot, m.X, m.Y));
+                return true;
+            });
 
             int x = (int)Math.Floor(Player.X);
             int y = (int)Math.Floor(Player.Y);
@@ -417,15 +519,87 @@ namespace GC26.Tanki.Rules
             {
                 StepCell(dir, ref x, ref y);
                 if (!InBounds(x, y)) break;
-                if (Tiles[x, y] != Tile.Crate) continue;
-                Tiles[x, y] = Tile.Empty;
-                crateHp[x, y] = 0;
-                baseRoutesStale = true;
-                Events.Add(new GameEvent(GameEventKind.TileChanged, x, y));
+                switch (Tiles[x, y])
+                {
+                    case Tile.Crate:
+                        Tiles[x, y] = Tile.Empty;
+                        crateHp[x, y] = 0;
+                        baseRoutesStale = true;
+                        Events.Add(new GameEvent(GameEventKind.TileChanged, x, y));
+                        break;
+                    case Tile.Turret: DamageTurret(TurretAt(x, y), Tuning.SuperDamage); break;
+                    case Tile.Core: DamageCore(Tuning.SuperDamage, x, y); break;
+                }
             }
 
             Bullets.RemoveAll(b => !b.Alive);
             Enemies.RemoveAll(e => !e.Alive);
+        }
+
+        /// <summary>Squall: two piercing shells each way.</summary>
+        void FireVolley()
+        {
+            Events.Add(new GameEvent(GameEventKind.Volley, Player.X, Player.Y, true, BonusKind.Star, Player.Dir));
+            for (int d = 0; d < 4; d++)
+            {
+                Dir dir = (Dir)d;
+                bool vertical = dir == Dir.Up || dir == Dir.Down;
+                foreach (float side in new[] { -0.22f, 0.22f })
+                {
+                    Bullets.Add(new Bullet
+                    {
+                        OwnerId = Player.Id,
+                        FromPlayer = true,
+                        Pierce = true,
+                        Volley = true,
+                        Damage = Tuning.VolleyDamage,
+                        X = Player.X + DirX(dir) * 0.5f + (vertical ? side : 0f),
+                        Y = Player.Y + DirY(dir) * 0.5f + (vertical ? 0f : side),
+                        Dir = dir,
+                        Speed = PlayerBulletSpeed + 2f
+                    });
+                }
+            }
+        }
+
+        /// <summary>Bastion: a shield, and the tanks close by stand still for a while.</summary>
+        void RaiseDome()
+        {
+            Player.ShieldTimer = Math.Max(Player.ShieldTimer, Tuning.DomeShield);
+            Events.Add(new GameEvent(GameEventKind.Dome, Player.X, Player.Y, true, BonusKind.Star, Player.Dir));
+            foreach (Tank enemy in Enemies)
+            {
+                if (!enemy.Alive || Distance(enemy.X, enemy.Y, Player.X, Player.Y) > Tuning.DomeRange) continue;
+                enemy.StunTimer = Tuning.DomeStun;
+                enemy.Moving = false;
+            }
+            foreach (Bullet bullet in Bullets)
+                if (!bullet.FromPlayer && Distance(bullet.X, bullet.Y, Player.X, Player.Y) <= Tuning.DomeRange) bullet.Alive = false;
+            Bullets.RemoveAll(b => !b.Alive);
+        }
+
+        /// <summary>Phantom: jumps ahead until something blocks it, then the enemy loses sight of it.</summary>
+        void DashAhead()
+        {
+            float fromX = Player.X;
+            float fromY = Player.Y;
+            float dx = DirX(Player.Dir) * 0.1f;
+            float dy = DirY(Player.Dir) * 0.1f;
+            for (float moved = 0f; moved < Tuning.DashCells; moved += 0.1f)
+            {
+                if (!CanOccupy(Player, Player.X + dx, Player.Y + dy)) break;
+                Player.X += dx;
+                Player.Y += dy;
+            }
+            CloakTimer = Tuning.CloakTime;
+            playerRouteStale = true;
+            var dash = new GameEvent(GameEventKind.Dash, fromX, fromY, true, BonusKind.Star, Player.Dir) { ToX = Player.X, ToY = Player.Y };
+            Events.Add(dash);
+        }
+
+        static float Distance(float ax, float ay, float bx, float by)
+        {
+            return (float)Math.Sqrt(Sq(ax - bx) + Sq(ay - by));
         }
 
         bool InBeam(float x, float y, Dir dir, bool horizontal)
@@ -441,10 +615,10 @@ namespace GC26.Tanki.Rules
             while (!SuperReady) AddSuperCharge();
         }
 
-        /// <summary>Fires the strike now if it is charged, as the button would.</summary>
+        /// <summary>Uses the tank's ability now if it is charged, as the button would.</summary>
         public void UseSuper()
         {
-            if (Phase == GamePhase.Playing && Player.Alive && SuperReady) SuperStrike();
+            if (Phase == GamePhase.Playing && Player.Alive && SuperReady) UseAbility();
         }
 
         void AddSuperCharge()
@@ -561,7 +735,7 @@ namespace GC26.Tanki.Rules
 
             if (tank != Player && Player.Alive && BlocksTank(tank, Player, x, y)) return false;
             foreach (Tank other in Enemies)
-                if (other != tank && BlocksTank(tank, other, x, y)) return false;
+                if (other != tank && other.Alive && BlocksTank(tank, other, x, y)) return false;
             return true;
         }
 
@@ -580,7 +754,7 @@ namespace GC26.Tanki.Rules
             const float size = Tuning.TankHalf * 2f;
             if (Player.Alive && Math.Abs(Player.X - x) < size && Math.Abs(Player.Y - y) < size) return true;
             foreach (Tank enemy in Enemies)
-                if (Math.Abs(enemy.X - x) < size && Math.Abs(enemy.Y - y) < size) return true;
+                if (enemy.Alive && Math.Abs(enemy.X - x) < size && Math.Abs(enemy.Y - y) < size) return true;
             return false;
         }
 
@@ -588,11 +762,24 @@ namespace GC26.Tanki.Rules
 
         void UpdateSpawner(float dt)
         {
-            if (waveCursor >= waves.Length || enemySpawns.Count == 0) return;
+            if (enemySpawns.Count == 0) return;
+            if (waveCursor >= waves.Length)
+            {
+                // In an assault the defenders keep coming until their reactor falls.
+                if (Mode != GameMode.Assault || waves.Length == 0) return;
+                waveCursor = 0;
+                wavesLooped = true;
+            }
             spawnTimer -= dt;
-            if (spawnTimer > 0f || Enemies.Count >= Settings.MaxEnemies) return;
+            int max = Mode == GameMode.Assault ? Math.Max(2, Settings.MaxEnemies - 1) : Settings.MaxEnemies;
+            if (spawnTimer > 0f || Enemies.Count >= max) return;
 
             EnemyKind kind = ParseKind(waves[waveCursor]);
+            if (kind == EnemyKind.Boss && wavesLooped)
+            {
+                waveCursor++;
+                return;
+            }
             // The boss waits for the field to clear a little, and always comes from the middle gate.
             if (kind == EnemyKind.Boss && Enemies.Count > 1) return;
 
@@ -607,7 +794,7 @@ namespace GC26.Tanki.Rules
                 SpawnEnemy(kind, x, y);
                 waveCursor++;
                 spawnerIndex = (spawnerIndex + i + 1) % enemySpawns.Count;
-                spawnTimer = Settings.SpawnDelay;
+                spawnTimer = Settings.SpawnDelay * (Mode == GameMode.Assault ? Tuning.AssaultSpawnDelay : 1f);
                 return;
             }
         }
@@ -617,7 +804,8 @@ namespace GC26.Tanki.Rules
             if (kind == EnemyKind.Boss)
             {
                 bossesSpawned++;
-                int number = Mode == GameMode.Survival ? Wave / Tuning.BossEvery : LevelIndex / Tuning.BossEvery + 1;
+                int number = Mode == GameMode.Survival ? Wave / Tuning.BossEvery
+                    : Mode == GameMode.Assault ? 1 + LevelIndex / 2 : LevelIndex / Tuning.BossEvery + 1;
                 int hp = Tuning.BossHp(number);
                 Enemies.Add(new Tank
                 {
@@ -628,7 +816,7 @@ namespace GC26.Tanki.Rules
                     Dir = Dir.Down,
                     Speed = Tuning.EnemySpeed(kind) * Settings.SpeedScale,
                     BulletSpeed = Tuning.EnemyBulletSpeed(kind),
-                    Role = EnemyRole.Breaker,
+                    Role = Mode == GameMode.Assault ? EnemyRole.Hunter : EnemyRole.Breaker,
                     Hp = hp,
                     MaxHp = hp,
                     Carrier = true,
@@ -652,21 +840,33 @@ namespace GC26.Tanki.Rules
                 BulletSpeed = Tuning.EnemyBulletSpeed(kind),
                 Role = RoleFor(kind),
                 Hp = Tuning.EnemyHp(kind),
+                MaxHp = Tuning.EnemyHp(kind),
                 Carrier = (waveCursor + 1) % Tuning.CarrierEvery == 0,
                 SpawnTimer = Tuning.SpawnFlash,
                 Want = Dir.Down,
                 ThinkTimer = NextFloat(0.3f, 1f),
-                FireTimer = NextFloat(0.6f, 1.6f)
+                FireTimer = NextFloat(0.6f, 1.6f),
+                MineTimer = NextFloat(1.5f, Tuning.MineEvery),
+                FixTimer = Tuning.FixEvery
             });
         }
 
         EnemyRole RoleFor(EnemyKind kind)
         {
+            if (Mode == GameMode.Assault)
+            {
+                // Defenders: some guard their reactor, the rest hunt the attacker.
+                if (kind == EnemyKind.Fixer) return EnemyRole.Guard;
+                return kind != EnemyKind.Rammer && waveCursor % 3 == 0 ? EnemyRole.Guard : EnemyRole.Hunter;
+            }
             switch (kind)
             {
                 case EnemyKind.Scout: return EnemyRole.Rusher;
                 case EnemyKind.Gunner: return EnemyRole.Hunter;
                 case EnemyKind.Heavy: return EnemyRole.Breaker;
+                case EnemyKind.Rammer: return EnemyRole.Breaker;
+                case EnemyKind.Miner: return EnemyRole.Hunter;
+                case EnemyKind.Fixer: return EnemyRole.Rusher;
                 default: return waveCursor % 2 == 0 ? EnemyRole.Hunter : EnemyRole.Rusher;
             }
         }
@@ -679,6 +879,9 @@ namespace GC26.Tanki.Rules
                 case 'G': return EnemyKind.Gunner;
                 case 'H': return EnemyKind.Heavy;
                 case 'X': return EnemyKind.Boss;
+                case 'M': return EnemyKind.Miner;
+                case 'F': return EnemyKind.Fixer;
+                case 'K': return EnemyKind.Rammer;
                 default: return EnemyKind.Raider;
             }
         }
@@ -695,6 +898,12 @@ namespace GC26.Tanki.Rules
                 enemy.Moving = false;
                 return;
             }
+            if (enemy.StunTimer > 0f)
+            {
+                enemy.StunTimer -= dt;
+                enemy.Moving = false;
+                return;
+            }
 
             enemy.ThinkTimer -= dt;
             enemy.LineTimer -= dt;
@@ -703,7 +912,7 @@ namespace GC26.Tanki.Rules
             bool blocked = !enemy.Moving && !holding;
             bool atCentre = NearCentre(enemy);
 
-            if (Smartness > 0f && enemy.LineTimer <= 0f && atCentre)
+            if (Smartness > 0f && enemy.LineTimer <= 0f && atCentre && enemy.Kind != EnemyKind.Rammer)
             {
                 enemy.LineTimer = Tuning.LineCheckInterval;
                 if (rng.NextDouble() < Smartness) TakeLineShot(enemy);
@@ -719,6 +928,14 @@ namespace GC26.Tanki.Rules
 
             // A tank in ambush only turns; once it faces its target it stays put and shoots.
             Drive(enemy, holding && enemy.Dir == enemy.Want ? null : enemy.Want, dt);
+
+            if (enemy.Kind == EnemyKind.Rammer)
+            {
+                RamCheck(enemy);
+                return;
+            }
+            if (enemy.Kind == EnemyKind.Miner) LayMine(enemy, dt, atCentre);
+            if (enemy.Kind == EnemyKind.Fixer) MendAround(enemy, dt);
 
             bool lined = HasTargetInLine(enemy) || (Smartness > 0f && CrateAhead(enemy));
             enemy.FireTimer -= lined ? dt * 3f : dt;
@@ -742,9 +959,193 @@ namespace GC26.Tanki.Rules
             if (enemy.FireTimer <= 0f && BulletsOf(enemy) == 0)
             {
                 Fire(enemy, enemy.BulletSpeed, false);
-                float rate = enemy.Kind == EnemyKind.Gunner ? 0.7f : 1f;
-                enemy.FireTimer = NextFloat(0.8f, 1.9f) * rate * Settings.FireIntervalScale;
+                enemy.FireTimer = NextFloat(0.8f, 1.9f) * Tuning.EnemyFireScale(enemy.Kind) * Settings.FireIntervalScale;
             }
+        }
+
+        // ---- The new enemies ----
+
+        /// <summary>The miner leaves a mine behind on its way, a few at a time.</summary>
+        void LayMine(Tank miner, float dt, bool atCentre)
+        {
+            miner.MineTimer -= dt;
+            if (miner.MineTimer > 0f || !atCentre) return;
+            int x = (int)Math.Floor(miner.X);
+            int y = (int)Math.Floor(miner.Y);
+            int own = Mines.FindAll(m => m.OwnerId == miner.Id).Count;
+            if (own >= Tuning.MineMax || Mines.Exists(m => m.CellX == x && m.CellY == y) || (x == playerSpawnX && y == playerSpawnY))
+            {
+                miner.MineTimer = 1f;
+                return;
+            }
+            Mines.Add(new Mine { OwnerId = miner.Id, CellX = x, CellY = y, Arm = Tuning.MineArm });
+            miner.MineTimer = Tuning.MineEvery;
+            Events.Add(new GameEvent(GameEventKind.MineLaid, x + 0.5f, y + 0.5f));
+        }
+
+        void UpdateMines(float dt)
+        {
+            for (int i = Mines.Count - 1; i >= 0; i--)
+            {
+                Mine mine = Mines[i];
+                mine.Arm = Math.Max(0f, mine.Arm - dt);
+                if (mine.Arm > 0f || !Player.Alive) continue;
+                if (Math.Abs(Player.X - mine.X) > 0.55f || Math.Abs(Player.Y - mine.Y) > 0.55f) continue;
+                Mines.RemoveAt(i);
+                Events.Add(new GameEvent(GameEventKind.MineBlast, mine.X, mine.Y));
+                HurtPlayer();
+            }
+        }
+
+        /// <summary>The fixer mends one point on every hurt tank around it.</summary>
+        void MendAround(Tank fixer, float dt)
+        {
+            fixer.FixTimer -= dt;
+            if (fixer.FixTimer > 0f) return;
+            fixer.FixTimer = Tuning.FixEvery;
+            foreach (Tank other in Enemies)
+            {
+                if (other == fixer || !other.Alive || other.Spawning || other.Hp >= other.MaxHp) continue;
+                if (Distance(other.X, other.Y, fixer.X, fixer.Y) > Tuning.FixRange) continue;
+                other.Hp++;
+                Events.Add(new GameEvent(GameEventKind.Heal, other.X, other.Y));
+            }
+        }
+
+        /// <summary>The rammer blows up next to the player, at the reactor, or against a crate in its way.</summary>
+        void RamCheck(Tank rammer)
+        {
+            bool near = Player.Alive && Math.Abs(Player.X - rammer.X) < 1.05f && Math.Abs(Player.Y - rammer.Y) < 1.05f;
+            int x = (int)Math.Floor(rammer.X);
+            int y = (int)Math.Floor(rammer.Y);
+            StepCell(rammer.Dir, ref x, ref y);
+            Tile ahead = InBounds(x, y) ? Tiles[x, y] : Tile.Concrete;
+            if (near || ahead == Tile.Base || (!rammer.Moving && ahead == Tile.Crate)) RamBlast(rammer);
+        }
+
+        void RamBlast(Tank rammer)
+        {
+            rammer.Alive = false;
+            rammer.Hp = 0;
+            Events.Add(new GameEvent(GameEventKind.RamBlast, rammer.X, rammer.Y));
+            float r = Tuning.RamBlast;
+            for (int y = (int)Math.Floor(rammer.Y - r); y <= (int)Math.Floor(rammer.Y + r); y++)
+            {
+                for (int x = (int)Math.Floor(rammer.X - r); x <= (int)Math.Floor(rammer.X + r); x++)
+                {
+                    if (!InBounds(x, y) || Distance(x + 0.5f, y + 0.5f, rammer.X, rammer.Y) > r) continue;
+                    if (Tiles[x, y] == Tile.Crate)
+                    {
+                        Tiles[x, y] = Tile.Empty;
+                        crateHp[x, y] = 0;
+                        baseRoutesStale = true;
+                        Events.Add(new GameEvent(GameEventKind.TileChanged, x, y));
+                    }
+                    else if (Tiles[x, y] == Tile.Base)
+                    {
+                        DestroyBase(x, y);
+                    }
+                }
+            }
+            if (Player.Alive && Distance(Player.X, Player.Y, rammer.X, rammer.Y) <= r) HurtPlayer();
+        }
+
+        // ---- Assault: turrets and the enemy reactor ----
+
+        Turret TurretAt(int x, int y) => Turrets.Find(t => t.X == x && t.Y == y && t.Hp > 0);
+
+        Dir? TurretLine(Turret turret)
+        {
+            int playerX = (int)Math.Floor(Player.X);
+            int playerY = (int)Math.Floor(Player.Y);
+            for (int d = 0; d < 4; d++)
+            {
+                int x = turret.X;
+                int y = turret.Y;
+                for (int i = 0; i < Tuning.TurretRange; i++)
+                {
+                    StepCell((Dir)d, ref x, ref y);
+                    if (!InBounds(x, y) || BlocksSight(Tiles[x, y])) break;
+                    if (x == playerX && y == playerY) return (Dir)d;
+                }
+            }
+            return null;
+        }
+
+        void UpdateTurrets(float dt)
+        {
+            foreach (Turret turret in Turrets)
+            {
+                if (turret.Hp <= 0) continue;
+                turret.FireTimer -= dt;
+                if (FreezeTimer > 0f || turret.FireTimer > 0f || !PlayerVisible) continue;
+                if (Bullets.Exists(b => b.OwnerId == turret.Id)) continue;
+                Dir? line = TurretLine(turret);
+                if (line == null)
+                {
+                    turret.FireTimer = 0.25f;
+                    continue;
+                }
+                Dir dir = line.Value;
+                turret.Dir = dir;
+                Bullets.Add(new Bullet
+                {
+                    OwnerId = turret.Id,
+                    X = turret.X + 0.5f + DirX(dir) * 0.55f,
+                    Y = turret.Y + 0.5f + DirY(dir) * 0.55f,
+                    Dir = dir,
+                    Speed = Tuning.TurretBulletSpeed
+                });
+                Events.Add(new GameEvent(GameEventKind.Shot, turret.X + 0.5f, turret.Y + 0.5f));
+                turret.FireTimer = Tuning.TurretEvery * Settings.FireIntervalScale;
+            }
+        }
+
+        void DamageTurret(Turret turret, int damage)
+        {
+            if (turret == null) return;
+            turret.Hp -= damage;
+            if (turret.Hp > 0)
+            {
+                Events.Add(new GameEvent(GameEventKind.TurretHit, turret.X + 0.5f, turret.Y + 0.5f));
+                return;
+            }
+            Tiles[turret.X, turret.Y] = Tile.Empty;
+            baseRoutesStale = true;
+            Score += Tuning.TurretScore;
+            PartsEarned += Tuning.TurretParts;
+            AddSuperCharge();
+            Events.Add(new GameEvent(GameEventKind.TileChanged, turret.X, turret.Y));
+            Events.Add(new GameEvent(GameEventKind.TurretDestroyed, turret.X + 0.5f, turret.Y + 0.5f));
+        }
+
+        void DamageCore(int damage, int x, int y)
+        {
+            if (CoreHp <= 0) return;
+            CoreHp = Math.Max(0, CoreHp - damage);
+            if (CoreHp > 0)
+            {
+                Events.Add(new GameEvent(GameEventKind.CoreHit, x + 0.5f, y + 0.5f));
+                return;
+            }
+            Tiles[x, y] = Tile.Empty;
+            Events.Add(new GameEvent(GameEventKind.TileChanged, x, y));
+            Events.Add(new GameEvent(GameEventKind.CoreDestroyed, x + 0.5f, y + 0.5f));
+            // With their reactor gone, the defenders go up with it.
+            // Only marked here: this can run while the bullets are being stepped; they are removed after.
+            foreach (Tank enemy in Enemies)
+                if (enemy.Alive) DestroyEnemy(enemy, false);
+            foreach (Bullet bullet in Bullets)
+                if (!bullet.FromPlayer) bullet.Alive = false;
+            Mines.Clear();
+        }
+
+        void DestroyBase(int x, int y)
+        {
+            Tiles[x, y] = Tile.Empty;
+            Phase = GamePhase.GameOver;
+            Events.Add(new GameEvent(GameEventKind.TileChanged, x, y));
+            Events.Add(new GameEvent(GameEventKind.BaseDestroyed, x + 0.5f, y + 0.5f));
         }
 
         // ---- Smart behaviour ----
@@ -781,7 +1182,7 @@ namespace GC26.Tanki.Rules
 
                     Tile tile = Tiles[x, y];
                     if (tile == Tile.Base) return dir;
-                    if (tile == Tile.Crate || tile == Tile.Concrete) break;
+                    if (BlocksSight(tile)) break;
                     if (playerLine == null && PlayerWillBeAt(x, y, distance / enemy.BulletSpeed)) playerLine = dir;
                 }
             }
@@ -790,7 +1191,7 @@ namespace GC26.Tanki.Rules
 
         bool PlayerWillBeAt(int x, int y, float seconds)
         {
-            if (!Player.Alive) return false;
+            if (!PlayerVisible) return false;
             float travel = Player.Moving ? Player.Speed * seconds : 0f;
             int futureX = (int)Math.Floor(Player.X + DirX(Player.Dir) * travel);
             int futureY = (int)Math.Floor(Player.Y + DirY(Player.Dir) * travel);
@@ -866,7 +1267,7 @@ namespace GC26.Tanki.Rules
             RefreshRoutes();
             int[,] route = baseRoute;
             if (enemy.Role == EnemyRole.Breaker) route = breakerRoute;
-            else if (enemy.Role == EnemyRole.Hunter && Player.Alive) route = playerRoute;
+            else if (enemy.Role == EnemyRole.Hunter && PlayerVisible) route = playerRoute;
 
             int startX = (int)Math.Floor(enemy.X);
             int startY = (int)Math.Floor(enemy.Y);
@@ -907,7 +1308,7 @@ namespace GC26.Tanki.Rules
 
             if (rng.NextDouble() < 0.65)
             {
-                bool huntPlayer = Player.Alive && rng.NextDouble() < 0.4;
+                bool huntPlayer = PlayerVisible && rng.NextDouble() < 0.4;
                 float targetX = huntPlayer ? Player.X : BaseX + 0.5f;
                 float targetY = huntPlayer ? Player.Y : BaseY + 0.5f;
                 float dx = targetX - enemy.X;
@@ -951,8 +1352,8 @@ namespace GC26.Tanki.Rules
         {
             int x = (int)Math.Floor(enemy.X);
             int y = (int)Math.Floor(enemy.Y);
-            int playerX = Player.Alive ? (int)Math.Floor(Player.X) : -1;
-            int playerY = Player.Alive ? (int)Math.Floor(Player.Y) : -1;
+            int playerX = PlayerVisible ? (int)Math.Floor(Player.X) : -1;
+            int playerY = PlayerVisible ? (int)Math.Floor(Player.Y) : -1;
             while (true)
             {
                 StepCell(enemy.Dir, ref x, ref y);
@@ -960,7 +1361,7 @@ namespace GC26.Tanki.Rules
                 if (x == playerX && y == playerY) return true;
                 Tile tile = Tiles[x, y];
                 if (tile == Tile.Base) return true;
-                if (tile == Tile.Crate || tile == Tile.Concrete) return false;
+                if (BlocksSight(tile)) return false;
             }
         }
 
@@ -988,7 +1389,7 @@ namespace GC26.Tanki.Rules
             Score += Tuning.EnemyScore(enemy.Kind);
             PartsEarned += Tuning.EnemyParts(enemy.Kind);
             if (chargesSuper) AddSuperCharge();
-            Events.Add(new GameEvent(GameEventKind.TankDestroyed, enemy.X, enemy.Y, false, BonusKind.Star, enemy.Dir));
+            Events.Add(new GameEvent(GameEventKind.TankDestroyed, enemy.X, enemy.Y, false, BonusKind.Star, enemy.Dir) { Enemy = enemy.Kind });
         }
 
         // ---- Bullets ----
@@ -997,7 +1398,7 @@ namespace GC26.Tanki.Rules
         {
             int count = 0;
             foreach (Bullet bullet in Bullets)
-                if (bullet.OwnerId == tank.Id) count++;
+                if (bullet.OwnerId == tank.Id && !bullet.Volley) count++;
             return count;
         }
 
@@ -1054,6 +1455,15 @@ namespace GC26.Tanki.Rules
             const float h = Tuning.TankHalf;
             if (bullet.FromPlayer)
             {
+                for (int i = 0; i < Mines.Count; i++)
+                {
+                    Mine mine = Mines[i];
+                    if (Math.Abs(mine.X - bullet.X) >= 0.35f || Math.Abs(mine.Y - bullet.Y) >= 0.35f) continue;
+                    bullet.Alive = false;
+                    Mines.RemoveAt(i);
+                    Events.Add(new GameEvent(GameEventKind.MineShot, mine.X, mine.Y));
+                    return;
+                }
                 foreach (Tank enemy in Enemies)
                 {
                     if (!enemy.Alive || enemy.Spawning) continue;
@@ -1083,6 +1493,7 @@ namespace GC26.Tanki.Rules
                     {
                         Tiles[x, y] = Tile.Empty;
                         baseRoutesStale = true;
+                        Events.Add(new GameEvent(GameEventKind.CrateBroken, x + 0.5f, y + 0.5f));
                     }
                     Events.Add(new GameEvent(GameEventKind.TileChanged, x, y));
                     Events.Add(new GameEvent(GameEventKind.BulletSpark, bullet.X, bullet.Y));
@@ -1101,10 +1512,19 @@ namespace GC26.Tanki.Rules
 
                 case Tile.Base:
                     bullet.Alive = false;
-                    Tiles[x, y] = Tile.Empty;
-                    Phase = GamePhase.GameOver;
-                    Events.Add(new GameEvent(GameEventKind.TileChanged, x, y));
-                    Events.Add(new GameEvent(GameEventKind.BaseDestroyed, x + 0.5f, y + 0.5f));
+                    DestroyBase(x, y);
+                    return true;
+
+                case Tile.Turret:
+                    bullet.Alive = false;
+                    Events.Add(new GameEvent(GameEventKind.BulletSpark, bullet.X, bullet.Y));
+                    if (bullet.FromPlayer) DamageTurret(TurretAt(x, y), bullet.Damage);
+                    return true;
+
+                case Tile.Core:
+                    bullet.Alive = false;
+                    Events.Add(new GameEvent(GameEventKind.BulletSpark, bullet.X, bullet.Y));
+                    if (bullet.FromPlayer) DamageCore(bullet.Damage, x, y);
                     return true;
 
                 default:
@@ -1144,9 +1564,12 @@ namespace GC26.Tanki.Rules
             if (free.Count == 0) return;
 
             var cell = free[rng.Next(free.Count)];
+            // No reactor of our own to fortify in an assault.
+            var kinds = new List<BonusKind>((BonusKind[])Enum.GetValues(typeof(BonusKind)));
+            if (Mode == GameMode.Assault) kinds.Remove(BonusKind.Fort);
             Bonus = new Bonus
             {
-                Kind = (BonusKind)rng.Next(Enum.GetValues(typeof(BonusKind)).Length),
+                Kind = kinds[rng.Next(kinds.Count)],
                 X = cell.x,
                 Y = cell.y,
                 Timer = Tuning.BonusLifetime
@@ -1198,13 +1621,14 @@ namespace GC26.Tanki.Rules
                         else DestroyEnemy(enemy);
                     }
                     Enemies.RemoveAll(e => !e.Alive);
+                    Mines.Clear();
                     Events.Add(new GameEvent(GameEventKind.BombBlast, Player.X, Player.Y));
                     break;
                 case BonusKind.Shield:
                     Player.ShieldTimer = Tuning.ShieldBonusTime;
                     break;
                 case BonusKind.Fort:
-                    StartFort(Tuning.FortTime);
+                    if (Mode != GameMode.Assault) StartFort(Tuning.FortTime);
                     break;
                 case BonusKind.Freeze:
                     FreezeTimer = Tuning.FreezeTime;
@@ -1268,8 +1692,9 @@ namespace GC26.Tanki.Rules
                 Phase = GamePhase.WaveCleared;
                 return;
             }
-            PartsEarned += Tuning.LevelParts(LevelIndex);
-            Phase = LevelIndex + 1 < Levels.All.Length ? GamePhase.LevelCleared : GamePhase.Victory;
+            StarsWon = CurrentStars;
+            PartsEarned += Mode == GameMode.Assault ? Tuning.AssaultParts(LevelIndex) : Tuning.LevelParts(LevelIndex);
+            Phase = LevelIndex + 1 < MapCount ? GamePhase.LevelCleared : GamePhase.Victory;
         }
 
         // ---- Helpers ----

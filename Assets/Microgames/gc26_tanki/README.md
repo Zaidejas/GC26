@@ -21,6 +21,10 @@
 - **Мастерская:** броня, пушка, скорострельность, скорость. Платишь деталями.
 - **Звезда:** временная, 20 секунд.
 - **Выживание:** бесконечные волны, после каждой выбор 1 улучшения из 3, босс каждую 5-ю волну.
+- **Штурм:** 6 крепостей, где нападаешь ты: разбей вражеский реактор, его охраняют турели и защитники.
+- **Гараж:** 4 танка со своей способностью на кнопке внизу. Страж: удар реактора. Шквал: залп во все стороны. Бастион: купол со щитом и оглушением. Призрак: рывок и невидимость.
+- **Враги:** у каждого типа своя модель. Новые: минёр (ставит мины), ремонтник (чинит соседей), таран (взрывается у игрока, реактора или ящика).
+- **Прогресс:** до 3 звёзд за карту (победа, без потерь, быстрее нормы) и 15 наград, которые платят деталями.
 - **Настройки:** звук, вибрация, сложность.
 
 ## Папки
@@ -42,7 +46,10 @@
 | Что | Файл |
 |---|---|
 | Скорости, жизни, таймеры, очки, прокачка, босс | `Scripts/Rules/GameTypes.cs` (класс `Tuning`) |
-| Карты и волны врагов (`X` в волне — босс) | `Scripts/Rules/Levels.cs` |
+| Карты и волны врагов (`X` босс, `M` минёр, `F` ремонтник, `K` таран) | `Scripts/Rules/Levels.cs` |
+| Карты штурма (`C` вражеский реактор, `T` турель) | `Tools~/assault_maps.txt`, потом `python Tools~/sync_levels.py` |
+| Танки игрока | `TankDef` в `Scripts/Rules/GameTypes.cs` |
+| Награды | `Scripts/Game/TankiAwards.cs` |
 | Правила и ИИ | `Scripts/Rules/GameSim.cs` |
 | Модели и цвета | `Scripts/Game/WorldView.cs` |
 | Камера и свет | `Scripts/Game/CameraRig.cs` |
@@ -50,6 +57,7 @@
 | Интерфейс и меню | `Scripts/Game/GameHud.cs` |
 
 Правила есть в двух местах: в C# (`Scripts/Rules`) и в JS (`Web~/steel-line.html`). Меняешь одно — меняй и другое.
+Карты копировать руками не нужно: `python Tools~/sync_levels.py` переносит их из `Levels.cs` и `assault_maps.txt` в страницу.
 
 ## Браузерная версия
 
@@ -64,6 +72,7 @@ python -m http.server 8765 --directory "Assets/Microgames/gc26_tanki/Web~"
 Скрипты запускаются из папки `Art~`:
 
 ```bash
+python build_variants.py ../Resources/gc26_tanki/Tanks ../Resources/gc26_tanki/Tanks ../Web~/tanks
 python build_models.py ../Resources/gc26_tanki/Tanks ../Resources/gc26_tanki/Tanks ../Web~/tanks
 python build_tiles.py ../Resources/gc26_tanki/Tiles ../Web~/tiles
 python build_bonuses.py ../Resources/gc26_tanki/Bonuses ../Web~/bonuses

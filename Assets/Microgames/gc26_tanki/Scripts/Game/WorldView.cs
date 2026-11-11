@@ -22,8 +22,9 @@ namespace GC26.Tanki.Game
         static readonly Color HealthEmpty = Hex("4A4552");
         static readonly Color HealthBack = Hex("15101C");
 
-        static readonly Color BossTint = new Color(1f, 0.55f, 0.5f);
         static readonly Color BeamColor = Hex("8FFFF0");
+        static readonly Color EnemyReactorMetal = Hex("5A3A34");
+        static readonly Color EnemyGlow = Hex("FF5A3C");
 
         // The boss has far more health than fits in segments, so its bar shows tenths.
         const int BossBarSegments = 10;
@@ -37,7 +38,13 @@ namespace GC26.Tanki.Game
         readonly List<Tank> staleTanks = new List<Tank>();
         readonly List<GameObject> bulletViews = new List<GameObject>();
         readonly List<Debris> debris = new List<Debris>();
+        readonly List<GameObject> mineViews = new List<GameObject>();
+        readonly Dictionary<int, Transform> turretHeads = new Dictionary<int, Transform>();
+        readonly List<RingEffect> rings = new List<RingEffect>();
         readonly Material baseMaterial;
+        // See-through materials (the cloak, the rings) start from an asset, so the build keeps that shader variant.
+        readonly Material ghostMaterial;
+        Mesh effectRing;
 
         Material groundMaterial;
         Material tileMaterial;
@@ -56,6 +63,8 @@ namespace GC26.Tanki.Game
             public Renderer[] Paint;
             public Material Normal;
             public Material Flash;
+            public Material Ghost;
+            public Material Stunned;
             public Transform Shield;
             public Transform MarkerRing;
             public Transform HealthBar;
@@ -72,6 +81,16 @@ namespace GC26.Tanki.Game
 
         readonly List<Beam> beams = new List<Beam>();
 
+        sealed class RingEffect
+        {
+            public Transform Item;
+            public Material Material;
+            public Color Color;
+            public float Life;
+            public float Max;
+            public float Size;
+        }
+
         sealed class Debris
         {
             public Transform Item;
@@ -83,6 +102,8 @@ namespace GC26.Tanki.Game
         {
             baseMaterial = Resources.Load<Material>("gc26_tanki/SteelLineLit");
             if (baseMaterial == null) baseMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            ghostMaterial = Resources.Load<Material>("gc26_tanki/SteelLineGhost");
+            if (ghostMaterial == null) ghostMaterial = baseMaterial;
 
             root = new GameObject("World").transform;
             root.SetParent(parent, false);
@@ -120,6 +141,11 @@ namespace GC26.Tanki.Game
             if (bonusView != null) Kill(bonusView);
             bonusView = null;
             reactorCore = null;
+            foreach (GameObject mine in mineViews) Kill(mine);
+            mineViews.Clear();
+            turretHeads.Clear();
+            foreach (RingEffect ring in rings) { Kill(ring.Item.gameObject); Kill(ring.Material); }
+            rings.Clear();
             System.Array.Clear(tiles, 0, tiles.Length);
         }
 
@@ -185,7 +211,9 @@ namespace GC26.Tanki.Game
                     break;
                 case Tile.Water: BuildWater(cell); break;
                 case Tile.Oil: BuildOil(cell, x, y); break;
-                case Tile.Base: BuildReactor(cell); break;
+                case Tile.Base: BuildReactor(cell, false); break;
+                case Tile.Core: BuildReactor(cell, true); break;
+                case Tile.Turret: turretHeads[x * 100 + y] = BuildTurret(cell); break;
             }
         }
 
@@ -218,15 +246,33 @@ namespace GC26.Tanki.Game
             Box(cell, new Vector3(shift, 0.028f, -shift), new Vector3(0.28f, 0.01f, 0.16f), Hex("4C3F6B"));
         }
 
-        void BuildReactor(Transform cell)
+        /// <summary>Our reactor glows teal; the enemy's one in an assault is red, with taller posts and lights on top.</summary>
+        void BuildReactor(Transform cell, bool enemy)
         {
-            Box(cell, new Vector3(0f, 0.08f, 0f), new Vector3(0.94f, 0.16f, 0.94f), ReactorMetal);
+            Color frame = enemy ? EnemyReactorMetal : ReactorMetal;
+            Color glow = enemy ? EnemyGlow : ReactorGlow;
+            Box(cell, new Vector3(0f, 0.08f, 0f), new Vector3(0.94f, 0.16f, 0.94f), frame);
             Cylinder(cell, new Vector3(0f, 0.36f, 0f), new Vector3(0.62f, 0.2f, 0.62f), Metal);
-            reactorCore = Cylinder(cell, new Vector3(0f, 0.66f, 0f), new Vector3(0.34f, 0.2f, 0.34f), ReactorGlow, true).transform;
-            Box(cell, new Vector3(-0.36f, 0.42f, -0.36f), new Vector3(0.1f, 0.5f, 0.1f), ReactorMetal);
-            Box(cell, new Vector3(0.36f, 0.42f, -0.36f), new Vector3(0.1f, 0.5f, 0.1f), ReactorMetal);
-            Box(cell, new Vector3(-0.36f, 0.42f, 0.36f), new Vector3(0.1f, 0.5f, 0.1f), ReactorMetal);
-            Box(cell, new Vector3(0.36f, 0.42f, 0.36f), new Vector3(0.1f, 0.5f, 0.1f), ReactorMetal);
+            reactorCore = Cylinder(cell, new Vector3(0f, 0.66f, 0f), new Vector3(0.34f, 0.2f, 0.34f), glow, true).transform;
+            float post = enemy ? 0.7f : 0.5f;
+            foreach (var corner in new[] { new Vector2(-0.36f, -0.36f), new Vector2(0.36f, -0.36f), new Vector2(-0.36f, 0.36f), new Vector2(0.36f, 0.36f) })
+            {
+                Box(cell, new Vector3(corner.x, 0.42f, corner.y), new Vector3(0.1f, post, 0.1f), frame);
+                if (enemy) Box(cell, new Vector3(corner.x, 0.8f, corner.y), new Vector3(0.12f, 0.08f, 0.12f), glow, true);
+            }
+        }
+
+        /// <summary>A turret of the enemy fortress: a low concrete pad, a drum and a gun that turns to its target.</summary>
+        Transform BuildTurret(Transform cell)
+        {
+            TileModel(cell, "concrete").localScale = new Vector3(1f, 0.55f, 1f);
+            var head = new GameObject("Turret").transform;
+            head.SetParent(cell, false);
+            head.localPosition = new Vector3(0f, 0.52f, 0f);
+            Cylinder(head, Vector3.zero, new Vector3(0.5f, 0.12f, 0.5f), Hex("4A3A3A"));
+            Box(head, new Vector3(0f, 0.16f, 0.36f), new Vector3(0.14f, 0.12f, 0.62f), Hex("2E2626"));
+            Box(head, new Vector3(0f, 0.2f, 0f), new Vector3(0.16f, 0.06f, 0.16f), EnemyGlow, true);
+            return head;
         }
 
         // ---- Per-frame sync ----
@@ -241,12 +287,17 @@ namespace GC26.Tanki.Game
 
             SyncBullets(sim);
             SyncBonus(sim);
+            SyncMines(sim);
+            SyncTurrets(sim, dt);
             UpdateDebris(dt);
             UpdateBeams(dt);
+            UpdateRings(dt);
 
             if (reactorCore != null)
             {
-                float pulse = 0.34f + Mathf.Sin(clock * 3f) * 0.03f;
+                // The enemy reactor beats faster as it weakens.
+                float rate = sim.Mode == GameMode.Assault && sim.CoreMax > 0 ? 3f + 9f * (1f - sim.CoreHp / (float)sim.CoreMax) : 3f;
+                float pulse = 0.34f + Mathf.Sin(clock * rate) * 0.03f;
                 reactorCore.localScale = new Vector3(pulse, 0.2f, pulse);
             }
         }
@@ -255,7 +306,7 @@ namespace GC26.Tanki.Game
         {
             if (!tankViews.TryGetValue(tank, out TankView view))
             {
-                view = BuildTank(tank);
+                view = BuildTank(tank, sim.TankInfo.Model);
                 tankViews[tank] = view;
                 snap = true;
             }
@@ -278,7 +329,8 @@ namespace GC26.Tanki.Game
             view.Model.gameObject.SetActive(!tank.Spawning || Mathf.Repeat(clock * 12f, 1f) < 0.5f);
 
             bool flashing = tank.Carrier && Mathf.Repeat(clock * 3f, 1f) < 0.5f;
-            Material paint = flashing ? view.Flash : view.Normal;
+            bool cloaked = tank.IsPlayer && sim.CloakTimer > 0f;
+            Material paint = cloaked ? view.Ghost : tank.StunTimer > 0f ? view.Stunned : flashing ? view.Flash : view.Normal;
             foreach (Renderer part in view.Paint) part.sharedMaterial = paint;
 
             if (view.MarkerRing != null) view.MarkerRing.localScale = Vector3.one * (1f + Mathf.Sin(clock * 4f) * 0.06f);
@@ -383,6 +435,76 @@ namespace GC26.Tanki.Game
             }
         }
 
+        /// <summary>A flat ring on the ground that grows and fades: the dome, mine blasts, the rammer.</summary>
+        public void Ring(float x, float y, Color color, float size, float seconds)
+        {
+            var item = new GameObject("Ring");
+            item.transform.SetParent(root, false);
+            item.transform.position = ToWorld(x, y, 0.06f);
+            if (effectRing == null) effectRing = RingMesh(0.8f, 1f, 40);
+            item.AddComponent<MeshFilter>().sharedMesh = effectRing;
+            var material = new Material(ghostMaterial) { color = color };
+            material.SetColor("_EmissionColor", color * 1.2f);
+            var renderer = item.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            rings.Add(new RingEffect { Item = item.transform, Material = material, Color = color, Life = seconds, Max = seconds, Size = size });
+        }
+
+        void UpdateRings(float dt)
+        {
+            for (int i = rings.Count - 1; i >= 0; i--)
+            {
+                RingEffect ring = rings[i];
+                ring.Life -= dt;
+                if (ring.Life <= 0f)
+                {
+                    Kill(ring.Item.gameObject);
+                    Kill(ring.Material);
+                    rings.RemoveAt(i);
+                    continue;
+                }
+                float k = 1f - ring.Life / ring.Max;
+                ring.Item.localScale = Vector3.one * (0.2f + k * ring.Size);
+                Color c = ring.Color;
+                c.a = ring.Life / ring.Max * 0.8f;
+                ring.Material.color = c;
+            }
+        }
+
+        /// <summary>Mines: a dark disc with a red light that blinks faster once armed.</summary>
+        void SyncMines(GameSim sim)
+        {
+            while (mineViews.Count < sim.Mines.Count)
+            {
+                var mine = new GameObject("Mine");
+                mine.transform.SetParent(root, false);
+                Cylinder(mine.transform, new Vector3(0f, 0.06f, 0f), new Vector3(0.42f, 0.03f, 0.42f), Hex("2A2622"));
+                Box(mine.transform, new Vector3(0f, 0.12f, 0f), new Vector3(0.1f, 0.05f, 0.1f), Hex("FF3B30"), true).name = "Light";
+                mineViews.Add(mine);
+            }
+            for (int i = 0; i < mineViews.Count; i++)
+            {
+                bool active = i < sim.Mines.Count;
+                mineViews[i].SetActive(active);
+                if (!active) continue;
+                Mine mine = sim.Mines[i];
+                mineViews[i].transform.position = ToWorld(mine.X, mine.Y);
+                float rate = mine.Arm > 0f ? 2f : 5f;
+                mineViews[i].transform.Find("Light").gameObject.SetActive(Mathf.Repeat(clock * rate, 1f) < 0.5f);
+            }
+        }
+
+        void SyncTurrets(GameSim sim, float dt)
+        {
+            foreach (Turret turret in sim.Turrets)
+            {
+                if (turret.Hp <= 0 || !turretHeads.TryGetValue(turret.X * 100 + turret.Y, out Transform head) || head == null) continue;
+                Quaternion facing = Quaternion.Euler(0f, (int)turret.Dir * 90f, 0f);
+                head.rotation = Quaternion.RotateTowards(head.rotation, facing, 460f * dt);
+            }
+        }
+
         public void Burst(float x, float y, Color color, int count, float force)
         {
             for (int i = 0; i < count; i++)
@@ -418,40 +540,17 @@ namespace GC26.Tanki.Game
 
         // ---- Models ----
 
-        // Enemy kinds share one drawing until they get their own, so size and tint tell them apart.
-        static float SpriteScale(Tank tank)
-        {
-            if (tank.IsPlayer) return 1f;
-            switch (tank.Kind)
-            {
-                case EnemyKind.Boss: return 1.5f;
-                case EnemyKind.Scout: return 0.85f;
-                case EnemyKind.Heavy: return 1.14f;
-                default: return 1f;
-            }
-        }
-
-        static Color SpriteTint(Tank tank)
-        {
-            if (tank.IsPlayer) return Color.white;
-            switch (tank.Kind)
-            {
-                case EnemyKind.Scout: return new Color(1f, 1f, 0.55f);
-                case EnemyKind.Gunner: return new Color(0.72f, 0.8f, 1f);
-                case EnemyKind.Heavy: return new Color(0.62f, 0.55f, 0.55f);
-                case EnemyKind.Boss: return BossTint;
-                default: return Color.white;
-            }
-        }
+        // Every kind has its own model now (Art~/build_variants.py), so only the size still differs in code.
+        static float SpriteScale(Tank tank) => tank.IsPlayer ? 1f : Tuning.EnemyScale(tank.Kind);
 
         // The drawing lights itself a little, so dark art stays readable on the sand.
-        Material SpriteGlowMaterial(string name, Color tint, Color glow)
+        Material SpriteGlowMaterial(string name, Color tint, Color glow, bool seeThrough = false)
         {
-            string key = name + ColorUtility.ToHtmlStringRGB(tint) + ColorUtility.ToHtmlStringRGB(glow);
+            string key = name + ColorUtility.ToHtmlStringRGBA(tint) + ColorUtility.ToHtmlStringRGB(glow) + seeThrough;
             if (spriteMaterials.TryGetValue(key, out Material material)) return material;
 
             Texture2D texture = Resources.Load<Texture2D>("gc26_tanki/Tanks/" + name);
-            material = new Material(Resources.Load<Material>("gc26_tanki/SteelLineModel"))
+            material = new Material(seeThrough ? ghostMaterial : Resources.Load<Material>("gc26_tanki/SteelLineModel"))
             {
                 mainTexture = texture,
                 color = tint
@@ -468,15 +567,15 @@ namespace GC26.Tanki.Game
             return Resources.Load<GameObject>("gc26_tanki/Tanks/" + name + "_model").GetComponentInChildren<MeshFilter>().sharedMesh;
         }
 
-        TankView BuildTank(Tank tank)
+        TankView BuildTank(Tank tank, string playerModel)
         {
             var body = new GameObject(tank.IsPlayer ? "Player" : tank.Kind.ToString()).transform;
             body.SetParent(root, false);
             var model = new GameObject("Model").transform;
             model.SetParent(body, false);
 
-            string spriteName = tank.IsPlayer ? "player" : "enemy";
-            Color tint = SpriteTint(tank);
+            string spriteName = tank.IsPlayer ? playerModel : Tuning.EnemyModel(tank.Kind);
+            Color tint = Color.white;
 
             var hull = new GameObject("Hull");
             hull.transform.SetParent(model, false);
@@ -501,6 +600,9 @@ namespace GC26.Tanki.Game
                 Paint = paint.ToArray(),
                 Normal = paint[0].sharedMaterial,
                 Flash = SpriteGlowMaterial(spriteName, Color.white, new Color(1.6f, 1.45f, 1f)),
+                // a see-through look while cloaked, and a cold one while stunned by the dome
+                Ghost = SpriteGlowMaterial(spriteName, new Color(0.85f, 0.72f, 1f, 0.35f), new Color(0.7f, 0.25f, 1f), true),
+                Stunned = SpriteGlowMaterial(spriteName, new Color(0.6f, 0.78f, 1f), new Color(0.35f, 0.66f, 1f)),
                 Shield = shield
             };
 

@@ -35,7 +35,7 @@ namespace GC26.Tanki.Game
         float splashTime;
         float splashStepTime;
 
-        public void BeginSplash()
+        public void BeginSplash(string playerModel = "player")
         {
             splashRoot = new GameObject("Splash").transform;
             splashRoot.SetParent(root, false);
@@ -48,7 +48,7 @@ namespace GC26.Tanki.Game
             var reactor = new GameObject("Reactor").transform;
             reactor.SetParent(splashRoot, false);
             reactor.localScale = Vector3.one * 1.7f;
-            BuildReactor(reactor);
+            BuildReactor(reactor, false);
             splashCore = reactorCore;
             reactorCore = null;
             splashCoreMaterial = splashCore.GetComponent<Renderer>().material;
@@ -61,7 +61,7 @@ namespace GC26.Tanki.Game
                 splashArcs[i] = MarkerPart(splashRoot, arc, new Vector3(0f, 0.012f, 0f), HealthEmpty).GetComponent<Renderer>();
             }
 
-            TankView tank = BuildTank(new Tank { IsPlayer = true });
+            TankView tank = BuildTank(new Tank { IsPlayer = true }, playerModel);
             tank.MarkerRing.gameObject.SetActive(false);
             tank.HealthBar.gameObject.SetActive(false);
             tank.Shield.gameObject.SetActive(false);
