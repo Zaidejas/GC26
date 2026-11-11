@@ -250,7 +250,8 @@ namespace GC26.Tetris.View
             if (!zone.enabled)
                 return;
 
-            float alpha = 0.16f + 0.05f * Mathf.Sin(Time.unscaledTime * 8f);
+            // Faint, so the blocks under the zone stay easy to read.
+            float alpha = 0.07f + 0.025f * Mathf.Sin(Time.unscaledTime * 8f);
             // Lightning: the whole row it lands on.
             int row = Mathf.Clamp(y, 0, Board.VisibleHeight - 1);
             int minX = 0, maxX = Board.Width - 1, minY = row, maxY = row;
