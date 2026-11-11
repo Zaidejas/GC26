@@ -112,7 +112,7 @@ namespace GC26.Bomber
             else if (calm) foreach (var (x, y) in new[] { (5, 3), (23, 3), (5, 13), (23, 13) }) Walls.Add(Rect(y, x, 1, 2, cover: true));
             else PlaceCovers(gaps);
             ComputeBlocked();
-            P.X = W / 2f; P.Y = H - 240f; // above the touch controls P.Vx = P.Vy = 0f; P.DashT = 0f;
+            P.X = W / 2f; P.Y = H - 120f; // just inside the entrance P.Vx = P.Vy = 0f; P.DashT = 0f;
             var free = FreeCells();
             if (type == "combat" || type == "elite" || type == "start")
             {
