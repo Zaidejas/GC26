@@ -49,6 +49,10 @@ namespace GC26.Timetraveler
 
         public event Action<string> Died;
         public event Action<RunnerCoin> CoinTouched;
+        /// <summary>Jump started (true = double jump in the air). For effects only.</summary>
+        public event Action<bool> Jumped;
+        /// <summary>Touched the ground after being in the air, with the downward speed at impact. For effects only.</summary>
+        public event Action<float> Landed;
 
         public float RunSpeed { get; set; }
         public bool IsDead { get; private set; }
@@ -71,6 +75,7 @@ namespace GC26.Timetraveler
         float _coyoteTimer;
         float _slideTimer;
         bool _sliding;
+        float _lastAirFallSpeed;
         bool _fastFalling;
 
         readonly RaycastHit2D[] _hits = new RaycastHit2D[4];
@@ -109,6 +114,7 @@ namespace GC26.Timetraveler
             _jumpBufferTimer = 0f;
             _coyoteTimer = 0f;
             _canDoubleJump = true;
+            IsGrounded = true;   // no landing puff right after a restart
             SetSize(tuning.standSize);
             _body.simulated = true;
             _body.position = position + new Vector2(0f, tuning.standSize.y / 2f);
@@ -131,7 +137,10 @@ namespace GC26.Timetraveler
             if (IsDead || _body == null) return;
             var dt = Time.fixedDeltaTime;
 
+            var wasGrounded = IsGrounded;
             IsGrounded = CheckGrounded();
+            if (IsGrounded && !wasGrounded) Landed?.Invoke(_lastAirFallSpeed);
+            if (!IsGrounded) _lastAirFallSpeed = Mathf.Max(0f, -_body.linearVelocity.y);
             if (IsGrounded)
             {
                 _coyoteTimer = tuning.coyoteTime;
@@ -156,6 +165,7 @@ namespace GC26.Timetraveler
                     _coyoteTimer = 0f;
                     _jumpBufferTimer = 0f;
                     EndSlide();
+                    Jumped?.Invoke(false);
                 }
                 // A press just before landing waits for the ground (buffered jump)
                 // instead of wasting the double jump.
@@ -164,6 +174,7 @@ namespace GC26.Timetraveler
                     v.y = _doubleJumpSpeed;
                     _canDoubleJump = false;
                     _jumpBufferTimer = 0f;
+                    Jumped?.Invoke(true);
                 }
             }
             _jumpBufferTimer -= dt;

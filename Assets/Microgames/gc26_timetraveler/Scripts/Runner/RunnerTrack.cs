@@ -172,7 +172,7 @@ namespace GC26.Timetraveler
             // Weighted list of what is unlocked at this distance. Newest group gets extra weight.
             var options = new List<(string name, Pattern build, float weight)>
             {
-                ("flat", () => Flat(Range(8f, 12f)), 1.2f),
+                ("flat", () => Flat(Range(6f, 9f)), 0.5f),
                 ("rock", Rock, 2f),
                 ("gap", () => Gap(Range(3f, 4.5f)), 1.6f),
                 ("log", Log, 1.6f),
@@ -183,6 +183,10 @@ namespace GC26.Timetraveler
                 options.Add(("stepdown", StepDown, 1f));
                 options.Add(("ledge", Ledge, 1f));
                 options.Add(("tallwall", TallWall, 1.2f));
+                // Combos: two basic obstacles back to back (12 units apart: enough even at top speed).
+                options.Add(("rockrock", RockRock, 1.1f));
+                options.Add(("rocklog", RockLog, 1.1f));
+                options.Add(("gaprock", GapRock, 1f));
             }
             if (Unlocked(2, UnlockWorlds))
             {
@@ -208,9 +212,10 @@ namespace GC26.Timetraveler
                 if (roll > 0f) continue;
                 _lastPattern = o.name;
                 o.build();
-                // Breathing room between patterns, sometimes with a row of coins.
-                var rest = Range(3f, 6f);
-                if (rest > 4.5f && Coin()) CoinRow(_cursorX + 0.5f, _groundY + 1.5f, 3, 1.3f);
+                // Breathing room between patterns, shrinking as the run goes on, sometimes with coins.
+                var tighten = Mathf.Lerp(1f, 0.6f, Mathf.Clamp01(Distance / 600f));
+                var rest = Range(2f, 4.5f) * tighten;
+                if (rest > 3f && Coin()) CoinRow(_cursorX + 0.5f, _groundY + 1.5f, 3, 1.3f);
                 Flat(rest);
                 return;
             }
@@ -232,21 +237,60 @@ namespace GC26.Timetraveler
 
         void Rock()
         {
-            Flat(5f);
+            Flat(4f);
             Teach("rock", "Red = deadly. JUMP over the rock  (tap / Space)");
             Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
             CoinArc(_cursorX + 0.75f, _groundY);
-            Flat(8f);
+            Flat(6f);
         }
 
         void Log()
         {
             // Overhead log: standing (3 units) hits it, sliding (1.2 units) passes under.
-            Flat(5f);
+            Flat(4f);
             Teach("log", "SLIDE under the log  (swipe down / hold S)");
             Hazard("TrackLog", _cursorX, _groundY + 2.0f, 2.5f, 14f, TimetravelerArt.Log);
             CoinRow(_cursorX - 1f, _groundY + 0.6f, 4, 1.2f);   // low coins reward the slide
-            Flat(8f);
+            Flat(6f);
+        }
+
+        // ---------- combos ----------
+
+        const float ComboGap = 12f;
+
+        void RockRock()
+        {
+            Flat(4f);
+            Teach("rockrock", "Two rocks: jump, land, jump again");
+            Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
+            CoinArc(_cursorX + 0.75f, _groundY);
+            Flat(ComboGap);
+            Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
+            CoinArc(_cursorX + 0.75f, _groundY);
+            Flat(6f);
+        }
+
+        void RockLog()
+        {
+            Flat(4f);
+            Teach("rocklog", "Jump the rock, then SLIDE (hold S / swipe down already in the air)");
+            Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
+            Flat(ComboGap);
+            Hazard("TrackLog", _cursorX, _groundY + 2.0f, 2.5f, 14f, TimetravelerArt.Log);
+            CoinRow(_cursorX - 1f, _groundY + 0.6f, 4, 1.2f);
+            Flat(6f);
+        }
+
+        void GapRock()
+        {
+            Flat(4f);
+            var width = Range(3f, 4f);
+            CoinArc(_cursorX + width / 2f, _groundY);
+            _cursorX += width;
+            _openGround = null;
+            Flat(ComboGap);
+            Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
+            Flat(6f);
         }
 
         void StepUp()
@@ -360,7 +404,7 @@ namespace GC26.Timetraveler
                 var boulder = Hazard("TrackBoulder", _cursorX, _groundY + 18f, 1.8f, 1.8f, TimetravelerArt.Boulder);
                 var mover = AddMover(boulder, RunnerMover.Mode.Drop, low: _groundY + 0.9f, high: 0f, period: 1f);
                 // Falls early enough to be on the ground well before the traveler gets there.
-                mover.triggerDistance = 19f;
+                mover.triggerDistance = 22f;
                 Flat(9f);
             }
             Flat(4f);

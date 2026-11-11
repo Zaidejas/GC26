@@ -25,6 +25,10 @@ namespace GC26.Timetraveler
         Sprite _jump, _jumpAura, _fall, _fallAura, _slide, _slideAura;
         float _runPhase;
         float _lastX;
+        Vector2 _squash = Vector2.one;   // squash and stretch, springs back to 1
+
+        /// <summary>Squash (x &gt; 1, y &lt; 1) or stretch (x &lt; 1, y &gt; 1) the sprite for a moment.</summary>
+        public void Punch(float scaleX, float scaleY) => _squash = new Vector2(scaleX, scaleY);
 
         /// <summary>Loads the frames; returns null (and the caller keeps the plain box) if any are missing.</summary>
         public static TravelerAnimator TryCreate(TravelerController traveler, Material material)
@@ -91,6 +95,8 @@ namespace GC26.Timetraveler
 
             // Sprites have their pivot at the feet: keep the feet on the bottom of the collider.
             transform.localPosition = new Vector3(0f, -_traveler.ColliderHeight / 2f, 0f);
+            _squash = Vector2.Lerp(_squash, Vector2.one, 1f - Mathf.Exp(-14f * Time.deltaTime));
+            transform.localScale = new Vector3(_squash.x, _squash.y, 1f);   // pivot at the feet: they stay put
 
             var x = _traveler.transform.position.x;
             var moved = Mathf.Max(0f, x - _lastX);

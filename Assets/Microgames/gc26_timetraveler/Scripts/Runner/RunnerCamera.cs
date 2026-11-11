@@ -21,6 +21,18 @@ namespace GC26.Timetraveler
         Camera _camera;
         Transform _target;
         float _velocityY;
+        float _shakeTime;
+        float _shakeDuration;
+        float _shakeStrength;
+        Vector3 _shakeOffset;
+
+        /// <summary>Short camera shake (real time, so it also works while time is slowed).</summary>
+        public void Shake(float strength, float duration)
+        {
+            if (strength < _shakeStrength && _shakeTime > 0f) return;
+            _shakeStrength = strength;
+            _shakeDuration = _shakeTime = duration;
+        }
 
         public float LeftEdge => transform.position.x - HalfWidth;
         public float RightEdge => transform.position.x + HalfWidth;
@@ -38,15 +50,25 @@ namespace GC26.Timetraveler
         public void Snap()
         {
             if (_target == null) return;
-            transform.position = new Vector3(TargetX(), DesiredY(), transform.position.z);
+            transform.position = new Vector3(TargetX(), DesiredY(), transform.position.z - _shakeOffset.z);
             _velocityY = 0f;
+            _shakeOffset = Vector3.zero;
+            _shakeTime = 0f;
         }
 
         void LateUpdate()
         {
             if (_target == null) return;
-            var y = Mathf.SmoothDamp(transform.position.y, DesiredY(), ref _velocityY, verticalSmoothTime);
-            transform.position = new Vector3(TargetX(), y, transform.position.z);
+            var basePos = transform.position - _shakeOffset;
+            var y = Mathf.SmoothDamp(basePos.y, DesiredY(), ref _velocityY, verticalSmoothTime);
+            _shakeOffset = Vector3.zero;
+            if (_shakeTime > 0f)
+            {
+                _shakeTime -= Time.unscaledDeltaTime;
+                var k = _shakeStrength * Mathf.Clamp01(_shakeTime / _shakeDuration);
+                _shakeOffset = new Vector3(Random.Range(-k, k), Random.Range(-k, k), 0f);
+            }
+            transform.position = new Vector3(TargetX(), y, basePos.z) + _shakeOffset;
         }
 
         float TargetX() => _target.position.x + (0.5f - screenAnchorX) * 2f * HalfWidth;

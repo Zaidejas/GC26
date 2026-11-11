@@ -13,9 +13,10 @@ namespace GC26.Timetraveler
     public class RunnerSession : MonoBehaviour
     {
         [Header("Speed (units per second)")]
-        public float startSpeed = 6.5f;
-        public float maxSpeed = 10.5f;
-        public float speedRampPerSecond = 0.05f;
+        public float startSpeed = 7f;
+        public float maxSpeed = 12f;
+        [Tooltip("Top speed is reached after (max - start) / ramp seconds: about a minute")]
+        public float speedRampPerSecond = 0.08f;
 
         [Tooltip("Units of track built ahead of the right screen edge")]
         public float buildAhead = 40f;
@@ -59,6 +60,14 @@ namespace GC26.Timetraveler
         bool _finished;
         bool _newRecord;
         SpriteRenderer _background;
+
+        // ---- feel (effects only, no gameplay) ----
+        RunnerFx _fx;
+        float _dustTimer;
+        int _speedStep;
+        float _speedFlash;
+        static readonly Color DustColor = new Color(0.78f, 0.68f, 0.52f, 0.9f);
+        static readonly Color SparkColor = new Color(1f, 0.9f, 0.35f);
         GUIStyle _bigStyle;
         GUIStyle _smallStyle;
         GUIStyle _centerStyle;
@@ -104,6 +113,12 @@ namespace GC26.Timetraveler
             _traveler.Init(_input, boxVisual, _track.KillY);
             _traveler.Died += OnDied;
             _traveler.CoinTouched += OnCoin;
+            _traveler.Jumped += OnJumped;
+            _traveler.Landed += OnLanded;
+
+            _fx = new GameObject("RunnerFx").AddComponent<RunnerFx>();
+            _fx.transform.SetParent(transform, false);
+            _fx.Init(_shapes);
 
             // Our own follow component (removed again in OnDestroy, so the map can move the camera).
             _follow = cam.gameObject.AddComponent<RunnerCamera>();
@@ -123,6 +138,9 @@ namespace GC26.Timetraveler
             _finished = false;
             _newRecord = false;
             _timeSlow.Reset();
+            if (_fx != null) _fx.Clear();
+            _speedStep = Mathf.FloorToInt(startSpeed);
+            _speedFlash = 0f;
             _worlds.Reset();
             if (IsEndless) _track.Build(_shapes, _worlds, _traveler.transform, _seed);
             else _track.Build(_shapes, _worlds, _traveler.transform, _seed, _level.Tier, _level.LengthMeters);
@@ -183,8 +201,9 @@ namespace GC26.Timetraveler
             if (_input.SwitchPressed) TrySwitchWorld();
 
             _runTime += Time.deltaTime;
-            _traveler.RunSpeed = Mathf.Min(maxSpeed, startSpeed + speedRampPerSecond * _runTime)
-                                 * _timeSlow.TravelerSpeedFactor;
+            var baseSpeed = Mathf.Min(maxSpeed, startSpeed + speedRampPerSecond * _runTime);
+            _traveler.RunSpeed = baseSpeed * _timeSlow.TravelerSpeedFactor;
+            UpdateFeel(baseSpeed);
             _track.Extend(_follow.RightEdge + buildAhead);
             _track.Trim(_follow.LeftEdge - 10f);
         }
@@ -201,6 +220,9 @@ namespace GC26.Timetraveler
             }
             _worlds.Switch();
             _switchFlash = 0.6f;
+            _fx.Burst(_traveler.transform.position, 14, RunnerWorldState.ColorOf(_worlds.Current), Vector2.zero, 8f, 0.35f, 0.45f,
+                falls: false);
+            _follow.Shake(0.12f, 0.12f);
             TimetravelerLog.Info($"World switched to {RunnerWorldState.NameOf(_worlds.Current)} at {DistanceMeters} m.", this);
         }
 
@@ -217,6 +239,8 @@ namespace GC26.Timetraveler
         {
             _timeSlow.Restore();
             _deathTime = Time.unscaledTime;
+            _fx.Burst(_traveler.transform.position, 18, RunnerShapes.HazardColor, new Vector2(0f, 6f), 8f, 0.45f, 0.8f);
+            _follow.Shake(0.5f, 0.35f);
             TimetravelerLog.Info($"Died at {DistanceMeters} m: {reason} (world {RunnerWorldState.NameOf(_worlds.Current)}, speed {_traveler.RunSpeed:0.0}).", this);
             EndRunBookkeeping();
         }
@@ -224,7 +248,49 @@ namespace GC26.Timetraveler
         void OnCoin(RunnerCoin coin)
         {
             _runCoins++;
+            _fx.Burst(coin.transform.position, 5, SparkColor, new Vector2(0f, 3f), 3f, 0.25f, 0.35f, falls: false);
             Destroy(coin.gameObject);
+        }
+
+        Vector2 Feet => (Vector2)_traveler.transform.position - new Vector2(0f, _traveler.ColliderHeight / 2f);
+
+        void OnJumped(bool isDouble)
+        {
+            if (_travelerSprite != null) _travelerSprite.Punch(0.8f, 1.25f);
+            if (isDouble)
+                _fx.Burst(Feet, 8, RunnerWorldState.ColorOf(_worlds.Current), new Vector2(0f, -4f), 4f, 0.3f, 0.35f, falls: false);
+            else
+                _fx.Burst(Feet, 5, DustColor, new Vector2(-2f, 1.5f), 2f, 0.3f, 0.35f);
+        }
+
+        void OnLanded(float impactSpeed)
+        {
+            if (impactSpeed < 6f) return;
+            if (_travelerSprite != null) _travelerSprite.Punch(1.3f, 0.75f);
+            _fx.Burst(Feet, 7, DustColor, new Vector2(0f, 2.5f), 4f, 0.32f, 0.4f);
+            if (impactSpeed > 30f) _follow.Shake(0.15f, 0.12f);
+        }
+
+        /// <summary>Running dust, camera lead that grows with speed, "SPEED UP" message.</summary>
+        void UpdateFeel(float baseSpeed)
+        {
+            var speed01 = Mathf.InverseLerp(startSpeed, maxSpeed, baseSpeed);
+            _follow.screenAnchorX = Mathf.Lerp(0.22f, 0.13f, speed01);   // see further ahead when fast
+
+            _speedFlash -= Time.unscaledDeltaTime;
+            var step = Mathf.FloorToInt(baseSpeed);
+            if (step > _speedStep)
+            {
+                _speedStep = step;
+                _speedFlash = 1.2f;
+            }
+
+            if (!_traveler.IsGrounded) return;
+            _dustTimer -= Time.deltaTime;
+            if (_dustTimer > 0f) return;
+            _dustTimer = _traveler.IsSliding ? 0.04f : Mathf.Lerp(0.16f, 0.08f, speed01);
+            _fx.Burst(Feet + new Vector2(-0.5f, 0.1f), _traveler.IsSliding ? 2 : 1, DustColor,
+                new Vector2(-_traveler.RunSpeed * 0.25f, 1.2f), 0.8f, 0.25f, 0.35f);
         }
 
         void Finish()
@@ -325,6 +391,8 @@ namespace GC26.Timetraveler
             {
                 _traveler.Died -= OnDied;
                 _traveler.CoinTouched -= OnCoin;
+                _traveler.Jumped -= OnJumped;
+                _traveler.Landed -= OnLanded;
             }
             _worlds.Changed -= OnWorldChanged;
             // The map and menu move the camera themselves.
@@ -376,6 +444,13 @@ namespace GC26.Timetraveler
             GUI.color = _timeSlow.Energy >= _timeSlow.minEnergyToStart ? new Color(0.4f, 0.85f, 1f) : new Color(0.6f, 0.6f, 0.6f);
             GUI.DrawTexture(new Rect(left, barY, barWidth * _timeSlow.Energy, unit * 0.4f), Texture2D.whiteTexture);
             GUI.color = oldColor;
+
+            if (_speedFlash > 0f && !_traveler.IsDead && !_finished)
+            {
+                GUI.color = new Color(1f, 0.9f, 0.4f, Mathf.Clamp01(_speedFlash));
+                GUI.Label(new Rect(0, Screen.height * 0.13f, Screen.width, unit * 2f), "SPEED UP!", _bigStyle);
+                GUI.color = oldColor;
+            }
 
             // Big world name right after a switch.
             if (_switchFlash > 0f && !_traveler.IsDead)
