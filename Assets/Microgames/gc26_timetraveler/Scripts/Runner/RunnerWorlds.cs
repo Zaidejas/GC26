@@ -12,37 +12,36 @@ namespace GC26.Timetraveler
     }
 
     /// <summary>
-    /// The active timeline plus the switch charges. Switching costs one charge;
-    /// charges refill over time. Plain class owned by the session (no static state).
+    /// The active timeline. Switching is free, with a short cooldown so a double swipe does not
+    /// switch twice. Plain class owned by the session (no static state).
+    /// Colour rule shown to the player: the traveler is ORANGE in the Past and BLUE in the Future;
+    /// pieces of your own colour are solid, pieces of the other colour are faint ghosts.
     /// </summary>
     public class RunnerWorldState
     {
-        public const int MaxCharges = 3;
-        /// <summary>Seconds (game time) to refill one charge.</summary>
-        public const float SecondsPerCharge = 1.5f;
+        /// <summary>Seconds (real time) between two switches.</summary>
+        public const float Cooldown = 0.25f;
+
+        public static readonly Color PastColor = new Color(1f, 0.6f, 0.2f);
+        public static readonly Color FutureColor = new Color(0.25f, 0.8f, 1f);
 
         public RunnerWorld Current { get; private set; } = RunnerWorld.Past;
-        public float Charges { get; private set; } = MaxCharges;
         public event Action<RunnerWorld> Changed;
 
+        float _lastSwitch = -10f;
+
         public RunnerWorld Other => Current == RunnerWorld.Past ? RunnerWorld.Future : RunnerWorld.Past;
+        public bool CanSwitch => Time.unscaledTime - _lastSwitch >= Cooldown;
 
         public void Reset()
         {
-            Charges = MaxCharges;
+            _lastSwitch = -10f;
             Set(RunnerWorld.Past);
         }
 
-        public void Tick(float deltaTime)
-        {
-            Charges = Mathf.Min(MaxCharges, Charges + deltaTime / SecondsPerCharge);
-        }
-
-        public bool CanSwitch => Charges >= 1f;
-
         public void Switch()
         {
-            Charges -= 1f;
+            _lastSwitch = Time.unscaledTime;
             Set(Other);
         }
 
@@ -51,6 +50,9 @@ namespace GC26.Timetraveler
             Current = world;
             Changed?.Invoke(world);
         }
+
+        public static Color ColorOf(RunnerWorld world) => world == RunnerWorld.Future ? FutureColor : PastColor;
+        public static string NameOf(RunnerWorld world) => world == RunnerWorld.Future ? "FUTURE" : "PAST";
 
         public static bool IsActive(RunnerWorld pieceWorld, RunnerWorld current) =>
             pieceWorld == RunnerWorld.Both || pieceWorld == current;
@@ -62,7 +64,7 @@ namespace GC26.Timetraveler
     /// </summary>
     public class RunnerWorldMember : MonoBehaviour
     {
-        const float GhostAlpha = 0.18f;
+        const float GhostAlpha = 0.22f;
 
         public RunnerWorld World { get; private set; }
 

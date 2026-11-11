@@ -44,6 +44,8 @@ namespace GC26.Timetraveler
         float _runTime;
         float _deathTime;
         float _blockedFlash;
+        float _switchFlash;
+        SpriteRenderer _travelerVisual;
         int _seed;
         int _bestMeters;
         GUIStyle _bigStyle;
@@ -71,6 +73,7 @@ namespace GC26.Timetraveler
             _traveler = travelerObject.AddComponent<TravelerController>();
             var visual = _shapes.Visual(travelerObject.transform, "TravelerBody", _traveler.tuning.standSize,
                 RunnerShapes.TravelerColor, 2);
+            _travelerVisual = visual;
             _traveler.Init(_input, visual.transform, _track.KillY);
             _traveler.Died += OnDied;
 
@@ -97,6 +100,7 @@ namespace GC26.Timetraveler
             if (_traveler == null) return;
             _input.Update();
             _blockedFlash -= Time.unscaledDeltaTime;
+            _switchFlash -= Time.unscaledDeltaTime;
 
             if (_traveler.IsDead)
             {
@@ -107,7 +111,6 @@ namespace GC26.Timetraveler
             if (_input.SlowPressed) _timeSlow.Toggle();
             _timeSlow.Tick(Time.unscaledDeltaTime);
 
-            _worlds.Tick(Time.deltaTime);
             if (_input.SwitchPressed) TrySwitchWorld();
 
             _runTime += Time.deltaTime;
@@ -116,21 +119,25 @@ namespace GC26.Timetraveler
             _track.Trim(_follow.LeftEdge - 10f);
         }
 
-        /// <summary>Switch timelines, unless out of charges or it would trap the traveler inside a solid.</summary>
+        /// <summary>Switch timelines, unless it would trap the traveler inside a solid of the other world.</summary>
         void TrySwitchWorld()
         {
-            if (!_worlds.CanSwitch || _track.SolidOverlaps(_traveler.BodyBounds, _worlds.Other))
+            if (!_worlds.CanSwitch) return;
+            if (_track.SolidOverlaps(_traveler.BodyBounds, _worlds.Other))
             {
-                _blockedFlash = 0.35f;
+                _blockedFlash = 0.6f;
                 return;
             }
             _worlds.Switch();
+            _switchFlash = 0.6f;
         }
 
         void OnWorldChanged(RunnerWorld world)
         {
             if (_camera != null)
                 _camera.backgroundColor = world == RunnerWorld.Past ? PastBackground : FutureBackground;
+            // The traveler wears the colour of his world: same colour = solid for him.
+            if (_travelerVisual != null) _travelerVisual.color = RunnerWorldState.ColorOf(world);
         }
 
         void OnDied()
@@ -183,18 +190,17 @@ namespace GC26.Timetraveler
                 $"{DistanceMeters} m   best {_bestMeters} m   speed {_traveler.RunSpeed:0.0}", _smallStyle);
             y += unit * 1.3f;
 
-            // World and switch charges.
-            var worldName = _worlds.Current == RunnerWorld.Past ? "PAST" : "FUTURE";
-            var charges = Mathf.FloorToInt(_worlds.Charges);
-            var chargeText = new string('#', charges) + new string('.', RunnerWorldState.MaxCharges - charges);
+            // Current world, in its own colour.
             var oldColor = GUI.color;
-            if (_blockedFlash > 0f) GUI.color = new Color(1f, 0.35f, 0.3f);
-            GUI.Label(new Rect(left, y, width, unit * 1.2f), $"World: {worldName}   switches [{chargeText}]", _smallStyle);
+            GUI.color = RunnerWorldState.ColorOf(_worlds.Current);
+            GUI.Label(new Rect(left, y, width, unit * 1.2f),
+                $"World: {RunnerWorldState.NameOf(_worlds.Current)}  (your colour = solid)", _smallStyle);
             GUI.color = oldColor;
             y += unit * 1.3f;
 
             // Watch energy bar.
-            GUI.Label(new Rect(left, y, width, unit * 1.2f), _timeSlow.Active ? "Time slow: ON" : "Time slow", _smallStyle);
+            GUI.Label(new Rect(left, y, width, unit * 1.2f),
+                _timeSlow.Active ? "Time slow: ON  (E / Shift to stop)" : "Time slow  (E / Shift)", _smallStyle);
             var barY = y + unit * 1.2f;
             var barWidth = width * 0.5f;
             GUI.color = new Color(1f, 1f, 1f, 0.25f);
@@ -203,12 +209,39 @@ namespace GC26.Timetraveler
             GUI.DrawTexture(new Rect(left, barY, barWidth * _timeSlow.Energy, unit * 0.4f), Texture2D.whiteTexture);
             GUI.color = oldColor;
 
-            if (_runTime < hintDuration && !_traveler.IsDead)
+            // Big world name right after a switch.
+            if (_switchFlash > 0f && !_traveler.IsDead)
             {
-                GUI.Label(new Rect(safe.x + unit, Screen.height - safe.y - unit * 4.5f, width, unit * 4f),
-                    "Tap: jump (hold = higher, tap again = double)\nSwipe down: slide   Swipe up: slow time\nSwipe left/right: switch world\n(Keys: Space, S, E, Q)",
-                    _centerStyle);
+                GUI.color = RunnerWorldState.ColorOf(_worlds.Current);
+                GUI.Label(new Rect(0, Screen.height * 0.2f, Screen.width, unit * 2f),
+                    RunnerWorldState.NameOf(_worlds.Current), _bigStyle);
+                GUI.color = oldColor;
             }
+            if (_blockedFlash > 0f && !_traveler.IsDead)
+            {
+                GUI.color = new Color(1f, 0.4f, 0.35f);
+                GUI.Label(new Rect(0, Screen.height * 0.2f, Screen.width, unit * 2f),
+                    "Can't switch here: you'd be inside a wall", _centerStyle);
+                GUI.color = oldColor;
+            }
+
+            // Hint for an obstacle met for the first time.
+            var hint = _traveler.IsDead ? null : _track.HintFor(_traveler.transform.position.x);
+            if (hint != null)
+            {
+                var box = new Rect(safe.x + unit * 0.5f, Screen.height * 0.28f, safe.width - unit, unit * 3.2f);
+                GUI.color = new Color(0f, 0f, 0f, 0.55f);
+                GUI.DrawTexture(box, Texture2D.whiteTexture);
+                GUI.color = Color.white;
+                GUI.Label(new Rect(box.x + unit * 0.3f, box.y + unit * 0.3f, box.width - unit * 0.6f, box.height), hint, _centerStyle);
+                GUI.color = oldColor;
+            }
+
+            // Controls legend: always visible during the greybox phase.
+            var legend = _runTime < hintDuration
+                ? "Tap: jump (tap again = double)   Swipe down: slide\nSwipe up: slow time   Swipe sideways: switch world\nKeys: Space jump  S slide  E/Shift slow  Q switch"
+                : "Space jump   S slide   E/Shift slow   Q switch";
+            GUI.Label(new Rect(safe.x + unit, Screen.height - safe.y - unit * 3.4f, width, unit * 3.2f), legend, _centerStyle);
 
             if (_traveler.IsDead)
             {

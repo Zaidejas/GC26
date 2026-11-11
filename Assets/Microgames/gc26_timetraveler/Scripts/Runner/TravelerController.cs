@@ -17,7 +17,7 @@ namespace GC26.Timetraveler
         {
             [Header("Size (units)")]
             public Vector2 standSize = new Vector2(2f, 3f);
-            public Vector2 slideSize = new Vector2(2.6f, 1.4f);
+            public Vector2 slideSize = new Vector2(2.6f, 1.2f);
 
             [Header("Jump")]
             [Tooltip("Height of a full (held) jump, in units")]
@@ -41,7 +41,8 @@ namespace GC26.Timetraveler
             public float stepUpAssist = 1.2f;
 
             [Header("Slide")]
-            public float slideDuration = 0.7f;
+            [Tooltip("Minimum slide time; holding slide (or being under something) keeps it going")]
+            public float slideDuration = 0.9f;
         }
 
         public Tuning tuning = new Tuning();
@@ -51,7 +52,7 @@ namespace GC26.Timetraveler
         public float RunSpeed { get; set; }
         public bool IsDead { get; private set; }
         public bool IsGrounded { get; private set; }
-        public bool IsSliding => _slideTimer > 0f;
+        public bool IsSliding => _sliding;
 
         Rigidbody2D _body;
         BoxCollider2D _collider;
@@ -66,6 +67,7 @@ namespace GC26.Timetraveler
         float _jumpBufferTimer;
         float _coyoteTimer;
         float _slideTimer;
+        bool _sliding;
         bool _jumpCut;
         bool _fastFalling;
 
@@ -101,6 +103,7 @@ namespace GC26.Timetraveler
             IsDead = false;
             RunSpeed = runSpeed;
             _slideTimer = 0f;
+            _sliding = false;
             _jumpBufferTimer = 0f;
             _coyoteTimer = 0f;
             _canDoubleJump = true;
@@ -117,6 +120,8 @@ namespace GC26.Timetraveler
 
             if (_input.JumpPressed) _jumpBufferTimer = tuning.jumpBufferTime;
             if (_input.SlidePressed) StartSlideOrFastFall();
+            // Holding slide while landing starts a slide straight away.
+            else if (_input.SlideHeld && IsGrounded && !IsSliding) StartSlideOrFastFall();
         }
 
         void FixedUpdate()
@@ -142,7 +147,8 @@ namespace GC26.Timetraveler
             // Jump (buffered) or double jump.
             if (_jumpBufferTimer > 0f)
             {
-                if (_coyoteTimer > 0f)
+                // No jumping up into a log while sliding under it.
+                if (_coyoteTimer > 0f && !(IsSliding && BlockedOverhead()))
                 {
                     v.y = _jumpSpeed;
                     _coyoteTimer = 0f;
@@ -174,10 +180,12 @@ namespace GC26.Timetraveler
 
             _body.linearVelocity = v;
 
-            if (_slideTimer > 0f)
+            // The slide lasts its minimum time, then continues while the slide input is held
+            // and never ends while something is above the traveler's head.
+            if (_sliding)
             {
                 _slideTimer -= dt;
-                if (_slideTimer <= 0f) EndSlide();
+                if (_slideTimer <= 0f && !_input.SlideHeld && !BlockedOverhead()) EndSlide();
             }
 
             if (_body.position.y < _killY) Die();
@@ -187,7 +195,8 @@ namespace GC26.Timetraveler
         {
             if (IsGrounded)
             {
-                if (!IsSliding) SetSize(tuning.slideSize);
+                if (!_sliding) SetSize(tuning.slideSize);
+                _sliding = true;
                 _slideTimer = tuning.slideDuration;
             }
             else
@@ -201,9 +210,25 @@ namespace GC26.Timetraveler
 
         void EndSlide()
         {
-            if (!IsSliding && _collider.size == tuning.standSize) return;
+            if (!_sliding) return;
+            _sliding = false;
             _slideTimer = 0f;
             SetSize(tuning.standSize);
+        }
+
+        readonly Collider2D[] _overhead = new Collider2D[8];
+
+        /// <summary>True if standing up now would put the traveler's head into a log or block.</summary>
+        bool BlockedOverhead()
+        {
+            var feet = _body.position.y - _collider.size.y / 2f;
+            var center = new Vector2(_body.position.x, feet + tuning.standSize.y / 2f + 0.05f);
+            var size = new Vector2(tuning.standSize.x * 0.9f, tuning.standSize.y - 0.1f);
+            var filter = new ContactFilter2D { useTriggers = true };
+            var count = Physics2D.OverlapBox(center, size, 0f, filter, _overhead);
+            for (var i = 0; i < count; i++)
+                if (_overhead[i] != _collider) return true;
+            return false;
         }
 
         /// <summary>Resize the collider and visual, keeping the feet on the ground.</summary>

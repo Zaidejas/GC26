@@ -29,10 +29,14 @@ namespace GC26.Timetraveler
         public float KillY => -12f;
         public float StartX => 0f;
 
-        static readonly Color PastColor = new Color(0.85f, 0.65f, 0.3f);
-        static readonly Color FutureColor = new Color(0.3f, 0.8f, 0.95f);
-        static readonly Color PastHazardColor = new Color(0.95f, 0.45f, 0.15f);
-        static readonly Color FutureHazardColor = new Color(0.75f, 0.3f, 0.95f);
+        // World pieces use the world's colour (same as the traveler in that world).
+        // Solids are full colour; world walls are a darker shade of it.
+        static Color SolidColor(RunnerWorld w) => RunnerWorldState.ColorOf(w);
+        static Color WallColor(RunnerWorld w) => RunnerWorldState.ColorOf(w) * new Color(0.75f, 0.75f, 0.75f, 1f);
+
+        /// <summary>First time each obstacle type appears in a run, a hint is shown before it.</summary>
+        readonly List<(float x, string text)> _hints = new List<(float, string)>();
+        readonly HashSet<string> _taught = new HashSet<string>();
 
         RunnerShapes _shapes;
         RunnerWorldState _worlds;
@@ -55,6 +59,8 @@ namespace GC26.Timetraveler
             _target = target;
             Clear();
             _rng = new System.Random(seed);
+            _hints.Clear();
+            _taught.Clear();
             _cursorX = StartX - 20f;
             _groundY = 0f;
             _lastPattern = null;
@@ -97,6 +103,27 @@ namespace GC26.Timetraveler
             }
             return false;
         }
+
+        /// <summary>The hint for the next taught obstacle, if the traveler is approaching it.</summary>
+        public string HintFor(float travelerX)
+        {
+            foreach (var (x, text) in _hints)
+            {
+                var ahead = x - travelerX;
+                if (ahead > -1f && ahead < 18f) return text;
+            }
+            return null;
+        }
+
+        /// <summary>Adds a hint at the current build position, once per obstacle type per run.</summary>
+        void Teach(string key, string text)
+        {
+            if (!_taught.Add(key)) return;
+            _hints.Add((_cursorX, text));
+        }
+
+        static string Name(RunnerWorld w) => RunnerWorldState.NameOf(w);
+        static string Other(RunnerWorld w) => RunnerWorldState.NameOf(w == RunnerWorld.Past ? RunnerWorld.Future : RunnerWorld.Past);
 
         void Clear()
         {
@@ -165,6 +192,7 @@ namespace GC26.Timetraveler
         void Gap(float width)
         {
             Flat(5f);
+            Teach("gap", "Gap ahead: JUMP  (tap / Space)");
             _cursorX += width;
             _openGround = null;
             Flat(7f);
@@ -173,15 +201,17 @@ namespace GC26.Timetraveler
         void Rock()
         {
             Flat(5f);
+            Teach("rock", "Red = deadly. JUMP over the rock  (tap / Space)");
             Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f);
             Flat(8f);
         }
 
         void Log()
         {
-            // Overhead log: standing (3 units) hits it, sliding (1.4 units) passes under.
+            // Overhead log: standing (3 units) hits it, sliding (1.2 units) passes under.
             Flat(5f);
-            Hazard("TrackLog", _cursorX, _groundY + 1.8f, 2.5f, 14f);
+            Teach("log", "SLIDE under the log  (swipe down / hold S)");
+            Hazard("TrackLog", _cursorX, _groundY + 2.0f, 2.5f, 14f);
             Flat(8f);
         }
 
@@ -216,6 +246,7 @@ namespace GC26.Timetraveler
         {
             // Higher than a single jump (6.5): needs the double jump.
             Flat(6f);
+            Teach("tallwall", "Too high: JUMP, then JUMP again in the air");
             Hazard("TrackTallWall", _cursorX, _groundY, 1.5f, 7.5f);
             Flat(10f);
         }
@@ -227,6 +258,7 @@ namespace GC26.Timetraveler
             // A gap too wide to jump; a bridge spans it in only one timeline.
             var world = RandomWorld();
             Flat(6f);
+            Teach("worldbridge", $"Too wide to jump! The bridge is real only in the {Name(world)}.\nBe {Name(world)}-coloured to run on it  (Q / swipe sideways)");
             var width = Range(13f, 16f);
             WorldSolid("TrackBridge", world, _cursorX, _groundY - 1f, width, 1f);
             _cursorX += width;
@@ -239,6 +271,7 @@ namespace GC26.Timetraveler
             // A wall too tall to jump that exists in only one timeline: be in the other one.
             var world = RandomWorld();
             Flat(9f);
+            Teach("worldwall", $"This wall exists only in the {Name(world)}.\nSwitch to the {Other(world)} to run through it  (Q / swipe sideways)");
             WorldHazard("TrackWorldWall", world, _cursorX, _groundY, 1.5f, 16f);
             Flat(9f);
         }
@@ -250,8 +283,9 @@ namespace GC26.Timetraveler
             var wallWorld = RandomWorld();
             var logWorld = wallWorld == RunnerWorld.Past ? RunnerWorld.Future : RunnerWorld.Past;
             Flat(9f);
+            Teach("worldsplit", $"Wall in the {Name(wallWorld)}, log in the {Name(logWorld)}.\nSwitch to the {Name(logWorld)} and SLIDE");
             WorldHazard("TrackSplitWall", wallWorld, _cursorX, _groundY, 1.5f, 16f);
-            WorldHazard("TrackSplitLog", logWorld, _cursorX - 0.5f, _groundY + 1.8f, 2.5f, 14f);
+            WorldHazard("TrackSplitLog", logWorld, _cursorX - 0.5f, _groundY + 2.0f, 2.5f, 14f);
             Flat(9f);
         }
 
@@ -261,6 +295,7 @@ namespace GC26.Timetraveler
         {
             // Bobs between the ground and above jump height: pass under it or over it.
             Flat(8f);
+            Teach("moving", "Moving trap: SLOW TIME to pass safely  (E or Shift / swipe up)");
             var blade = Hazard("TrackBlade", _cursorX, _groundY + 0.2f, 1.5f, 1.5f);
             AddMover(blade, RunnerMover.Mode.Bob, low: _groundY + 0.95f, high: _groundY + 8f, period: 1.8f);
             Flat(10f);
@@ -270,6 +305,7 @@ namespace GC26.Timetraveler
         {
             // Flies at head height toward the traveler: slide under it (or jump over early).
             Flat(20f);
+            Teach("flyer", "Flyer at head height: SLIDE under it  (or slow time: E / Shift)");
             var flyer = Hazard("TrackFlyer", _cursorX, _groundY + 2.1f, 2.2f, 1.2f);
             var mover = AddMover(flyer, RunnerMover.Mode.Fly, 0f, 0f, 1f);
             mover.speed = 5f;
@@ -282,6 +318,7 @@ namespace GC26.Timetraveler
             // Two or three boulders fall when the traveler gets close (they flash first).
             var count = Coin() ? 2 : 3;
             Flat(6f);
+            Teach("boulders", "Boulders flash, then fall. SLOW TIME and jump the ones that land  (E / Shift)");
             for (var i = 0; i < count; i++)
             {
                 var boulder = Hazard("TrackBoulder", _cursorX, _groundY + 18f, 1.8f, 1.8f);
@@ -296,6 +333,7 @@ namespace GC26.Timetraveler
         {
             // Slams down to the ground and slowly rises: run under while it is up.
             Flat(8f);
+            Teach("crusher", "Crusher: run under it while it is UP. Slow time helps  (E / Shift)");
             var crusher = Hazard("TrackCrusher", _cursorX, _groundY, 3f, 8f);
             AddMover(crusher, RunnerMover.Mode.Crush, low: _groundY + 4f, high: _groundY + 13f, period: 2.2f,
                 phase: (float)_rng.NextDouble());
@@ -347,7 +385,7 @@ namespace GC26.Timetraveler
 
         void WorldSolid(string name, RunnerWorld world, float x, float y, float width, float height)
         {
-            var color = world == RunnerWorld.Past ? PastColor : FutureColor;
+            var color = SolidColor(world);
             var go = _shapes.Box(transform, name, x, y, width, height, color);
             var member = go.AddComponent<RunnerWorldMember>();
             member.Init(world, _worlds);
@@ -357,7 +395,7 @@ namespace GC26.Timetraveler
 
         void WorldHazard(string name, RunnerWorld world, float x, float y, float width, float height)
         {
-            var color = world == RunnerWorld.Past ? PastHazardColor : FutureHazardColor;
+            var color = WallColor(world);
             var go = _shapes.Box(transform, name, x, y, width, height, color, isTrigger: true, sortingOrder: 1);
             go.AddComponent<RunnerHazard>();
             go.AddComponent<RunnerWorldMember>().Init(world, _worlds);

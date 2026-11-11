@@ -7,7 +7,8 @@ namespace GC26.Timetraveler
     /// One-thumb controls, read once per frame.
     /// Touch / mouse: tap = jump (hold = higher), swipe down = slide, swipe up = time slow,
     /// swipe left or right = switch world.
-    /// Keyboard (PC testing): Space / W / Up = jump, S / Down = slide, E = time slow, Q = switch world.
+    /// Keyboard (PC testing): Space / W / Up = jump, S / Down = slide (hold to keep sliding),
+    /// E or Shift = time slow, Q / Left / Right = switch world.
     /// </summary>
     public class TravelerInput
     {
@@ -20,6 +21,8 @@ namespace GC26.Timetraveler
         public bool JumpPressed { get; private set; }
         public bool JumpHeld { get; private set; }
         public bool SlidePressed { get; private set; }
+        /// <summary>Slide key still down, or the finger that swiped down still on the screen.</summary>
+        public bool SlideHeld { get; private set; }
         public bool SlowPressed { get; private set; }
         public bool SwitchPressed { get; private set; }
         public bool AnyPressed { get; private set; }
@@ -27,6 +30,7 @@ namespace GC26.Timetraveler
         bool _pointerDown;
         bool _pointerDecided;
         bool _pointerIsJump;
+        bool _pointerIsSlide;
         Vector2 _pointerStart;
         float _pointerStartTime;
 
@@ -38,23 +42,26 @@ namespace GC26.Timetraveler
             SwitchPressed = false;
             AnyPressed = false;
 
-            ReadKeyboard(out var keyJumpHeld);
+            ReadKeyboard(out var keyJumpHeld, out var keySlideHeld);
             ReadPointer();
 
             JumpHeld = keyJumpHeld || (_pointerDown && _pointerIsJump);
+            SlideHeld = keySlideHeld || (_pointerDown && _pointerIsSlide);
         }
 
-        void ReadKeyboard(out bool jumpHeld)
+        void ReadKeyboard(out bool jumpHeld, out bool slideHeld)
         {
             jumpHeld = false;
+            slideHeld = false;
             var kb = Keyboard.current;
             if (kb == null) return;
+            slideHeld = kb.downArrowKey.isPressed || kb.sKey.isPressed;
 
             if (kb.spaceKey.wasPressedThisFrame || kb.upArrowKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame)
                 JumpPressed = AnyPressed = true;
             if (kb.downArrowKey.wasPressedThisFrame || kb.sKey.wasPressedThisFrame)
                 SlidePressed = AnyPressed = true;
-            if (kb.eKey.wasPressedThisFrame)
+            if (kb.eKey.wasPressedThisFrame || kb.leftShiftKey.wasPressedThisFrame || kb.rightShiftKey.wasPressedThisFrame)
                 SlowPressed = AnyPressed = true;
             if (kb.qKey.wasPressedThisFrame || kb.leftArrowKey.wasPressedThisFrame || kb.rightArrowKey.wasPressedThisFrame)
                 SwitchPressed = AnyPressed = true;
@@ -75,6 +82,7 @@ namespace GC26.Timetraveler
                 _pointerDown = true;
                 _pointerDecided = false;
                 _pointerIsJump = false;
+                _pointerIsSlide = false;
                 _pointerStart = pos;
                 _pointerStartTime = Time.unscaledTime;
                 AnyPressed = true;
@@ -86,7 +94,7 @@ namespace GC26.Timetraveler
                 if (delta.magnitude > SwipeThreshold)
                 {
                     if (Mathf.Abs(delta.x) > Mathf.Abs(delta.y)) SwitchPressed = true;
-                    else if (delta.y < 0f) SlidePressed = true;
+                    else if (delta.y < 0f) SlidePressed = _pointerIsSlide = true;
                     else SlowPressed = true;
                     _pointerDecided = true;
                 }
@@ -102,6 +110,7 @@ namespace GC26.Timetraveler
             {
                 _pointerDown = false;
                 _pointerIsJump = false;
+                _pointerIsSlide = false;
             }
         }
     }
