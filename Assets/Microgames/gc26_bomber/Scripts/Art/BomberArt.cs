@@ -18,7 +18,7 @@ namespace GC26.Bomber
                                 MR = Hex("#ff3048"), MY = Hex("#ffd65c"), MO = Hex("#ff8a3c"), MC = Hex("#9ff4ff"), Outline = Hex("#05070e");
 
         public Sprite Drone, Rotor, Gun, Lens, Shot, ShotHeavy, EnemyShot, Pixel, Ring, Disc, Scrap, Repair, EmpPickup, Barrel, Wall, TurretHead;
-        public Sprite UiCircle, UiRing, UiWhite;
+        public Sprite UiCircle, UiRing, UiWhite, UiGradient;
         readonly Dictionary<string, Sprite> _enemy = new Dictionary<string, Sprite>();
         readonly List<UnityEngine.Object> _owned = new List<UnityEngine.Object>();
 
@@ -47,6 +47,7 @@ namespace GC26.Bomber
             TurretHead = Build(16, 10, c => { c.Fill(c.Box(8, 3.8f, 15.5f, 6.2f), MN); c.Fill(c.Disc(7, 5, 3.6f), Hex("#ffcf5c")); c.Px(6, 4, MR); });
             UiCircle = Smooth(128, ring: false, 100, ui: true); UiRing = Smooth(128, ring: true, 100, ui: true);
             UiWhite = Build(1, 1, c => c.Px(0, 0, new Color32(255, 255, 255, 255)), outline: false);
+            UiGradient = Build(1, 64, c => { for (int y = 0; y < 64; y++) c.Px(0, y, new Color32(255, 255, 255, (byte)(Mathf.SmoothStep(0f, 1f, y / 63f) * 255))); }, outline: false); UiGradient.texture.filterMode = FilterMode.Bilinear;
         }
 
         /// <summary>Destroys a generated sprite and its texture (used for per-room floors).</summary>

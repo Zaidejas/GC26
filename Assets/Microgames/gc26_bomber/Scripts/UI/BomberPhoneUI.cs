@@ -9,13 +9,13 @@ namespace GC26.Bomber
     /// <summary>
     /// Phone (portrait) screen: HUD on top, the pixel-art world below, touch controls over the bottom.
     /// Layout is in reference units 544 x 1186 (the world is 544 x 960, 1 world px = 1 unit), scaled to the
-    /// screen with CanvasScaler (Expand) inside Screen.safeArea. Movement joystick on the RIGHT (right thumb),
+    /// screen inside Screen.safeArea (notch and home bar are never covered). Movement joystick on the RIGHT (right thumb),
     /// ability buttons on the LEFT. Shooting is automatic. In the Editor the mouse acts as a finger and the
     /// keyboard also works (WASD, Space, Shift, R, G, V, Esc).
     /// </summary>
     public sealed class BomberPhoneUI : MonoBehaviour
     {
-        public const float RefW = 544f, Top = 126f, RefH = Top + 960f + 100f;
+        public const float RefW = 544f, Top = 126f, RefH = Top + 960f; // the world reaches the bottom edge; controls float over it
 
         BomberContext _ctx;
         Font _font;
@@ -63,6 +63,7 @@ namespace GC26.Bomber
 
             _worldImage = new GameObject("World", typeof(RectTransform)).AddComponent<RawImage>(); _worldImage.rectTransform.SetParent(_frame, false);
             _worldImage.texture = worldTexture; Place(_worldImage.rectTransform, 0, Top, RefW, 960f);
+            var shade = NewImage("ControlsShade", _frame, ctx.Art.UiGradient, new Color(0.01f, 0.015f, 0.03f, 0.75f)); Place(shade.rectTransform, 0, RefH - 300f, RefW, 300f);
             _fade = NewImage("Fade", _frame, ctx.Art.UiWhite, Color.black); Place(_fade.rectTransform, 0, Top, RefW, 960f);
 
             BuildHud();
@@ -257,6 +258,7 @@ namespace GC26.Bomber
         {
             var sa = Screen.safeArea; var full = new Vector2(Screen.width, Screen.height);
             if (full.x > 0 && full.y > 0) { _safe.anchorMin = new Vector2(sa.xMin / full.x, sa.yMin / full.y); _safe.anchorMax = new Vector2(sa.xMax / full.x, sa.yMax / full.y); _safe.offsetMin = _safe.offsetMax = Vector2.zero; }
+            var room = _safe.rect.size; if (room.x > 1f && room.y > 1f) _frame.localScale = Vector3.one * Mathf.Min(room.x / RefW, room.y / RefH);
             if (_toastT > 0f) { _toastT -= dt; if (_toastT <= 0f) NextToast(); } else if (_toastBg.enabled && _toasts.Count == 0) NextToast();
 
             var w = _ctx.World; var p = w.P; var core = w.Core;
