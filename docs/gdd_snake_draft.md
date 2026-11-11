@@ -1,6 +1,6 @@
 # 🐍 Science Snake — Game Design Document
 
-> **GDD** · рабочее название · [оригинал в Google Docs](https://docs.google.com/document/d/1ias3MrEGeJViLIlTGnDJIdscI9s4r638mBwv-0fzWWo/edit?usp=drivesdk) · [▶ играть в прототип](https://raw.githack.com/Zaidejas/GC26/gc26_science_snake/docs/snake_prototype.html)
+> **GDD** · рабочее название · [оригинал в Google Docs](https://docs.google.com/document/d/1ias3MrEGeJViLIlTGnDJIdscI9s4r638mBwv-0fzWWo/edit?usp=drivesdk) · [▶ играть в прототип](https://raw.githack.com/Zaidejas/GC26/gc26_science_snake/docs/prototype_snake_2.html)
 
 
 |                       |                                                                   |
@@ -462,7 +462,7 @@ flowchart TD
 | 5 | `ignoredApples = 5` | «Голод — это не про то, сколько яблок выросло. Это про то, кому они достались. Давай попробуем не брать лишнего.» |
 
 > [!NOTE]
-> **Источники цифр:** ФАО и др., *SOFI 2025* (данные за 2024 г.) — тексты 1 и 4; ЮНЕП, *Food Waste Index Report 2024* (данные за 2022 г.) — тексты 2 и 3. Тексты взяты из прототипа `snake_prototype.html`; там же есть английские версии.
+> **Источники цифр:** ФАО и др., *SOFI 2025* (данные за 2024 г.) — тексты 1 и 4; ЮНЕП, *Food Waste Index Report 2024* (данные за 2022 г.) — тексты 2 и 3. Тексты взяты из прототипа `prototype_snake_2.html`; там же есть английские версии.
 
 Тексты остальных окон — в таблице [10.3](#103-окна).
 

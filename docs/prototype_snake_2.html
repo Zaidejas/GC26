@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#2e7d32">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Science Snake</title>
 <style>
   :root{
@@ -13,8 +15,8 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;
-    -webkit-user-select:none;user-select:none}
-  #app{position:relative;max-width:480px;height:100%;margin:0 auto;background:var(--panel);
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none}
+  #app{position:relative;max-width:480px;height:100%;height:100dvh;margin:0 auto;background:var(--panel);
     display:flex;flex-direction:column;overflow:hidden}
   .screen{position:absolute;inset:0;display:none;flex-direction:column}
   .screen.on{display:flex}
@@ -542,6 +544,7 @@ function flashKey(d){ const b = document.querySelector(`#pad [data-d="${d}"]`); 
 })();
 document.querySelectorAll("#pad button").forEach(b => b.addEventListener("pointerdown", e => { e.preventDefault(); pushDir(b.dataset.d); }));
 $("bPause").onclick = () => { audio(); if (!modalOpen) pauseMenu(); };
+$("game").addEventListener("contextmenu", e => e.preventDefault());   // Android long-press menu on arrows/field
 document.addEventListener("visibilitychange", () => { if (document.hidden && screen==="game" && G && !modalOpen && !G.over) pauseMenu(); });
 
 /* =========================================================
