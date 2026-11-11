@@ -2,7 +2,8 @@
 # Builds Lines from the command line. Unity must be closed.
 #   scripts/build.sh ios-sim      build for the iOS Simulator, install it and start it
 #   scripts/build.sh ios-device   Xcode project for a real iPhone (Builds/iOS-Device)
-#   scripts/build.sh android      Android APK (Builds/Android/Lines.apk)
+#   scripts/build.sh android      Android APK (Builds/Android/Lines.apk); installs and starts it on
+#                                 every running Android emulator or connected phone
 # Options (environment variables):
 #   LINES_SIM=<name or UDID>  which simulated iPhone to use (default: the running one, else "iPhone 18 Pro")
 #   LINES_APPLE_TEAM=<id>     your Apple team ID for signing the iPhone build
@@ -49,6 +50,12 @@ case "${1:-}" in
   android)
     unity Android Android unity-android
     echo "APK ready: Builds/Android/Lines.apk"
+    ADB="$(dirname "$UNITY")/../../../PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb"
+    for DEVICE in $("$ADB" devices | awk 'NR > 1 && $2 == "device" { print $1 }'); do
+      "$ADB" -s "$DEVICE" install -r Builds/Android/Lines.apk >/dev/null
+      "$ADB" -s "$DEVICE" shell monkey -p com.gc26.lines 1 >/dev/null 2>&1
+      echo "Running com.gc26.lines on $DEVICE."
+    done
     ;;
   *)
     sed -n '2,9p' "$0"; exit 1 ;;

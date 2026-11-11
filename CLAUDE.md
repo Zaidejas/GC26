@@ -74,7 +74,7 @@ Builds (Unity closed; output in `Builds/`, which git ignores; logs in `Builds/lo
 ```bash
 scripts/build.sh ios-sim      # Unity → Xcode → installs and starts the game in the iOS Simulator (~2 min)
 scripts/build.sh ios-device   # Xcode project for a real iPhone: Builds/iOS-Device/Unity-iPhone.xcodeproj
-scripts/build.sh android      # Builds/Android/Lines.apk
+scripts/build.sh android      # Builds/Android/Lines.apk; installs and starts it on every running emulator (~3 min)
 ```
 
 - `LINES_SIM=<name or UDID>` picks the simulated iPhone (default: the running one, else "iPhone 18 Pro"); `LINES_APPLE_TEAM=<team id>` signs the iPhone build with the user's free Apple account.
@@ -89,6 +89,8 @@ $SDK/platform-tools/adb install -r Builds/Android/Lines.apk
 $SDK/platform-tools/adb shell monkey -p com.gc26.lines 1             # starts the game
 $SDK/platform-tools/adb exec-out screencap -p > shot.png
 ```
+
+- The emulator phones run the game full screen with no notch. Their save files are in `/storage/emulated/0/Android/data/com.gc26.lines/files/` (`adb shell cat …/game.json`). Android's one-time "Viewing full screen" tip is switched off with `adb shell settings put secure immersive_mode_confirmations confirmed`.
 
 ## How each task is checked
 
