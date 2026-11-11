@@ -8,7 +8,7 @@
 **V**alue → **I**nterests → **C**razy 8s → **K**eepers → **Y**es, and. Страница ведёт сессию по шагам с таймером,
 собирает идеи и голоса (у каждого 3 голоса) и выдаёт итог в Markdown — его удобно вставить в `README.md` своей игры.
 
-👉 **https://ivanou-dzmitry.github.io/mikrozaidimai/vicky/** — откройте на одном экране для всей команды, RU / EN.
+👉 **https://zaidejas.github.io/GC26/vicky/** — откройте на одном экране для всей команды, RU / EN.
 
 ## 0. Что нужно установить
 

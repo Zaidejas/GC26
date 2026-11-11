@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VICKY Jam Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a jam-room facilitator board. Letter stepper on top, one step at a time, ideas as sticky notes. */
+:root {
+  --bg: #eef0ec;        /* whiteboard */
+  --panel: #ffffff;
+  --ink: #1d2433;       /* marker navy */
+  --muted: #5f6878;
+  --line: #d3d8d0;
+  --accent: #2f5bd3;    /* blue marker */
+  --note: #ffe97a;      /* sticky note */
+  --note-ink: #3b3210;
+  --good: #1f8a4c;
+  --warn: #b5671c;
+  --display: "Space Grotesk", "Segoe UI", Arial, sans-serif;
+  --body: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+  --mono: "JetBrains Mono", Consolas, Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141922; --panel: #1d2430; --ink: #e8ecf3; --muted: #9aa4b5; --line: #323c4c;
+    --accent: #7ea2ff; --note: #e8cf4f; --note-ink: #2a2306; --good: #4cc77f; --warn: #e3a35e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141922; --panel: #1d2430; --ink: #e8ecf3; --muted: #9aa4b5; --line: #323c4c;
+  --accent: #7ea2ff; --note: #e8cf4f; --note-ink: #2a2306; --good: #4cc77f; --warn: #e3a35e;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 18px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
+h1 { font-size: 30px; letter-spacing: -0.01em; }
+h2 { font-size: 24px; }
+h3 { font-size: 16px; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* header */
+.top { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; justify-content: space-between; }
+.top .sub { color: var(--muted); max-width: 60ch; }
+.top-actions { display: flex; gap: 8px; align-items: center; }
+.btn {
+  border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 12px;
+  cursor: pointer; white-space: nowrap;
+}
+.btn:hover { border-color: var(--ink); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.ghost { background: transparent; }
+.btn.sm { padding: 3px 9px; font-size: 13px; }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* stepper */
+.steps { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.step {
+  display: grid; justify-items: center; gap: 2px; padding: 8px 4px; border-radius: var(--radius);
+  border: 1px solid var(--line); background: var(--panel); cursor: pointer; min-width: 0;
+}
+.step .l { font: 700 22px/1 var(--display); }
+.step .n { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.step .m { font: 500 11px var(--mono); color: var(--muted); }
+.step.active { border-color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
+.step.active .l { color: var(--accent); }
+.step.done .l::after { content: " ✓"; font-size: 13px; color: var(--good); }
+
+/* panel */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; display: grid; gap: 16px; }
+.panel-head { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; align-items: start; }
+.panel-head > div:first-child { min-width: 0; flex: 1 1 320px; display: grid; gap: 6px; }
+.howto { color: var(--muted); max-width: 66ch; }
+.howto b { color: var(--ink); font-weight: 600; }
+
+/* timer */
+.timer { display: grid; gap: 6px; justify-items: end; min-width: 180px; }
+.clock { font: 700 40px/1 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.clock.over { color: var(--warn); }
+.bar { width: 180px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s linear; }
+.timer-btns { display: flex; gap: 6px; }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+
+/* form bits */
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label { font-size: 12px; color: var(--muted); letter-spacing: .02em; }
+.txt { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.times { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.times .txt { text-align: center; font-family: var(--mono); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px;
+  padding: 4px 6px 4px 12px; background: var(--bg);
+}
+.chip button { border: 0; background: none; cursor: pointer; color: var(--muted); padding: 0 4px; }
+
+/* value votes */
+.vgroup { display: grid; gap: 8px; }
+.opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.opt {
+  display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--bg);
+  border-radius: 8px; padding: 5px 6px 5px 10px; cursor: pointer;
+}
+.opt .cnt { font: 600 12px var(--mono); min-width: 22px; text-align: center; border-radius: 6px; padding: 1px 4px; background: var(--line); }
+.opt.lead { border-color: var(--accent); }
+.opt.lead .cnt { background: var(--accent); color: #fff; }
+.opt .minus { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0 2px; }
+
+/* sticky notes */
+.notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.note {
+  background: var(--note); color: var(--note-ink); border-radius: 4px; padding: 10px 10px 8px;
+  min-height: 74px; display: grid; grid-template-rows: 1fr auto; gap: 6px;
+  box-shadow: 0 1px 0 rgba(0,0,0,.08), 0 3px 8px rgba(0,0,0,.06);
+}
+.note p { overflow-wrap: anywhere; }
+.note .acts { display: flex; justify-content: space-between; }
+.note button { border: 0; background: none; cursor: pointer; color: inherit; opacity: .7; padding: 0 2px; }
+.note button:hover { opacity: 1; }
+.note .star[aria-pressed="true"] { opacity: 1; }
+.note.fav { outline: 2px solid var(--note-ink); outline-offset: -2px; }
+.spark { font: 700 18px var(--display); color: var(--accent); }
+
+/* concepts */
+.concepts { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.concept { border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 6px; background: var(--bg); }
+.concept .num { font: 700 12px var(--mono); color: var(--muted); }
+.concept textarea { resize: vertical; min-height: 56px; }
+
+/* keepers table */
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { border-bottom: 1px solid var(--line); padding: 8px; text-align: center; }
+th:first-child, td:first-child { text-align: left; }
+td.score { font: 700 15px var(--mono); }
+tr.keep td:first-child { box-shadow: inset 3px 0 0 var(--good); }
+.badge { display: inline-block; font: 600 11px var(--mono); padding: 1px 6px; border-radius: 4px; background: var(--good); color: #fff; margin-left: 6px; }
+.left { font: 500 12px var(--mono); color: var(--muted); }
+.warn { color: var(--warn); }
+
+/* yes and */
+.keepers { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.keeper { border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 8px; align-content: start; background: var(--bg); }
+.keeper ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.keeper li { overflow-wrap: anywhere; }
+
+/* result */
+pre.md {
+  margin: 0; padding: 14px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line);
+  font: 13px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 420px; overflow: auto;
+}
+.navrow { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.example { border: 1px dashed var(--warn); color: var(--warn); border-radius: 8px; padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
+.confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.foot { color: var(--muted); font-size: 12px; }
+.foot a { color: inherit; }
+
+.timeup { animation: flash 1s ease 3; }
+@keyframes flash { 50% { background: color-mix(in srgb, var(--warn) 18%, var(--panel)); } }
+@media (prefers-reduced-motion: reduce) { .timeup { animation: none; outline: 2px solid var(--warn); } }
+
+@media (max-width: 640px) {
+  .steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .times { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .clock { font-size: 32px; }
+  .timer { justify-items: start; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>VICKY Jam Session</h1>
+      <p class="sub" id="tagline"></p>
+    </div>
+    <div class="top-actions">
+      <button class="btn sm" id="langRu" type="button">RU</button>
+      <button class="btn sm" id="langEn" type="button">EN</button>
+    </div>
+  </header>
+
+  <div id="exampleBar"></div>
+  <nav class="steps" id="steps" aria-label="Steps"></nav>
+  <main class="panel" id="panel"></main>
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+'use strict';
+
+// ---------- texts ----------
+const T = {
+  ru: {
+    tagline: 'Часовой брейншторм для гейм-джема: Value, Interests, Crazy 8s, Keepers, Yes and. Ведите сессию с одного экрана.',
+    steps: { setup: 'Команда', v: 'Value', i: 'Interests', c: 'Crazy 8s', k: 'Keepers', y: 'Yes, and', result: 'Итог' },
+    min: 'мин',
+    start: 'Старт', pause: 'Пауза', reset: 'Сброс', timeUp: 'Время вышло',
+    next: 'Дальше →', back: '← Назад',
+    example: 'Это пример заполненной сессии. Посмотрите, как всё работает, и начните свою.',
+    startOwn: 'Начать свою сессию',
+    setupTitle: 'Команда и тема',
+    setupHow: 'Впишите тему джема и участников: их имена нужны для голосования. Время по шагам можно поменять, по умолчанию всего 60 минут.',
+    theme: 'Тема джема', themePh: 'например: «Всё наоборот»',
+    members: 'Участники', memberPh: 'Имя и Enter', add: 'Добавить',
+    timesLabel: 'Минуты на шаг',
+    vTitle: 'Value — что мы хотим сделать',
+    vHow: '<b>Запишите, что хотите сделать:</b> платформер или RPG, 2D или 3D, один игрок или несколько. В команде — голосуйте: клик по варианту добавляет голос, «−» убирает. Лидер в каждой группе выделен.',
+    addOption: 'Свой вариант', decision: 'Решение команды', decisionPh: 'Собирается из лидеров — можно поправить',
+    iTitle: 'Interests — все идеи подряд',
+    iHow: '<b>Пишите всё, что приходит в голову,</b> связано с темой или нет, около 5 минут. Потом каждый отмечает ★ любимые и объясняет их команде.',
+    ideaPh: 'Идея и Enter', spark: 'Случайное слово', sparkHint: 'Нет идей? Возьмите слово и свяжите его с темой.',
+    favs: n => `Идей: ${n.all} · любимых: ${n.fav}`,
+    cTitle: 'Crazy 8s — до восьми концептов',
+    cHow: '<b>Соберите из идей не больше 8 концептов.</b> В команде — каждый берёт лучшие идеи и объясняет, почему его концепт лучший.',
+    conceptTitle: 'Название', conceptPitch: 'Суть в одну-две фразы', addConcept: 'Добавить концепт', fromFav: 'Взять из любимой идеи',
+    maxConcepts: 'Достигнут максимум — 8 концептов.',
+    kTitle: 'Keepers — оставить три',
+    kHow: '<b>В итоге — не больше 3 концептов.</b> У каждого участника 3 голоса: можно голосовать за любой концепт, в том числе за свой, но не дважды за один. Тратить все голоса не обязательно.',
+    votesLeft: n => `осталось ${n}`, score: 'Голоса', keeper: 'в тройке',
+    tie: 'Ничья на границе тройки: договоритесь или переголосуйте.',
+    noConcepts: 'Сначала добавьте концепты на шаге Crazy 8s.',
+    yTitle: 'Yes, and — развить трёх финалистов',
+    yHow: '<b>Добавляйте идеи к трём концептам.</b> Правило «да, и…»: не спорим, а достраиваем. В команде — рассказывайте свои дополнения остальным.',
+    yesPh: 'Да, и… (Enter)', noKeepers: 'Сначала проголосуйте на шаге Keepers.',
+    rTitle: 'Итог сессии',
+    rHow: 'Скопируйте результат в Markdown — в документ джема, Discord или README.',
+    copy: 'Скопировать в Markdown', copied: 'Скопировано', copyFail: 'Не получилось скопировать — выделите текст вручную.',
+    newSession: 'Новая сессия', sure: 'Стереть всё и начать заново?', yes: 'Да, стереть', no: 'Отмена',
+    foot: 'Метод VICKY: Océane Nicolas, доклад «VICKY: A 1-hour brainstorming technique for game jams» (Unite Copenhagen). Время по шагам — предложение этой страницы; в источнике указано только «около 5 минут» на идеи. Данные хранятся только в этом браузере.',
+    md: {
+      title: 'VICKY — итог сессии', theme: 'Тема', team: 'Команда', value: 'Value — что делаем',
+      ideas: 'Interests — любимые идеи', concepts: 'Crazy 8s — концепты', keepers: 'Keepers и Yes, and', votes: 'голосов', none: '—',
+    },
+    groups: [
+      ['Жанр', ['Платформер', 'Головоломка', 'RPG', 'Аркада', 'Хоррор', 'Симулятор']],
+      ['Вид', ['2D', '3D']],
+      ['Игроки', ['Один игрок', 'Кооператив', 'Друг против друга']],
+      ['Платформа', ['ПК', 'Веб', 'Телефон']],
+    ],
+    sparks: ['магнит', 'тень', 'эхо', 'гравитация', 'время назад', 'зеркало', 'ветер', 'лава', 'ключ', 'шум', 'клон',
+      'один удар', 'темнота', 'рост', 'вес', 'лифт', 'семя', 'почта', 'маска', 'песочные часы', 'компас', 'дождь',
+      'робот', 'карта', 'монета', 'кот', 'лёд', 'мост', 'сон', 'память', 'поезд', 'фонарь', 'пазл', 'сигнал', 'ритм'],
+  },
+  en: {
+    tagline: 'A one-hour game jam brainstorm: Value, Interests, Crazy 8s, Keepers, Yes and. Run the session from one screen.',
+    steps: { setup: 'Team', v: 'Value', i: 'Interests', c: 'Crazy 8s', k: 'Keepers', y: 'Yes, and', result: 'Result' },
+    min: 'min',
+    start: 'Start', pause: 'Pause', reset: 'Reset', timeUp: 'Time is up',
+    next: 'Next →', back: '← Back',
+    example: 'This is an example of a filled session. Look around, then start your own.',
+    startOwn: 'Start your own session',
+    setupTitle: 'Team and theme',
+    setupHow: 'Enter the jam theme and the team members: their names are needed for voting. Step times can be changed; the default total is 60 minutes.',
+    theme: 'Jam theme', themePh: 'e.g. "Everything is reversed"',
+    members: 'Team members', memberPh: 'Name and Enter', add: 'Add',
+    timesLabel: 'Minutes per step',
+    vTitle: 'Value — what we want to make',
+    vHow: '<b>Write down what you want to make:</b> platformer or RPG, 2D or 3D, single or multiplayer. In a team, vote: a click on an option adds a vote, "−" takes it back. The leader in each group is highlighted.',
+    addOption: 'Your option', decision: 'Team decision', decisionPh: 'Built from the leaders, edit if needed',
+    iTitle: 'Interests — every idea',
+    iHow: '<b>Write absolutely everything</b> that comes to mind, related to the theme or not, for about 5 minutes. Then everyone marks ★ favourites and explains them to the team.',
+    ideaPh: 'Idea and Enter', spark: 'Random word', sparkHint: 'Stuck? Take a word and link it to the theme.',
+    favs: n => `Ideas: ${n.all} · favourites: ${n.fav}`,
+    cTitle: 'Crazy 8s — up to eight concepts',
+    cHow: '<b>Turn the ideas into 8 concepts at most.</b> In a team, everyone takes their best ideas and explains why their concept is the best one.',
+    conceptTitle: 'Title', conceptPitch: 'The idea in a sentence or two', addConcept: 'Add concept', fromFav: 'Start from a favourite idea',
+    maxConcepts: 'Maximum reached: 8 concepts.',
+    kTitle: 'Keepers — keep three',
+    kHow: '<b>End up with 3 concepts at most.</b> Each member has 3 votes: vote for any concept, your own included, but not twice for the same one. You do not have to use all your votes.',
+    votesLeft: n => `${n} left`, score: 'Votes', keeper: 'top 3',
+    tie: 'A tie at the top-3 line: agree or vote again.',
+    noConcepts: 'Add concepts in the Crazy 8s step first.',
+    yTitle: 'Yes, and — grow the three finalists',
+    yHow: '<b>Add ideas to the 3 concepts.</b> The "yes, and…" rule: no arguing, only building on. In a team, talk the others through your additions.',
+    yesPh: 'Yes, and… (Enter)', noKeepers: 'Vote in the Keepers step first.',
+    rTitle: 'Session result',
+    rHow: 'Copy the result as Markdown into your jam doc, Discord or README.',
+    copy: 'Copy as Markdown', copied: 'Copied', copyFail: 'Could not copy: select the text by hand.',
+    newSession: 'New session', sure: 'Erase everything and start over?', yes: 'Yes, erase', no: 'Cancel',
+    foot: 'VICKY method: Océane Nicolas, talk "VICKY: A 1-hour brainstorming technique for game jams" (Unite Copenhagen). Step times are this page\'s suggestion; the source only gives "about 5 minutes" for ideas. Data stays in this browser.',
+    md: {
+      title: 'VICKY — session result', theme: 'Theme', team: 'Team', value: 'Value — what we make',
+      ideas: 'Interests — favourite ideas', concepts: 'Crazy 8s — concepts', keepers: 'Keepers and Yes, and', votes: 'votes', none: '—',
+    },
+    groups: [
+      ['Genre', ['Platformer', 'Puzzle', 'RPG', 'Arcade', 'Horror', 'Simulation']],
+      ['View', ['2D', '3D']],
+      ['Players', ['Single player', 'Co-op', 'Versus']],
+      ['Platform', ['PC', 'Web', 'Mobile']],
+    ],
+    sparks: ['magnet', 'shadow', 'echo', 'gravity', 'rewind', 'mirror', 'wind', 'lava', 'key', 'noise', 'clone',
+      'one hit', 'darkness', 'growth', 'weight', 'elevator', 'seed', 'mail', 'mask', 'hourglass', 'compass', 'rain',
+      'robot', 'map', 'coin', 'cat', 'ice', 'bridge', 'dream', 'memory', 'train', 'lantern', 'puzzle', 'signal', 'rhythm'],
+  },
+};
+
+const STEPS = ['setup', 'v', 'i', 'c', 'k', 'y', 'result'];
+const LETTER = { setup: '★', v: 'V', i: 'I', c: 'C', k: 'K', y: 'Y', result: '✓' };
+const TIMED = ['v', 'i', 'c', 'k', 'y'];
+const STORE = 'vicky.session.v1';
+
+// ---------- state ----------
+let uid = 1;
+const newId = () => `x${Date.now().toString(36)}${(uid++).toString(36)}`;
+
+function valueGroups(lang) {
+  return T[lang].groups.map(([name, opts]) => ({ name, options: opts.map(label => ({ label, votes: 0 })) }));
+}
+
+function blankSession(lang) {
+  return {
+    lang, example: false, step: 'setup', theme: '', members: [],
+    times: { v: 5, i: 10, c: 15, k: 10, y: 15 },
+    value: { groups: valueGroups(lang), decision: '' },
+    ideas: [], concepts: [], votes: {}, yes: {}, done: {},
+  };
+}
+
+// A realistic filled session so the first view shows what the tool does.
+function exampleSession(lang) {
+  const s = blankSession(lang);
+  const ru = lang === 'ru';
+  s.example = true; s.step = 'k';
+  s.theme = ru ? 'Всё наоборот' : 'Everything is reversed';
+  s.members = ru ? ['Аня', 'Марк', 'Лука'] : ['Anna', 'Mark', 'Luke'];
+  const g = s.value.groups;
+  g[0].options[0].votes = 2; g[0].options[1].votes = 3; g[1].options[0].votes = 3; g[2].options[0].votes = 2; g[3].options[1].votes = 3;
+  s.value.decision = ru ? 'Головоломка-платформер, 2D, один игрок, веб' : 'Puzzle platformer, 2D, single player, web';
+  const ideas = ru
+    ? ['Гравитация переворачивается от прыжка', 'Враги убегают от игрока', 'Уровень идёт справа налево', 'Свет вредит, тень лечит',
+       'Время идёт назад, когда стоишь', 'Победа — проиграть красиво', 'Кот ведёт хозяина', 'Предметы падают вверх']
+    : ['Gravity flips on every jump', 'Enemies run away from you', 'The level scrolls right to left', 'Light hurts, shadow heals',
+       'Time runs backwards when you stand still', 'Win by losing beautifully', 'The cat walks its owner', 'Things fall upwards'];
+  s.ideas = ideas.map((text, i) => ({ id: newId(), text, fav: [0, 3, 4, 6].includes(i) }));
+  const concepts = ru
+    ? [['Перевёртыш', 'Платформер, где каждый прыжок переворачивает гравитацию'], ['Тенелюб', 'Ходи по теням: свет отнимает жизнь'],
+       ['Отмотай', 'Стоишь — время идёт назад, двигаешься — вперёд'], ['Кот-поводырь', 'Управляешь котом, который тянет хозяина по городу']]
+    : [['Flipside', 'A platformer where every jump flips gravity'], ['Shadow Walker', 'Walk in shadows: light drains your life'],
+       ['Rewind', 'Stand still and time runs back, move and it runs forward'], ['Cat Leash', 'You are the cat dragging its owner through town']];
+  s.concepts = concepts.map(([title, pitch]) => ({ id: newId(), title, pitch }));
+  const c = s.concepts.map(x => x.id);
+  s.votes = { 0: [c[0], c[2]], 1: [c[0], c[1], c[2]], 2: [c[2], c[3]] };
+  s.yes = { [c[2]]: [ru ? 'Тень игрока — это его прошлое' : "The player's shadow is their past self"] };
+  s.done = { setup: true, v: true, i: true, c: true };
+  return s;
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { /* storage blocked or broken: start fresh */ }
+  const lang = (navigator.language || '').toLowerCase().startsWith('ru') ? 'ru' : 'en';
+  return exampleSession(lang);
+}
+
+let S = load();
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) { /* not critical */ } };
+const L = () => T[S.lang];
+
+// ---------- dom helpers ----------
+function h(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'class') e.className = v;
+    else if (k === 'html') e.innerHTML = v;
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) e.append(k);
+  return e;
+}
+
+// Enter-to-add text input.
+function adder(id, placeholder, onAdd) {
+  const input = h('input', { class: 'txt', id, placeholder, autocomplete: 'off' });
+  const go = () => { const v = input.value.trim(); if (!v) return; onAdd(v); input.value = ''; };
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
+  return { input, go };
+}
+
+function rerender(focusId) {
+  save(); render();
+  if (focusId) document.getElementById(focusId)?.focus();
+}
+
+// ---------- timer (per step, in memory) ----------
+const timer = { step: null, left: 0, total: 0, running: false, handle: 0, end: 0 };
+let audio = null;
+
+function timerFor(step) {
+  if (timer.step !== step) {
+    clearInterval(timer.handle);
+    Object.assign(timer, { step, total: S.times[step] * 60, left: S.times[step] * 60, running: false });
+  }
+  return timer;
+}
+
+function beep() {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.3, 0.6].forEach(t => {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.frequency.value = 880; o.connect(g); g.connect(audio.destination);
+      g.gain.setValueAtTime(0.2, audio.currentTime + t); g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + t + 0.25);
+      o.start(audio.currentTime + t); o.stop(audio.currentTime + t + 0.26);
+    });
+  } catch (e) { /* sound is optional */ }
+}
+
+function tick() {
+  timer.left = Math.round((timer.end - Date.now()) / 1000);
+  if (timer.left <= 0 && timer.running) {
+    timer.left = 0; timer.running = false; clearInterval(timer.handle);
+    beep();
+    const p = document.getElementById('panel');
+    p.classList.remove('timeup'); void p.offsetWidth; p.classList.add('timeup');
+  }
+  paintTimer();
+}
+
+function paintTimer() {
+  const clock = document.getElementById('clock');
+  if (!clock) return;
+  const s = Math.max(0, timer.left);
+  clock.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  clock.classList.toggle('over', timer.left <= 0);
+  document.getElementById('clockLabel').textContent = timer.left <= 0 ? L().timeUp : '';
+  document.getElementById('bar').style.width = `${100 * (1 - timer.left / Math.max(1, timer.total))}%`;
+  document.getElementById('tStart').textContent = timer.running ? L().pause : L().start;
+}
+
+function timerBlock(step) {
+  timerFor(step);
+  const toggle = () => {
+    if (timer.running) { timer.running = false; clearInterval(timer.handle); }
+    else {
+      if (timer.left <= 0) timer.left = timer.total;
+      try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { /* no sound */ }
+      timer.running = true; timer.end = Date.now() + timer.left * 1000;
+      timer.handle = setInterval(tick, 250);
+    }
+    paintTimer();
+  };
+  const reset = () => { clearInterval(timer.handle); timer.running = false; timer.total = timer.left = S.times[step] * 60; paintTimer(); };
+  const el = h('div', { class: 'timer' },
+    h('div', { class: 'clock', id: 'clock', role: 'timer', 'aria-live': 'off' }),
+    h('div', { class: 'bar' }, h('i', { id: 'bar' })),
+    h('div', { class: 'small warn', id: 'clockLabel', 'aria-live': 'polite' }),
+    h('div', { class: 'timer-btns' },
+      h('button', { class: 'btn primary sm', id: 'tStart', type: 'button', onclick: toggle }),
+      h('button', { class: 'btn sm', id: 'tReset', type: 'button', onclick: reset }, L().reset)));
+  return el;
+}
+
+// ---------- steps ----------
+function head(title, how, step) {
+  return h('div', { class: 'panel-head' },
+    h('div', {}, h('h2', {}, title), h('p', { class: 'howto', html: how })),
+    step ? timerBlock(step) : null);
+}
+
+function nav() {
+  const i = STEPS.indexOf(S.step);
+  const go = d => { S.done[S.step] = true; S.step = STEPS[i + d]; rerender(); window.scrollTo({ top: 0 }); };
+  return h('div', { class: 'navrow' },
+    i > 0 ? h('button', { class: 'btn', type: 'button', onclick: () => go(-1) }, L().back) : h('span'),
+    i < STEPS.length - 1 ? h('button', { class: 'btn primary', type: 'button', onclick: () => go(1) }, L().next) : h('span'));
+}
+
+function stepSetup() {
+  const t = L();
+  const member = adder('memberInput', t.memberPh, v => { S.members.push(v); rerender('memberInput'); });
+  return [
+    head(t.setupTitle, t.setupHow),
+    h('div', { class: 'grid2' },
+      h('div', { class: 'field' }, h('label', { for: 'theme' }, t.theme),
+        h('input', { class: 'txt', id: 'theme', value: S.theme, placeholder: t.themePh, oninput: e => { S.theme = e.target.value; save(); } })),
+      h('div', { class: 'field' }, h('label', { for: 'memberInput' }, t.members),
+        h('div', { class: 'row' }, member.input, h('button', { class: 'btn', type: 'button', onclick: member.go }, t.add)))),
+    h('div', { class: 'row' }, S.members.map((m, i) => h('span', { class: 'chip' }, m,
+      h('button', { type: 'button', 'aria-label': '×', onclick: () => { removeMember(i); rerender(); } }, '×')))),
+    h('div', { class: 'field' }, h('label', {}, t.timesLabel),
+      h('div', { class: 'times' }, TIMED.map(k => h('div', { class: 'field' },
+        h('label', { for: `time-${k}` }, `${LETTER[k]} · ${t.steps[k]}`),
+        h('input', { class: 'txt', id: `time-${k}`, type: 'number', min: 1, max: 60, value: S.times[k],
+          oninput: e => { S.times[k] = Math.max(1, parseInt(e.target.value, 10) || 1); save(); renderSteps(); } }))))),
+  ];
+}
+
+function removeMember(i) {
+  S.members.splice(i, 1);
+  const votes = {};
+  S.members.forEach((_, j) => { votes[j] = S.votes[j >= i ? j + 1 : j] || []; });
+  S.votes = votes;
+}
+
+function stepValue() {
+  const t = L();
+  const leaders = () => S.value.groups.map(g => {
+    const max = Math.max(0, ...g.options.map(o => o.votes));
+    return max ? g.options.filter(o => o.votes === max).map(o => o.label).join(' / ') : '';
+  }).filter(Boolean).join(', ');
+  const groups = S.value.groups.map((g, gi) => {
+    const max = Math.max(0, ...g.options.map(o => o.votes));
+    const add = adder(`opt-${gi}`, t.addOption, v => { g.options.push({ label: v, votes: 0 }); rerender(`opt-${gi}`); });
+    return h('div', { class: 'vgroup' },
+      h('h3', {}, g.name),
+      h('div', { class: 'opts' },
+        g.options.map(o => h('span', { class: 'opt' + (max && o.votes === max ? ' lead' : ''),
+          role: 'button', tabindex: 0,
+          onclick: () => { o.votes++; S.value.decision = leaders(); rerender(); },
+          onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); o.votes++; S.value.decision = leaders(); rerender(); } } },
+          o.label, h('span', { class: 'cnt' }, String(o.votes)),
+          h('button', { class: 'minus', type: 'button', 'aria-label': '−',
+            onclick: e => { e.stopPropagation(); o.votes = Math.max(0, o.votes - 1); S.value.decision = leaders(); rerender(); } }, '−'))),
+        h('span', { style: 'max-width:180px' }, add.input)));
+  });
+  return [
+    head(t.vTitle, t.vHow, 'v'),
+    h('div', { class: 'grid2' }, groups),
+    h('div', { class: 'field' }, h('label', { for: 'decision' }, t.decision),
+      h('input', { class: 'txt', id: 'decision', value: S.value.decision, placeholder: t.decisionPh,
+        oninput: e => { S.value.decision = e.target.value; save(); } })),
+  ];
+}
+
+const randomInt = n => { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; };
+
+function stepInterests() {
+  const t = L();
+  const idea = adder('ideaInput', t.ideaPh, v => { S.ideas.push({ id: newId(), text: v, fav: false }); rerender('ideaInput'); });
+  const sparkOut = h('span', { class: 'spark', id: 'spark', 'aria-live': 'polite' });
+  const fav = S.ideas.filter(x => x.fav).length;
+  return [
+    head(t.iTitle, t.iHow, 'i'),
+    h('div', { class: 'row' }, h('div', { style: 'flex:1 1 280px;min-width:0' }, idea.input),
+      h('button', { class: 'btn', type: 'button', onclick: idea.go }, t.add)),
+    h('div', { class: 'row' },
+      h('button', { class: 'btn', type: 'button', onclick: () => { sparkOut.textContent = t.sparks[randomInt(t.sparks.length)]; } }, `🎲 ${t.spark}`),
+      sparkOut, h('span', { class: 'muted small' }, t.sparkHint)),
+    h('p', { class: 'muted small' }, t.favs({ all: S.ideas.length, fav })),
+    h('div', { class: 'notes' }, S.ideas.map((x, i) => h('div', { class: 'note' + (x.fav ? ' fav' : '') },
+      h('p', {}, x.text),
+      h('div', { class: 'acts' },
+        h('button', { class: 'star', type: 'button', 'aria-pressed': String(x.fav), 'aria-label': '★', onclick: () => { x.fav = !x.fav; rerender(); } }, x.fav ? '★' : '☆'),
+        h('button', { type: 'button', 'aria-label': '×', onclick: () => { S.ideas.splice(i, 1); rerender(); } }, '×'))))),
+  ];
+}
+
+function stepCrazy() {
+  const t = L();
+  const full = S.concepts.length >= 8;
+  const favs = S.ideas.filter(x => x.fav);
+  const pick = h('select', { class: 'txt', id: 'fromFav', style: 'max-width:300px' },
+    h('option', { value: '' }, t.fromFav), favs.map(x => h('option', { value: x.id }, x.text)));
+  pick.addEventListener('change', () => {
+    const idea = S.ideas.find(x => x.id === pick.value);
+    if (idea && !full) { S.concepts.push({ id: newId(), title: '', pitch: idea.text }); rerender(); }
+  });
+  return [
+    head(t.cTitle, t.cHow, 'c'),
+    h('div', { class: 'row' },
+      h('button', { class: 'btn', type: 'button', disabled: full, onclick: () => { S.concepts.push({ id: newId(), title: '', pitch: '' }); rerender(); } }, `+ ${t.addConcept}`),
+      favs.length && !full ? pick : null,
+      full ? h('span', { class: 'muted small' }, t.maxConcepts) : null),
+    h('div', { class: 'concepts' }, S.concepts.map((c, i) => h('div', { class: 'concept' },
+      h('div', { class: 'row', style: 'justify-content:space-between' }, h('span', { class: 'num' }, `#${i + 1}`),
+        h('button', { class: 'btn ghost sm', type: 'button', 'aria-label': '×', onclick: () => { removeConcept(c.id); rerender(); } }, '×')),
+      h('input', { class: 'txt', id: `ct-${c.id}`, value: c.title, placeholder: t.conceptTitle, oninput: e => { c.title = e.target.value; save(); } }),
+      h('textarea', { class: 'txt', id: `cp-${c.id}`, placeholder: t.conceptPitch, oninput: e => { c.pitch = e.target.value; save(); } }, c.pitch)))),
+  ];
+}
+
+function removeConcept(id) {
+  S.concepts = S.concepts.filter(c => c.id !== id);
+  for (const k of Object.keys(S.votes)) S.votes[k] = (S.votes[k] || []).filter(v => v !== id);
+  delete S.yes[id];
+}
+
+// Concepts by votes; the top 3 with at least one vote are the keepers.
+function ranking() {
+  const score = id => Object.values(S.votes).filter(list => (list || []).includes(id)).length;
+  const ranked = S.concepts.map((c, i) => ({ c, i, s: score(c.id) })).sort((a, b) => b.s - a.s || a.i - b.i);
+  const keep = ranked.filter(r => r.s > 0).slice(0, 3);
+  const tie = ranked.length > 3 && keep.length === 3 && ranked[3].s > 0 && ranked[3].s === keep[2].s;
+  return { ranked, keep, tie };
+}
+
+const conceptName = (c, i) => c.title || c.pitch.slice(0, 40) || `#${i + 1}`;
+
+function stepKeepers() {
+  const t = L();
+  if (!S.concepts.length) return [head(t.kTitle, t.kHow, 'k'), h('p', { class: 'muted' }, t.noConcepts)];
+  const { ranked, keep, tie } = ranking();
+  const keepIds = new Set(keep.map(r => r.c.id));
+  const toggle = (m, id) => {
+    const list = S.votes[m] = S.votes[m] || [];
+    const at = list.indexOf(id);
+    if (at >= 0) list.splice(at, 1); else if (list.length < 3) list.push(id);
+    rerender();
+  };
+  return [
+    head(t.kTitle, t.kHow, 'k'),
+    h('div', { class: 'tablewrap' }, h('table', {},
+      h('thead', {}, h('tr', {}, h('th', {}, ''),
+        S.members.map((m, j) => h('th', {}, m, h('div', { class: 'left' }, t.votesLeft(3 - (S.votes[j] || []).length)))),
+        h('th', {}, t.score))),
+      h('tbody', {}, ranked.map(({ c, i, s }) => h('tr', { class: keepIds.has(c.id) ? 'keep' : '' },
+        h('td', {}, conceptName(c, i), keepIds.has(c.id) ? h('span', { class: 'badge' }, t.keeper) : null),
+        S.members.map((m, j) => {
+          const on = (S.votes[j] || []).includes(c.id);
+          const full = (S.votes[j] || []).length >= 3;
+          return h('td', {}, h('input', { type: 'checkbox', id: `v-${j}-${c.id}`, checked: on, disabled: !on && full,
+            'aria-label': `${m}: ${conceptName(c, i)}`, onchange: () => toggle(j, c.id) }));
+        }),
+        h('td', { class: 'score' }, String(s))))))),
+    tie ? h('p', { class: 'warn small' }, t.tie) : null,
+  ];
+}
+
+function stepYes() {
+  const t = L();
+  const { keep } = ranking();
+  if (!keep.length) return [head(t.yTitle, t.yHow, 'y'), h('p', { class: 'muted' }, t.noKeepers)];
+  return [
+    head(t.yTitle, t.yHow, 'y'),
+    h('div', { class: 'keepers' }, keep.map(({ c, i, s }) => {
+      const list = S.yes[c.id] = S.yes[c.id] || [];
+      const add = adder(`yes-${c.id}`, t.yesPh, v => { list.push(v); rerender(`yes-${c.id}`); });
+      return h('div', { class: 'keeper' },
+        h('h3', {}, conceptName(c, i)), c.title && c.pitch ? h('p', { class: 'muted small' }, c.pitch) : null,
+        h('ul', {}, list.map((y, k) => h('li', {}, y, ' ',
+          h('button', { class: 'btn ghost sm', type: 'button', 'aria-label': '×', onclick: () => { list.splice(k, 1); rerender(); } }, '×')))),
+        add.input);
+    })),
+  ];
+}
+
+function markdown() {
+  const t = L(), md = t.md, { keep } = ranking();
+  const lines = [`# ${md.title}`, ''];
+  lines.push(`**${md.theme}:** ${S.theme || md.none}  `, `**${md.team}:** ${S.members.join(', ') || md.none}`, '');
+  lines.push(`## ${md.value}`, '', S.value.decision || md.none, '');
+  lines.push(`## ${md.ideas}`, '');
+  const favs = S.ideas.filter(x => x.fav);
+  lines.push(...(favs.length ? favs.map(x => `- ${x.text}`) : [md.none]), '');
+  lines.push(`## ${md.concepts}`, '');
+  lines.push(...(S.concepts.length ? S.concepts.map((c, i) => `${i + 1}. **${conceptName(c, i)}**${c.title && c.pitch ? ` — ${c.pitch}` : ''}`) : [md.none]), '');
+  lines.push(`## ${md.keepers}`, '');
+  if (!keep.length) lines.push(md.none);
+  keep.forEach(({ c, i, s }, k) => {
+    lines.push(`### ${k + 1}. ${conceptName(c, i)} (${s} ${md.votes})`);
+    if (c.title && c.pitch) lines.push('', c.pitch);
+    const ys = S.yes[c.id] || [];
+    if (ys.length) lines.push('', ...ys.map(y => `- ${y}`));
+    lines.push('');
+  });
+  return lines.join('\n').trim() + '\n';
+}
+
+function stepResult() {
+  const t = L();
+  const text = markdown();
+  const pre = h('pre', { class: 'md', id: 'mdOut', tabindex: 0 }, text);
+  const status = h('span', { class: 'small muted', 'aria-live': 'polite' });
+  const copy = () => {
+    navigator.clipboard.writeText(text).then(() => { status.textContent = t.copied; }, () => {
+      status.textContent = t.copyFail;
+      const r = document.createRange(); r.selectNodeContents(pre);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    });
+  };
+  const confirmBox = h('div', { class: 'confirm', hidden: true },
+    h('span', {}, t.sure),
+    h('button', { class: 'btn primary sm', type: 'button', onclick: () => { S = blankSession(S.lang); rerender(); } }, t.yes),
+    h('button', { class: 'btn sm', type: 'button', onclick: () => { confirmBox.hidden = true; } }, t.no));
+  return [
+    head(t.rTitle, t.rHow),
+    h('div', { class: 'row' }, h('button', { class: 'btn primary', type: 'button', onclick: copy }, t.copy), status),
+    pre,
+    h('div', { class: 'row' }, h('button', { class: 'btn', type: 'button', onclick: () => { confirmBox.hidden = false; } }, t.newSession), confirmBox),
+  ];
+}
+
+const VIEWS = { setup: stepSetup, v: stepValue, i: stepInterests, c: stepCrazy, k: stepKeepers, y: stepYes, result: stepResult };
+
+// ---------- render ----------
+function renderSteps() {
+  const t = L();
+  document.getElementById('steps').replaceChildren(...STEPS.map(k => h('button', {
+    class: 'step' + (S.step === k ? ' active' : '') + (S.done[k] && S.step !== k ? ' done' : ''), type: 'button',
+    'aria-current': S.step === k ? 'step' : null,
+    onclick: () => { S.step = k; rerender(); },
+  }, h('span', { class: 'l' }, LETTER[k]), h('span', { class: 'n' }, t.steps[k]),
+    h('span', { class: 'm' }, TIMED.includes(k) ? `${S.times[k]} ${t.min}` : ' '))));
+}
+
+function render() {
+  const t = L();
+  document.documentElement.lang = S.lang;
+  document.getElementById('tagline').textContent = t.tagline;
+  document.getElementById('foot').textContent = t.foot;
+  document.getElementById('langRu').setAttribute('aria-pressed', String(S.lang === 'ru'));
+  document.getElementById('langEn').setAttribute('aria-pressed', String(S.lang === 'en'));
+  document.getElementById('exampleBar').replaceChildren(...(S.example ? [h('div', { class: 'example' },
+    h('span', {}, t.example),
+    h('button', { class: 'btn primary sm', type: 'button', onclick: () => { S = blankSession(S.lang); rerender(); } }, t.startOwn))] : []));
+  renderSteps();
+  const panel = document.getElementById('panel');
+  panel.replaceChildren(...VIEWS[S.step](), nav());
+  if (TIMED.includes(S.step)) paintTimer();
+}
+
+function setLang(lang) {
+  if (S.lang === lang) return;
+  // the example and an untouched value board switch language with the page
+  if (S.example) S = Object.assign(exampleSession(lang), { step: S.step });
+  else {
+    const untouched = S.value.groups.every(g => g.options.every(o => o.votes === 0));
+    if (untouched) S.value.groups = valueGroups(lang);
+    S.lang = lang;
+  }
+  rerender();
+}
+document.getElementById('langRu').addEventListener('click', () => setLang('ru'));
+document.getElementById('langEn').addEventListener('click', () => setLang('en'));
+
+render();
+</script>
+</body>
+</html>
