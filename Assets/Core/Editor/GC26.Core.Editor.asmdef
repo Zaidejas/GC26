@@ -1,0 +1,7 @@
+{
+  "name": "GC26.Core.Editor",
+  "rootNamespace": "GC26.Core.Editor",
+  "references": ["GC26.Core"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": false
+}
