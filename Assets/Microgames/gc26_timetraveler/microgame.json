@@ -1,0 +1,7 @@
+{
+  "id": "gc26_timetraveler",
+  "title": "Time Traveler Runner",
+  "description": "A time traveler runs through history to get home",
+  "entry_scene": "gc26_timetraveler_Main",
+  "authors": []
+}

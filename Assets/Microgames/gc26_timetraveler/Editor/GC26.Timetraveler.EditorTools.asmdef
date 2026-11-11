@@ -1,0 +1,7 @@
+{
+  "name": "GC26.Timetraveler.EditorTools",
+  "rootNamespace": "GC26.Timetraveler.EditorTools",
+  "references": ["GC26.Timetraveler"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": false
+}

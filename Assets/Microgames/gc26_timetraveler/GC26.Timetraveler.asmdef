@@ -1,0 +1,8 @@
+{
+  "name": "GC26.Timetraveler",
+  "rootNamespace": "GC26.Timetraveler",
+  "references": [
+    "GC26.Core"
+  ],
+  "autoReferenced": false
+}
