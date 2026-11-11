@@ -4,7 +4,7 @@
 
 Emo Party — казуальная мобильная игра на память («Найди пару»): игрок находит 6 пар карточек с оригинальными неоновыми иллюстрациями в стиле эмо-культуры 2000-х. Игра — одна из 11 мини-игр сборника **GC26** и запускается из общего меню.
 
-Технические детали — в [TDD.md](TDD.md). Играбельный прототип — [prototype/index.html](prototype/index.html).
+Технические детали — в [TDD_findepair.md](TDD_findepair.md). Играбельный прототип — [prototype_findepair/index.html](prototype_findepair/index.html).
 
 ---
 
@@ -202,5 +202,5 @@ flowchart LR
 | Репозиторий | https://github.com/Zaidejas/GC26 |
 | Доска задач | https://github.com/users/Zaidejas/projects/12 |
 | Правила репозитория GC26 | [RULES.md](../RULES.md) |
-| Технический дизайн | [TDD.md](TDD.md) |
-| HTML-прототип | [prototype/index.html](prototype/index.html) |
+| Технический дизайн | [TDD_findepair.md](TDD_findepair.md) |
+| HTML-прототип | [prototype_findepair/index.html](prototype_findepair/index.html) |
