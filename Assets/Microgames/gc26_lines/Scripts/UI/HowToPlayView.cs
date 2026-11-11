@@ -30,7 +30,7 @@ namespace GC26.Lines.UI
             new Card(".22222", "Make lines of five",
                 "Five or more of the same kind in a row, column or diagonal disappear and score points. Longer lines score more."),
             new Card("a.4.bc", "Watch what's coming",
-                "If your move makes no line, 3 new pieces arrive where the small dots show. The game ends when the board is full. Undo takes back one move."),
+                "If your move makes no line, 3 new pieces arrive where the faded mushrooms show. The game ends when the board is full. Undo takes back one move."),
         };
 
         // Prototype sizes (cqw).
