@@ -161,7 +161,8 @@ namespace GC26.Timetraveler
                     v.y = _doubleJumpSpeed;
                     _canDoubleJump = false;
                     _jumpBufferTimer = 0f;
-                    _jumpCut = false;
+                    // The double jump is always full height, even with a quick tap.
+                    _jumpCut = true;
                 }
             }
             _jumpBufferTimer -= dt;
