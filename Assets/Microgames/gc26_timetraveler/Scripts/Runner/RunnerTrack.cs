@@ -244,10 +244,10 @@ namespace GC26.Timetraveler
 
         void TallWall()
         {
-            // A bit higher than a full single jump (6.5): needs the double jump, which is always full height.
+            // Higher than a quick tap jump: hold jump (6.5) or use the double jump.
             Flat(6f);
-            Teach("tallwall", "Too high: JUMP, then JUMP again in the air");
-            Hazard("TrackTallWall", _cursorX, _groundY, 1.2f, 6.8f);
+            Teach("tallwall", "High wall: HOLD jump, or jump twice");
+            Hazard("TrackTallWall", _cursorX, _groundY, 1.2f, 4.8f);
             Flat(10f);
         }
 
