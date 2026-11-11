@@ -10,9 +10,10 @@ namespace GC26.Bomber
     /// Phone / tablet screen, adaptive to any resolution and aspect:
     /// - UI units keep about the same PHYSICAL size on every device (from Screen.dpi), so buttons and text are
     ///   thumb-sized on a phone and on a tablet alike; all remaining space goes to the room;
-    /// - HUD on top and the control panel at the bottom span the full width (abilities on the left,
-    ///   joystick on the right); the room fills (almost) the full width in a neon frame and, when the screen
-    ///   is not tall enough for the whole room, the view follows the drone vertically (no tiny map, no empty margins);
+    /// - HUD on top spans the full width; the room fills (almost) the full width in a neon frame down to the bottom
+    ///   of the screen, and the view floats after the drone vertically; touch controls are semi-transparent and lie
+    ///   over the room (abilities bottom-left, joystick bottom-right), a station shaft continues below the room;
+    /// - tablets get a ~30% larger UI than phones so it stays readable at arm's length;
     /// - everything stays inside Screen.safeArea (notch, rounded corners, home bar).
     /// In the Editor the mouse acts as a finger and the keyboard works too (WASD, Space, Shift, R, G, V, Esc).
     /// </summary>
@@ -26,7 +27,7 @@ namespace GC26.Bomber
         Font _font;
         CanvasScaler _scaler;
         RectTransform _safe;
-        float _fw = -1f, _fh = -1f, _wx, _wy, _ws = 1f, _viewH = 960f, _scroll, _scrollTarget; bool _scrollInit;
+        float _fw = -1f, _fh = -1f, _wx, _wy, _ws = 1f, _viewH = 960f, _viewTotal = 960f, _scroll, _scrollTarget; bool _scrollInit;
 
         RawImage _world; Image _fade, _flash, _vignette, _lowHp, _hudBg, _hudLine, _panelBg, _panelLine; readonly Image[] _border = new Image[4];
         readonly List<Image> _hp = new List<Image>(); Image _heatBg, _heatFill, _odMark, _scrapIcon, _routeCur; Text _score, _heatText, _scrap, _status, _room, _combo, _toast, _weapon; Image _toastBg;
@@ -71,23 +72,23 @@ namespace GC26.Bomber
             _hudBg = Img("Hud", t, ctx.Art.UiWhite, new Color(0.027f, 0.043f, 0.086f, 0.94f));
             _hudLine = Img("HudLine", t, ctx.Art.UiWhite, new Color(1f, 0.35f, 0.43f));
             for (int i = 0; i < 12; i++) _hp.Add(Img("Hp", t, ctx.Art.UiWhite, Color.red));
-            _score = Txt("Score", t, 24, TextAnchor.MiddleRight, Color.white, FontStyle.Bold);
+            _score = Txt("Score", t, 26, TextAnchor.MiddleRight, Color.white, FontStyle.Bold);
             _heatBg = Img("HeatBg", t, ctx.Art.UiWhite, new Color(0.055f, 0.08f, 0.15f));
             _heatFill = Img("HeatFill", t, ctx.Art.UiWhite, new Color(0.31f, 0.72f, 1f));
             _odMark = Img("OdMark", t, ctx.Art.UiWhite, new Color(1f, 0.89f, 0.6f));
-            _heatText = Txt("HeatText", t, 15, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
+            _heatText = Txt("HeatText", t, 16, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
             _scrapIcon = Img("ScrapIcon", t, ctx.Art.UiWhite, new Color(1f, 0.81f, 0.36f));
             _scrap = Txt("Scrap", t, 18, TextAnchor.MiddleLeft, new Color(1f, 0.81f, 0.36f), FontStyle.Bold);
-            _status = Txt("Status", t, 16, TextAnchor.MiddleLeft, new Color(0.66f, 0.71f, 0.84f), FontStyle.Bold);
+            _status = Txt("Status", t, 17, TextAnchor.MiddleLeft, new Color(0.66f, 0.71f, 0.84f), FontStyle.Bold);
             for (int i = 0; i < 7; i++) _route.Add(Img("Route", t, ctx.Art.UiWhite, Color.gray));
             _routeCur = Img("RouteCur", t, ctx.Art.UiRing, Color.white);
-            _room = Txt("Room", t, 15, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
-            _weapon = Txt("Weapon", t, 14, TextAnchor.MiddleRight, new Color(0.5f, 0.89f, 1f), FontStyle.Bold);
+            _room = Txt("Room", t, 16, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
+            _weapon = Txt("Weapon", t, 15, TextAnchor.MiddleRight, new Color(0.5f, 0.89f, 1f), FontStyle.Bold);
             _combo = Txt("Combo", t, 22, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
 
             // control panel
-            _panelBg = Img("ControlPanel", t, ctx.Art.UiWhite, new Color(0.027f, 0.043f, 0.086f, 0.96f));
-            _panelLine = Img("ControlPanelLine", t, ctx.Art.UiWhite, new Color(0.5f, 0.89f, 1f, 0.6f));
+            _panelBg = Img("ControlShade", t, ctx.Art.UiGradient, new Color(0.01f, 0.015f, 0.03f, 0.5f));
+            _panelLine = Img("ControlPanelLine", t, ctx.Art.UiWhite, new Color(0.5f, 0.89f, 1f, 0f));
             AddBtn("tac", 62, 58, 36, "СБРОС", new Color(1f, 0.6f, 0.87f));
             AddBtn("emp", 150, 52, 30, "ЭМИ", new Color(0.62f, 0.82f, 1f));
             AddBtn("od", 240, 58, 36, "ФОРСАЖ", new Color(1f, 0.7f, 0.28f));
@@ -96,12 +97,12 @@ namespace GC26.Bomber
             AddBtn("alt", 266, 166, 32, "ЗАРЯД", new Color(1f, 0.82f, 0.48f));
             AddBtn("pause", -34, 30, 24, "II", new Color(0.51f, 0.58f, 0.74f), atTop: true);
             _joyHint = Img("JoyHint", t, ctx.Art.UiRing, new Color(0.5f, 0.89f, 1f, 0.5f));
-            _joyHintText = Txt("JoyHintText", t, 14, TextAnchor.MiddleCenter, new Color(0.81f, 0.88f, 1f), FontStyle.Bold); _joyHintText.text = "Веди пальцем\nздесь";
+            _joyHintText = Txt("JoyHintText", t, 15, TextAnchor.MiddleCenter, new Color(0.81f, 0.88f, 1f), FontStyle.Bold); _joyHintText.text = "Веди пальцем\nздесь";
             _joyBase = Img("JoyBase", t, ctx.Art.UiRing, new Color(0.5f, 0.89f, 1f, 0.55f));
             _joyKnob = Img("JoyKnob", t, ctx.Art.UiCircle, new Color(0.5f, 0.89f, 1f, 0.55f));
 
             _toastBg = Img("ToastBg", t, ctx.Art.UiWhite, new Color(0.04f, 0.06f, 0.12f, 0.88f));
-            _toast = Txt("Toast", t, 16, TextAnchor.MiddleCenter, Color.white, FontStyle.Normal); _toast.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _toast = Txt("Toast", t, 17, TextAnchor.MiddleCenter, Color.white, FontStyle.Normal); _toast.horizontalOverflow = HorizontalWrapMode.Wrap;
 
             // pause / end panel
             _panel = new GameObject("Panel", typeof(RectTransform)).GetComponent<RectTransform>(); _panel.SetParent(t, false); Stretch(_panel);
@@ -121,10 +122,10 @@ namespace GC26.Bomber
             var b = new Btn { Id = id, Local = new Vector2(x, y), R = r, Col = col, AtTop = atTop };
             b.Glow = Img(id + "Glow", t, _ctx.Art.UiCircle, new Color(col.r, col.g, col.b, 0f));
             b.Bg = Img(id, t, _ctx.Art.UiCircle, new Color(0.027f, 0.043f, 0.086f, 0.72f));
-            b.Cd = Img(id + "Cd", t, _ctx.Art.UiCircle, new Color(0, 0, 0, 0.6f));
+            b.Cd = Img(id + "Cd", t, _ctx.Art.UiCircle, new Color(0, 0, 0, 0.5f));
             b.Cd.type = Image.Type.Filled; b.Cd.fillMethod = Image.FillMethod.Radial360; b.Cd.fillOrigin = (int)Image.Origin360.Top; b.Cd.fillClockwise = false;
             b.Rim = Img(id + "Rim", t, _ctx.Art.UiRing, col);
-            b.Label = Txt(id + "Label", t, r >= 46 ? 15 : label.Length > 5 ? 12 : 13, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold); b.Label.text = label;
+            b.Label = Txt(id + "Label", t, r >= 46 ? 16 : label.Length > 5 ? 13 : 14, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold); b.Label.text = label;
             b.Sub = Txt(id + "Sub", t, 15, TextAnchor.MiddleCenter, col, FontStyle.Bold);
             _btns.Add(b);
         }
@@ -139,6 +140,8 @@ namespace GC26.Bomber
             // keep the physical size of a phone (so a tablet shows a much bigger room, not giant buttons)
             float fit = Mathf.Min(sa.width / MinW, sa.height / MinH);
             float dpi = Screen.dpi, phys = dpi >= 120f ? dpi * InchPerUnit : fit;
+            bool tablet = dpi >= 120f && Mathf.Min(sa.width, sa.height) / dpi > 4.2f; // short side over ~4.2" = tablet
+            if (tablet) phys *= 1.3f;                                                   // held further away: bigger UI
             float s = Mathf.Max(0.1f, Mathf.Min(fit, phys));
             if (!Mathf.Approximately(_scaler.scaleFactor, s)) _scaler.scaleFactor = s;
             float fw = sa.width / s, fh = sa.height / s;
@@ -163,7 +166,7 @@ namespace GC26.Bomber
 
             // control panel (full width at the bottom)
             float py = fh - PanelH;
-            Place(_panelBg.rectTransform, 0, py, fw, PanelH); Place(_panelLine.rectTransform, 0, py, fw, 2);
+            Place(_panelBg.rectTransform, 0, py - 40f, fw, PanelH + 40f); Place(_panelLine.rectTransform, 0, py, fw, 0);
             foreach (var b in _btns)
             {
                 b.Pos = b.AtTop ? new Vector2(b.Local.x < 0 ? fw + b.Local.x : b.Local.x, b.Local.y) : new Vector2(b.Local.x, py + b.Local.y);
@@ -175,15 +178,19 @@ namespace GC26.Bomber
 
             // the room between the HUD and the panel: (almost) full width; if the whole room would be too small,
             // show a vertical window of it that follows the drone (at most 1.35x bigger than "whole room" scale)
-            float areaTop = Top + Pad, areaH = py - Top - Pad * 2f, areaW = fw - Pad * 2f;
-            float fitAll = Mathf.Min(areaW / BomberData.W, areaH / BomberData.H);
+            float areaTop = Top + Pad, areaH = fh - Top - Pad, areaW = fw - Pad * 2f;
+            float fitAll = Mathf.Min(areaW / BomberData.W, (areaH - PanelH) / BomberData.H);
             _ws = Mathf.Min(areaW / BomberData.W, fitAll * 1.35f);
-            _viewH = Mathf.Min(BomberData.H, Mathf.Floor(areaH / _ws / 2f) * 2f);
+            // world px hidden under the controls: let the view scroll that far below the room (station shaft there)
+            float under = Mathf.Ceil(PanelH / _ws / 2f) * 2f;
+            _viewTotal = BomberData.H + under;
+            _viewH = Mathf.Min(_viewTotal, Mathf.Floor(areaH / _ws / 2f) * 2f);
             float ww = BomberData.W * _ws, wh = _viewH * _ws;
-            _wx = (fw - ww) / 2f; _wy = areaTop + (areaH - wh) / 2f; _scrollInit = false;
+            _wx = (fw - ww) / 2f; _wy = areaTop; _scrollInit = false;
+            _world.texture = _ctx.View.SetViewHeight(_viewTotal);
             foreach (var rt in new[] { _world.rectTransform, _fade.rectTransform, _vignette.rectTransform, _lowHp.rectTransform }) Place(rt, _wx, _wy, ww, wh);
             const float bw = 3f;
-            Place(_border[0].rectTransform, _wx - bw, _wy - bw, ww + bw * 2, bw); Place(_border[1].rectTransform, _wx - bw, _wy + wh, ww + bw * 2, bw);
+            Place(_border[0].rectTransform, _wx - bw, _wy - bw, ww + bw * 2, bw); Place(_border[1].rectTransform, _wx - bw, _wy + wh, ww + bw * 2, 0);
             Place(_border[2].rectTransform, _wx - bw, _wy, bw, wh); Place(_border[3].rectTransform, _wx + ww, _wy, bw, wh);
             Place(_combo.rectTransform, 0, _wy + 6, fw, 30);
 
@@ -313,12 +320,12 @@ namespace GC26.Bomber
             var w = _ctx.World; var p = w.P; var core = w.Core;
 
             // vertical camera window: follow the drone, clamp to the room, snap to whole texels (crisp pixels)
-            float maxScroll = BomberData.H - _viewH;
-            _scrollTarget = Mathf.Clamp(p.Y - _viewH * 0.55f, 0f, maxScroll);
+            float maxScroll = Mathf.Max(0f, _viewTotal - _viewH);
+            _scrollTarget = Mathf.Clamp(p.Y - _viewH * 0.42f, 0f, maxScroll); // drone sits a bit above the middle, clear of the controls
             if (!_scrollInit || w.Room.Fade > 0.3f) { _scroll = _scrollTarget; _scrollInit = true; }
             else _scroll = Mathf.Lerp(_scroll, _scrollTarget, 1f - Mathf.Exp(-6f * dt));
             float snapped = Mathf.Round(_scroll / 2f) * 2f;
-            _world.uvRect = new Rect(0f, (BomberData.H - snapped - _viewH) / BomberData.H, 1f, _viewH / BomberData.H);
+            _world.uvRect = new Rect(0f, (_viewTotal - snapped - _viewH) / _viewTotal, 1f, _viewH / _viewTotal);
             _scroll0 = snapped;
 
             _fade.color = new Color(0, 0, 0, Mathf.Clamp01(w.Room.Fade / 0.35f));
@@ -367,7 +374,7 @@ namespace GC26.Bomber
                 }
                 bool down = _held.ContainsValue(b.Id), isReady = ready >= 1f;
                 b.Cd.fillAmount = 1f - ready;
-                b.Bg.color = down ? new Color(0.16f, 0.24f, 0.4f, 0.88f) : new Color(0.027f, 0.043f, 0.086f, 0.72f);
+                b.Bg.color = down ? new Color(0.16f, 0.24f, 0.4f, 0.8f) : new Color(0.027f, 0.043f, 0.086f, b.AtTop ? 0.72f : 0.45f);
                 b.Rim.color = isReady ? b.Col : new Color(0.43f, 0.51f, 0.67f, 0.6f);
                 b.Label.color = isReady ? Color.white : new Color(0.54f, 0.59f, 0.71f);
                 Place(b.Label.rectTransform, b.Pos.x - b.R, b.Pos.y - b.R + (sub.Length > 0 ? -2 : 4), b.R * 2, b.R * 2 - 10);
