@@ -10,8 +10,10 @@ Top-down shooter / roguelite: ремонтный дрон пробивается
 
 ## Документы
 
-- [Game Design Document](../../../docs/GDD.md)
-- [Technical Design Document](../../../docs/TDD.md)
+- [Game Design Document](Docs~/GDD.md)
+- [Technical Design Document](Docs~/TDD.md)
+- [Арт-гайд](Docs~/ArtGuide.md)
+- Играбельный прототип: `Prototype~/last-signal.html` (открыть в браузере)
 
 ## Как играть
 
