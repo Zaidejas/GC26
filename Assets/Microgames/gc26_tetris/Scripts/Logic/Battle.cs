@@ -44,8 +44,16 @@ namespace GC26.Tetris.Logic
         public int BotsDefeated { get; private set; }
         public int CoinsEarned { get; private set; }
 
-        public Battle()
+        /// <summary>Damage multiplier from the "heavy hit" booster (1 = none).</summary>
+        public float DamageBonus { get; }
+
+        /// <summary>Coin multiplier from the "coin magnet" booster (1 = none).</summary>
+        public int CoinFactor { get; }
+
+        public Battle(float damageBonus = 1f, int coinFactor = 1)
         {
+            DamageBonus = Math.Max(1f, damageBonus);
+            CoinFactor = Math.Max(1, coinFactor);
             MaxHp = MaxHpFor(Level);
             Hp = MaxHp;
         }
@@ -71,7 +79,7 @@ namespace GC26.Tetris.Logic
         public BattleHit Hit(int rows, int combo, float multiplier)
         {
             int level = Level;
-            int damage = DamageFor(rows, multiplier);
+            int damage = DamageFor(rows, multiplier * DamageBonus);
             int coins = CoinsFor(rows, combo);
             int points = damage * PointsPerDamage;
             bool defeated = false;
@@ -89,6 +97,7 @@ namespace GC26.Tetris.Logic
                 Hp = MaxHp;
             }
 
+            coins *= CoinFactor;
             CoinsEarned += coins;
             return new BattleHit(damage, coins, points, defeated, level);
         }

@@ -164,6 +164,13 @@ namespace GC26.Tetris.EditorTools
                 { "Battle games play on like a marathon", BattleModeKeepsGoing },
                 { "Hits and defeated bots give bonus points", BattlePoints },
                 { "Bonus score adds up, but not after game over", BonusScore },
+                { "Buying a booster costs coins and counts it", ShopBuysBooster },
+                { "No coins, no purchase", ShopNeedsCoins },
+                { "Boosters stop at the limit", ShopBoosterLimit },
+                { "A skin is bought once, then put on for free", ShopSkinOnce },
+                { "A battle uses one of each booster", ShopTakesBoosters },
+                { "Shop survives saving, and damaged saves don't break it", ShopRoundTrip },
+                { "Boosters raise damage and coins", BattleBoostsApply },
             };
 
             int failures = 0;
@@ -879,6 +886,111 @@ namespace GC26.Tetris.EditorTools
                 game.HardDrop();
             }
             Check(game.Lines >= 45 && game.State == GameState.Playing, "battle ended early: " + game.State);
+        }
+
+        static ShopItem Booster(BoosterKind kind)
+        {
+            foreach (ShopItem item in TetrisShop.Items)
+                if (item.Kind == ShopItemKind.Booster && item.Booster == kind)
+                    return item;
+            throw new Exception("no booster " + kind);
+        }
+
+        static ShopItem SkinItem(int skin)
+        {
+            foreach (ShopItem item in TetrisShop.Items)
+                if (item.Kind == ShopItemKind.Skin && item.Skin == skin)
+                    return item;
+            throw new Exception("no skin " + skin);
+        }
+
+        static void ShopBuysBooster()
+        {
+            var shop = new TetrisShop();
+            ShopItem bomb = Booster(BoosterKind.StartBomb);
+            int coins = bomb.Price + 7;
+            Check(shop.Buy(bomb, ref coins) == BuyResult.Bought, "should buy");
+            Check(coins == 7, "price taken: " + coins);
+            Check(shop.Count(BoosterKind.StartBomb) == 1, "booster counted");
+        }
+
+        static void ShopNeedsCoins()
+        {
+            var shop = new TetrisShop();
+            ShopItem heavy = Booster(BoosterKind.HeavyHit);
+            int coins = heavy.Price - 1;
+            Check(shop.Buy(heavy, ref coins) == BuyResult.NotEnoughCoins, "should refuse");
+            Check(coins == heavy.Price - 1 && shop.Count(BoosterKind.HeavyHit) == 0, "nothing changes");
+            int few = SkinItem(3).Price - 1;
+            Check(shop.Buy(SkinItem(3), ref few) == BuyResult.NotEnoughCoins && shop.Skin == 0, "skin refused too");
+        }
+
+        static void ShopBoosterLimit()
+        {
+            var shop = new TetrisShop();
+            ShopItem magnet = Booster(BoosterKind.CoinMagnet);
+            int coins = 100000;
+            for (int i = 0; i < TetrisShop.MaxBoosters; i++)
+                shop.Buy(magnet, ref coins);
+            int before = coins;
+            Check(shop.Buy(magnet, ref coins) == BuyResult.Full, "limit");
+            Check(coins == before && shop.Count(BoosterKind.CoinMagnet) == TetrisShop.MaxBoosters, "no charge at the limit");
+        }
+
+        static void ShopSkinOnce()
+        {
+            var shop = new TetrisShop();
+            ShopItem neon = SkinItem(2);
+            int coins = neon.Price;
+            Check(shop.Buy(neon, ref coins) == BuyResult.Bought && coins == 0 && shop.Skin == 2, "bought and worn");
+            Check(shop.Buy(SkinItem(0), ref coins) == BuyResult.Equipped && shop.Skin == 0, "classic is free");
+            Check(shop.Buy(neon, ref coins) == BuyResult.Equipped && coins == 0 && shop.Skin == 2, "owned skin costs nothing");
+            Check(shop.Buy(neon, ref coins) == BuyResult.AlreadyEquipped, "already worn");
+        }
+
+        static void ShopTakesBoosters()
+        {
+            var shop = new TetrisShop();
+            int coins = 100000;
+            shop.Buy(Booster(BoosterKind.StartBomb), ref coins);
+            shop.Buy(Booster(BoosterKind.StartBomb), ref coins);
+            shop.Buy(Booster(BoosterKind.CoinMagnet), ref coins);
+            BattleBoosts first = shop.TakeBoosters();
+            Check(first.StartBomb && !first.HeavyHit && first.CoinMagnet, "one of each owned");
+            Check(shop.Count(BoosterKind.StartBomb) == 1 && shop.Count(BoosterKind.CoinMagnet) == 0, "used up");
+            BattleBoosts second = shop.TakeBoosters();
+            Check(second.StartBomb && !second.CoinMagnet, "the second bomb next time");
+            Check(!shop.TakeBoosters().Any, "nothing left");
+        }
+
+        static void ShopRoundTrip()
+        {
+            var shop = new TetrisShop();
+            int coins = 100000;
+            shop.Buy(Booster(BoosterKind.HeavyHit), ref coins);
+            shop.Buy(Booster(BoosterKind.HeavyHit), ref coins);
+            shop.Buy(SkinItem(1), ref coins);
+            shop.Buy(SkinItem(3), ref coins);
+            TetrisShop copy = TetrisShop.Parse(shop.Serialize());
+            Check(copy.Serialize() == shop.Serialize(), "round trip: " + copy.Serialize());
+            Check(copy.Skin == 3 && copy.OwnsSkin(1) && !copy.OwnsSkin(2) && copy.Count(BoosterKind.HeavyHit) == 2, "same content");
+
+            TetrisShop broken = TetrisShop.Parse("b=x,99,-4;s=1,0;k=7;junk");
+            Check(broken.Count(BoosterKind.StartBomb) == 0 && broken.Count(BoosterKind.HeavyHit) == TetrisShop.MaxBoosters, "counts clamped");
+            Check(broken.Skin == 0 && broken.OwnsSkin(0), "unknown skin falls back to classic");
+            Check(TetrisShop.Parse("k=2;s=1,0,1,0").Skin == 2, "order of parts doesn't matter");
+            Check(TetrisShop.Parse("k=2").Skin == 0, "a skin not owned can't be worn");
+        }
+
+        static void BattleBoostsApply()
+        {
+            var plain = new Battle();
+            var boosted = new Battle(1.5f, 2);
+            BattleHit a = plain.Hit(2, 1, 1f);
+            BattleHit b = boosted.Hit(2, 1, 1f);
+            Check(b.Damage == (int)Math.Round(a.Damage * 1.5f), "damage x1.5: " + a.Damage + " -> " + b.Damage);
+            Check(b.Coins == a.Coins * 2, "coins x2: " + a.Coins + " -> " + b.Coins);
+            Check(boosted.CoinsEarned == b.Coins, "earned counts the boost");
         }
 
         // Finds a seed that spawns the wanted piece first.

@@ -30,7 +30,11 @@ namespace GC26.Tetris
         void ResetBattle()
         {
             bool fighting = mode == GameMode.Battle;
-            battle = fighting ? new Battle() : null;
+            // Bought boosters are spent only on a battle the player really starts, not on the menu's background game.
+            BattleBoosts boosts = fighting && !inMenu ? TakeBattleBoosts() : default(BattleBoosts);
+            battle = fighting ? new Battle(boosts.DamageBonus, boosts.CoinFactor) : null;
+            if (boosts.StartBomb)
+                game.ForceCurrentSpecial(SpecialKind.Bomb);
             battleView.Show(fighting);
             view.SetLegendVisible(!fighting);
             shownCoins = coinsTotal;

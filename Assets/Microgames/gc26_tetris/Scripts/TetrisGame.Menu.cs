@@ -104,7 +104,7 @@ namespace GC26.Tetris
         {
             foreach (FallingPiece piece in menuPieces)
             {
-                Color color = BoardView.PieceColor((int)piece.Type);
+                Color color = view.PieceColor((int)piece.Type);
                 color.a = piece.Alpha;
                 foreach (Cell cell in PieceShapes.Get(piece.Type, piece.Rotation))
                     DrawTile(piece.X + cell.X * piece.Cell, piece.Y + cell.Y * piece.Cell, piece.Cell * 0.94f, color);
@@ -123,7 +123,7 @@ namespace GC26.Tetris
             {
                 // Each letter bobs a little, one after another, like a slow wave.
                 float bob = Mathf.Sin(menuClock * 1.6f + letter * 0.55f) * 0.09f;
-                Color color = BoardView.PieceColor(TitleColors[letter]);
+                Color color = view.PieceColor(TitleColors[letter]);
                 string[] rows = TitleLetters[letter];
                 for (int row = 0; row < TitleRows; row++)
                 {
@@ -160,7 +160,7 @@ namespace GC26.Tetris
                 RoundedWorld(0f, y, width, height, new Color(accent.r, accent.g, accent.b, glow), 0.4f, 0.07f, unit);
 
             // A small tile on the left, the same colours the pieces use.
-            Color tile = BoardView.PieceColor(tileColor);
+            Color tile = view.PieceColor(tileColor);
             tile.a = Mathf.Lerp(0.35f, 1f, glow);
             float pulse = 1f + glow * 0.08f * Mathf.Sin(menuClock * 5f);
             DrawTile(-width / 2f + 0.95f, y, 0.72f * pulse, tile);
@@ -331,6 +331,7 @@ namespace GC26.Tetris
             {
                 case MenuItem.Marathon: return T("играй, пока хватит места", "play for as long as there is room");
                 case MenuItem.Battle: return T("линии бьют бота, комбо сильнее, падают монетки", "lines hit the bot, combos hit harder, coins drop");
+                case MenuItem.Shop: return T("бусты для боя и скины блоков за монеты", "battle boosters and block skins for coins");
                 default: return null;
             }
         }

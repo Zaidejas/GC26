@@ -26,6 +26,15 @@ namespace GC26.Tetris.View
             Hex(0x3BC4B2), // L: lagoon
         };
 
+        /// <summary>Block skins from the shop; 0 is the classic set above.</summary>
+        static readonly Color[][] Skins =
+        {
+            PieceColors,
+            new[] { Hex(0xF6DFA0), Hex(0xF5B8A1), Hex(0xA9CBEE), Hex(0xB5DDA4), Hex(0xEFA3A8), Hex(0xD3BDEB), Hex(0x9EE0D4) }, // pastel
+            new[] { Hex(0xFFF23D), Hex(0xFF7A1A), Hex(0x2EC4FF), Hex(0x39FF6A), Hex(0xFF2E63), Hex(0xC03DFF), Hex(0x1AFFD5) }, // neon
+            new[] { Hex(0xFFD45C), Hex(0xE8A93A), Hex(0xC9A227), Hex(0xF2C76E), Hex(0xB8862B), Hex(0xFFE08A), Hex(0xD9B04A) }, // gold
+        };
+
         static readonly Color DisabledColor = Hex(0x5A5568);
         static readonly Color DangerColor = Hex(0x7A1F2E);
 
@@ -87,9 +96,21 @@ namespace GC26.Tetris.View
                 icon.enabled = visible;
         }
 
-        public static Color PieceColor(int index)
+        Color[] palette = PieceColors;
+
+        public void SetSkin(int skin)
         {
-            return PieceColors[index];
+            palette = Skins[Mathf.Clamp(skin, 0, Skins.Length - 1)];
+        }
+
+        public static Color SkinColor(int skin, int index)
+        {
+            return Skins[Mathf.Clamp(skin, 0, Skins.Length - 1)][index];
+        }
+
+        public Color PieceColor(int index)
+        {
+            return palette[index];
         }
 
         readonly Transform root;
@@ -251,7 +272,7 @@ namespace GC26.Tetris.View
             foreach (RemovedCell cell in result.Removed)
             {
                 if (cell.Y < Board.VisibleHeight)
-                    Effects.Burst(GridPosition(cell.X, cell.Y), PieceColors[cell.Value], perCell, 11f);
+                    Effects.Burst(GridPosition(cell.X, cell.Y), palette[cell.Value], perCell, 11f);
             }
         }
 
@@ -310,7 +331,7 @@ namespace GC26.Tetris.View
                 for (int x = 0; x < Board.Width; x++)
                 {
                     int value = rowSnapshot[x, row];
-                    Color color = value == Board.Empty ? Color.white : PieceColors[value];
+                    Color color = value == Board.Empty ? Color.white : palette[value];
                     Effects.Burst(GridPosition(x, row), color, perCell, rows.Count >= 4 ? 13f : 9f);
                 }
             }
@@ -318,7 +339,7 @@ namespace GC26.Tetris.View
 
         public void HardDropTrail(TetrisMatch game, int fromY, int toY)
         {
-            Color color = PieceColors[(int)game.CurrentType];
+            Color color = palette[(int)game.CurrentType];
             var columnTop = new Dictionary<int, int>();
             foreach (Cell c in PieceShapes.Get(game.CurrentType, game.CurrentRotation))
             {
@@ -336,7 +357,7 @@ namespace GC26.Tetris.View
 
         public void LandingDust(TetrisMatch game, int landedY)
         {
-            Color color = PieceColors[(int)game.CurrentType];
+            Color color = palette[(int)game.CurrentType];
             foreach (Cell c in PieceShapes.Get(game.CurrentType, game.CurrentRotation))
             {
                 int y = landedY + c.Y;
@@ -370,7 +391,7 @@ namespace GC26.Tetris.View
             DrawSettledBlocks(game);
             if (!game.IsFinished)
             {
-                Color pieceColor = PieceColors[(int)game.CurrentType];
+                Color pieceColor = palette[(int)game.CurrentType];
                 Color ghost = new Color(pieceColor.r, pieceColor.g, pieceColor.b, 0.28f);
                 DrawActive(game, game.GhostY, ghost);
                 DrawActive(game, game.CurrentY, pieceColor);
@@ -429,7 +450,7 @@ namespace GC26.Tetris.View
                         grid[x, y].color = emptyCellColor;
                         continue;
                     }
-                    Color color = PieceColors[value];
+                    Color color = palette[value];
                     if (y >= greyFrom)
                     {
                         float grey = color.grayscale * 0.55f;
@@ -467,7 +488,7 @@ namespace GC26.Tetris.View
                 maxY = Mathf.Max(maxY, c.Y);
             }
 
-            Color color = active ? PieceColors[(int)type] : DisabledColor;
+            Color color = active ? palette[(int)type] : DisabledColor;
             for (int i = 0; i < cells.Length; i++)
             {
                 float x = (shape[i].X - (minX + maxX) / 2f) * PreviewScale;

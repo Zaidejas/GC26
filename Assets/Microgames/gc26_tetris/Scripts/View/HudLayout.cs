@@ -113,12 +113,22 @@ namespace GC26.Tetris.View
         // --- menu -----------------------------------------------------------------------------
 
         public static float MenuTitleY { get { return Portrait ? 10.6f : 7.3f; } }
-        public static float MenuTopY { get { return Portrait ? 6.4f : 4.3f; } }
+        public static float MenuTopY { get { return Portrait ? 6.6f : 4.3f; } }
         public static Vector2 MenuTable(int index)
         {
             return Portrait ? new Vector2(0f, -4.3f - index * 5.1f) : new Vector2(index == 0 ? -4.65f : 4.65f, -6.9f);
         }
         public static float MenuHintY { get { return Portrait ? -13.3f : -9.95f; } }
+        // --- shop -----------------------------------------------------------------------------
+
+        public static float ShopTitleY { get { return Portrait ? 12.8f : 9.5f; } }
+        public static float ShopCoinsY { get { return Portrait ? 11.3f : 8.1f; } }
+        public static float ShopTopY { get { return Portrait ? 9.3f : 6.5f; } }
+        public static float ShopStepY { get { return Portrait ? 1.75f : 1.62f; } }
+        public static float ShopItemWidth { get { return Portrait ? 12.6f : 15f; } }
+        public static float ShopItemHeight { get { return Portrait ? 1.5f : 1.38f; } }
+        public static float ShopMessageY { get { return Portrait ? -5.3f : -7.2f; } }
+
         /// <summary>The RU | EN switch in the main menu's top right corner.</summary>
         public static Vector2 LanguageButtonCenter { get { return Portrait ? new Vector2(4.9f, 13.6f) : new Vector2(10.2f, 10.1f); } }
         public static Vector2 LanguageButtonSize { get { return new Vector2(3f, 1.05f); } }

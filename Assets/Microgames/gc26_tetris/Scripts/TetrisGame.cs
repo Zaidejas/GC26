@@ -63,14 +63,14 @@ namespace GC26.Tetris
         readonly List<Popup> popups = new List<Popup>();
 
         // Main menu. Items are laid out in world units so they scale with the window, like the rest of the HUD.
-        enum MenuItem { Marathon, Battle, Sound, Exit }
+        enum MenuItem { Marathon, Battle, Shop, Sound, Exit }
 
-        static readonly MenuItem[] MenuItems = { MenuItem.Marathon, MenuItem.Battle, MenuItem.Sound, MenuItem.Exit };
+        static readonly MenuItem[] MenuItems = { MenuItem.Marathon, MenuItem.Battle, MenuItem.Shop, MenuItem.Sound, MenuItem.Exit };
 
         static float MenuTopY { get { return HudLayout.MenuTopY; } }
-        const float MenuStepY = 2.05f;
+        const float MenuStepY = 1.9f;
         const float MenuItemWidth = 12f;
-        const float MenuItemHeight = 1.75f;
+        const float MenuItemHeight = 1.6f;
 
         GameMode mode = GameMode.Marathon;
         bool inMenu = true;
@@ -142,6 +142,8 @@ namespace GC26.Tetris
             marathonTable = Leaderboard.Parse(PlayerPrefs.GetString(recordsPrefix + MarathonTableName, ""), false);
             battleTable = Leaderboard.Parse(PlayerPrefs.GetString(recordsPrefix + BattleTableName, ""), false);
 
+            LoadShop();
+
             // A best score from before the table existed becomes its first entry.
             if (bestScore > 0 && marathonTable.Entries.Count == 0)
                 marathonTable.Add(bestScore);
@@ -209,9 +211,13 @@ namespace GC26.Tetris
                 case MenuItem.Battle:
                     mode = MenuItems[menuIndex] == MenuItem.Battle ? GameMode.Battle : GameMode.Marathon;
                     Debug.Log("[BlockDrop] Menu: play " + mode);
-                    StartNewGame();
+                    // Out of the menu first: a battle that really starts uses up the bought boosters.
                     inMenu = false;
+                    StartNewGame();
                     gameAudio.Play("hold");
+                    break;
+                case MenuItem.Shop:
+                    OpenShop();
                     break;
                 case MenuItem.Sound:
                     gameAudio.ToggleMute();
@@ -231,8 +237,9 @@ namespace GC26.Tetris
         void BackToMenu()
         {
             Debug.Log("[BlockDrop] Back to menu");
-            StartNewGame();
+            // In the menu first, so the background game never takes the boosters.
             inMenu = true;
+            StartNewGame();
             menuIndex = 0;
         }
 
@@ -242,6 +249,7 @@ namespace GC26.Tetris
             {
                 case MenuItem.Marathon: return T("Марафон", "Marathon");
                 case MenuItem.Battle: return T("Бой с ботом", "Bot battle");
+                case MenuItem.Shop: return T("Магазин", "Shop");
                 case MenuItem.Sound: return T("Звук: ", "Sound: ") + OnOff(!gameAudio.Muted);
                 default: return exitToShell != null ? T("В меню GC26", "Back to GC26") : T("Выход", "Exit");
             }
@@ -437,7 +445,10 @@ namespace GC26.Tetris
                 Debug.Log("[BlockDrop] Slow frame " + Mathf.RoundToInt(Time.unscaledDeltaTime * 1000f) + " ms at " + Time.realtimeSinceStartup.ToString("F2") + " menu=" + inMenu);
             if (inMenu)
             {
-                UpdateMenu();
+                if (inShop)
+                    UpdateShop();
+                else
+                    UpdateMenu();
                 UpdateMenuLooks(Time.deltaTime);
                 view.Render(game, Time.deltaTime);
                 UpdateJuice(Time.deltaTime);
@@ -633,7 +644,10 @@ namespace GC26.Tetris
 
             if (inMenu)
             {
-                DrawMenu(unit);
+                if (inShop)
+                    DrawShop(unit);
+                else
+                    DrawMenu(unit);
                 return;
             }
 
@@ -836,6 +850,7 @@ namespace GC26.Tetris
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + MarathonTableName);
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + BattleTableName);
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + CoinsName);
+                    PlayerPrefs.DeleteKey(TestRecordsPrefix + ShopName);
                     PlayerPrefs.Save();
                 }
             }
