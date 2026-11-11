@@ -59,6 +59,7 @@ namespace GC26.Bomber
         void UpdateEnemy(BomberEnemy e, float dt)
         {
             e.Flash -= dt; if (e.Slow > 0f) e.Slow -= dt;
+            if (e.Burn > 0f) { e.Burn -= dt; e.BurnT -= dt; if (e.BurnT <= 0f) { e.BurnT = 0.33f; DamageEnemy(e, 1f, 0f, 0f, true); if (e.Hp <= 0f) return; } }
             e.LosT -= dt; if (e.LosT <= 0f) { e.LosT = 0.2f; e.Los = Los(e.X, e.Y, P.X, P.Y); }
             if (e.Stun > 0f) { e.Stun -= dt; e.Vx *= 0.8f; e.Vy *= 0.8f; MoveBody(e, e.Vx * dt, e.Vy * dt); return; }
             float d = Dist(e, P), a = Ang(e, P), spd = e.Def.Speed;
@@ -99,11 +100,16 @@ namespace GC26.Bomber
             }
         }
 
-        public void DamageEnemy(BomberEnemy e, float amt, float a = 0f, float kb = 0f)
+        /// <param name="burnTick">damage from burning (no number, no flash)</param>
+        /// <param name="ignite">sets the enemy on fire (or the Glue module does)</param>
+        public void DamageEnemy(BomberEnemy e, float amt, float a = 0f, float kb = 0f, bool burnTick = false, bool ignite = false, float slow = 0f)
         {
             if (e.Hp <= 0f) return;
-            e.Hp -= amt; e.Flash = 0.08f;
+            e.Hp -= amt; if (!burnTick) e.Flash = 0.08f;
             if (kb > 0f && e.Kind != "turret") { e.Vx += Mathf.Cos(a) * kb; e.Vy += Mathf.Sin(a) * kb; }
+            if (!burnTick && (ignite || HasMod("glue"))) e.Burn = 3f;
+            if (slow > 0f) e.Slow = Mathf.Max(e.Slow, slow);
+            if (burnTick) { if (e.Hp <= 0f) KillEnemy(e); return; }
             bool crit = amt >= 40f;
             Texts.Add(new BomberText { X = e.X + (_rngC.Next() - 0.5f) * 10f, Y = e.Y - e.R - 4f, S = Mathf.RoundToInt(amt).ToString(), T = crit ? 0.8f : 0.55f, Color = crit ? new Color32(255, 214, 92, 255) : Core.State == CoreState.Overdrive ? new Color32(255, 227, 154, 255) : new Color32(219, 230, 255, 255) });
             if (crit) Shake?.Invoke(0.3f);
@@ -125,14 +131,16 @@ namespace GC26.Bomber
             if (Combo == 10) Toast?.Invoke("В УДАРЕ: +10% скорости, пока держишь комбо", 1.8f);
             Score += Mathf.RoundToInt((e.Elite ? 50 : 10) * (1f + Mathf.Min(Combo, 20) * 0.05f));
             if (e.Kind == "splitter") foreach (var o in new[] { -1f, 1f }) { var m = MakeEnemy("mini", e.X + o * 10f, e.Y, false); m.Wave = e.Wave; m.Tm = 0.4f; Enemies.Add(m); }
+            if (e.Burn > 0f && HasMod("napalm")) Explode(e.X, e.Y, 60f, 15f, false, true);
+            if (e.Burn > 0f && SetOn("Огонь")) foreach (var o in Enemies) if (Dist(o, e) < 80f) o.Burn = 3f;
             if (e.Kind == "mini") return;
-            int n = 1 + _rngLoot.Range(3) + (e.Elite ? 4 : 0);
+            int n = 1 + _rngLoot.Range(3) + (e.Elite ? 4 : 0) + (SetOn("Экономика") ? 1 : 0);
             for (int k = 0; k < n; k++) Pickups.Add(new BomberPickup { Kind = "scrap", Value = 2, X = e.X + (_rngC.Next() - 0.5f) * 16f, Y = e.Y + (_rngC.Next() - 0.5f) * 16f });
             float r = _rngLoot.Next();
             if (r < 0.03f) Pickups.Add(new BomberPickup { Kind = "repair", X = e.X, Y = e.Y }); else if (r < 0.05f) Pickups.Add(new BomberPickup { Kind = "emp", X = e.X, Y = e.Y });
         }
 
-        void Explode(float x, float y, float r, float dmg, bool hurtsPlayer, bool fromPlayer)
+        void Explode(float x, float y, float r, float dmg, bool hurtsPlayer, bool fromPlayer, float slow = 0f)
         {
             Shake?.Invoke(0.7f);
             Effects.Add(new BomberEffect { Kind = "blast", X = x, Y = y, R = r, T = 0.35f, Max = 0.35f });
@@ -140,40 +148,9 @@ namespace GC26.Bomber
             NewDecals.Add((x, y, r * 0.8f, new Color32(0, 0, 0, 255)));
             for (int k = 0; k < 26; k++) Spark(x, y, k % 2 == 1 ? new Color32(255, 179, 71, 255) : new Color32(255, 90, 110, 255), 320f);
             if (hurtsPlayer && Dist(x, y, P.X, P.Y) < r + P.R) Hurt();
-            foreach (var e in Enemies.ToArray()) if (Dist(x, y, e.X, e.Y) < r + e.R) DamageEnemy(e, dmg, Mathf.Atan2(e.Y - y, e.X - x), 200f);
+            foreach (var e in Enemies.ToArray()) if (Dist(x, y, e.X, e.Y) < r + e.R) DamageEnemy(e, dmg, Mathf.Atan2(e.Y - y, e.X - x), 200f, false, false, slow);
             foreach (var b in Barrels) if (b.Hp > 0f && Dist(x, y, b.X, b.Y) < r) { b.Hp = 0f; _barrelQueue.Add((b, 0.12f)); }
             if (fromPlayer) foreach (var s in Shots) if (s.Enemy && Dist(s.X, s.Y, x, y) < r) s.Dead = true;
-        }
-
-        void UpdateShots(float dt)
-        {
-            foreach (var b in Shots)
-            {
-                if (b.Dead) continue;
-                b.Life -= dt; if (b.Life <= 0f) { b.Dead = true; continue; }
-                float sp = Mathf.Sqrt(b.Vx * b.Vx + b.Vy * b.Vy); int n = Mathf.Max(1, Mathf.CeilToInt(sp * dt / 8f));
-                for (int s = 0; s < n && !b.Dead; s++)
-                {
-                    b.X += b.Vx * dt / n; b.Y += b.Vy * dt / n;
-                    if (SolidAt(b.X, b.Y, b.R * 0.6f) || b.X < 0 || b.Y < 0 || b.X > W || b.Y > H)
-                    {
-                        for (int k = 0; k < 4; k++) Spark(b.X, b.Y, b.Color, 120f);
-                        b.Dead = true; break;
-                    }
-                    if (!b.Enemy)
-                    {
-                        foreach (var br in Barrels) if (br.Hp > 0f && Dist(br.X, br.Y, b.X, b.Y) < br.R + b.R) { br.Hp = 0f; _barrelQueue.Add((br, 0.12f)); b.Dead = true; break; }
-                        if (b.Dead) break;
-                        foreach (var e in Enemies)
-                        {
-                            if (e.Hp <= 0f || e.Alpha < 0.5f) continue;
-                            if (Dist(e.X, e.Y, b.X, b.Y) < e.R + b.R) { DamageEnemy(e, b.Dmg, Mathf.Atan2(b.Vy, b.Vx), b.Heavy ? 160f : 60f); b.Dead = true; break; }
-                        }
-                    }
-                    else if (Dist(P.X, P.Y, b.X, b.Y) < P.R * 0.75f + b.R && P.ITime <= 0f) { Hurt(); b.Dead = true; }
-                }
-            }
-            Shots.RemoveAll(b => b.Dead);
         }
     }
 }

@@ -113,16 +113,38 @@ namespace GC26.Bomber
                 sr.transform.position = U(p.X, p.Y); if (p.Kind == "scrap") sr.transform.localRotation = Rot(time * 3f + p.X);
             }
             foreach (var b in w.Barrels) { var sr = _pools["barrel"].Get(); sr.sprite = art.Barrel; sr.transform.position = U(b.X, b.Y); }
+            var near = w.NearProp();
+            foreach (var pr in w.Props)
+            {
+                var sr = _pools["barrel"].Get();
+                sr.sprite = pr.Kind == "chest" ? (pr.Opened ? art.ChestOpen : art.Chest) : pr.Kind == "altar" ? (pr.Opened ? art.AltarUsed : art.Altar) : pr.Kind == "bench" ? art.Bench : art.Stand;
+                sr.color = pr.Sold ? new Color(0.5f, 0.5f, 0.6f, 0.7f) : Color.white; sr.transform.position = U(pr.X, pr.Y);
+                if (pr == near) { var g = _pools["light"].Get(); g.sprite = art.Glow; g.color = new Color(0.43f, 1f, 0.69f, 0.35f + 0.15f * Mathf.Sin(time * 6f)); g.transform.position = U(pr.X, pr.Y); g.transform.localScale = Vector3.one * (44f / 32f); }
+                if (pr.Kind == "shop" && !pr.Sold) { var ic = _pools["pickup"].Get(); ic.sprite = pr.Item.Type == "weapon" ? art.Gun : pr.Item.Type == "companion" ? art.CompGunner : pr.Item.Type == "module" ? art.EmpPickup : art.Repair; ic.transform.position = U(pr.X, pr.Y - 4f); ic.transform.localScale = Vector3.one * 1.6f; ic.sortingOrder = 2; }
+            }
+            foreach (var t in w.Trails) { var sr = _pools["fxUnder"].Get(); sr.sprite = art.Glow; sr.color = new Color(0.5f, 0.89f, 1f, t.T * 0.4f); sr.transform.position = U(t.X, t.Y); sr.transform.localScale = Vector3.one * (12f / 32f); }
             foreach (var e in w.Effects) DrawEffect(e, art);
             foreach (var e in w.Enemies) DrawEnemy(e, art, time);
             DrawPlayer(w, art, time);
+            if (w.P.Beam.On) { var bm = w.P.Beam; Line(bm.Sx, bm.Sy, bm.Ex, bm.Ey, bm.Zap ? new Color(0.85f, 0.94f, 1f, 0.5f) : new Color(1f, 0.6f, 0.87f, 0.5f), 5f, "glow"); Line(bm.Sx, bm.Sy, bm.Ex, bm.Ey, Color.white, 1.5f, "shot"); }
+            foreach (var bo in w.Bolts) for (int i = 1; i < bo.Pts.Count; i++) { var a0 = bo.Pts[i - 1]; var a1 = bo.Pts[i]; for (int k = 0; k < 4; k++) { float t0 = k / 4f, t1 = (k + 1) / 4f; var j0 = k == 0 ? Vector2.zero : Random.insideUnitCircle * 7f; var j1 = k == 3 ? Vector2.zero : Random.insideUnitCircle * 7f; var q0 = Vector2.Lerp(a0, a1, t0) + j0; var q1 = Vector2.Lerp(a0, a1, t1) + j1; Line(q0.x, q0.y, q1.x, q1.y, new Color(0.85f, 0.94f, 1f), 2f, "fx"); } }
+            foreach (var c in w.P.Comps)
+            {
+                var sr = _pools["player"].Get(); sr.sortingOrder = 25; sr.sprite = c.Id == "gunner" ? art.CompGunner : c.Id == "guard" ? art.CompGuard : c.Id == "medic" ? art.CompMedic : art.CompStriker;
+                sr.transform.position = U(c.X, c.Y); if (c.Id == "striker") sr.transform.localRotation = Rot(c.St == "dive" && c.Tgt != null ? Mathf.Atan2(c.Tgt.Y - c.Y, c.Tgt.X - c.X) : time * 4f);
+                var g = _pools["light"].Get(); g.sprite = art.Glow; g.color = new Color(0.62f, 0.82f, 1f, 0.25f); g.transform.position = U(c.X, c.Y); g.transform.localScale = Vector3.one * (16f / 32f);
+            }
+            if (w.P.Shield > 0f) Ring(w.P.X, w.P.Y, w.P.R + 7f, new Color(0.62f, 0.82f, 1f, 0.7f), "fx");
             foreach (var s in w.Shots)
             {
                 var g = _pools["glow"].Get(); g.sprite = art.Glow; var gc = s.Enemy ? new Color(1f, 0.3f, 0.4f, 0.55f) : new Color(0.5f, 0.89f, 1f, 0.35f); if (!s.Enemy && s.Heavy) gc.a = 0.6f; g.color = gc;
                 g.transform.position = U(s.X, s.Y); g.transform.localScale = Vector3.one * (s.R * (s.Enemy ? 3.4f : 3f) / 32f);
                 var sr = _pools["shot"].Get();
                 if (s.Enemy) { sr.sprite = art.EnemyShot; sr.color = (Color)s.Color; sr.transform.localScale = Vector3.one * (s.R / 5f) * 1.3f; }
-                else { sr.sprite = s.Heavy ? art.ShotHeavy : art.Shot; sr.color = (Color)s.Color; sr.transform.localRotation = Rot(Mathf.Atan2(s.Vy, s.Vx)); }
+                else if (s.Look == "rocket" || s.Homing) { sr.sprite = art.Rocket; sr.transform.localRotation = Rot(Mathf.Atan2(s.Vy, s.Vx)); }
+                else if (s.Look == "disc") { sr.sprite = art.Saw; sr.transform.localRotation = Rot(time * 30f); sr.transform.localScale = Vector3.one * Mathf.Max(1f, s.R / 7f); }
+                else if (s.Look == "flame") { sr.sprite = art.Flame; var fc = (Color)s.Color; fc.a = Mathf.Clamp01(s.Life / 0.4f); sr.color = fc; sr.transform.localScale = Vector3.one * (s.R / 6f) * (1.6f - Mathf.Min(1f, s.Life)); }
+                else { sr.sprite = s.Heavy || s.R >= 6f ? art.ShotHeavy : art.Shot; sr.color = (Color)s.Color; sr.transform.localRotation = Rot(Mathf.Atan2(s.Vy, s.Vx)); if (s.R >= 6f) sr.transform.localScale = Vector3.one * (s.R / 7f); }
                 sr.transform.position = U(s.X, s.Y);
             }
             foreach (var p in w.Particles)
@@ -177,6 +199,8 @@ namespace GC26.Bomber
             sr.color = e.Flash > 0f ? new Color(3f, 3f, 3f) : e.Stun > 0f ? new Color(0.7f, 0.85f, 1f) : Color.white;
             if (e.Flash > 0f) sr.color = new Color(1f, 0.55f, 0.55f);
             if (e.Kind == "turret") { var h = _pools["enemyFx"].Get(); h.sprite = art.TurretHead; h.transform.position = U(e.X, e.Y); h.transform.localRotation = Rot(e.St == "fire" ? e.AimA : e.Face); }
+            if (e.Burn > 0f) { var bg2 = _pools["glow"].Get(); bg2.sprite = art.Glow; bg2.color = new Color(1f, 0.55f, 0.15f, 0.45f); bg2.transform.position = U(e.X, e.Y); bg2.transform.localScale = Vector3.one * (e.R * 2.4f / 32f); }
+            if (e.Slow > 0f) Ring(e.X, e.Y, e.R + 3f, new Color(0.62f, 0.9f, 1f, 0.8f), "enemyFx");
             if (e.Elite) Ring(e.X, e.Y, e.R + 6f, new Color(1f, 0.84f, 0.36f, 0.5f + 0.3f * Mathf.Sin(time * 6f)), "enemyFx");
             if (e.St == "tele") { Ring(e.X, e.Y, e.R + 3f, new Color(1f, 1f, 1f, 0.5f + 0.5f * Mathf.Sin(time * 40f)), "enemyFx"); var tg = _pools["glow"].Get(); tg.sprite = art.Glow; tg.color = new Color(1f, 0.4f, 0.45f, 0.45f); tg.transform.position = U(e.X, e.Y); tg.transform.localScale = Vector3.one * (e.R * 3f / 32f); }
             if (e.St == "tele" && e.Kind == "kamikaze") { float kk = 1f - e.Tm / 0.55f; Ring(e.X, e.Y, 80f, new Color(1f, 0.3f, 0.3f, 0.9f), "fxUnder"); var f = _pools["fxUnder"].Get(); f.sprite = art.Disc; f.color = new Color(1f, 0.3f, 0.3f, 0.15f); f.transform.position = U(e.X, e.Y); f.transform.localScale = Vector3.one * (80f * Mathf.Max(0f, kk) / 32f); }
@@ -231,6 +255,14 @@ namespace GC26.Bomber
         {
             float k = Mathf.Clamp01((core.Normalized - 0.3f) / 0.5f);
             return new Color((127 + 128 * k) / 255f, (227 - 48 * k) / 255f, (255 - 184 * k) / 255f);
+        }
+
+        void Line(float x0, float y0, float x1, float y1, Color c, float width, string pool)
+        {
+            var sr = _pools[pool].Get(); sr.sprite = _ctx.Art.Pixel; sr.color = c;
+            float dx = x1 - x0, dy = y1 - y0, len = Mathf.Sqrt(dx * dx + dy * dy);
+            sr.transform.position = U((x0 + x1) / 2f, (y0 + y1) / 2f); sr.transform.localRotation = Quaternion.Euler(0, 0, -Mathf.Atan2(dy, dx) * Mathf.Rad2Deg);
+            sr.transform.localScale = new Vector3(len / 2f, width / 2f, 1f);
         }
 
         void Ring(float x, float y, float r, Color c, string pool)

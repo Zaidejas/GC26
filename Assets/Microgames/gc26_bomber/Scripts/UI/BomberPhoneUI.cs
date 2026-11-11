@@ -34,15 +34,15 @@ namespace GC26.Bomber
         RawImage _world; Image _fade, _flash, _vignette, _lowHp, _hudBg, _hudLine, _panelBg, _panelLine; readonly Image[] _border = new Image[4];
         readonly List<Image> _hp = new List<Image>(); Image _heatBg, _heatFill, _odMark, _scrapIcon, _routeCur; Text _score, _heatText, _scrap, _status, _room, _combo, _toast, _weapon; Image _toastBg;
         readonly List<Image> _route = new List<Image>();
-        readonly List<Text> _floatTexts = new List<Text>(), _doorLabels = new List<Text>();
+        readonly List<Text> _floatTexts = new List<Text>(), _doorLabels = new List<Text>(), _propLabels = new List<Text>();
 
-        sealed class Btn { public string Id; public bool AtTop; public Vector2 Local; public Vector2 Pos; public float R, Rad; public int LabelFont; public Color Col; public Image Bg, Cd, Rim, Glow; public Text Label, Sub; }
+        sealed class Btn { public string Id; public bool AtTop; public Vector2 Local; public Vector2 Pos; public float R, Rad; public int LabelFont; public bool Visible = true; public Color Col; public Image Bg, Cd, Rim, Glow; public Text Label, Sub; }
         readonly List<Btn> _btns = new List<Btn>();
         Image _joyBase, _joyKnob, _joyHint; Text _joyHintText;
         int _joyId = int.MinValue; Vector2 _joyStart, _joyNow;
         readonly Dictionary<int, string> _held = new Dictionary<int, string>();
 
-        RectTransform _panel; Image _panelDim, _card, _cardLine; Text _panelTitle, _panelText;
+        RectTransform _panel; Image _panelDim, _card, _cardLine; Text _panelTitle, _panelText; float _btnH = 60f, _btnTop = 270f;
         readonly List<(RectTransform rt, System.Action act)> _panelButtons = new List<(RectTransform, System.Action)>();
         string _panelKind;
 
@@ -99,6 +99,8 @@ namespace GC26.Bomber
             AddBtn("ab", 172, 166, 36, "РАЗГОН", new Color(0.5f, 0.89f, 1f));
             AddBtn("alt", 266, 166, 32, "ЗАРЯД", new Color(1f, 0.82f, 0.48f));
             AddBtn("pause", -34, 30, 24, "II", new Color(0.51f, 0.58f, 0.74f), atTop: true);
+            AddBtn("swap", -34, 106, 22, "⇄", new Color(0.5f, 0.89f, 1f), atTop: true);
+            AddBtn("use", 150, -44, 38, "E", new Color(0.43f, 1f, 0.69f));
             _joyHint = Img("JoyHint", t, ctx.Art.UiRing, new Color(0.5f, 0.89f, 1f, 0.5f));
             _joyHintText = Txt("JoyHintText", t, 15, TextAnchor.MiddleCenter, new Color(0.81f, 0.88f, 1f), FontStyle.Bold); _joyHintText.text = "Веди пальцем\nздесь";
             _joyBase = Img("JoyBase", t, ctx.Art.UiRing, new Color(0.5f, 0.89f, 1f, 0.55f));
@@ -166,7 +168,7 @@ namespace GC26.Bomber
             Place(_status.rectTransform, 12, 70, fw - 24, 24);
             for (int i = 0; i < _route.Count; i++) Place(_route[i].rectTransform, 14 + i * 22, 101, 15, 15);
             Place(_room.rectTransform, 14 + 7 * 22 + 6, 98, 170, 22);
-            Place(_weapon.rectTransform, fw - 220, 98, 208, 22);
+            Place(_weapon.rectTransform, fw - 280, 98, 212, 22);
 
             // control panel (full width at the bottom)
             // controls: the left cluster scales with the player's button size (but never wider than ~62% of the screen)
@@ -208,26 +210,81 @@ namespace GC26.Bomber
             Place(_flash.rectTransform, 0, 0, fw, fh + _bottomInset);
 
             float cw = Mathf.Min(fw - 60, 520f), cx = (fw - cw) / 2f, cy = Mathf.Max(Top, fh / 2f - 260f);
-            cy = Mathf.Max(Top * 0.5f, Mathf.Min(cy, fh - 300f - _panelButtons.Count * 76f));
-            Place(_card.rectTransform, cx, cy, cw, 290 + _panelButtons.Count * 76); Place(_cardLine.rectTransform, cx, cy, cw, 3);
-            Place(_panelTitle.rectTransform, cx + 10, cy + 20, cw - 20, 50); Place(_panelText.rectTransform, cx + 20, cy + 80, cw - 40, 170);
-            for (int i = 0; i < _panelButtons.Count; i++) Place(_panelButtons[i].rt, cx + 40, cy + 270 + i * 76, cw - 80, 60);
+            float step = _btnH + (_btnH > 100f ? 14f : _btnH < 59f ? 6f : 16f), cardH = _btnTop + 20f + _panelButtons.Count * step;
+            cw = Mathf.Min(fw - 30, _btnH > 100f || _btnH < 59f ? 600f : 520f); cx = (fw - cw) / 2f;
+            cy = Mathf.Clamp(fh / 2f - cardH / 2f, 8f, Mathf.Max(8f, fh - cardH - 8f));
+            Place(_card.rectTransform, cx, cy, cw, cardH); Place(_cardLine.rectTransform, cx, cy, cw, 3);
+            Place(_panelTitle.rectTransform, cx + 10, cy + 16, cw - 20, 46); Place(_panelText.rectTransform, cx + 20, cy + 64, cw - 40, _btnTop - 70f);
+            for (int i = 0; i < _panelButtons.Count; i++) Place(_panelButtons[i].rt, cx + 16, cy + _btnTop + i * step, cw - 32, _btnH);
         }
 
         // ================= panels =================
-        void ShowPanel(string kind, string title, string body, params (string label, System.Action act)[] buttons)
+        void ShowPanel(string kind, string title, string body, params (string label, System.Action act)[] buttons) => ShowPanelEx(kind, title, body, 60f, 270f, false, buttons);
+
+        /// <summary>Panel with a list of buttons; rich = left-aligned multi-line cards (rewards, workbench). act == null: a header row.</summary>
+        void ShowPanelEx(string kind, string title, string body, float btnH, float btnTop, bool rich, params (string label, System.Action act)[] buttons)
         {
-            _panelKind = kind; _panel.gameObject.SetActive(true); _panelTitle.text = title; _panelText.text = body;
+            _panelKind = kind; _panel.gameObject.SetActive(true); _panelTitle.text = title; _panelText.text = body; _btnH = btnH; _btnTop = btnTop;
             foreach (var b in _panelButtons) Destroy(b.rt.gameObject);
             _panelButtons.Clear();
             for (int i = 0; i < buttons.Length; i++)
             {
-                var img = Img("Btn", _panel, _ctx.Art.UiWhite, i == 0 ? new Color(0.5f, 0.89f, 1f) : new Color(0.15f, 0.2f, 0.32f));
-                var tx = Txt("Label", img.transform, 20, TextAnchor.MiddleCenter, i == 0 ? new Color(0.02f, 0.07f, 0.1f) : Color.white, FontStyle.Bold); tx.text = buttons[i].label; Stretch(tx.rectTransform);
+                bool header = buttons[i].act == null, primary = !rich && i == 0;
+                var img = Img("Btn", _panel, _ctx.Art.UiWhite, header ? new Color(0, 0, 0, 0) : primary ? new Color(0.5f, 0.89f, 1f) : rich ? new Color(0.09f, 0.13f, 0.22f) : new Color(0.15f, 0.2f, 0.32f));
+                var tx = Txt("Label", img.transform, rich ? 16 : 20, rich ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter, primary ? new Color(0.02f, 0.07f, 0.1f) : Color.white, rich ? FontStyle.Normal : FontStyle.Bold);
+                tx.supportRichText = true; tx.horizontalOverflow = HorizontalWrapMode.Wrap; tx.text = buttons[i].label; Stretch(tx.rectTransform);
+                if (rich) { tx.rectTransform.offsetMin = new Vector2(14, 4); tx.rectTransform.offsetMax = new Vector2(-14, -4); }
+                if (rich && !header) { var edge = Img("Edge", img.transform, _ctx.Art.UiWhite, new Color(0.5f, 0.89f, 1f, 0.8f)); edge.rectTransform.anchorMin = new Vector2(0, 0); edge.rectTransform.anchorMax = new Vector2(0, 1); edge.rectTransform.offsetMin = Vector2.zero; edge.rectTransform.offsetMax = new Vector2(4, 0); }
                 _panelButtons.Add((img.rectTransform, buttons[i].act));
             }
             if (_fw > 0f) Layout(_fw, _fh);
         }
+
+        static string Hex(Color32 c) => $"#{c.r:x2}{c.g:x2}{c.b:x2}";
+
+        void ShowReward(BomberReward r)
+        {
+            var w = _ctx.World; var opts = new List<(string, System.Action)>();
+            for (int i = 0; i < r.Options.Count; i++)
+            {
+                var it = r.Options[i]; int idx = i; string slot = w.SlotInfo(it);
+                bool busy = slot.StartsWith("Заменит") || slot.StartsWith("Слоты заняты") || slot.StartsWith("Улетит");
+                opts.Add(($"<color=#ffb347><size=13>{it.Tag.ToUpper()}</size></color>\n<size=21><b>{it.Name}</b></size>\n<color=#a9b6d6>{it.Desc}</color>\n<color={(busy ? "#ffb347" : "#6dffb0")}><size=14>{slot}</size></color>",
+                    () => { w.ChooseReward(idx); HidePanel(); }));
+            }
+            ShowPanelEx("reward", r.Title, r.Sub, 150f, 110f, true, opts.ToArray());
+        }
+
+        void ShowBench()
+        {
+            var w = _ctx.World; var p = w.P; var rows = new List<(string, System.Action)>();
+            var f = w.FusionFor();
+            if (f.id != null)
+            {
+                var wa = p.Weapons.Find(x => x.Id == f.a); var wb = p.Weapons.Find(x => x.Id == f.b);
+                bool ok = wa.UpSum >= BomberItems.FuseNeed && wb.UpSum >= BomberItems.FuseNeed;
+                var fd = BomberItems.Weapons[f.id];
+                rows.Add(($"<color=#ffd65c><b>СЛИЯНИЕ: {fd.Name}</b></color>  {(ok ? $"<color=#ffd65c>{w.FusePrice} скрапа</color>" : $"<color=#ff8a9a>нужно ▲{BomberItems.FuseNeed} на обоих</color>")}\n<size=13><color=#a9b6d6>{fd.Desc} {BomberItems.Weapons[f.a].Name} ▲{wa.UpSum}, {BomberItems.Weapons[f.b].Name} ▲{wb.UpSum}</color></size>",
+                    ok ? (System.Action)(() => { if (w.Fuse()) HidePanelBench(); else ShowBench(); }) : () => { }));
+            }
+            for (int wi = 0; wi < p.Weapons.Count; wi++)
+            {
+                var wpn = p.Weapons[wi]; int idx = wi;
+                rows.Add(($"<size=19><b>{wpn.Def.Name}</b></size>  <color=#ffd65c>▲{wpn.UpSum}</color>", null));
+                foreach (var u in BomberItems.Upgrades)
+                {
+                    int l = wpn.Up[u.id]; string pips = new string('●', l) + new string('○', 3 - l); string key = u.id;
+                    string desc = u.id == "spec" ? BomberItems.SpecText[wpn.Def.Spec] : u.desc;
+                    int price = w.UpgradePrice(wpn, key); bool can = l < 3 && p.Scrap >= price;
+                    rows.Add(($"<b>{u.name}</b> <color=#ffb347>{pips}</color>   {(l >= 3 ? "<color=#6dffb0>максимум</color>" : $"<color={(can ? "#ffd65c" : "#ff8a9a")}>{price} скрапа</color>")}\n<size=13><color=#a9b6d6>{desc} за уровень</color></size>",
+                        () => { w.BuyUpgrade(idx, key); ShowBench(); }));
+                }
+            }
+            rows.Add(("<b>Закрыть</b>", HidePanelBench));
+            ShowPanelEx("bench", "Верстак", $"Скрап: {p.Scrap}" + (w.Room.BenchFree ? " · первое улучшение здесь за полцены" : ""), 58f, 90f, true, rows.ToArray());
+        }
+
+        void HidePanelBench() { _ctx.World.CloseBench(); HidePanel(); }
 
         void HidePanel() { _panelKind = null; _panel.gameObject.SetActive(false); }
 
@@ -272,6 +329,7 @@ namespace GC26.Bomber
                 {
                     _intent.Dash |= kb.spaceKey.wasPressedThisFrame; _intent.Vent |= kb.rKey.wasPressedThisFrame; _intent.Emp |= kb.gKey.wasPressedThisFrame;
                     _intent.Ability |= kb.leftShiftKey.wasPressedThisFrame || kb.fKey.wasPressedThisFrame; _intent.ForsageToggle |= kb.vKey.wasPressedThisFrame;
+                    _intent.Use |= kb.eKey.wasPressedThisFrame; _intent.Swap |= kb.qKey.wasPressedThisFrame; _intent.AltPressed |= Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
                 }
                 if (kb.escapeKey.wasPressedThisFrame) { if (_panelKind == null) Pause(); else if (_panelKind == "pause") HidePanel(); }
             }
@@ -290,6 +348,8 @@ namespace GC26.Bomber
             _intent.Move = Vector2.ClampMagnitude(move, 1f);
             _intent.AltHeld = _held.ContainsValue("alt");
             if (w.Phase != BomberPhase.Play && _panelKind == null) ShowEnd(w);
+            if (w.Reward != null && _panelKind == null) ShowReward(w.Reward);
+            if (w.BenchOpen && _panelKind == null) ShowBench();
             return _intent;
         }
 
@@ -304,13 +364,13 @@ namespace GC26.Bomber
                     foreach (var (rt, act) in _panelButtons)
                     {
                         var pos = rt.anchoredPosition; var size = rt.sizeDelta;
-                        if (p.x > pos.x && p.x < pos.x + size.x && p.y > -pos.y && p.y < -pos.y + size.y) { act(); return; }
+                        if (act != null && p.x > pos.x && p.x < pos.x + size.x && p.y > -pos.y && p.y < -pos.y + size.y) { act(); return; }
                     }
                     return;
                 }
                 foreach (var b in _btns)
                 {
-                    if (Vector2.Distance(b.Pos, p) > b.Rad + 10f) continue;
+                    if (!b.Visible || Vector2.Distance(b.Pos, p) > b.Rad + 10f) continue;
                     _held[id] = b.Id;
                     switch (b.Id)
                     {
@@ -321,6 +381,8 @@ namespace GC26.Bomber
                         case "emp": _intent.Emp = true; break;
                         case "od": _intent.ForsageToggle = true; break;
                         case "alt": _intent.AltPressed = true; break;
+                        case "use": _intent.Use = true; break;
+                        case "swap": _intent.Swap = true; break;
                     }
                     return;
                 }
@@ -375,7 +437,8 @@ namespace GC26.Bomber
             Circle(_routeCur.rectTransform, new Vector2(14 + w.Step * 22 + 7.5f, 108.5f), 12);
             var curT = w.Room.Type == "start" ? "combat" : w.Room.Type;
             _room.text = $"С{w.Sector + 1} · {BomberData.RoomLabel[curT]}"; _room.color = (Color)BomberData.RoomColor[curT];
-            _weapon.text = "Бластер";
+            var wd = p.Weapon.Def; _weapon.text = wd.Name + (p.Weapon.UpSum > 0 ? $" ▲{p.Weapon.UpSum}" : "") + (p.Weapons.Count > 1 ? $"  {p.Cur + 1}/2" : "");
+            _weapon.color = wd.Fused ? new Color(1f, 0.84f, 0.36f) : new Color(0.5f, 0.89f, 1f);
             _combo.text = w.Combo >= 2 ? $"КОМБО ×{w.Combo}{(w.Combo >= 10 ? " · В УДАРЕ" : "")}" : "";
             _combo.color = w.Combo >= 10 ? new Color(1f, 0.84f, 0.36f) : Color.white;
 
@@ -389,8 +452,11 @@ namespace GC26.Bomber
                     case "tac": ready = Mathf.Clamp01(1f - p.TacCd / 8f); if (ready < 1f) sub = Mathf.CeilToInt(p.TacCd).ToString(); break;
                     case "emp": ready = p.Emp > 0 ? 1f : 0f; sub = "×" + p.Emp; break;
                     case "od": ready = core.CanFire ? 1f : 0f; b.Label.text = w.Governor.Forsage ? "ФОРСАЖ\nВКЛ" : "ФОРСАЖ"; if (!core.CanFire) sub = core.OverheatLeft.ToString("0.0"); break;
-                    case "alt": ready = p.AltCd <= 0f ? 1f : 0.3f; break;
+                    case "alt": ready = p.AltCd <= 0f ? 1f : 0.3f; b.Visible = w.AltLabel != null; if (b.Visible) b.Label.text = w.AltLabel; break;
+                    case "use": b.Visible = w.NearProp() != null; break;
+                    case "swap": b.Visible = p.Weapons.Count > 1; break;
                 }
+                foreach (var g in new Graphic[] { b.Bg, b.Cd, b.Rim, b.Glow, b.Label, b.Sub }) g.enabled = b.Visible;
                 bool down = _held.ContainsValue(b.Id), isReady = ready >= 1f;
                 b.Cd.fillAmount = 1f - ready;
                 b.Bg.color = down ? new Color(0.16f, 0.24f, 0.4f, 0.8f) : new Color(0.027f, 0.043f, 0.086f, b.AtTop ? 0.72f : 0.45f);
@@ -424,6 +490,23 @@ namespace GC26.Bomber
                 Place(tx.rectTransform, _wx + (d.X0 + d.X1) / 2f * _ws - 80, _wy + dy * _ws, 160, 22);
             }
             for (int i = m; i < _doorLabels.Count; i++) _doorLabels[i].enabled = false;
+            int q = 0; var near = w.NearProp();
+            foreach (var pr in w.Props)
+            {
+                if (pr.Opened || pr.Sold) continue;
+                string txt; Color col;
+                switch (pr.Kind)
+                {
+                    case "shop": int price = w.PriceOf(pr); txt = $"{pr.Item.Name}\n<color={(p.Scrap >= price ? "#ffd65c" : "#ff8a8a")}>{price} скрапа</color>" + (pr == near ? $"\n<size=12><color=#a9b6d6>{pr.Item.Desc}</color>\n<color=#ffb347>{w.SlotInfo(pr.Item)}</color></size>" : ""); col = new Color(0.86f, 0.9f, 1f); break;
+                    case "chest": txt = pr == near ? "Сундук · нажми E" : "Сундук"; col = new Color(0.5f, 0.89f, 1f); break;
+                    case "altar": txt = pr == near ? "Алтарь: −1 корпус за награду · E" : "Алтарь риска"; col = new Color(1f, 0.35f, 0.82f); break;
+                    default: txt = pr == near ? "Верстак · нажми E" : "Верстак"; col = new Color(1f, 0.7f, 0.28f); break;
+                }
+                float ty = pr.Y - 34f - _scroll0; if (ty < 0f || ty > _viewH) continue;
+                var tx = GetText(_propLabels, q++); tx.supportRichText = true; tx.text = txt; tx.fontSize = 14; tx.color = col; tx.alignment = TextAnchor.LowerCenter;
+                Place(tx.rectTransform, _wx + pr.X * _ws - 140, _wy + ty * _ws - 90, 280, 90);
+            }
+            for (int i = q; i < _propLabels.Count; i++) _propLabels[i].enabled = false;
         }
 
         Text GetText(List<Text> list, int i)

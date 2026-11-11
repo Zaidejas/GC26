@@ -19,6 +19,7 @@ namespace GC26.Bomber
 
         public Sprite Drone, Rotor, Gun, Lens, Shot, ShotHeavy, EnemyShot, Pixel, Ring, Disc, Scrap, Repair, EmpPickup, Barrel, Wall, TurretHead;
         public Sprite UiCircle, UiRing, UiWhite, UiGradient, UiVignette, Glow;
+        public Sprite Chest, ChestOpen, Altar, AltarUsed, Bench, Stand, Rocket, Saw, Flame, CompGunner, CompGuard, CompMedic, CompStriker;
         readonly Dictionary<string, Sprite> _enemy = new Dictionary<string, Sprite>();
         readonly List<UnityEngine.Object> _owned = new List<UnityEngine.Object>();
 
@@ -47,6 +48,19 @@ namespace GC26.Bomber
             TurretHead = Build(16, 10, c => { c.Fill(c.Box(8, 3.8f, 15.5f, 6.2f), MN); c.Fill(c.Disc(7, 5, 3.6f), Hex("#ffcf5c")); c.Px(6, 4, MR); });
             Glow = Radial(64, PixelsPerUnit * 2, (d) => Mathf.Pow(Mathf.Clamp01(1f - d), 2f));
             UiVignette = Radial(128, 100, (d) => Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((d - 0.55f) / 0.9f)), square: true);
+            Chest = Build(18, 14, c => { c.Fill(c.Box(0, 2, 18, 14), Hex("#1e3a4a")); c.Fill(c.Box(0, 0, 18, 5), Hex("#2c5468")); c.Rect(8, 4, 2, 4, MY); c.Rect(1, 6, 16, 1, Hex("#7fe3ff")); });
+            ChestOpen = Build(18, 14, c => { c.Fill(c.Box(0, 4, 18, 14), Hex("#1b2742")); c.Fill(c.Box(0, 0, 18, 3), Hex("#24335a")); c.Rect(2, 6, 14, 6, MK); });
+            Altar = Build(20, 20, c => { c.Fill(c.Poly(new[] { (10f, 0f), (20f, 10f), (10f, 20f), (0f, 10f) }), Hex("#2a1030")); c.Fill(c.Disc(10, 10, 3.2f), Hex("#ff5ad1")); c.Px(10, 9, MW); });
+            AltarUsed = Build(20, 20, c => { c.Fill(c.Poly(new[] { (10f, 0f), (20f, 10f), (10f, 20f), (0f, 10f) }), Hex("#1b1424")); c.Fill(c.Disc(10, 10, 3f), Hex("#4a3a5a")); });
+            Bench = Build(30, 14, c => { c.Fill(c.Box(0, 0, 30, 14), Hex("#2a1e10")); c.Rect(6, 5, 18, 4, Hex("#ffb347")); c.Rect(2, 2, 3, 3, MM); c.Rect(25, 2, 3, 3, MM); c.Rect(12, 1, 2, 2, ML); });
+            Stand = Build(34, 28, c => { c.Fill(c.Box(0, 0, 34, 28), Hex("#121c30")); c.Rect(2, 2, 30, 1, Hex("#6dffb0")); c.Rect(4, 22, 26, 3, Hex("#0b1424")); });
+            Rocket = Build(8, 4, c => { c.Fill(c.Box(2, 0.5f, 8, 3.5f), Hex("#ffd6a0"), false); c.Rect(0, 1, 2, 2, MO); c.Px(7, 1, MW); }, outline: false);
+            Saw = Build(9, 9, c => { c.Fill((x, y) => { float dx = x - 4.5f, dy = y - 4.5f, d = Mathf.Sqrt(dx * dx + dy * dy), a = Mathf.Atan2(dy, dx); return d < 3.2f + 1.3f * (Mathf.Sin(a * 8f) > 0 ? 1 : 0) && d > 1.2f; }, Hex("#d8f8ff")); });
+            Flame = Build(6, 6, c => { c.Fill(c.Disc(3, 3, 3f), Hex("#ff9a3c"), false); c.Fill(c.Disc(3, 3, 1.5f), Hex("#ffe08a"), false); }, outline: false);
+            CompGunner = Build(9, 9, c => { c.Fill(c.Box(1, 1, 8, 8), Hex("#bff4ff")); c.Rect(3, 3, 3, 3, Hex("#2b5c6c")); });
+            CompGuard = Build(9, 9, c => { c.Fill(c.Disc(4.5f, 4.5f, 4f), Hex("#9fd0ff")); c.Px(4, 4, MW); });
+            CompMedic = Build(9, 9, c => { c.Fill((x, y) => (x > 3 && x < 6) || (y > 3 && y < 6), Hex("#6dffb0")); });
+            CompStriker = Build(10, 8, c => { c.Fill(c.Poly(new[] { (10f, 4f), (0f, 0f), (2f, 4f), (0f, 8f) }), Hex("#ffb347")); });
             UiCircle = Smooth(128, ring: false, 100, ui: true); UiRing = Smooth(128, ring: true, 100, ui: true);
             UiWhite = Build(1, 1, c => c.Px(0, 0, new Color32(255, 255, 255, 255)), outline: false);
             UiGradient = Build(1, 64, c => { for (int y = 0; y < 64; y++) c.Px(0, y, new Color32(255, 255, 255, (byte)(Mathf.SmoothStep(0f, 1f, y / 63f) * 255))); }, outline: false); UiGradient.texture.filterMode = FilterMode.Bilinear;
