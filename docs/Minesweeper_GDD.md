@@ -9,9 +9,9 @@
 | **Orientation** | Portrait only |
 | **Input** | Touch: tap, long press, drag, pinch; Android Back button |
 | **Target player** | Anyone who likes short logic puzzles on the go; one round lasts from 10 seconds to a few minutes, playable one-handed on small boards |
-| **Related documents** | [Technical_Design_Document.md](Technical_Design_Document.md) (architecture, code, development plan and tasks), [prototype/](prototype/README.md) (playable browser prototype), [task board](https://github.com/users/Zaidejas/projects/6) |
+| **Related documents** | [Minesweeper_TDD.md](Minesweeper_TDD.md) (architecture, code, development plan and tasks), [Minesweeper_Prototype/](Minesweeper_Prototype/README.md) (playable browser prototype), [task board](https://github.com/users/Zaidejas/projects/6) |
 
-> **How to open:** this is a Markdown file; it opens in any text editor and looks best in VS Code (`Ctrl+Shift+V`) or on GitHub. The prototype opens by double-clicking `prototype/index.html`.
+> **How to open:** this is a Markdown file; it opens in any text editor and looks best in VS Code (`Ctrl+Shift+V`) or on GitHub. The prototype opens by double-clicking `Minesweeper_Prototype/index.html`.
 
 ---
 
@@ -234,7 +234,7 @@ All buttons are at least 48 dp (about 9 mm) so they're easy to hit with a thumb.
 ### 5.2 Step-by-step: first-time player
 1. The player opens the app and the **difficulty choice (Main Menu)** appears straight away.
 2. The player taps **Beginner**. The **Game** screen loads with a 9×9 board filling the width of the screen, **all cells hidden**; the counter shows `010` and the timer `000`.
-3. Because it's their first game, the **tutorial** (6.5) asks them to tap any cell. They tap; it is always safe, an area opens, and the timer starts.
+3. Because it's the first game since opening the app, the **tutorial** (6.5) asks them to tap any cell. They tap; it is always safe, an area opens, and the timer starts.
 4. The tutorial highlights the opened cell with the biggest number: "This cell has 3 red flags around it — be careful!" The player taps **Got it** (or just keeps playing).
 5. The player studies the numbers, long-presses cells they're sure hide red flags (the phone buzzes and a yellow flag appears), and taps cells they're sure are safe.
 6. **Either:**
@@ -336,14 +336,14 @@ A panel that slides up from the bottom, so the board stays visible above it and 
 - If the list is empty, only the "lost" message is shown.
 
 ### 6.5 First-game tutorial
-A short tutorial runs **once**, in the player's very first game, whatever difficulty they choose. It is a message bubble **above the board** (between the top bar and the board); the board stays playable the whole time.
+A short tutorial runs in the **first game each time the app is opened**, whatever difficulty the player chooses. Later games in the same session don't show it. It is a message bubble **above the board** (between the top bar and the board); the board stays playable the whole time.
 
 1. **Before the first tap:** "Tap any cell to start. Your first tap is always safe." The bubble has no button; it waits for the tap.
 2. **After the first tap:** the opened cell with the **biggest number** gets a pulsing yellow outline (if several share the biggest number, the first one found is used; on a big board the view scrolls to it). The bubble says: **"This cell has *N* red flags around it — be careful!"** ("1 red flag" when N is 1). It has a **Got it** button.
 3. The tutorial closes when the player taps **Got it**, or makes any next move (tap or flag), or leaves the game.
 
 - All tutorial messages are shown **above the board, never below it or on top of it**. While the bubble is visible the board area is a little shorter, so no cell is covered.
-- It counts as seen once step 2 has appeared (saved as `tutorial_done`). If the player leaves before their first tap, the tutorial starts again in their next game.
+- It counts as seen for this session once step 2 has appeared. Nothing is saved: closing and reopening the app shows it again. If the player leaves a game before their first tap, the tutorial starts again in their next game.
 
 ### 6.6 "How to play" pop-up
 Opened any time during a game with the **?** button at the right end of the top bar.
@@ -409,7 +409,6 @@ Stored locally on the phone with `PlayerPrefs`:
 | `best_Beginner`, `best_Intermediate`, `best_Expert` | Best winning time in seconds |
 | `sound` | 1 = on, 0 = off |
 | `vibration` | 1 = on, 0 = off |
-| `tutorial_done` | 1 once the first-game tutorial has been shown |
 
 No account, internet connection or special permissions are needed. Uninstalling the app deletes this data.
 
@@ -437,6 +436,7 @@ No account, internet connection or special permissions are needed. Uninstalling 
 | Very long loss line | The text wraps inside the panel |
 | First game: player switches to flag mode or long-presses before the first tap | The tutorial keeps waiting for the first reveal tap |
 | First game: player leaves before the first tap | The tutorial starts again in the next game |
+| App closed and opened again | The tutorial shows again in the first game |
 | Player taps the board area to close "How to play" | The pop-up closes; no cell is opened or flagged |
 | Android Back while "How to play" is open | The pop-up closes; the game stays open |
 | Very narrow phone (320 px wide) | The top bar's digits get slightly smaller so all five items (menu, counter, face, timer, ?) fit |
@@ -457,4 +457,4 @@ Landscape mode, desktop and web versions, multiplayer, online leaderboards, ads 
 
 ## 12. Prototype
 
-A simple playable browser version of these rules is in [prototype/](prototype/README.md). Open `prototype/index.html` in any browser (no installation or internet needed) to try the rules, touch controls, first-game tutorial and loss lines before building the Unity version. (To see the tutorial again in the prototype, use a private browser window.) It leaves out zoom/pan, sounds and settings.
+A simple playable browser version of these rules is in [Minesweeper_Prototype/](Minesweeper_Prototype/README.md). Open `Minesweeper_Prototype/index.html` in any browser (no installation or internet needed) to try the rules, touch controls, first-game tutorial and loss lines before building the Unity version. (Reload the page to see the tutorial again.) It leaves out zoom/pan, sounds and settings.

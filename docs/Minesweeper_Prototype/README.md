@@ -1,6 +1,6 @@
 # Red Flags: browser prototype
 
-A simple HTML/CSS/JS version of the game described in [../Game_Design_Document.md](../Game_Design_Document.md). Use it to try the rules and the controls before building the Unity version.
+A simple HTML/CSS/JS version of the game described in [../Minesweeper_GDD.md](../Minesweeper_GDD.md). Use it to try the rules and the controls before building the Unity version.
 
 ## Open it
 **Double-click `index.html`** (or drag it into a browser window). It works offline in any modern browser (Chrome, Edge, Firefox, Safari) on any computer: nothing to install, no internet, no server. The whole prototype is this **one file**, so it also works in previews that only show a single file (for example the Claude app's side browser) and can be copied or emailed on its own.
@@ -21,7 +21,7 @@ Open `index.html` in any text editor and find the block marked **"Loss lines: ed
 - Every new board starts with all cells hidden
 - Tap to open, long press (or right-click) for a yellow flag, a Reveal/Flag mode toggle
 - Safe first tap, flood fill, chording on numbers, win and loss, counter, timer, face
-- First-game tutorial: asks for a first tap, then highlights the opened cell with the biggest number ("This cell has N red flags around it — be careful!"). It shows only once; to see it again, open the page with `#tutorial` at the end of the address (`index.html#tutorial`) or use a private window
+- First-game tutorial: asks for a first tap, then highlights the opened cell with the biggest number ("This cell has N red flags around it — be careful!"). It shows in the first game every time the page is opened; reload the page to see it again
 - **?** button at the right of the top bar: a "How to play" pop-up; OK or a tap/click anywhere closes it, and the timer pauses while it's open
 - Loss panel with a random line from the loss lines block
 - Back button / Escape returns to the menu; the timer pauses when the page is hidden

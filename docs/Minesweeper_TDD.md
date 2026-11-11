@@ -4,9 +4,9 @@
 
 **Project:** the existing Unity project `GC26`, branch `gc26_minesweeper` of [Zaidejas/GC26](https://github.com/Zaidejas/GC26). It was created from the 3D URP template and already has the Input System (1.20) and Test Framework (1.7) packages.
 
-**Theme:** the player avoids hidden **red flags** and marks suspicious cells with **yellow flags** (see Game_Design_Document.md, section 1.1). The code keeps the classic names: "mine" (`IsMine`, `MineCount`) = hidden red flag, "flag" (`IsFlagged`, `ToggleFlag`) = the player's yellow flag. Only sprites and on-screen text use the new names.
+**Theme:** the player avoids hidden **red flags** and marks suspicious cells with **yellow flags** (see Minesweeper_GDD.md, section 1.1). The code keeps the classic names: "mine" (`IsMine`, `MineCount`) = hidden red flag, "flag" (`IsFlagged`, `ToggleFlag`) = the player's yellow flag. Only sprites and on-screen text use the new names.
 
-**Related documents:** [Game_Design_Document.md](Game_Design_Document.md) (rules, screens, controls), [prototype/](prototype/README.md), [task board](https://github.com/users/Zaidejas/projects/6) (all tasks from section 9 as cards).
+**Related documents:** [Minesweeper_GDD.md](Minesweeper_GDD.md) (rules, screens, controls), [Minesweeper_Prototype/](Minesweeper_Prototype/README.md), [task board](https://github.com/users/Zaidejas/projects/6) (all tasks from section 9 as cards).
 
 **Get the project on a new computer:** `git clone -b gc26_minesweeper https://github.com/Zaidejas/GC26.git`, then open the `GC26` folder in Unity Hub (Add → Add project from disk). These documents are in `GC26/docs`.
 
@@ -990,8 +990,8 @@ Red flags are easier to see from a distance.
 - The flag-mode button's `onClick` calls `game.ToggleFlagMode()`; its icon switches between ⛏ and the yellow flag on `FlagModeChanged`
 - **Loss line:** a `[SerializeField] private TextAsset lossLinesFile;` field. In `Awake`, `lines = LossLines.Parse(lossLinesFile != null ? lossLinesFile.text : "")`. When `StateChanged` reports `Lost`, set the loss panel's second text to `LossLines.PickRandom(lines, rng)` and hide that text if it's empty. The text box uses TextMeshPro word wrapping
 - Player-facing texts say "red flags", never "mines" (counter, menu cards, panels)
-- **"How to play" pop-up** (Game_Design_Document.md, section 6.6): a full-screen, semi-transparent `Image` with a centred panel (title, text, OK button) as its child, last in the Canvas so it draws on top. The **?** button's `onClick` shows it. A `Button` on the full-screen image (covering the panel too) and the OK button both hide it, so a tap anywhere closes it; because the image blocks raycasts, `InputHandler`'s `IsOverUI` check stops that tap from reaching the board. While it's open, `GameManager` pauses the timer (like `appPaused`), and the Back button closes it before going to the menu
-- **First-game tutorial** (Game_Design_Document.md, section 6.5): a bubble panel (TextMeshPro text + "Got it" button) anchored directly **under the top bar, above the board**. While it's visible, `CameraController.Fit` uses a larger top margin (top bar + bubble height), so the board sits below the bubble and no cell is covered; when it closes, fit again with the normal margin. In `Start`, if `PlayerPrefs.GetInt("tutorial_done", 0) == 0`, show step 1. When `StateChanged` reports `Playing` (the first reveal), find the revealed non-mine cell with the biggest `AdjacentMines` (first found on a tie), call `TileView.SetTutorialHighlight(true)` on it (a pulsing yellow outline sprite), show step 2 with that number, and save `tutorial_done = 1`. Close it on "Got it", on the next `OnTap`/`OnLongPress`, or on leaving the scene
+- **"How to play" pop-up** (Minesweeper_GDD.md, section 6.6): a full-screen, semi-transparent `Image` with a centred panel (title, text, OK button) as its child, last in the Canvas so it draws on top. The **?** button's `onClick` shows it. A `Button` on the full-screen image (covering the panel too) and the OK button both hide it, so a tap anywhere closes it; because the image blocks raycasts, `InputHandler`'s `IsOverUI` check stops that tap from reaching the board. While it's open, `GameManager` pauses the timer (like `appPaused`), and the Back button closes it before going to the menu
+- **First-game tutorial** (Minesweeper_GDD.md, section 6.5): a bubble panel (TextMeshPro text + "Got it" button) anchored directly **under the top bar, above the board**. While it's visible, `CameraController.Fit` uses a larger top margin (top bar + bubble height), so the board sits below the bubble and no cell is covered; when it closes, fit again with the normal margin. Keep a `static bool tutorialSeen` (not saved, so it resets every time the app starts). In `NewGame`, if it's false, show step 1. When `StateChanged` reports `Playing` (the first reveal), find the revealed non-mine cell with the biggest `AdjacentMines` (first found on a tie), call `TileView.SetTutorialHighlight(true)` on it (a pulsing yellow outline sprite), show step 2 with that number, and set `tutorialSeen = true`. Close it on "Got it", on the next `OnTap`/`OnLongPress`, or on leaving the scene
 - **Android Back button:** in `Update`, `if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)` load the `MainMenu` scene. In the menu the same check calls `Application.Quit()`
 
 ## 6. Unit test example (week 11)
@@ -1102,9 +1102,9 @@ Device Simulator profiles to check: a 16:9 phone, a tall 20:9 phone with a notch
 - [ ] Layout is correct on every device in the Device Simulator list above
 - [ ] Rotating the phone doesn't change anything (portrait only)
 - [ ] The menu shows no instructions text
-- [ ] First game after installing (any difficulty): the tutorial asks for a tap; after it, the opened cell with the biggest number is highlighted and the message shows that number
+- [ ] First game after opening the app (any difficulty): the tutorial asks for a tap; after it, the opened cell with the biggest number is highlighted and the message shows that number
 - [ ] Both tutorial messages appear above the board (never below it or over it), and taps on the board still work while they're shown
-- [ ] "Got it" or the next move closes the tutorial; it doesn't appear in later games
+- [ ] "Got it" or the next move closes the tutorial; it doesn't appear in later games of the same session, and appears again after closing and reopening the app
 - [ ] The **?** button (top right) opens "How to play" with the four rules and an OK button
 - [ ] OK, or a tap anywhere on the screen, closes it; the closing tap never opens or flags a cell
 - [ ] The timer doesn't count while "How to play" is open
@@ -1120,7 +1120,7 @@ Device Simulator profiles to check: a 16:9 phone, a tall 20:9 phone with a notch
 #### Menu and saved data
 - [ ] Each difficulty loads the correct size and mine count (Expert = 16×30, 99 mines)
 - [ ] The best time is saved only after a win, and only if it's better
-- [ ] Best times, Sound and Vibration settings and "tutorial done" survive closing the app completely
+- [ ] Best times, Sound and Vibration settings survive closing the app completely
 - [ ] Menu → Game → Menu works repeatedly with no errors
 
 #### Release build (week 12)
@@ -1348,7 +1348,7 @@ Use the same rhythm every week so no time is lost:
 |---|---|---|---|---|---|---|
 | ☐ | MS-37 | Create the `DifficultySettings` ScriptableObject and the Beginner 9×9/10, Intermediate 16×16/40, Expert 16×30/99 assets | 15 | Should | MS-26 | Three assets exist with the correct sizes and mine counts |
 | ☐ | MS-38 | Create the static `GameSession` class and read it in `NewGame()` | 5 | Should | MS-37 | The game uses `GameSession.Selected`, or the default if it's empty |
-| ☐ | MS-39 | Build the `MainMenu` scene (scene 0, the first screen): title, three large difficulty cards, settings button; no Quit button | 30 | Should | MS-38 | The app opens on this screen; the layout matches the sketch in Game_Design_Document.md and sits inside the safe area |
+| ☐ | MS-39 | Build the `MainMenu` scene (scene 0, the first screen): title, three large difficulty cards, settings button; no Quit button | 30 | Should | MS-38 | The app opens on this screen; the layout matches the sketch in Minesweeper_GDD.md and sits inside the safe area |
 | ☐ | MS-40 | Scene loading, Menu button, and Android Back (Escape key): game → menu, menu → quit | 15 | Should | MS-39 | Back behaves correctly on the phone; Menu → Game → Menu works repeatedly with no errors |
 | ☐ | MS-41 | Test all screens in the Device Simulator on a 16:9 phone, a 20:9 notched phone and a 4:3 tablet | 25 | Should | MS-40 | Board and UI fit on all three with nothing hidden or overlapping |
 
@@ -1392,7 +1392,7 @@ Use the same rhythm every week so no time is lost:
 | ✓ | ID | Task | Est. | Priority | Depends on | Done when |
 |---|---|---|---|---|---|---|
 | ☐ | MS-48 | Find sound effects: tap, flag, flood fill, loss (hitting a red flag), win (check the licences) | 15 | Should | — | 5 clips are in `Assets/Audio`, with licences noted |
-| ☐ | MS-49 | Write `AudioManager` and play the sounds on game events | 20 | Should | MS-48 | Each event in the feedback table in Game_Design_Document.md plays its sound |
+| ☐ | MS-49 | Write `AudioManager` and play the sounds on game events | 20 | Should | MS-48 | Each event in the feedback table in Minesweeper_GDD.md plays its sound |
 | ☐ | MS-50 | Settings panel with Sound and Vibration toggles, saved in `PlayerPrefs` | 15 | Should | MS-39, MS-49 | Both settings stay as chosen after reopening the app |
 | ☐ | MS-51 | `Haptics` helper: vibrate on long-press flag and on loss | 10 | Should | MS-50 | The phone buzzes on those events only when Vibration is on |
 | ☐ | MS-52 | Pressed tile highlight and 😮 face while a finger is held on the board | 10 | Should | MS-33 | The tile under the finger darkens and the face changes; both reset on lift or drag |
@@ -1436,7 +1436,7 @@ Use the same rhythm every week so no time is lost:
 | ☐ | MS-59 | Player Settings: package name, version, adaptive icon, splash, portrait only, IL2CPP + ARM64, minimum/target API level | 20 | Must | — | All settings are filled in and a build succeeds with them |
 | ☐ | MS-60 | Remove `BoardDebug` and unneeded `Debug.Log` calls; set `Application.targetFrameRate = 60` | 10 | Must | — | The Console is clean during normal play and the game runs at 60 fps |
 | ☐ | MS-61 | Create a keystore and make a signed release build (APK; AAB if publishing); back up the keystore outside Git | 20 | Must | MS-59, MS-60 | A signed APK installs on the phone without Unity; the keystore has a backup |
-| ☐ | MS-62 | Test the release build on 2+ devices: notch, Back button, phone call / lock screen mid-game, return to app | 25 | Must | MS-61 | Everything behaves as described in the edge-case table in Game_Design_Document.md |
+| ☐ | MS-62 | Test the release build on 2+ devices: notch, Back button, phone call / lock screen mid-game, return to app | 25 | Must | MS-61 | Everything behaves as described in the edge-case table in Minesweeper_GDD.md |
 | ☐ | MS-63 | Upload the AAB to Google Play internal testing | 15 | Could | MS-61 | The app installs from the Play internal-testing link |
 
 ##### Week 13: Buffer, release and review

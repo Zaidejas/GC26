@@ -360,7 +360,7 @@ Some flags are best left alone.
   <!-- ===== Game code ===== -->
   <script>
 // Red Flags (Minesweeper) prototype.
-// Same rules as Board.cs in ../Technical_Design_Document.md.
+// Same rules as Board.cs in ../Minesweeper_TDD.md.
 // Naming as in the docs: "mine" = hidden red flag, "flag" = player's yellow flag.
 
 // ---------------------------------------------------------------- rules ----
@@ -608,18 +608,16 @@ function afterOpen(changed) {
 }
 
 // ---- first-game tutorial
-// Shown once, in the player's very first game (any difficulty):
+// Shown in the first game each time the app is opened (any difficulty):
 //   step 1: ask for a first tap
 //   step 2: highlight the opened cell with the biggest number and explain it
-// TUTORIAL_KEY is saved when step 2 appears, so leaving before the first tap shows it again next time.
-// Change the key's version number to make every browser show the tutorial once more.
-// Open index.html#tutorial to see it again in the next game.
-const TUTORIAL_KEY = "tutorial_done_v2";
-if (location.hash === "#tutorial") save(TUTORIAL_KEY, "");   // checked once, when the page opens
+// Nothing is saved: tutorialSeen resets whenever the page is opened again.
+// It is set when step 2 appears, so leaving before the first tap shows the tutorial again in the next game.
+let tutorialSeen = false;
 let tutorialStep = 0;   // 0 = off
 
 function startTutorialIfFirstGame() {
-  if (load(TUTORIAL_KEY)) return;
+  if (tutorialSeen) return;
   tutorialStep = 1;
   showTutorial("Tap any cell to start. Your first tap is always safe.", false);
 }
@@ -640,7 +638,7 @@ function tutorialAfterFirstReveal() {
   const tile = tiles[best[0]][best[1]];
   tile.classList.add("tutorial-target");
   tutorialStep = 2;
-  save(TUTORIAL_KEY, "1");
+  tutorialSeen = true;
   showTutorial(`This cell has ${n} red flag${n === 1 ? "" : "s"} around it — be careful!`, true);
   tile.scrollIntoView({ block: "nearest", inline: "nearest" });   // big boards scroll
 }
