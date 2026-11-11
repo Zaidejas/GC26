@@ -1,0 +1,7 @@
+{
+  "id": "gc26_bomber",
+  "title": "Последний сигнал",
+  "description": "Top-down шутер: перегрей ядро, но не сгори",
+  "entry_scene": "gc26_bomber_Main",
+  "authors": []
+}
