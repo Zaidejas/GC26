@@ -1,9 +1,6 @@
 ﻿<Solution>
-  <Project Path="Lines.Tests.PlayMode.csproj" />
-  <Project Path="Lines.csproj" />
-  <Project Path="Lines.Tests.EditMode.csproj" />
-  <Project Path="Lines.Core.csproj" />
-  <Project Path="Lines.Editor.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="GC26.Core.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="GC26.Core.Editor.csproj" />
 </Solution>

@@ -1,0 +1,19 @@
+{
+    "name": "GC26.Lines.Editor",
+    "rootNamespace": "GC26.Lines.EditorTools",
+    "references": [
+        "GC26.Lines",
+        "GC26.Lines.Core"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
