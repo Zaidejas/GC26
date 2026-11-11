@@ -6,6 +6,22 @@ Lines is also one of the 11 GC26 microgames in one shared Unity project (team ru
 
 This file lives in the game folder because our branch may only change that folder. Each machine keeps a local, uncommitted `CLAUDE.md` in the project root containing the single line `@Assets/Microgames/gc26_lines/CLAUDE.md`, so Claude reads this file when it starts in the project root (it is listed in `.git/info/exclude`).
 
+**Only our branch.** We work only in `gc26_lines`: never create other branches (not even temporary ones in a test copy), never push anything else, never touch `main` or other teams' branches. `main` is only read, for merges the user asks for.
+
+## New machine (or a fresh clone)
+
+Run once, before opening Unity: `Assets/Microgames/gc26_lines/Tools~/setup.sh` (safe to run again). It:
+- downloads the pictures and fonts with **Git LFS** (without Git LFS they arrive as text placeholders and the game shows no mushrooms);
+- installs one `pre-push` hook in `.git/hooks` that runs the team check *and* the Git LFS upload. Don't use RULES.md's `git config core.hooksPath tools/hooks`: it switches off Git LFS's push step, so pushed pictures never reach GitHub (and its hook file isn't executable, so git skips it anyway);
+- keeps local files out of git (`/Builds/`, `.vscode/`, `/Assets/Microgames.meta`, the root `CLAUDE.md`) through `.git/info/exclude`, and creates the root `CLAUDE.md`;
+- checks that Unity 6000.5.6f1 is installed.
+
+Then open the folder in Unity Hub. The game's scene opens by itself (`PlayFromMainScene`, only while Lines is the only game in `Assets/Microgames`). Tested on a fresh clone: all tests pass.
+
+Opening the project, Unity changes two of `main`'s files by itself on every machine (`ProjectSettings/EditorBuildSettings.asset`: `SampleScene` → `MainScene`; `ProjectSettings/ShaderGraphSettings.asset`: one added line). They are the organiser's to fix in `main`; never commit them, discard them (`git checkout -- ProjectSettings`).
+
+A global git ignore rule `*~` (on this Mac in `~/.gitignore_global`, common for editor backups) also hides **new** files in `Documentation~/` and `Tools~/`. Files already tracked are fine; add new ones with `git add -f <file>`.
+
 ## Read first
 
 - `Documentation~/Lines_Game_Design_Document.md`: the rules, controls, screens, and what is MVP vs later. **The GDD is the source of truth for game behavior.**
@@ -26,7 +42,7 @@ This file lives in the game folder because our branch may only change that folde
 - **Names.** Namespaces `GC26.Lines.*`; code packages `GC26.Lines` (the game folder root) and `GC26.Lines.<Something>`; the scene name starts with `gc26_lines_`; Resources only under `Resources/gc26_lines/` and loaded as `Resources.Load("gc26_lines/...")`; no generic file names such as `GameController`, `Game`, `Menu`, `Settings`, `Player` (prefix them with `Lines`).
 - **Saves** only in `MicrogameSave.Folder(LinesMicrogame.Id)` (persistentDataPath/gc26_lines); PlayerPrefs keys start with `gc26_lines_`.
 - **No global state:** no `DontDestroyOnLoad`, no session-long static singletons, `Time.timeScale` and `Physics.gravity` put back in `OnDisable`. Everything the game makes lives in its scene.
-- **Checks** before pushing (both must show no ERROR; our branch is still named `gc26_lines`, so pass the team name explicitly):
+- **Checks** before pushing (both must show no ERROR; the pre-push hook from `setup.sh` runs them, but our branch is named `gc26_lines`, not `game/gc26_lines`, so the scope check skips it there; run it by hand with the team name):
 
 ```bash
 python3 tools/check_scope.py --branch game/gc26_lines
@@ -34,7 +50,7 @@ python3 tools/check_names.py gc26_lines
 ```
 
 - **Merge `main` into our branch** about once a week: `git fetch && git merge origin/main`.
-- **The shared menu** (later): it loads `gc26_lines_Main`, finds the one `IMicrogame` component (`LinesMicrogame`) and calls `Begin(exit)`. The game starts by itself without the menu, so phone builds work alone. Still to do when the games are merged: a "Back to games" button that calls `LinesMicrogame.ExitToMenu(score)`, a pause, and the team's branch name `game/gc26_lines`.
+- **The shared menu** (later): it loads `gc26_lines_Main`, finds the one `IMicrogame` component (`LinesMicrogame`) and calls `Begin(exit)`. The game starts by itself without the menu, so phone builds work alone. Still to do when the games are merged: a "Back to games" button that calls `LinesMicrogame.ExitToMenu(score)`, and a pause. RULES.md names branches `game/<id>`, but most teams (us too) use `gc26_<name>`; we keep `gc26_lines` unless the organiser asks.
 
 ## Code-first: no hand-built scenes
 
