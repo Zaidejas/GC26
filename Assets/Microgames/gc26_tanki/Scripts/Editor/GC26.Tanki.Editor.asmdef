@@ -1,0 +1,9 @@
+{
+  "name": "GC26.Tanki.Editor",
+  "rootNamespace": "GC26.Tanki.EditorTools",
+  "references": [],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "autoReferenced": false
+}

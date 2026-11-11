@@ -1,0 +1,7 @@
+{
+  "name": "GC26.Tanki.Rules",
+  "rootNamespace": "GC26.Tanki.Rules",
+  "references": [],
+  "autoReferenced": false,
+  "noEngineReferences": true
+}

@@ -1,0 +1,10 @@
+{
+  "name": "GC26.Tanki",
+  "rootNamespace": "GC26.Tanki",
+  "references": [
+    "GC26.Core",
+    "GC26.Tanki.Rules",
+    "Unity.InputSystem"
+  ],
+  "autoReferenced": false
+}

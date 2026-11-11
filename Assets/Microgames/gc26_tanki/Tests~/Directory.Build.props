@@ -1,0 +1,8 @@
+<Project>
+  <!-- Build output goes to the temp folder, so no generated .cs files land inside Assets
+       (the GC26 name check would flag them). -->
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>$([System.IO.Path]::GetTempPath())gc26_tanki_tests\obj\</BaseIntermediateOutputPath>
+    <BaseOutputPath>$([System.IO.Path]::GetTempPath())gc26_tanki_tests\bin\</BaseOutputPath>
+  </PropertyGroup>
+</Project>
