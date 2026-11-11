@@ -67,6 +67,7 @@ namespace GC26.Tanki.Game
             Sound = new SoundBank(gameObject) { Muted = !Save.SoundOn };
 
             view = CameraRig.Create(transform);
+            TankiPostFx.Create(transform, view);
             world = new WorldView(transform);
             gameObject.AddComponent<GameHud>().Init(this);
             world.BeginSplash();

@@ -672,7 +672,8 @@ namespace GC26.Tanki.Game
 
             material = new Material(glow ? Resources.Load<Material>("gc26_tanki/SteelLineGlow") : baseMaterial) { color = color };
             material.SetFloat("_Smoothness", 0.1f);
-            if (glow) material.SetColor("_EmissionColor", color * 0.4f);
+            // Above 1 in HDR, so the bloom picks these parts up.
+            if (glow) material.SetColor("_EmissionColor", color * 1.4f);
             materials[key] = material;
             return material;
         }
