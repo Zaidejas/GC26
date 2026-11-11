@@ -10,8 +10,8 @@ Top-down shooter / roguelite: ремонтный дрон пробивается
 
 ## Документы
 
-- [Game Design Document](Docs/GDD.md)
-- [Technical Design Document](Docs/TDD.md)
+- [Game Design Document](../../../docs/GDD.md)
+- [Technical Design Document](../../../docs/TDD.md)
 
 ## Как играть
 

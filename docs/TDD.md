@@ -1,7 +1,7 @@
 # Technical Design Document — «Последний сигнал» (`gc26_bomber`)
 
 > **Версия:** 0.2 · **Дата:** 2026-11-11
-> **Связанные документы:** [GDD](GDD.md) · [RULES.md](../../../../RULES.md) (правила репозитория GC26 — главнее этого документа)
+> **Связанные документы:** [GDD](GDD.md) · [RULES.md](../RULES.md) (правила репозитория GC26 — главнее этого документа)
 
 ---
 
@@ -44,11 +44,11 @@
 
 ## 2. Ограничения репозитория GC26
 
-Игра — одна из микроигр общего Unity-проекта. Из [RULES.md](../../../../RULES.md) следуют жёсткие технические ограничения:
+Игра — одна из микроигр общего Unity-проекта. Из [RULES.md](../RULES.md) следуют жёсткие технические ограничения:
 
 | Правило | Что это значит для нас |
 |---|---|
-| Только своя папка | Весь код, ассеты и документы — в `Assets/Microgames/gc26_bomber/` |
+| Только своя папка | Весь код и ассеты — в `Assets/Microgames/gc26_bomber/`; GDD и TDD — в `docs/` в корне репозитория |
 | Свой asmdef и неймспейс | `GC26.Bomber.asmdef`, весь код в `namespace GC26.Bomber` (и `GC26.Bomber.*`) |
 | Сцены с префиксом | `gc26_bomber_Main.unity`, `gc26_bomber_Test.unity`, `gc26_bomber_Stress.unity` |
 | Resources только в подпапке ID | `Resources/gc26_bomber/...`, `Resources.Load("gc26_bomber/...")` |
@@ -91,9 +91,6 @@ Assets/Microgames/gc26_bomber/
 ├── microgame.json               паспорт игры (обязательно)
 ├── GC26.Bomber.asmdef           своя сборка (обязательно)
 ├── README.md
-├── Docs/
-│   ├── GDD.md
-│   └── TDD.md
 ├── Scenes/
 │   ├── gc26_bomber_Main.unity   стартовая сцена (entry_scene)
 │   ├── gc26_bomber_Test.unity   песочница: одна комната, читы
