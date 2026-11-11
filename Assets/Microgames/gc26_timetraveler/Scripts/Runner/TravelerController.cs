@@ -21,10 +21,10 @@ namespace GC26.Timetraveler
 
             [Header("Jump")]
             [Tooltip("Height of a full (held) jump, in units")]
-            public float jumpHeight = 4.5f;
+            public float jumpHeight = 6.5f;
             [Tooltip("Seconds to reach the top of a full jump")]
-            public float jumpTimeToApex = 0.38f;
-            public float doubleJumpHeight = 3.5f;
+            public float jumpTimeToApex = 0.42f;
+            public float doubleJumpHeight = 5f;
             [Tooltip("Upward speed is multiplied by this when the jump is released early")]
             public float jumpCutMultiplier = 0.45f;
             [Tooltip("Gravity multiplier while falling, for a snappier landing")]
@@ -32,9 +32,13 @@ namespace GC26.Timetraveler
             public float maxFallSpeed = 35f;
             public float fastFallSpeed = 40f;
             [Tooltip("A jump pressed this long before landing still counts")]
-            public float jumpBufferTime = 0.12f;
+            public float jumpBufferTime = 0.15f;
             [Tooltip("A jump pressed this long after leaving a ledge still counts")]
-            public float coyoteTime = 0.08f;
+            public float coyoteTime = 0.12f;
+
+            [Header("Forgiveness")]
+            [Tooltip("Hitting a block this close to its top edge steps up onto it instead of dying")]
+            public float stepUpAssist = 1.2f;
 
             [Header("Slide")]
             public float slideDuration = 0.7f;
@@ -227,19 +231,34 @@ namespace GC26.Timetraveler
         void OnCollisionEnter2D(Collision2D collision) => CheckWallHit(collision);
         void OnCollisionStay2D(Collision2D collision) => CheckWallHit(collision);
 
-        /// <summary>Running face-first into a wall or block ends the run.</summary>
+        /// <summary>
+        /// Running face-first into a wall or block ends the run, unless the traveler only clipped
+        /// its top edge: then he steps up onto it (much less frustrating).
+        /// </summary>
         void CheckWallHit(Collision2D collision)
         {
             if (IsDead) return;
             for (var i = 0; i < collision.contactCount; i++)
             {
-                if (collision.GetContact(i).normal.x < -0.7f)
+                if (collision.GetContact(i).normal.x >= -0.7f) continue;
+
+                var otherTop = collision.collider.bounds.max.y;
+                var feet = _body.position.y - _collider.size.y / 2f;
+                if (otherTop - feet <= tuning.stepUpAssist)
                 {
-                    Die();
+                    _body.position = new Vector2(_body.position.x + 0.1f, otherTop + _collider.size.y / 2f + 0.02f);
+                    var v = _body.linearVelocity;
+                    v.y = Mathf.Max(0f, v.y);
+                    _body.linearVelocity = v;
                     return;
                 }
+                Die();
+                return;
             }
         }
+
+        /// <summary>World-space box of the traveler's collider (for the world-switch safety check).</summary>
+        public Bounds BodyBounds => new Bounds(_body.position, new Vector3(_collider.size.x, _collider.size.y, 1f));
 
         void OnTriggerEnter2D(Collider2D other)
         {
