@@ -229,7 +229,7 @@ namespace GC26.Lines.UI
                 content.color = Color.white;
                 float size;
                 if (ch >= '0' && ch <= '6') { content.sprite = pieces.SpriteFor(BallColors.All[ch - '0']); size = pieces.SizeInCell; }
-                else if (ch >= 'a' && ch <= 'g') { content.sprite = pieces.SpriteFor(BallColors.All[ch - 'a']); size = pieces.DotSizeInCell; }
+                else if (ch >= 'a' && ch <= 'g') { content.sprite = pieces.SpriteFor(BallColors.All[ch - 'a']); content.color = PieceSet.GhostColor; size = pieces.DotSizeInCell; }
                 else if (ch == '*') { content.sprite = SpriteFactory.Disc(); content.color = new Color(Palette.SoftText.r, Palette.SoftText.g, Palette.SoftText.b, 0.5f); size = 0.22f; }
                 else { content.enabled = false; size = 0f; }
                 float s = cellPx * size;

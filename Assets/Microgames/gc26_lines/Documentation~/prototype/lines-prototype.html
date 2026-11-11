@@ -194,6 +194,10 @@ body {
   font: 800 3.8cqw var(--font-body); color: var(--text); cursor: pointer; flex: none;
 }
 .icon-btn svg { width: 5.4cqw; height: 5.4cqw; }
+#back { padding: 0; } /* the house is symmetric, so no nudge like the back arrows */
+.phone.forest #back { /* the house button: just the icon, no ring or disc behind it */
+  background: none; border-color: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+}
 .icon-btn:focus-visible { outline: 0.7cqw solid var(--focus); outline-offset: 0.6cqw; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 3cqw; }
 
@@ -274,7 +278,11 @@ body {
   box-shadow: inset 0 0 0 0.2cqw rgba(200, 180, 255, 0.08);
 }
 .phone.forest .ball.creature { filter: drop-shadow(0 0 0.9cqw color-mix(in srgb, var(--c) 65%, transparent)); }
-.phone.forest .ball.creature.dot { filter: drop-shadow(0 0 0.6cqw var(--c)); opacity: 1; }
+/* Preview on the board: a "ghost" mini mushroom, half size, see-through and paler,
+   so it reads as "a mushroom will grow here", not a real piece. */
+.phone.forest .ball.creature.dot, .phone.forest .mini .ball.creature.dot {
+  width: 56%; height: 56%; opacity: 0.6; filter: saturate(0.9);
+}
 .phone.forest .gain { color: #9cf5b0; text-shadow: 0 0 2cqw rgba(140, 255, 170, 0.6); }
 .phone.forest .num, .phone.forest .logo, .phone.forest .card .final { text-shadow: 0 0 3cqw rgba(255, 214, 120, 0.45); }
 .phone.forest .logo {
@@ -378,7 +386,7 @@ body {
 
         <div class="view" id="screen-game" hidden>
           <div class="topbar">
-            <button type="button" class="icon-btn" id="back" aria-label="Back to menu" title="Back to menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <button type="button" class="icon-btn" id="back" aria-label="Main menu" title="Main menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 3.8l8.5 7.2"/><path d="M5.8 9.6V19a1.2 1.2 0 0 0 1.2 1.2h3.4v-5.4h3.2v5.4H17a1.2 1.2 0 0 0 1.2-1.2V9.6"/></svg></button>
           </div>
         <div class="content">
           <div class="hud">

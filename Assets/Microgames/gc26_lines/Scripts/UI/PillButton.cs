@@ -75,7 +75,23 @@ namespace GC26.Lines.UI
             return b;
         }
 
+        /// <summary>
+        /// Shows only the label or icon: no outline ring and no glass disc behind it (the game screen's house
+        /// button). The tap area stays the same size.
+        /// </summary>
+        public void MakePlain()
+        {
+            border.enabled = false;
+            fill.enabled = false;
+            glow.enabled = false;
+        }
+
+        /// <summary>True when the button shows no outline and no fill (see <see cref="MakePlain"/>).</summary>
+        public bool IsPlain => !border.enabled && !fill.enabled;
+
         public bool HasIcon => icon != null;
+        /// <summary>The icon's picture, or null for a text button.</summary>
+        public Sprite IconSprite => icon != null ? icon.sprite : null;
         public bool HasLeadingIcon => leadingIcon != null;
 
         /// <summary>Shows <paramref name="iconSprite"/> in front of the label, like the prototype's Undo and Reset.</summary>

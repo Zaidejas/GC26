@@ -108,6 +108,23 @@ namespace GC26.Lines.Tests
             CollectionAssert.AreEquivalent(new[] { new Cell(8, 8) }, view.DotCells.ToList());
         }
 
+        [Test]
+        public void Dots_AreSeeThroughGhostPieces()
+        {
+            var view = NewBoard();
+            var preview = new Preview(new[] { BallColor.Blue, BallColor.Green, BallColor.Red },
+                new[] { new Cell(0, 0), new Cell(4, 4), new Cell(8, 8) });
+
+            view.ShowPreviewDots(preview, TestBoards.FromRows(
+                ".........", ".........", ".........", ".........", ".........",
+                ".........", ".........", ".........", "........."));
+
+            var dots = view.GetComponentsInChildren<SpriteRenderer>().Where(r => r.name == "Preview dot").ToList();
+            Assert.AreEqual(3, dots.Count);
+            foreach (var dot in dots)
+                Assert.AreEqual(PieceSet.GhostColor.a, dot.color.a, 1e-4f, "The preview is a see-through ghost, not a real piece");
+        }
+
         // ---- The task's "done when": the preview always matches what spawns ----
 
         [Test]

@@ -93,12 +93,14 @@ namespace GC26.Lines.Tests
         }
 
         [Test]
-        public void Hud_HasARoundBackArrow()
+        public void Hud_HasAPlainHouseButton()
         {
             hud = HudView.Create(camera);
             hud.ApplyLayout(BoardLayout.Compute(new Vector2(1080, 1920), new Rect(0, 0, 1080, 1920)));
             Assert.IsTrue(hud.BackButton.HasIcon);
-            Assert.AreEqual("", hud.BackButton.Text, "Arrow only, no word");
+            Assert.AreEqual("Home", hud.BackButton.IconSprite.name, "A house, not the back arrow");
+            Assert.IsTrue(hud.BackButton.IsPlain, "Just the house: no ring or disc behind it");
+            Assert.AreEqual("", hud.BackButton.Text, "Icon only, no word");
             int back = 0;
             hud.BackClicked += () => back++;
             hud.BackButton.Click();

@@ -53,7 +53,7 @@ Every turn ends either with a cleared line, which skips the spawn, or with 3 new
 | Board | 9×9 cells (81) |
 | Kinds of balls | 7: the 7 glowing mushrooms, the same in every game (see Art) |
 | Balls at the start | 3, in random cells, as in the classic game |
-| New balls per turn | 3. Their colors **and the cells where they will appear** are shown in advance (the cells show small preview dots) |
+| New balls per turn | 3. Their colors **and the cells where they will appear** are shown in advance (the cells show the next mushrooms as small see-through "ghost" mushrooms) |
 | Movement | One ball per turn to any empty cell that has a path to it |
 | Path | Up, down, left and right through empty cells. No diagonals and no jumping over balls |
 | Line | 5 or more balls of one color in a row, column or diagonal |
@@ -162,7 +162,7 @@ The MVP has four screens and two pop-ups. The app opens on the main menu.
 | Screen | Contents | Opens from |
 | :---- | :---- | :---- |
 | Main menu | Game title, Continue (with the saved game's score), New game, How to play, Leaderboard | App launch; back buttons |
-| Game | Back button, score, preview of the next 3 balls, board, Undo, Reset | Continue or New game |
+| Game | House button (main menu), score, preview of the next 3 balls, board, Undo, Reset | Continue or New game |
 | How to play | Back button, then 3 short cards with a small board picture each: move a ball along a free path; make lines of five; the next balls, game over and Undo. Back / Next, and "Got it" on the last card. The picture and title stay in the same place on every card | Main menu |
 | Leaderboard | Back button, then the local top 10 finished games, each with rank, name, date and score; the game just finished is highlighted, with a result line above the list and a Play again button below it. Shows a short explanation while it's empty | Main menu; Save on the game-over pop-up |
 | New game confirmation | "Start a new game?" with Yes and Cancel; the current game is lost | Reset button, or New game on the menu while a game is unfinished |
@@ -172,7 +172,7 @@ The MVP has four screens and two pop-ups. The app opens on the main menu.
 
 - **Continue** resumes the saved game and shows its score. It is disabled when there's no unfinished game.
 - **New game** starts right away when there's no unfinished game; otherwise it asks for confirmation first.
-- The back button (an arrow, no text) on the game, How to play and Leaderboard screens returns to the menu. Leaving the game saves it, so Continue picks it up exactly where it was (Undo included).
+- On the game screen, a house icon (just the white icon, no ring or disc behind it) returns to the main menu; How to play and Leaderboard have the back button (an arrow in a round glass button, no text) instead. Both return to the menu. Leaving the game saves it, so Continue picks it up exactly where it was (Undo included).
 - How to play and Leaderboard have no title at the top, only the back button.
 
 **Player name on game over**
@@ -182,9 +182,9 @@ The MVP has four screens and two pop-ups. The app opens on the main menu.
 
 **Game screen layout (portrait, top to bottom)**
 
-1. Back button (arrow) in the top-left corner.
+1. House button (main menu) in the top-left corner: only the white house icon, no ring or disc.
 2. Score and the preview of the next 3 ball colors.
-3. The board, filling the screen width, with preview dots in the cells where the next balls will appear.
+3. The board, filling the screen width, with "ghost" mushrooms (preview dots) in the cells where the next balls will appear.
 4. Undo and Reset buttons, within easy reach of the thumb.
 
 **Layout on the two target screens**
@@ -232,7 +232,7 @@ The look is a dark, magical mushroom forest at night: glowing mushrooms on a dar
 - **App icon:** the red spotted mushroom, large and glowing, on the dark forest with a few fireflies. On Android 8+ it is made of two layers (the forest and the mushroom), so each phone can cut it into its own shape.
 - **Splash screen:** while the game loads: the same glowing mushroom and the gold "Lines" title over the plain forest background, for about 2 seconds, with no Unity logo. Before that, iOS shows a plain screen in the game's dark colour.
 - One theme (the dark magic forest) in the MVP.
-- Preview dots: small versions of the next mushrooms, drawn in their target cells.
+- Preview dots: "ghost" versions of the next mushrooms in their target cells: about half the size of a real one, see-through and a little paler, with no glow, so they read as "a mushroom will grow here", not as real pieces (teacher's feedback; glowing coloured dots, a breathing animation and a magic circle were tried and dropped).
 - Animations: the selected ball bounces, balls grow in when they spawn, cleared balls shrink and burst into particles, and a blocked move shakes the ball.
 - No audio in the MVP (see Later features).
 

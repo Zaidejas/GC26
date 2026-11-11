@@ -195,6 +195,20 @@ namespace GC26.Lines.View
             Join(Arc(new Vector2(12, 12), 9f, 180f, -131.8f), new[] { new Vector2(3, 8) }),
             new[] { new Vector2(3, 3), new Vector2(3, 8), new Vector2(8, 8) }));
 
+        static Sprite homeIcon;
+
+        /// <summary>
+        /// The prototype's house icon for the game screen's "main menu" button: a roof and a house with a
+        /// small door and rounded bottom corners (SVG paths on a 24-unit grid, stroke 2.4).
+        /// </summary>
+        public static Sprite HomeIcon() => homeIcon != null ? homeIcon : (homeIcon = StrokeIcon("Home", 2.4f,
+            new[] { new Vector2(3.5f, 11f), new Vector2(12f, 3.8f), new Vector2(20.5f, 11f) },
+            Join(new[] { new Vector2(5.8f, 9.6f), new Vector2(5.8f, 19f) },
+                Arc(new Vector2(7f, 19f), 1.2f, 180f, 90f),
+                new[] { new Vector2(10.4f, 20.2f), new Vector2(10.4f, 14.8f), new Vector2(13.6f, 14.8f), new Vector2(13.6f, 20.2f), new Vector2(17f, 20.2f) },
+                Arc(new Vector2(17f, 19f), 1.2f, 90f, 0f),
+                new[] { new Vector2(18.2f, 9.6f) })));
+
         // Points along a circle (SVG coordinates: y points down, angles in degrees).
         static Vector2[] Arc(Vector2 centre, float radius, float fromDeg, float toDeg)
         {

@@ -33,7 +33,7 @@ namespace GC26.Lines.UI
         /// <summary>The player pressed Reset.</summary>
         public event System.Action ResetClicked;
         public PillButton ResetButton => reset;
-        /// <summary>The player pressed the back arrow (top-left).</summary>
+        /// <summary>The player pressed the house button (top-left): back to the main menu.</summary>
         public event System.Action BackClicked;
         public PillButton BackButton => back;
         PillButton back;
@@ -85,7 +85,8 @@ namespace GC26.Lines.UI
             reset = PillButton.Create((RectTransform)transform, "Reset");
             reset.SetLeadingIcon(SpriteFactory.ResetIcon());
             reset.Clicked += () => ResetClicked?.Invoke();
-            back = PillButton.CreateIcon((RectTransform)transform, SpriteFactory.BackArrow(), "Back");
+            back = PillButton.CreateIcon((RectTransform)transform, SpriteFactory.HomeIcon(), "Home");
+            back.MakePlain(); // just the house, no ring or disc (teacher's feedback, prototype)
             back.Clicked += () => BackClicked?.Invoke();
 
             popups = new GameObject("Popups");

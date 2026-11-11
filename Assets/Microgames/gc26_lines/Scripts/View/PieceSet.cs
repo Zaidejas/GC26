@@ -23,8 +23,17 @@ namespace GC26.Lines.View
         /// <summary>Piece size compared to a cell (prototype: balls 80%, pictures 94%).</summary>
         public float SizeInCell => UsesImages ? 0.94f : 0.8f;
 
-        /// <summary>Preview dot size compared to a cell (prototype: balls 30%, pictures 42%).</summary>
-        public float DotSizeInCell => UsesImages ? 0.42f : 0.30f;
+        /// <summary>
+        /// Preview size compared to a cell. The preview is a "ghost" mini mushroom: about half a real one,
+        /// see-through (<see cref="GhostColor"/>), so it reads as "a mushroom will grow here" (prototype: 56%).
+        /// </summary>
+        public float DotSizeInCell => UsesImages ? 0.56f : 0.30f;
+
+        /// <summary>
+        /// The preview's see-through tint. The prototype uses 60% in the browser; Unity blends see-through
+        /// colours more brightly (Linear colour space), so a little less here looks the same.
+        /// </summary>
+        public static readonly Color GhostColor = new Color(1f, 1f, 1f, 0.5f);
 
         PieceSet(bool usesImages) { UsesImages = usesImages; }
 

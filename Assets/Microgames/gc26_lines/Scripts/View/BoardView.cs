@@ -193,7 +193,7 @@ namespace GC26.Lines.View
                 var (cell, color) = dotData[i];
                 var sprite = pieces.SpriteFor(color);
                 dots[i].sprite = sprite;
-                dots[i].color = Color.white;
+                dots[i].color = PieceSet.GhostColor;
                 dots[i].transform.localPosition = CellToLocal(cell);
                 var size = sprite.bounds.size;
                 dots[i].transform.localScale = Vector3.one * (pieces.DotSizeInCell / Mathf.Max(size.x, size.y));
