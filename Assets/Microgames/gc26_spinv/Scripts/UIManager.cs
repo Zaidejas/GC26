@@ -10,7 +10,8 @@ namespace GC26.Spinv
     {
         [Header("HUD")]
         public TMP_Text scoreText;
-        public Image[] hearts;
+        [Tooltip("Сердечки висят под кораблём (его дети) и наклоняются вместе с ним")]
+        public SpriteRenderer[] hearts;
         [Tooltip("Прозрачность сердечка потерянной жизни")]
         [Range(0f, 1f)] public float lostHeartAlpha = 0.15f;
         public float heartFadeSpeed = 2.5f;

@@ -590,6 +590,7 @@ namespace GC26.Spinv
             player.AddComponent<PlayerController>().laserPrefab = laserPrefab;
             player.AddComponent<ShipSparks>().sparkSprite = uiSquareSprite; // оранжевые искры при ускоренной стрельбе
             BuildShipMotion(player);
+            BuildPlayerHearts(player.transform);
 
             var gridObject = new GameObject("InvaderGrid");
             gridObject.transform.position = new Vector3(0f, 9.2f, 0f);
@@ -662,6 +663,28 @@ namespace GC26.Spinv
             motion.flameCore = coreRenderer;
             motion.lightSprite = uiSquareSprite;
             motion.lightCenter = new Vector2(0.01f, -0.115f);
+        }
+
+        static SpriteRenderer[] playerHearts;
+
+        // Жизни: три сердечка в ряд под выхлопом, дети корабля - наклоняются вместе с ним.
+        // Координаты в локальных единицах корабля (масштаб корабля BodyScale)
+        static void BuildPlayerHearts(Transform player)
+        {
+            const float heartWidth = 0.28f;
+            const float spacing = 0.33f;
+            const float y = -0.72f; // ниже самого длинного пламени (≈ -0.55)
+            float scale = heartSprite != null && heartSprite.bounds.size.x > 0f ? heartWidth / heartSprite.bounds.size.x : 1f;
+
+            playerHearts = new SpriteRenderer[3];
+            for (int i = 0; i < playerHearts.Length; i++)
+            {
+                var heart = NewSpriteObject($"Heart{i + 1}", heartSprite, 0);
+                heart.transform.SetParent(player, false);
+                heart.transform.localPosition = new Vector3((i - 1) * spacing, y, 0f);
+                heart.transform.localScale = Vector3.one * scale;
+                playerHearts[i] = heart.GetComponent<SpriteRenderer>();
+            }
         }
 
         // Щит-купол над кораблём: заливка (она же маска для сканлайнов), пульсирующий край и бегущие сканлайны.
@@ -821,26 +844,17 @@ namespace GC26.Spinv
             waveLabel.color = PhosphorMid;
             ui.waveText = MakeText(safeArea, "Wave", "1/5", 48, TextAlignmentOptions.Top, topRight, new Vector2(-200f, -72f), new Vector2(200f, 70f));
 
-            // Жизни: сердечки слева
-            ui.hearts = new Image[3];
-            for (int i = 0; i < ui.hearts.Length; i++)
-            {
-                ui.hearts[i] = MakeChildImage(safeArea, $"Heart{i + 1}", heartSprite, Color.white);
-                ui.hearts[i].preserveAspect = true;
-                var heartRect = ui.hearts[i].rectTransform;
-                heartRect.anchorMin = heartRect.anchorMax = heartRect.pivot = topLeft;
-                heartRect.anchoredPosition = new Vector2(30f + i * 100f, -20f);
-                heartRect.sizeDelta = new Vector2(90f, 90f);
-            }
+            // Жизни: сердечки в ряд под кораблём (BuildPlayerHearts)
+            ui.hearts = playerHearts;
 
-            // Монеты: иконка и число под сердечками
+            // Монеты: крупная иконка и число в левом верхнем углу
             var coinIcon = MakeChildImage(safeArea, "CoinIcon", coinSprite, Color.white);
             coinIcon.preserveAspect = true;
             var coinIconRect = coinIcon.rectTransform;
             coinIconRect.anchorMin = coinIconRect.anchorMax = coinIconRect.pivot = topLeft;
-            coinIconRect.anchoredPosition = new Vector2(35f, -128f);
-            coinIconRect.sizeDelta = new Vector2(64f, 64f);
-            ui.coinsText = MakeText(safeArea, "Coins", "0", 48, TextAlignmentOptions.TopLeft, topLeft, new Vector2(115f, -134f), new Vector2(300f, 70f));
+            coinIconRect.anchoredPosition = new Vector2(30f, -24f);
+            coinIconRect.sizeDelta = new Vector2(100f, 100f);
+            ui.coinsText = MakeText(safeArea, "Coins", "0", 72, TextAlignmentOptions.TopLeft, topLeft, new Vector2(145f, -30f), new Vector2(260f, 100f));
             ui.coinsText.color = TextColor;
             // Высокая: в аркаде бывает три строки - LOOP N, WAVE N и метки волны
             ui.bannerText = MakeText(canvas, "WaveBanner", "WAVE 1", 110, TextAlignmentOptions.Center, center, Vector2.zero, new Vector2(1200f, 420f));
