@@ -10,3 +10,4 @@ gc26_lines
 gc26_science_snake
 gc26_2048
 gc26_flpdrgn
+gc26_2048_nastya
