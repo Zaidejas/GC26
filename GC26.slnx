@@ -4,4 +4,6 @@
   <Project Path="Lines.Tests.EditMode.csproj" />
   <Project Path="Lines.Core.csproj" />
   <Project Path="Lines.Editor.csproj" />
+  <Project Path="GC26.Core.csproj" />
+  <Project Path="GC26.Core.Editor.csproj" />
 </Solution>
