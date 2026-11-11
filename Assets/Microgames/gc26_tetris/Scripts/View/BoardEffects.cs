@@ -78,6 +78,13 @@ namespace GC26.Tetris.View
                 new Vector2(1.5f, height), new Vector2(0.12f, height), color);
         }
 
+        /// <summary>A flash across the well along one row: the lightning strike.</summary>
+        public void RowBeam(float centerX, float y, float width, Color color)
+        {
+            Spawn(plainSprite, new Vector2(centerX, y), Vector2.zero, 0f, 0f, 0.4f,
+                new Vector2(width, 1.5f), new Vector2(width, 0.12f), color);
+        }
+
         public void Ring(Vector2 center, Color color, float endSize, float life)
         {
             Spawn(ringSprite, center, Vector2.zero, 0f, 0f, life,

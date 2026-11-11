@@ -310,7 +310,7 @@ namespace GC26.Tetris
                 case SpecialKind.Lightning:
                     gameAudio.Play("zap");
                     view.Effects.Shake(0.55f);
-                    view.Effects.Beam(center.x, 0f, Board.VisibleHeight, new Color(tint.r, tint.g, tint.b, 0.9f));
+                    view.Effects.RowBeam(0f, center.y, Board.Width, new Color(tint.r, tint.g, tint.b, 0.9f));
                     AddPopup(PopupSlot.Special, T("МОЛНИЯ!", "LIGHTNING!") + points, -0.4f, 1.15f, BannerLife, 0.6f, tint);
                     break;
             }
@@ -711,7 +711,7 @@ namespace GC26.Tetris
             {
                 float legendX = HudLayout.LegendTextX;
                 Label(T("взрыв 5×5", "blast 5×5"), legendX, HudLayout.LegendIcon(0).y, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
-                Label(T("весь столбец", "whole column"), legendX, HudLayout.LegendIcon(1).y, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
+                Label(T("весь ряд", "whole row"), legendX, HudLayout.LegendIcon(1).y, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
             }
 
             DrawPopups(unit);

@@ -251,7 +251,9 @@ namespace GC26.Tetris.View
                 return;
 
             float alpha = 0.16f + 0.05f * Mathf.Sin(Time.unscaledTime * 8f);
-            int minX = x, maxX = x, minY = 0, maxY = Board.VisibleHeight - 1;
+            // Lightning: the whole row it lands on.
+            int row = Mathf.Clamp(y, 0, Board.VisibleHeight - 1);
+            int minX = 0, maxX = Board.Width - 1, minY = row, maxY = row;
             if (kind == SpecialKind.Bomb)
             {
                 minX = Mathf.Max(0, x - 2);

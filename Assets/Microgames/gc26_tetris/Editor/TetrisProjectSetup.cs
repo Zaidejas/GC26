@@ -145,7 +145,7 @@ namespace GC26.Tetris.EditorTools
                 { "Special pieces can be turned off", SpecialsCanBeOff },
                 { "Bomb removes 5x5 and the stack falls in", BombExplodes },
                 { "Bomb at the wall stays on the board", BombAtWall },
-                { "Lightning empties one column only", LightningRemovesColumn },
+                { "Lightning burns out its row and the stack drops one row", LightningRemovesRow },
                 { "A special piece can clear lines too", SpecialClearsLines },
                 { "A special piece keeps the combo", SpecialKeepsCombo },
                 { "Hold keeps the special on the piece", HoldKeepsSpecial },
@@ -647,27 +647,38 @@ namespace GC26.Tetris.EditorTools
             Check(removed == 4, "removed " + removed + " cells, expected the 4 of the piece");
         }
 
-        static void LightningRemovesColumn()
+        static void LightningRemovesRow()
         {
             var game = new TetrisMatch(33, false);
             FillStack(game, 6, 9);
             game.ForceCurrentSpecial(SpecialKind.Lightning);
             Cell[] shape = PieceShapes.Get(game.CurrentType, game.CurrentRotation);
             int column = game.CurrentX + shape[TetrisMatch.SpecialCellIndex].X;
-            var expected = new int[Board.Width];
+            int before = 0;
             for (int x = 0; x < Board.Width; x++)
-                expected[x] = ColumnCount(game.Board, x);
-            foreach (Cell c in shape)
-                expected[game.CurrentX + c.X]++;
+                before += ColumnCount(game.Board, x);
+
+            // Rows below the strike must stay exactly as they were.
+            var low = new int[Board.Width, 6];
+            for (int x = 0; x < Board.Width; x++)
+                for (int y = 0; y < 6; y++)
+                    low[x, y] = game.Board.Get(x, y);
 
             SpecialResult seen = default;
             game.SpecialTriggered += result => seen = result;
             game.HardDrop();
 
             Check(seen.Kind == SpecialKind.Lightning && seen.X == column, "no lightning event");
-            Check(seen.Removed.Count == expected[column], "removed " + seen.Removed.Count);
+            Check(seen.Removed.Count > 0, "nothing removed");
+            foreach (RemovedCell cell in seen.Removed)
+                Check(cell.Y == seen.Y, "removed a cell outside the row: " + cell.X + "," + cell.Y);
+            int after = 0;
             for (int x = 0; x < Board.Width; x++)
-                Check(ColumnCount(game.Board, x) == (x == column ? 0 : expected[x]), "column " + x);
+                after += ColumnCount(game.Board, x);
+            Check(after == before + 4 - seen.Removed.Count, "blocks: " + before + " + 4 - " + seen.Removed.Count + " != " + after);
+            for (int x = 0; x < Board.Width; x++)
+                for (int y = 0; y < Math.Min(6, seen.Y); y++)
+                    Check(game.Board.Get(x, y) == low[x, y], "row below changed at " + x + "," + y);
         }
 
         static void SpecialClearsLines()

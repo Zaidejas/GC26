@@ -339,7 +339,7 @@ namespace GC26.Tetris.Logic
                     Explode(x, y, removed);
                     break;
                 case SpecialKind.Lightning:
-                    RemoveColumn(x, removed);
+                    RemoveRow(y, removed);
                     break;
             }
 
@@ -377,15 +377,21 @@ namespace GC26.Tetris.Logic
             }
         }
 
-        void RemoveColumn(int x, List<RemovedCell> removed)
+        // Lightning burns out the whole row it lands on; everything above drops one row, as after a line clear.
+        void RemoveRow(int row, List<RemovedCell> removed)
         {
-            for (int y = 0; y < Board.Height; y++)
+            if (row < 0 || row >= Board.Height)
+                return;
+            for (int x = 0; x < Board.Width; x++)
             {
-                int value = Board.Get(x, y);
-                if (value == Board.Empty)
-                    continue;
-                removed.Add(new RemovedCell(x, y, value));
-                Board.Set(x, y, Board.Empty);
+                int value = Board.Get(x, row);
+                if (value != Board.Empty)
+                    removed.Add(new RemovedCell(x, row, value));
+            }
+            for (int y = row; y < Board.Height; y++)
+            {
+                for (int x = 0; x < Board.Width; x++)
+                    Board.Set(x, y, y + 1 < Board.Height ? Board.Get(x, y + 1) : Board.Empty);
             }
         }
 
