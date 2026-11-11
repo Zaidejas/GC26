@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Last Bastion – prototype</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+   <div id="device">
+    <div id="aspectBar" hidden>
+      <button data-vertical="0">Horizontal</button>
+      <button data-vertical="1">Vertical</button>
+      <span class="sep">Screen:</span>
+      <button data-aspect="16:9">16:9</button>
+      <button data-aspect="19.5:9">19.5:9</button>
+      <button data-aspect="20:9">20:9</button>
+    </div>
+    <div id="phone">
+    <div id="game">
+      <canvas id="board"></canvas>
+
+      <div id="hud">
+        <div class="pill" id="gold">💰 250</div>
+        <div class="pill" id="lives">❤️ 20</div>
+        <div class="pill" id="wave">Wave 0/10</div>
+        <div class="right">
+          <button class="icon" id="pauseBtn" title="Pause (Esc)">⏸</button>
+          <button class="icon" id="speedBtn" title="Game speed">1×</button>
+        </div>
+      </div>
+
+      <button id="startBtn" title="Start wave (Space)">Start wave 1<span id="bonus"></span></button>
+      <div id="hint">Tap a grey slot to build a tower</div>
+      <div id="menu"></div>
+
+      <div id="paused" hidden>
+        <div class="panel buttons">
+          <h2>Paused</h2>
+          <button id="resumeBtn">Resume</button>
+          <button id="pauseRestartBtn" class="secondary">Restart level</button>
+          <button id="pauseMenuBtn" class="secondary">Main menu</button>
+        </div>
+      </div>
+
+      <div id="overlay" hidden>
+        <div class="panel buttons">
+          <h2 id="resultTitle"></h2>
+          <div id="stars"></div>
+          <p id="resultText"></p>
+          <button id="restartBtn">Play again</button>
+          <button id="resultMenuBtn" class="secondary">Main menu</button>
+        </div>
+      </div>
+
+      <div id="mainMenu" hidden>
+        <div class="panel buttons">
+          <h1>Last Bastion</h1>
+          <p>Tower Defense prototype</p>
+          <button id="playBtn">Play</button>
+          <button id="howToBtn" class="secondary">How to play</button>
+        </div>
+      </div>
+
+      <div id="howTo" hidden>
+        <div class="panel howto">
+          <button id="langBtn" class="lang">Русский</button>
+
+          <div lang="en">
+            <h2>How to play</h2>
+            <p><b>Goal:</b> stop the monsters before they reach your castle. You have 20 lives. Every monster that gets in takes lives.</p>
+            <ol>
+              <li><b>Build:</b> tap a grey slot and choose a tower.</li>
+              <li><b>Start:</b> press <b>Start wave</b>. Starting early gives bonus gold.</li>
+              <li><b>Earn:</b> you get gold for every monster you kill and every wave you clear.</li>
+              <li><b>Improve:</b> tap a tower to upgrade it, sell it (70% back) or change who it shoots first.</li>
+              <li><b>Win:</b> survive all 10 waves. ★★★ with 18+ lives, ★★ with 10+, ★ for any win.</li>
+            </ol>
+            <h3>Towers</h3>
+            <ul>
+              <li><b>Archer</b>: cheap, hits flying monsters</li>
+              <li><b>Cannon</b>: hits a group, cannot hit flying monsters</li>
+              <li><b>Frost</b>: slows monsters down</li>
+              <li><b>Tesla</b>: lightning jumps to 3 monsters</li>
+              <li><b>Sniper</b>: very long range, ignores armor</li>
+            </ul>
+            <h3>Monsters</h3>
+            <ul>
+              <li><b>Grunt</b>: basic · <b>Runner</b>: fast · <b>Brute</b>: armor, slow</li>
+              <li><b>Bat</b>: flies straight over the map · <b>Shaman</b>: heals monsters near it</li>
+              <li><b>Warlord</b>: boss in wave 10, has a shield (blue bar)</li>
+            </ul>
+            <h3>Buttons</h3>
+            <p>⏸ or Esc: pause · 1×/2×: game speed · Space: start wave</p>
+          </div>
+
+          <div lang="ru" hidden>
+            <h2>Как играть</h2>
+            <p><b>Цель:</b> остановить монстров, пока они не дошли до замка. У вас 20 жизней. Каждый монстр, который дошёл до замка, отнимает жизни.</p>
+            <ol>
+              <li><b>Стройте:</b> нажмите на серый слот и выберите башню.</li>
+              <li><b>Начинайте:</b> нажмите <b>Start wave</b>. Ранний запуск волны даёт бонусное золото.</li>
+              <li><b>Зарабатывайте:</b> золото дают за каждого убитого монстра и каждую пройденную волну.</li>
+              <li><b>Улучшайте:</b> нажмите на башню, чтобы улучшить её, продать (возврат 70%) или выбрать, в кого она стреляет первой.</li>
+              <li><b>Победа:</b> выдержите все 10 волн. ★★★ — 18+ жизней, ★★ — 10+, ★ — любая победа.</li>
+            </ol>
+            <h3>Башни</h3>
+            <ul>
+              <li><b>Archer (лучник)</b>: дешёвая, бьёт летающих</li>
+              <li><b>Cannon (пушка)</b>: бьёт по группе, не бьёт летающих</li>
+              <li><b>Frost (ледяная)</b>: замедляет монстров</li>
+              <li><b>Tesla (тесла)</b>: молния перескакивает на 3 монстров</li>
+              <li><b>Sniper (снайпер)</b>: очень большая дальность, игнорирует броню</li>
+            </ul>
+            <h3>Монстры</h3>
+            <ul>
+              <li><b>Grunt</b>: обычный · <b>Runner</b>: быстрый · <b>Brute</b>: броня, медленный</li>
+              <li><b>Bat</b>: летит прямо над картой · <b>Shaman</b>: лечит монстров рядом</li>
+              <li><b>Warlord</b>: босс в 10-й волне, у него щит (синяя полоска)</li>
+            </ul>
+            <h3>Кнопки</h3>
+            <p>⏸ или Esc: пауза · 1×/2×: скорость игры · Пробел: запуск волны</p>
+          </div>
+
+          <button id="howToBackBtn">Back</button>
+        </div>
+      </div>
+    </div>
+    </div>
+   </div>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>

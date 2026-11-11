@@ -1,0 +1,216 @@
+:root {
+  --bg: #20262b;
+  --panel: rgba(20, 24, 28, 0.82);
+  --text: #fff;
+  --accent: #ffb300;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#device { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+#game { position: relative; overflow: hidden; background: #86b86a; }
+canvas { display: block; }
+
+/* On a computer the game is shown inside a landscape phone so it looks like the real thing. */
+#phone.framed {
+  position: relative;
+  padding: 12px 22px;
+  background: #0d0f11;
+  border-radius: 34px;
+  box-shadow: 0 0 0 2px #3a4148, 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+#phone.framed::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -3px;
+  border-radius: 50%;
+  background: #2a3036;
+}
+#phone.framed #game { border-radius: 18px; }
+#phone.framed.vertical { padding: 22px 12px; }
+#phone.framed.vertical::before { left: 50%; top: 8px; margin: 0 0 0 -3px; }
+
+#aspectBar { font-size: 13px; color: #b0bec5; display: flex; align-items: center; gap: 6px; }
+#aspectBar button {
+  background: #37424a;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+#aspectBar button.on { background: var(--accent); color: #222; }
+#aspectBar .sep { margin-left: 10px; }
+
+/* Vertical: the screen is narrow, so the wave counter goes under the top bar
+   and the hint sits above the Start wave button. */
+#game.vertical #wave { top: 56px; }
+#game.vertical #hint { bottom: 84px; }
+
+button { font: inherit; color: inherit; border: 0; cursor: pointer; }
+[hidden] { display: none !important; }
+
+/* HUD: gold and lives top left, wave top center, pause and speed top right */
+#hud {
+  position: absolute;
+  inset: 0 0 auto 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px max(8px, env(safe-area-inset-right)) 8px max(8px, env(safe-area-inset-left));
+  pointer-events: none;
+}
+.pill {
+  background: var(--panel);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+}
+#wave { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); }
+#hud .right { margin-left: auto; display: flex; gap: 6px; pointer-events: auto; }
+.icon {
+  background: var(--panel);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* Start Wave bottom right */
+#startBtn {
+  position: absolute;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(12px, env(safe-area-inset-bottom));
+  background: var(--accent);
+  color: #222;
+  font-weight: 800;
+  font-size: 16px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  box-shadow: 0 3px 0 #a66f00;
+}
+#startBtn:disabled { background: #6d6d6d; color: #ddd; box-shadow: none; cursor: default; }
+#bonus { display: block; font-size: 12px; font-weight: 600; }
+
+#hint {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  background: var(--panel);
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+/* Radial menu around a slot or tower */
+#menu { position: absolute; inset: 0; pointer-events: none; }
+.mbtn {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 3px solid var(--c, #fff);
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.mbtn small { font-weight: 600; color: #ffd54f; }
+.mbtn:disabled { opacity: 0.45; cursor: default; }
+
+#overlay, #paused, #mainMenu, #howTo {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.panel {
+  background: #2b3238;
+  padding: 24px 32px;
+  border-radius: 16px;
+  text-align: center;
+  min-width: 260px;
+}
+.panel h2 { margin: 0 0 8px; font-size: 28px; }
+.panel p { margin: 8px 0 0; color: #cfd8dc; }
+#stars { font-size: 36px; color: #ffc107; letter-spacing: 4px; }
+.panel button {
+  margin-top: 14px;
+  background: var(--accent);
+  color: #222;
+  font-weight: 800;
+  padding: 10px 20px;
+  border-radius: 10px;
+}
+.panel button.secondary { background: #455a64; color: #fff; }
+
+/* Menus with a column of full-width buttons */
+.panel.buttons { display: flex; flex-direction: column; align-items: stretch; }
+.panel.buttons button { margin-top: 10px; }
+.panel h1 { margin: 0; font-size: 34px; color: var(--accent); }
+#mainMenu { background: rgba(0, 0, 0, 0.6); }
+
+/* How to play: long text, so it scrolls */
+.panel.howto {
+  position: relative;
+  text-align: left;
+  width: min(560px, 92%);
+  max-height: 92%;
+  overflow-y: auto;
+  touch-action: pan-y;
+  padding: 18px 24px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.howto h2 { text-align: center; }
+.howto h3 { margin: 12px 0 4px; font-size: 16px; color: var(--accent); }
+.howto ol, .howto ul { margin: 4px 0; padding-left: 20px; }
+.howto li { margin: 2px 0; }
+.howto p { color: #eceff1; }
+.howto #howToBackBtn { display: block; margin: 14px auto 0; }
+.panel button.lang {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  margin: 0;
+  padding: 4px 10px;
+  font-size: 12px;
+  background: #455a64;
+  color: #fff;
+}
