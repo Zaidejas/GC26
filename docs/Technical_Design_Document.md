@@ -57,7 +57,7 @@ The main idea is to **separate the logic from the visuals**. The rules live in p
 ## 2. Scenes
 
 - `MainMenu`: title, three difficulty buttons with best times, settings button (sound, vibration). No Quit button; Android Back closes the app. **It is scene 0 in the Build Profiles scene list**, so the app always opens on the difficulty choice.
-- `Game`: Main Camera (+ `CameraController`), `GameManager`, `BoardView`, `InputHandler`, `AudioManager`, and a Canvas with a `SafeArea` panel holding the top bar (counter, face, timer, menu) and the bottom bar (flag-mode toggle).
+- `Game`: Main Camera (+ `CameraController`), `GameManager`, `BoardView`, `InputHandler`, `AudioManager`, and a Canvas with a `SafeArea` panel holding the top bar (menu, counter, face, timer, **?** help button), the bottom bar (flag-mode toggle), and the hidden "How to play" pop-up.
 
 ## 3. Project settings for mobile
 
@@ -990,6 +990,8 @@ Red flags are easier to see from a distance.
 - The flag-mode button's `onClick` calls `game.ToggleFlagMode()`; its icon switches between ⛏ and the yellow flag on `FlagModeChanged`
 - **Loss line:** a `[SerializeField] private TextAsset lossLinesFile;` field. In `Awake`, `lines = LossLines.Parse(lossLinesFile != null ? lossLinesFile.text : "")`. When `StateChanged` reports `Lost`, set the loss panel's second text to `LossLines.PickRandom(lines, rng)` and hide that text if it's empty. The text box uses TextMeshPro word wrapping
 - Player-facing texts say "red flags", never "mines" (counter, menu cards, panels)
+- **"How to play" pop-up** (Game_Design_Document.md, section 6.6): a full-screen, semi-transparent `Image` with a centred panel (title, text, OK button) as its child, last in the Canvas so it draws on top. The **?** button's `onClick` shows it. A `Button` on the full-screen image (covering the panel too) and the OK button both hide it, so a tap anywhere closes it; because the image blocks raycasts, `InputHandler`'s `IsOverUI` check stops that tap from reaching the board. While it's open, `GameManager` pauses the timer (like `appPaused`), and the Back button closes it before going to the menu
+- **First-game tutorial** (Game_Design_Document.md, section 6.5): a bubble panel (TextMeshPro text + "Got it" button) anchored directly **under the top bar, above the board**. While it's visible, `CameraController.Fit` uses a larger top margin (top bar + bubble height), so the board sits below the bubble and no cell is covered; when it closes, fit again with the normal margin. In `Start`, if `PlayerPrefs.GetInt("tutorial_done", 0) == 0`, show step 1. When `StateChanged` reports `Playing` (the first reveal), find the revealed non-mine cell with the biggest `AdjacentMines` (first found on a tie), call `TileView.SetTutorialHighlight(true)` on it (a pulsing yellow outline sprite), show step 2 with that number, and save `tutorial_done = 1`. Close it on "Got it", on the next `OnTap`/`OnLongPress`, or on leaving the scene
 - **Android Back button:** in `Update`, `if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)` load the `MainMenu` scene. In the menu the same check calls `Application.Quit()`
 
 ## 6. Unit test example (week 11)
@@ -1099,9 +1101,17 @@ Device Simulator profiles to check: a 16:9 phone, a tall 20:9 phone with a notch
 - [ ] All buttons are easy to hit with a thumb
 - [ ] Layout is correct on every device in the Device Simulator list above
 - [ ] Rotating the phone doesn't change anything (portrait only)
+- [ ] The menu shows no instructions text
+- [ ] First game after installing (any difficulty): the tutorial asks for a tap; after it, the opened cell with the biggest number is highlighted and the message shows that number
+- [ ] Both tutorial messages appear above the board (never below it or over it), and taps on the board still work while they're shown
+- [ ] "Got it" or the next move closes the tutorial; it doesn't appear in later games
+- [ ] The **?** button (top right) opens "How to play" with the four rules and an OK button
+- [ ] OK, or a tap anywhere on the screen, closes it; the closing tap never opens or flags a cell
+- [ ] The timer doesn't count while "How to play" is open
+- [ ] All five top-bar items fit on the narrowest test phone
 
 #### Android behaviour
-- [ ] Back in the game returns to the menu; Back in the menu closes the app
+- [ ] Back in the game returns to the menu; Back in the menu closes the app; Back with "How to play" open only closes the pop-up
 - [ ] Home button, then return: the round continues and the timer didn't count the time away
 - [ ] Incoming phone call or screen lock mid-round: same as above
 - [ ] Sound follows the phone's media volume; the Sound setting mutes it
@@ -1110,7 +1120,7 @@ Device Simulator profiles to check: a 16:9 phone, a tall 20:9 phone with a notch
 #### Menu and saved data
 - [ ] Each difficulty loads the correct size and mine count (Expert = 16×30, 99 mines)
 - [ ] The best time is saved only after a win, and only if it's better
-- [ ] Best times, Sound and Vibration settings survive closing the app completely
+- [ ] Best times, Sound and Vibration settings and "tutorial done" survive closing the app completely
 - [ ] Menu → Game → Menu works repeatedly with no errors
 
 #### Release build (week 12)

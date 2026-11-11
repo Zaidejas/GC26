@@ -158,7 +158,7 @@ Rules for flags:
 
 ### 3.7 Timer
 - Counts whole seconds from the first reveal.
-- **Pauses** while the app is in the background (Home button, phone call, screen locked) and continues on return.
+- **Pauses** while the app is in the background (Home button, phone call, screen locked) and while the "How to play" pop-up is open, and continues afterwards.
 - Stops when the round is won or lost.
 - Stops at 999.
 
@@ -188,6 +188,7 @@ Rules for flags:
 | One-finger drag | Board | Pan the view |
 | Two-finger pinch | Board | Zoom in or out |
 | Tap face button | Top bar | Restart with the same difficulty |
+| Tap **?** button | Top bar (right) | Open the "How to play" pop-up; OK or a tap anywhere closes it |
 | Tap ⛏/🚩 button | Bottom bar | Switch between reveal and flag mode |
 | Tap Menu button / Android **Back** | Game screen | Back to the main menu |
 | Android **Back** | Main menu | Close the app |
@@ -233,9 +234,10 @@ All buttons are at least 48 dp (about 9 mm) so they're easy to hit with a thumb.
 ### 5.2 Step-by-step: first-time player
 1. The player opens the app and the **difficulty choice (Main Menu)** appears straight away.
 2. The player taps **Beginner**. The **Game** screen loads with a 9×9 board filling the width of the screen, **all cells hidden**; the counter shows `010` and the timer `000`.
-3. The player taps any cell. It is always safe, an area opens, and the timer starts.
-4. The player studies the numbers, long-presses cells they're sure are mines (the phone buzzes and a flag appears), and taps cells they're sure are safe.
-5. **Either:**
+3. Because it's their first game, the **tutorial** (6.5) asks them to tap any cell. They tap; it is always safe, an area opens, and the timer starts.
+4. The tutorial highlights the opened cell with the biggest number: "This cell has 3 red flags around it — be careful!" The player taps **Got it** (or just keeps playing).
+5. The player studies the numbers, long-presses cells they're sure hide red flags (the phone buzzes and a yellow flag appears), and taps cells they're sure are safe.
+6. **Either:**
    - **a.** All safe cells are open → **Win**: 😎, the time is shown and maybe saved as a record. **Or:**
    - **b.** The player opens a mine → **Lose**: the phone vibrates and all mines are shown, 😵.
 6. The player taps **Play again**, or presses **Back** to return to the menu and choose another difficulty.
@@ -280,6 +282,7 @@ All layouts are **portrait** and stay inside the phone's **safe area** (clear of
 └───────────────────────────┘
 ```
 - This is the first screen after launch; a game is only started by tapping one of the cards.
+- The menu has **no instructions text**; new players learn the controls from the first-game tutorial (6.5) and the **?** button in the game (6.6).
 - Large difficulty cards, each showing the board size, the number of red flags and the best time ("—" if there is none yet).
 - ⚙ opens the settings panel: **Sound** on/off and **Vibration** on/off.
 - There is **no Quit button**; on Android the Back or Home button leaves the app.
@@ -288,7 +291,7 @@ All layouts are **portrait** and stay inside the phone's **safe area** (clear of
 ```
 ┌───────────────────────────┐
 │       (notch / status)    │
-│ [☰]  010    🙂    000     │  ← top bar: menu, mine counter, face, timer
+│ [☰] 010   🙂   000   [?] │  ← top bar: menu, red flag counter, face, timer, help
 ├───────────────────────────┤
 │ ┌─┬─┬─┬─┬─┬─┬─┬─┬─┐       │
 │ │ │ │ │1│■│■│■│■│■│       │
@@ -316,6 +319,7 @@ All layouts are **portrait** and stay inside the phone's **safe area** (clear of
   | 😵 | Lost |
 
 - **Timer**: seconds, three digits.
+- **Help button** (?, top right): opens the "How to play" pop-up (6.6).
 - **Mode toggle** (bottom): the active mode is highlighted. It sits at the bottom so the thumb can reach it easily.
 - The board starts zoomed so it fills the space between the bars.
 
@@ -330,6 +334,56 @@ A panel that slides up from the bottom, so the board stays visible above it and 
 - Empty lines are ignored, and lines starting with `#` are comments (not shown).
 - The panel's text box wraps long lines, but lines should be short (about 80 characters or less) to read well on a phone.
 - If the list is empty, only the "lost" message is shown.
+
+### 6.5 First-game tutorial
+A short tutorial runs **once**, in the player's very first game, whatever difficulty they choose. It is a message bubble **above the board** (between the top bar and the board); the board stays playable the whole time.
+
+1. **Before the first tap:** "Tap any cell to start. Your first tap is always safe." The bubble has no button; it waits for the tap.
+2. **After the first tap:** the opened cell with the **biggest number** gets a pulsing yellow outline (if several share the biggest number, the first one found is used; on a big board the view scrolls to it). The bubble says: **"This cell has *N* red flags around it — be careful!"** ("1 red flag" when N is 1). It has a **Got it** button.
+3. The tutorial closes when the player taps **Got it**, or makes any next move (tap or flag), or leaves the game.
+
+- All tutorial messages are shown **above the board, never below it or on top of it**. While the bubble is visible the board area is a little shorter, so no cell is covered.
+- It counts as seen once step 2 has appeared (saved as `tutorial_done`). If the player leaves before their first tap, the tutorial starts again in their next game.
+
+### 6.6 "How to play" pop-up
+Opened any time during a game with the **?** button at the right end of the top bar.
+
+```
+┌───────────────────────────┐
+│░░░░░░░░░░░░░░░░░░░░░░░░░░░│  ← the rest of the screen is dimmed
+│░┌───────────────────────┐░│
+│░│      How to play      │░│
+│░│ • Tap cells to reveal │░│
+│░│   them. Avoid the red │░│
+│░│   flags!              │░│
+│░│ • A number shows how  │░│
+│░│   many red flags touch│░│
+│░│   that cell.          │░│
+│░│ • Long press a cell to│░│
+│░│   mark a suspected red│░│
+│░│   flag with a yellow  │░│
+│░│   flag.               │░│
+│░│ • Open every safe cell│░│
+│░│   to win.             │░│
+│░│      [    OK    ]     │░│
+│░└───────────────────────┘░│
+│░░░░░░░░░░░░░░░░░░░░░░░░░░░│
+└───────────────────────────┘
+```
+
+**Text:**
+- **How to play**
+- Tap cells to reveal them. **Avoid the red flags!**
+- A number shows how many red flags touch that cell, including diagonally.
+- Long press a cell to mark it with a yellow flag where you suspect a red flag. The Flag button at the bottom does the same with a normal tap.
+- Open every cell without a red flag to win. Your first tap is always safe.
+
+**Behaviour:**
+- The pop-up closes when the player taps **OK** or taps **anywhere on the screen**, inside or outside the pop-up.
+- The tap that closes it never reaches the board, so it can't open or flag a cell by accident.
+- The timer is paused while the pop-up is open.
+- Android **Back** closes the pop-up first; a second Back goes to the menu.
+- The pop-up doesn't change the round in any way and can be opened as often as the player wants, also during the tutorial or after the round ends.
 
 ## 7. Feedback: audio, vibration and visuals
 
@@ -355,6 +409,7 @@ Stored locally on the phone with `PlayerPrefs`:
 | `best_Beginner`, `best_Intermediate`, `best_Expert` | Best winning time in seconds |
 | `sound` | 1 = on, 0 = off |
 | `vibration` | 1 = on, 0 = off |
+| `tutorial_done` | 1 once the first-game tutorial has been shown |
 
 No account, internet connection or special permissions are needed. Uninstalling the app deletes this data.
 
@@ -380,7 +435,11 @@ No account, internet connection or special permissions are needed. Uninstalling 
 | App reopened, or Back to the menu and a level chosen again | A brand-new board with all cells hidden; nothing from the previous board is shown |
 | Loss lines list is empty | Only the "lost" message is shown |
 | Very long loss line | The text wraps inside the panel |
-
+| First game: player switches to flag mode or long-presses before the first tap | The tutorial keeps waiting for the first reveal tap |
+| First game: player leaves before the first tap | The tutorial starts again in the next game |
+| Player taps the board area to close "How to play" | The pop-up closes; no cell is opened or flagged |
+| Android Back while "How to play" is open | The pop-up closes; the game stays open |
+| Very narrow phone (320 px wide) | The top bar's digits get slightly smaller so all five items (menu, counter, face, timer, ?) fit |
 ## 10. Out of scope
 
 Landscape mode, desktop and web versions, multiplayer, online leaderboards, ads and in-app purchases, saving an unfinished round, guaranteed "no-guess" boards, and replays.
@@ -398,4 +457,4 @@ Landscape mode, desktop and web versions, multiplayer, online leaderboards, ads 
 
 ## 12. Prototype
 
-A simple playable browser version of these rules is in [prototype/](prototype/README.md). Open `prototype/index.html` in any browser (no installation or internet needed) to try the rules, touch controls and loss lines before building the Unity version. It leaves out zoom/pan, sounds and settings.
+A simple playable browser version of these rules is in [prototype/](prototype/README.md). Open `prototype/index.html` in any browser (no installation or internet needed) to try the rules, touch controls, first-game tutorial and loss lines before building the Unity version. (To see the tutorial again in the prototype, use a private browser window.) It leaves out zoom/pan, sounds and settings.

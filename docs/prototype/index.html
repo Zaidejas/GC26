@@ -1,10 +1,289 @@
 <!doctype html>
 <html lang="en">
+<!--
+  Red Flags prototype: everything (layout, styles, loss lines, game code) is in this one file,
+  so it works wherever it is opened, even in previews that can't load other files.
+  To add loss lines, search this file for LOSS_LINES_TEXT.
+-->
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>Red Flags Prototype</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+/* Simple portrait "phone" layout. Flags are plain CSS shapes. */
+:root {
+  --bg: #1f2430;
+  --panel: #2b3242;
+  --text: #f1f3f7;
+  --tile: #b9bfcc;
+  --tile-open: #e6e8ee;
+  --red: #e0302b;
+  --yellow: #f2c418;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #12151c;
+  color: var(--text);
+  font-family: system-ui, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Phone-sized frame; fills the screen on a real phone */
+#app {
+  position: relative;
+  width: min(100vw, 430px);
+  height: 100dvh;
+  max-height: 900px;
+  margin: 0 auto;
+  background: var(--bg);
+  overflow: hidden;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.hidden { display: none !important; }
+
+/* ---------- Menu ---------- */
+#menu { padding: 48px 24px; gap: 16px; }
+h1 { margin: 0 0 12px; font-size: 34px; line-height: 1.1; text-align: center; }
+.red { color: var(--red); }
+#levels { display: flex; flex-direction: column; gap: 14px; }
+
+.level {
+  min-height: 72px;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  text-align: left;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.level small { display: block; font-weight: 400; opacity: .7; font-size: 14px; margin-top: 4px; }
+
+/* ---------- Top and bottom bars ---------- */
+.topbar {
+  display: grid;
+  grid-template-columns: 48px 1fr 56px 1fr 48px;   /* menu, counter, face, timer, help */
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--panel);
+}
+.icon-btn {
+  height: 48px;
+  border: 0;
+  border-radius: 10px;
+  background: #3a4256;
+  color: var(--text);
+  font-size: 24px;
+  cursor: pointer;
+}
+.digits {
+  justify-self: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #000;
+  color: var(--red);
+  font: 700 26px/1.2 ui-monospace, monospace;
+  letter-spacing: 2px;
+}
+
+/* Very narrow phones (e.g. 320 px): smaller digits so all five top-bar items fit */
+@media (max-width: 359px) {
+  .topbar { gap: 6px; padding: 10px 8px; grid-template-columns: 44px 1fr 48px 1fr 44px; }
+  .digits { font-size: 22px; padding: 4px 6px; letter-spacing: 1px; }
+}
+
+.bottombar { display: flex; gap: 8px; padding: 10px 12px 14px; background: var(--panel); }
+.mode {
+  flex: 1;
+  height: 52px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: #3a4256;
+  color: var(--text);
+  font-size: 18px;
+  cursor: pointer;
+}
+.mode.active { border-color: var(--yellow); background: #4a5370; }
+
+/* ---------- Board ---------- */
+#board-wrap {
+  flex: 1;
+  display: flex;
+  overflow: auto;
+  padding: 8px;
+  touch-action: manipulation;
+}
+/* margin: auto centres the board but still lets a tall board scroll from the top */
+/* No grid gap: the visible gap is each cell's border, so every pixel of the board belongs to a cell */
+#board { display: grid; margin: auto; }
+
+.cell {
+  width: var(--cell);
+  height: var(--cell);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bg);
+  border-radius: 4px;
+  background: var(--tile);
+  box-shadow: inset -2px -2px 0 rgba(0,0,0,.25), inset 2px 2px 0 rgba(255,255,255,.5);
+  font-weight: 800;
+  font-size: calc(var(--cell) * .6);
+  cursor: pointer;
+}
+.cell.pressed { filter: brightness(.8); }
+.cell.open { background: var(--tile-open); box-shadow: none; cursor: default; }
+.cell.hit { background: #222; outline: 2px solid var(--yellow); }
+
+/* Classic number colours */
+.n1 { color: #1e5bd8; } .n2 { color: #1f8a3b; } .n3 { color: #c62828; } .n4 { color: #182e7a; }
+.n5 { color: #7a1c1c; } .n6 { color: #0f8686; } .n7 { color: #111; }    .n8 { color: #666; }
+
+/* ---------- Flags: a pole and a rectangle ---------- */
+.flag {
+  position: relative;
+  display: inline-block;
+  width: 60%;
+  height: 70%;
+}
+.flag::before {            /* pole */
+  content: "";
+  position: absolute;
+  left: 10%;
+  top: 0;
+  bottom: 0;
+  width: 10%;
+  background: #333;
+}
+.flag::after {             /* rectangular cloth */
+  content: "";
+  position: absolute;
+  left: 20%;
+  top: 0;
+  width: 75%;
+  height: 55%;
+  background: var(--red);
+}
+.flag.yellow::after { background: var(--yellow); }
+.flag.small { width: 18px; height: 20px; vertical-align: -3px; }
+
+/* Wrong yellow flag after a loss: crossed out */
+.cell.wrong { position: relative; }
+.cell.wrong::after {
+  content: "✕";
+  position: absolute;
+  color: #111;
+  font-size: calc(var(--cell) * .7);
+}
+
+/* ---------- First-game tutorial ---------- */
+/* Sits in the layout between the top bar and the board, so it never covers the board */
+.tutorial {
+  margin: 8px 12px 0;
+  padding: 12px 16px;
+  border: 2px solid var(--yellow);
+  border-radius: 14px;
+  background: var(--panel);
+  text-align: center;
+}
+.tutorial p { margin: 0; font-size: 16px; line-height: 1.4; }
+.tutorial button {
+  margin-top: 10px;
+  height: 44px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--yellow);
+  color: #222;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* The cell the tutorial points at */
+.cell.tutorial-target {
+  position: relative;
+  z-index: 1;
+  outline: 3px solid var(--yellow);
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+@keyframes pulse { from { outline-offset: 0; } to { outline-offset: 3px; } }
+
+/* ---------- End-of-round panel ---------- */
+.panel {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 84px;
+  padding: 18px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 10px 30px rgba(0,0,0,.5);
+  text-align: center;
+}
+.panel h2 { margin: 0 0 6px; }
+.panel p { margin: 0 0 14px; opacity: .85; font-size: 15px; }
+.panel-buttons { display: flex; gap: 10px; }
+.panel-buttons button {
+  flex: 1;
+  height: 48px;
+  border: 0;
+  border-radius: 10px;
+  background: #3a4256;
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+}
+#btn-again { background: var(--yellow); color: #222; font-weight: 700; }
+
+/* ---------- How to play pop-up ---------- */
+/* Covers the whole game screen, so a tap anywhere closes it and never reaches the board */
+.help-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, .6);
+  cursor: pointer;
+}
+.help {
+  width: 100%;
+  max-width: 360px;
+  padding: 20px 20px 18px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 10px 30px rgba(0,0,0,.5);
+}
+.help h2 { margin: 0 0 12px; text-align: center; }
+.help ul { margin: 0 0 16px; padding-left: 20px; font-size: 16px; line-height: 1.45; }
+.help li { margin-bottom: 8px; }
+.help .flag { width: 14px; height: 16px; vertical-align: -2px; }
+.help button {
+  display: block;
+  width: 100%;
+  height: 48px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--yellow);
+  color: #222;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+  </style>
 </head>
 <body>
   <div id="app">
@@ -12,7 +291,6 @@
     <!-- Main menu -->
     <section id="menu" class="screen">
       <h1>Avoid the<br><span class="red">Red Flags</span></h1>
-      <p class="hint">Tap to open · long press (or right-click) for a yellow flag</p>
       <div id="levels"></div>
     </section>
 
@@ -23,7 +301,14 @@
         <span id="counter" class="digits">010</span>
         <button id="btn-face" class="icon-btn face" aria-label="Restart">🙂</button>
         <span id="timer" class="digits">000</span>
+        <button id="btn-help" class="icon-btn" aria-label="How to play">?</button>
       </header>
+
+      <!-- First-game tutorial: always between the top bar and the board -->
+      <div id="tutorial" class="tutorial hidden">
+        <p id="tutorial-text"></p>
+        <button id="tutorial-ok" class="hidden">Got it</button>
+      </div>
 
       <div id="board-wrap"><div id="board"></div></div>
 
@@ -41,10 +326,468 @@
           <button id="btn-panel-menu">Menu</button>
         </div>
       </div>
+
+      <!-- How to play pop-up (opened with the ? button) -->
+      <div id="help" class="help-overlay hidden">
+        <div class="help" role="dialog" aria-labelledby="help-title">
+          <h2 id="help-title">How to play</h2>
+          <ul>
+            <li>Tap cells to reveal them. <b>Avoid the <span class="red">red flags</span>!</b></li>
+            <li>A number shows how many red flags touch that cell, including diagonally.</li>
+            <li>Long press (or right-click) a cell to mark it with a <span class="flag yellow"></span> yellow flag where you suspect a red flag. The Flag button at the bottom does the same with a normal tap.</li>
+            <li>Open every cell without a red flag to win. Your first tap is always safe.</li>
+          </ul>
+          <button id="help-ok">OK</button>
+        </div>
+      </div>
     </section>
 
   </div>
-  <script src="loss_lines.js"></script>
-  <script src="game.js"></script>
+  <!-- ===== Loss lines: edit here ===== -->
+  <script>
+// Lines shown under "You hit a red flag!" — one random line per loss.
+// Edit the text between the two backticks (`): one line per entry.
+// Empty lines and lines starting with # are not shown. Don't use the ` character in a line.
+// Save the file and reload the page to see new lines.
+window.LOSS_LINES_TEXT = `
+That red flag was not a suggestion.
+Next time, trust the numbers.
+Red flags are easier to see from a distance.
+You can't say nobody warned you.
+Some flags are best left alone.
+`;
+  </script>
+  <!-- ===== Game code ===== -->
+  <script>
+// Red Flags (Minesweeper) prototype.
+// Same rules as Board.cs in ../Technical_Design_Document.md.
+// Naming as in the docs: "mine" = hidden red flag, "flag" = player's yellow flag.
+
+// ---------------------------------------------------------------- rules ----
+
+class Board {
+  constructor(width, height, mines) {
+    this.width = width;
+    this.height = height;
+    // Keep at least 9 cells free for the safe 3x3 area around the first tap.
+    this.mineCount = Math.max(1, Math.min(mines, width * height - 9));
+    this.flagCount = 0;
+    this.revealedCount = 0;
+    this.minesPlaced = false;
+    this.cells = [];
+    for (let x = 0; x < width; x++) {
+      const column = [];
+      for (let y = 0; y < height; y++)
+        column.push({ isMine: false, adjacent: 0, isRevealed: false, isFlagged: false });
+      this.cells.push(column);
+    }
+  }
+
+  get(x, y) { return this.cells[x][y]; }
+  inBounds(x, y) { return x >= 0 && y >= 0 && x < this.width && y < this.height; }
+
+  // Up to 8 neighbours (fewer at edges and corners).
+  neighbours(x, y) {
+    const result = [];
+    for (let dx = -1; dx <= 1; dx++)
+      for (let dy = -1; dy <= 1; dy++)
+        if ((dx || dy) && this.inBounds(x + dx, y + dy)) result.push([x + dx, y + dy]);
+    return result;
+  }
+
+  // Called on the first tap, so the first tap and its neighbours are always safe.
+  placeMines(safeX, safeY) {
+    let placed = 0;
+    while (placed < this.mineCount) {
+      const x = Math.floor(Math.random() * this.width);
+      const y = Math.floor(Math.random() * this.height);
+      const inSafeArea = Math.abs(x - safeX) <= 1 && Math.abs(y - safeY) <= 1;
+      if (this.cells[x][y].isMine || inSafeArea) continue;
+      this.cells[x][y].isMine = true;
+      placed++;
+    }
+    for (let x = 0; x < this.width; x++)
+      for (let y = 0; y < this.height; y++)
+        this.cells[x][y].adjacent = this.neighbours(x, y).filter(([nx, ny]) => this.cells[nx][ny].isMine).length;
+    this.minesPlaced = true;
+  }
+
+  // Opens a cell; a 0 opens its neighbours too (flood fill with a queue).
+  // Returns the list of cells that were opened.
+  reveal(x, y) {
+    const changed = [];
+    const start = this.cells[x][y];
+    if (start.isRevealed || start.isFlagged) return changed;
+
+    const queue = [[x, y]];
+    while (queue.length) {
+      const [px, py] = queue.shift();
+      const c = this.cells[px][py];
+      if (c.isRevealed || c.isFlagged) continue;
+      c.isRevealed = true;
+      changed.push([px, py]);
+      if (c.isMine) break;                    // hit a red flag: the round is lost
+      this.revealedCount++;
+      if (c.adjacent === 0)
+        for (const [nx, ny] of this.neighbours(px, py))
+          if (!this.cells[nx][ny].isRevealed) queue.push([nx, ny]);
+    }
+    return changed;
+  }
+
+  // Places or removes a yellow flag. Returns true if something changed.
+  toggleFlag(x, y) {
+    const c = this.cells[x][y];
+    if (c.isRevealed) return false;
+    c.isFlagged = !c.isFlagged;
+    this.flagCount += c.isFlagged ? 1 : -1;
+    return true;
+  }
+
+  // Tapping an open number whose yellow flags match it opens the other neighbours.
+  chord(x, y) {
+    const c = this.cells[x][y];
+    if (!c.isRevealed || c.adjacent === 0) return [];
+    const near = this.neighbours(x, y);
+    const flags = near.filter(([nx, ny]) => this.cells[nx][ny].isFlagged).length;
+    if (flags !== c.adjacent) return [];
+    return near.flatMap(([nx, ny]) => this.reveal(nx, ny));
+  }
+
+  get isWon() { return this.revealedCount === this.width * this.height - this.mineCount; }
+}
+
+// Loss lines: one per line in loss_lines.js; empty lines and "#" comments are skipped.
+const LossLines = {
+  parse(text) {
+    return (text || "").split("\n").map(l => l.trim()).filter(l => l.length > 0 && !l.startsWith("#"));
+  },
+  pickRandom(lines) {
+    return lines.length ? lines[Math.floor(Math.random() * lines.length)] : "";
+  },
+};
+
+// ------------------------------------------------------------------- UI ----
+
+const LEVELS = [
+  { name: "Beginner", width: 9, height: 9, mines: 10 },
+  { name: "Intermediate", width: 16, height: 16, mines: 40 },
+  { name: "Expert", width: 16, height: 30, mines: 99 },
+];
+const LONG_PRESS_MS = 400;
+const MOVE_CANCEL_PX = 10;
+
+const $ = id => document.getElementById(id);
+// The lines come from loss_lines.js (loaded before this file), so they also work when
+// index.html is opened straight from disk, where browsers block reading .txt files.
+const lossLines = LossLines.parse(window.LOSS_LINES_TEXT);
+let level, board, state, flagMode, elapsed, lastTick, tiles;
+
+// Settings and best times live in localStorage (PlayerPrefs in Unity).
+function load(key) { try { return localStorage.getItem(key); } catch { return null; } }
+function save(key, value) { try { localStorage.setItem(key, value); } catch { /* private mode */ } }
+
+// ---- menu
+// The menu (difficulty choice) is the first screen and the only way into a game.
+function showMenu() {
+  state = "menu";
+  endTutorial();
+  hideHelp();
+  $("board").innerHTML = "";              // never show an old board when a new game starts
+  $("panel").classList.add("hidden");
+  $("game").classList.add("hidden");
+  $("menu").classList.remove("hidden");
+  const list = $("levels");
+  list.innerHTML = "";
+  for (const lv of LEVELS) {
+    const best = load("best_" + lv.name);
+    const btn = document.createElement("button");
+    btn.className = "level";
+    btn.innerHTML = `${lv.name}<small>${lv.width}×${lv.height} · ${lv.mines} red flags · Best: ${best ? best + " s" : "—"}</small>`;
+    btn.onclick = () => {
+      try { history.pushState({ screen: "game" }, ""); } catch { /* some previews block history; Back just won't work there */ }
+      startGame(lv);
+    };
+    list.appendChild(btn);
+  }
+}
+
+// ---- game
+function startGame(lv) {
+  level = lv;
+  $("menu").classList.add("hidden");
+  $("game").classList.remove("hidden");
+  newRound();
+}
+
+function newRound() {
+  board = new Board(level.width, level.height, level.mines);
+  state = "ready";
+  elapsed = 0;
+  setFlagMode(false);
+  $("panel").classList.add("hidden");
+  buildBoard();
+  updateHud();
+  endTutorial();
+  startTutorialIfFirstGame();
+}
+
+function buildBoard() {
+  const el = $("board");
+  const wrap = $("board-wrap");
+  // Fit the board to the free space; very tall boards scroll instead of shrinking too much.
+  const w = (wrap.clientWidth - 16) / board.width;
+  const h = (wrap.clientHeight - 16) / board.height;
+  const cell = Math.max(20, Math.floor(Math.min(w, h, 44)));
+  el.style.setProperty("--cell", cell + "px");
+  el.style.gridTemplateColumns = `repeat(${board.width}, ${cell}px)`;
+  el.innerHTML = "";
+  tiles = [];
+  // Row by row, so the grid fills left to right, top to bottom.
+  for (let y = 0; y < board.height; y++)
+    for (let x = 0; x < board.width; x++) {
+      const t = document.createElement("div");
+      t.className = "cell";
+      t.dataset.x = x;
+      t.dataset.y = y;
+      el.appendChild(t);
+      (tiles[x] ||= [])[y] = t;
+    }
+}
+
+function drawCell(x, y, gameOver = false, hit = false) {
+  const c = board.get(x, y);
+  const t = tiles[x][y];
+  t.className = "cell";
+  t.innerHTML = "";
+  if (!c.isRevealed) {
+    if (gameOver && c.isMine && !c.isFlagged) { t.classList.add("open"); t.innerHTML = '<span class="flag"></span>'; }
+    else if (c.isFlagged) {
+      t.innerHTML = '<span class="flag yellow"></span>';
+      if (gameOver && !c.isMine) t.classList.add("wrong");
+    }
+    return;
+  }
+  t.classList.add("open");
+  if (c.isMine) { t.innerHTML = '<span class="flag"></span>'; if (hit) t.classList.add("hit"); }
+  else if (c.adjacent > 0) { t.textContent = c.adjacent; t.classList.add("n" + c.adjacent); }
+}
+
+function drawAll(gameOver, hit) {
+  for (let x = 0; x < board.width; x++)
+    for (let y = 0; y < board.height; y++)
+      drawCell(x, y, gameOver, hit && hit[0] === x && hit[1] === y);
+}
+
+const isOver = () => state === "won" || state === "lost";
+
+function onTap(x, y) {
+  if (isOver()) return;
+  if (tutorialStep === 2) endTutorial();              // any next move closes the tutorial
+  if (board.get(x, y).isRevealed) return afterOpen(board.chord(x, y));
+  if (flagMode) return onFlag(x, y);
+  if (board.get(x, y).isFlagged) return;
+  const firstReveal = !board.minesPlaced;
+  if (firstReveal) { board.placeMines(x, y); state = "playing"; lastTick = performance.now(); }
+  afterOpen(board.reveal(x, y));
+  if (firstReveal) tutorialAfterFirstReveal();
+}
+
+function onFlag(x, y) {
+  if (tutorialStep === 2) endTutorial();
+  if (isOver() || !board.toggleFlag(x, y)) return;
+  drawCell(x, y);
+  updateHud();
+}
+
+function afterOpen(changed) {
+  changed.forEach(([x, y]) => drawCell(x, y));
+  const hit = changed.find(([x, y]) => board.get(x, y).isMine);
+  if (hit) return lose(hit);
+  if (board.isWon) win();
+}
+
+// ---- first-game tutorial
+// Shown once, in the player's very first game (any difficulty):
+//   step 1: ask for a first tap
+//   step 2: highlight the opened cell with the biggest number and explain it
+// TUTORIAL_KEY is saved when step 2 appears, so leaving before the first tap shows it again next time.
+// Change the key's version number to make every browser show the tutorial once more.
+// Open index.html#tutorial to see it again in the next game.
+const TUTORIAL_KEY = "tutorial_done_v2";
+if (location.hash === "#tutorial") save(TUTORIAL_KEY, "");   // checked once, when the page opens
+let tutorialStep = 0;   // 0 = off
+
+function startTutorialIfFirstGame() {
+  if (load(TUTORIAL_KEY)) return;
+  tutorialStep = 1;
+  showTutorial("Tap any cell to start. Your first tap is always safe.", false);
+}
+
+function tutorialAfterFirstReveal() {
+  if (tutorialStep !== 1 || isOver()) return endTutorial();
+  // The opened cell with the biggest number (the first one found if several are equal).
+  let best = null;
+  for (let y = 0; y < board.height; y++)
+    for (let x = 0; x < board.width; x++) {
+      const c = board.get(x, y);
+      if (c.isRevealed && !c.isMine && c.adjacent > 0 && (!best || c.adjacent > board.get(best[0], best[1]).adjacent))
+        best = [x, y];
+    }
+  if (!best) return endTutorial();
+
+  const n = board.get(best[0], best[1]).adjacent;
+  const tile = tiles[best[0]][best[1]];
+  tile.classList.add("tutorial-target");
+  tutorialStep = 2;
+  save(TUTORIAL_KEY, "1");
+  showTutorial(`This cell has ${n} red flag${n === 1 ? "" : "s"} around it — be careful!`, true);
+  tile.scrollIntoView({ block: "nearest", inline: "nearest" });   // big boards scroll
+}
+
+// The bubble is part of the layout above the board, so the board just gets a little shorter.
+function showTutorial(text, withButton) {
+  $("tutorial-text").textContent = text;
+  $("tutorial-ok").classList.toggle("hidden", !withButton);
+  $("tutorial").classList.remove("hidden");
+}
+
+function endTutorial() {
+  tutorialStep = 0;
+  $("tutorial").classList.add("hidden");
+  document.querySelectorAll(".tutorial-target").forEach(t => t.classList.remove("tutorial-target"));
+}
+
+function lose(hit) {
+  state = "lost";
+  drawAll(true, hit);
+  vibrate(200);
+  updateHud();
+  const line = LossLines.pickRandom(lossLines);
+  showPanel("You hit a red flag!", line);
+}
+
+function win() {
+  state = "won";
+  // Cover the remaining red flags with yellow flags.
+  for (let x = 0; x < board.width; x++)
+    for (let y = 0; y < board.height; y++) {
+      const c = board.get(x, y);
+      if (c.isMine && !c.isFlagged) { c.isFlagged = true; board.flagCount++; }
+    }
+  drawAll(false);
+  updateHud();
+  const time = Math.floor(elapsed);
+  const best = Number(load("best_" + level.name)) || Infinity;
+  const record = time < best;
+  if (record) save("best_" + level.name, time);
+  showPanel("You won!", `Time: ${time} s${record ? " · New record!" : ""}`);
+}
+
+function showPanel(title, line) {
+  $("panel-title").textContent = title;
+  $("panel-line").textContent = line;
+  $("panel-line").classList.toggle("hidden", !line);
+  $("panel").classList.remove("hidden");
+}
+
+// ---- HUD
+function digits(n) {
+  if (n < 0) return "-" + String(Math.min(99, -n)).padStart(2, "0");
+  return String(Math.min(999, n)).padStart(3, "0");
+}
+
+function updateHud(holding = false) {
+  $("counter").textContent = digits(board.mineCount - board.flagCount);
+  $("timer").textContent = digits(Math.floor(elapsed));
+  $("btn-face").textContent = state === "won" ? "😎" : state === "lost" ? "😵" : holding ? "😮" : "🙂";
+}
+
+function setFlagMode(on) {
+  flagMode = on;
+  $("mode-reveal").classList.toggle("active", !on);
+  $("mode-flag").classList.toggle("active", on);
+}
+
+function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
+
+// Timer: only counts while playing, while the page is visible and while "How to play" is closed.
+setInterval(() => {
+  if (state !== "playing") return;
+  const now = performance.now();
+  if (!document.hidden && !helpOpen()) elapsed = Math.min(999, elapsed + (now - lastTick) / 1000);
+  lastTick = now;
+  updateHud(!!touch);
+}, 200);
+document.addEventListener("visibilitychange", () => { lastTick = performance.now(); });
+
+// ---- touch / mouse: tap, long press, right click
+let touch = null;   // { x, y, startX, startY, timer, longDone, tile }
+
+function cancelTouch() {
+  if (!touch) return;
+  clearTimeout(touch.timer);
+  touch.tile.classList.remove("pressed");
+  touch = null;
+  updateHud();
+}
+
+$("board").addEventListener("pointerdown", e => {
+  const tile = e.target.closest(".cell");
+  if (!tile || isOver()) return;
+  const x = +tile.dataset.x, y = +tile.dataset.y;
+  if (e.button === 2) { onFlag(x, y); return; }          // right click = flag (desktop)
+  if (e.button !== 0) return;
+  cancelTouch();
+  touch = { x, y, startX: e.clientX, startY: e.clientY, longDone: false, tile };
+  if (!board.get(x, y).isRevealed) tile.classList.add("pressed");
+  updateHud(true);
+  touch.timer = setTimeout(() => {                       // long press = flag
+    if (!touch) return;
+    touch.longDone = true;
+    tile.classList.remove("pressed");
+    if (!board.get(x, y).isRevealed) { onFlag(x, y); vibrate(30); }
+  }, LONG_PRESS_MS);
+});
+
+window.addEventListener("pointermove", e => {
+  if (touch && Math.hypot(e.clientX - touch.startX, e.clientY - touch.startY) > MOVE_CANCEL_PX) cancelTouch();
+});
+
+window.addEventListener("pointerup", () => {
+  if (!touch) return;
+  const { x, y, longDone } = touch;
+  cancelTouch();
+  if (!longDone) onTap(x, y);
+});
+
+window.addEventListener("pointercancel", cancelTouch);      // e.g. the page started scrolling
+$("board").addEventListener("contextmenu", e => e.preventDefault());
+
+// ---- "How to play" pop-up: OK or a tap/click anywhere on the screen closes it
+const helpOpen = () => !$("help").classList.contains("hidden");
+function showHelp() { cancelTouch(); $("help").classList.remove("hidden"); }
+function hideHelp() { $("help").classList.add("hidden"); lastTick = performance.now(); }
+$("btn-help").onclick = showHelp;
+$("help").addEventListener("click", hideHelp);              // the overlay covers the whole screen, OK included
+
+// ---- buttons and Back
+function backToMenu() { hideHelp(); if (history.state && history.state.screen === "game") history.back(); else showMenu(); }
+
+$("btn-face").onclick = newRound;
+$("tutorial-ok").onclick = endTutorial;
+$("btn-again").onclick = newRound;
+$("btn-menu").onclick = backToMenu;
+$("btn-panel-menu").onclick = backToMenu;
+$("mode-reveal").onclick = () => setFlagMode(false);
+$("mode-flag").onclick = () => setFlagMode(true);
+window.addEventListener("popstate", showMenu);               // Android Back button
+window.addEventListener("keydown", e => {
+  if (e.key !== "Escape" || $("game").classList.contains("hidden")) return;
+  if (helpOpen()) hideHelp(); else backToMenu();             // Back closes the pop-up first
+});
+
+showMenu();
+  </script>
 </body>
 </html>
