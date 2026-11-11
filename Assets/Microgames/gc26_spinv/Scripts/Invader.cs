@@ -1,0 +1,117 @@
+using UnityEngine;
+
+namespace GC26.Spinv
+{
+    // Один пришелец: анимация, очки, выпадение монетки
+    public class Invader : MonoBehaviour
+    {
+        public int points = 10;
+
+        [Header("Усиленный пришелец")]
+        public int hitPoints = 1;
+        [Range(0f, 1f)]
+        [Tooltip("Шанс, что выстрел этого пришельца полетит прицельно в игрока")]
+        public float aimedShotChance = 0f;
+        [Min(0f)]
+        [Tooltip("Во сколько раз чаще обычного этот пришелец становится стрелком")]
+        public float fireRateMultiplier = 1f;
+        public Color damagedColor = new Color(0.55f, 0.55f, 0.55f);
+
+        [Header("Анимация")]
+        public Sprite[] frames;
+        public float frameTime = 0.5f;
+
+        [Header("Эффекты")]
+        public GameObject explosionPrefab;
+        public Coin coinPrefab;
+
+        [Header("Бункеры")]
+        [Tooltip("Ниже этой высоты пришелец ломает бункеры, через которые проходит")]
+        public float bunkerCheckY = -3.8f;
+
+        public int Row { get; private set; }
+        public int Column { get; private set; }
+
+        InvaderGrid grid;
+        float coinDropChance;
+        SpriteRenderer spriteRenderer;
+        BoxCollider2D box;
+        int frame;
+        float frameTimer;
+        bool dead;
+
+        void Awake()
+        {
+            spriteRenderer = GetComponent<SpriteRenderer>();
+            box = GetComponent<BoxCollider2D>();
+        }
+
+        public void Init(InvaderGrid owner, int row, int column, float dropChance)
+        {
+            grid = owner;
+            Row = row;
+            Column = column;
+            coinDropChance = dropChance;
+        }
+
+        void Update()
+        {
+            Animate();
+
+            if (transform.position.y < bunkerCheckY)
+                BreakBunkers();
+        }
+
+        void Animate()
+        {
+            if (frames == null || frames.Length < 2) return;
+
+            frameTimer += Time.deltaTime;
+            if (frameTimer < frameTime) return;
+
+            frameTimer = 0f;
+            frame = (frame + 1) % frames.Length;
+            spriteRenderer.sprite = frames[frame];
+        }
+
+        void BreakBunkers()
+        {
+            Collider2D[] hits = Physics2D.OverlapBoxAll(box.bounds.center, box.bounds.size, 0f);
+            foreach (Collider2D hit in hits)
+            {
+                if (hit.TryGetComponent(out BunkerBlock block))
+                    block.Break();
+            }
+        }
+
+        // Вызывается пулей игрока
+        public void Hit()
+        {
+            hitPoints--;
+            if (hitPoints <= 0)
+                Kill();
+            else
+                spriteRenderer.color = damagedColor;
+        }
+
+        public void Kill()
+        {
+            if (dead) return;
+            dead = true;
+
+            SpinvGameManager.Instance.AddScore(points);
+            SpinvSoundManager.Play(Sfx.Explosion);
+
+            if (explosionPrefab != null)
+                Instantiate(explosionPrefab, transform.position, Quaternion.identity);
+
+            if (coinPrefab != null && Random.value < coinDropChance)
+                Instantiate(coinPrefab, transform.position, Quaternion.identity);
+
+            if (grid != null)
+                grid.OnInvaderKilled(this);
+
+            Destroy(gameObject);
+        }
+    }
+}

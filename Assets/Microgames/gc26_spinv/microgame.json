@@ -1,0 +1,7 @@
+{
+  "id": "gc26_spinv",
+  "title": "Space Invaders",
+  "description": "Аркадные захватчики: классика из 5 волн, бесконечная аркада и боссы",
+  "entry_scene": "gc26_spinv_Main",
+  "authors": ["Gekata"]
+}

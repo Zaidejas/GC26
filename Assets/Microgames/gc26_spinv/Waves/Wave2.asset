@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6a688b1380bb18489db3515f3e2134f, type: 3}
+  m_Name: Wave2
+  m_EditorClassIdentifier: Assembly-CSharp::WaveData
+  bossPrefab: {fileID: 0}
+  rows: 5
+  columns: 6
+  shape:
+  - ...x...
+  - ..xxx..
+  - .xx.xx.
+  - xx...xx
+  - .xx.xx.
+  - ..xxx..
+  - ...x...
+  eliteCountMin: 2
+  eliteCountMax: 5
+  allElite: 0
+  speed: 2.1
+  missileInterval: 0.73
+  coinDropChance: 0.25

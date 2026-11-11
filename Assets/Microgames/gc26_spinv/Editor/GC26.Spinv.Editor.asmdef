@@ -1,0 +1,24 @@
+{
+    "name": "GC26.Spinv.Editor",
+    "rootNamespace": "GC26.Spinv",
+    "references": [
+        "GC26.Spinv",
+        "GC26.Core",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
