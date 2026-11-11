@@ -13,9 +13,9 @@ namespace GC26.Timetraveler
     public class RunnerSession : MonoBehaviour
     {
         [Header("Speed (units per second)")]
-        public float startSpeed = 7.5f;
-        public float maxSpeed = 12f;
-        public float speedRampPerSecond = 0.06f;
+        public float startSpeed = 6.5f;
+        public float maxSpeed = 10.5f;
+        public float speedRampPerSecond = 0.05f;
 
         [Tooltip("Units of track built ahead of the right screen edge")]
         public float buildAhead = 40f;
@@ -141,7 +141,8 @@ namespace GC26.Timetraveler
             if (_input.SwitchPressed) TrySwitchWorld();
 
             _runTime += Time.deltaTime;
-            _traveler.RunSpeed = Mathf.Min(maxSpeed, startSpeed + speedRampPerSecond * _runTime);
+            _traveler.RunSpeed = Mathf.Min(maxSpeed, startSpeed + speedRampPerSecond * _runTime)
+                                 * _timeSlow.TravelerSpeedFactor;
             _track.Extend(_follow.RightEdge + buildAhead);
             _track.Trim(_follow.LeftEdge - 10f);
         }

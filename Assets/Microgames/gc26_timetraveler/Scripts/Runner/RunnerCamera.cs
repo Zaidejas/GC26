@@ -12,7 +12,7 @@ namespace GC26.Timetraveler
         public const float PixelsPerUnit = 16f;
         public const float CanvasHeightPx = 480f;
 
-        [Range(0f, 1f)] public float screenAnchorX = 0.25f;
+        [Range(0f, 1f)] public float screenAnchorX = 0.2f;
         [Tooltip("Camera centre height above the traveler's feet")]
         public float heightAboveTarget = 9f;
         public float minCameraY = 9f;

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace GC26.Timetraveler
 {
     /// <summary>
-    /// The main character in the runner: auto-run, jump (hold for higher), double jump,
+    /// The main character in the runner: auto-run, jump (always full height), double jump,
     /// slide, fast fall. Dies on hazards, on running into a wall, or on falling into a pit.
     /// Uses Rigidbody2D.gravityScale, never Physics2D.gravity (rule 6).
     /// Units: 16 px = 1 unit, so the 32x48 px sprite is 2 x 3 units.
@@ -18,17 +18,17 @@ namespace GC26.Timetraveler
             [Header("Size (units)")]
             public Vector2 standSize = new Vector2(2f, 3f);
             public Vector2 slideSize = new Vector2(2.6f, 1.2f);
+            [Tooltip("The hitbox is narrower than the sprite, so near misses count as misses")]
+            public float hitboxWidthScale = 0.65f;
 
             [Header("Jump")]
-            [Tooltip("Height of a full (held) jump, in units")]
+            [Tooltip("Height of a jump, in units (every jump is full height: no hold needed)")]
             public float jumpHeight = 6.5f;
             [Tooltip("Seconds to reach the top of a full jump")]
             public float jumpTimeToApex = 0.42f;
             public float doubleJumpHeight = 5f;
-            [Tooltip("Upward speed is multiplied by this when the jump is released early")]
-            public float jumpCutMultiplier = 0.45f;
             [Tooltip("Gravity multiplier while falling, for a snappier landing")]
-            public float fallGravityMultiplier = 1.4f;
+            public float fallGravityMultiplier = 1.2f;
             public float maxFallSpeed = 35f;
             public float fastFallSpeed = 40f;
             [Tooltip("A jump pressed this long before landing still counts")]
@@ -68,7 +68,6 @@ namespace GC26.Timetraveler
         float _coyoteTimer;
         float _slideTimer;
         bool _sliding;
-        bool _jumpCut;
         bool _fastFalling;
 
         readonly RaycastHit2D[] _hits = new RaycastHit2D[4];
@@ -153,26 +152,18 @@ namespace GC26.Timetraveler
                     v.y = _jumpSpeed;
                     _coyoteTimer = 0f;
                     _jumpBufferTimer = 0f;
-                    _jumpCut = false;
                     EndSlide();
                 }
-                else if (_canDoubleJump)
+                // A press just before landing waits for the ground (buffered jump)
+                // instead of wasting the double jump.
+                else if (_canDoubleJump && !(v.y <= 0f && NearGround()))
                 {
                     v.y = _doubleJumpSpeed;
                     _canDoubleJump = false;
                     _jumpBufferTimer = 0f;
-                    // The double jump is always full height, even with a quick tap.
-                    _jumpCut = true;
                 }
             }
             _jumpBufferTimer -= dt;
-
-            // Variable jump height: releasing early cuts the rise.
-            if (!_input.JumpHeld && v.y > 0f && !_jumpCut)
-            {
-                v.y *= tuning.jumpCutMultiplier;
-                _jumpCut = true;
-            }
 
             // Custom gravity through the body's own velocity (Physics2D.gravity stays untouched).
             var g = _gravity * (v.y < 0f ? tuning.fallGravityMultiplier : 1f);
@@ -224,7 +215,7 @@ namespace GC26.Timetraveler
         {
             var feet = _body.position.y - _collider.size.y / 2f;
             var center = new Vector2(_body.position.x, feet + tuning.standSize.y / 2f + 0.05f);
-            var size = new Vector2(tuning.standSize.x * 0.9f, tuning.standSize.y - 0.1f);
+            var size = new Vector2(_collider.size.x * 0.9f, tuning.standSize.y - 0.1f);
             var filter = new ContactFilter2D { useTriggers = true };
             var count = Physics2D.OverlapBox(center, size, 0f, filter, _overhead);
             for (var i = 0; i < count; i++)
@@ -236,7 +227,7 @@ namespace GC26.Timetraveler
         void SetSize(Vector2 size)
         {
             var oldHeight = _collider.size.y;
-            _collider.size = size;
+            _collider.size = new Vector2(size.x * tuning.hitboxWidthScale, size.y);
             if (_body != null && oldHeight > 0f)
             {
                 var feetY = _body.position.y - oldHeight / 2f;
@@ -249,6 +240,16 @@ namespace GC26.Timetraveler
         {
             var filter = new ContactFilter2D { useTriggers = false };
             var count = _collider.Cast(Vector2.down, filter, _hits, 0.06f);
+            for (var i = 0; i < count; i++)
+                if (_hits[i].normal.y > 0.6f) return true;
+            return false;
+        }
+
+        /// <summary>Ground within a short distance below (used to buffer a jump instead of double jumping).</summary>
+        bool NearGround()
+        {
+            var filter = new ContactFilter2D { useTriggers = false };
+            var count = _collider.Cast(Vector2.down, filter, _hits, 1.2f);
             for (var i = 0; i < count; i++)
                 if (_hits[i].normal.y > 0.6f) return true;
             return false;

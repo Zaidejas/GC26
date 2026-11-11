@@ -9,7 +9,7 @@ namespace GC26.Timetraveler
     ///   0 m+   rock (jump), small gap, log (slide)
     ///   40+    steps, floating ledge, tall wall (double jump)
     ///   70+    world-only pieces: bridge over a wide gap, a wall that exists in one timeline, split path
-    ///   110+   moving: bobbing blade, flyer, falling boulders, crusher (time slow helps)
+    ///   110+   moving: bobbing blade, flyer, falling boulders, crusher (slide always works; time slow helps)
     /// Ground at the same height is merged into one long box, so the traveler never catches on seams.
     /// Later replaced by hand-made chunk prefabs with Tilemaps (see the GDD).
     /// </summary>
@@ -19,6 +19,9 @@ namespace GC26.Timetraveler
         const float MaxGroundY = 7.5f;
         const float StepHeight = 2.5f;
         const float SafeStartLength = 40f;
+        /// <summary>Hazard hitboxes are this much smaller than their drawing on every side,
+        /// so touching the very edge of a red block does not kill.</summary>
+        const float HazardInset = 0.2f;
 
         // Distances (units from the start) where obstacle groups unlock.
         const float UnlockMedium = 40f / MetersPerUnit;
@@ -48,7 +51,8 @@ namespace GC26.Timetraveler
         float _openGroundStartX;
         string _lastPattern;
         readonly List<Transform> _pieces = new List<Transform>();
-        readonly List<RunnerWorldMember> _worldSolids = new List<RunnerWorldMember>();
+        // Pieces (solids and hazards) that exist in only one world, for the world-switch safety check.
+        readonly List<RunnerWorldMember> _worldPieces = new List<RunnerWorldMember>();
 
         delegate void Pattern();
 
@@ -83,18 +87,18 @@ namespace GC26.Timetraveler
                 if (right < behindX)
                 {
                     var member = piece.GetComponent<RunnerWorldMember>();
-                    if (member != null) _worldSolids.Remove(member);
+                    if (member != null) _worldPieces.Remove(member);
                     Destroy(piece.gameObject);
                     _pieces.RemoveAt(i);
                 }
             }
         }
 
-        /// <summary>True if a solid piece that only exists in <paramref name="world"/> overlaps the box.
-        /// Used to refuse a world switch that would trap the traveler inside a wall.</summary>
+        /// <summary>True if a piece (solid or hazard) that only exists in <paramref name="world"/> overlaps the box.
+        /// Used to refuse a world switch that would put the traveler inside a wall (instead of killing him).</summary>
         public bool SolidOverlaps(Bounds box, RunnerWorld world)
         {
-            foreach (var member in _worldSolids)
+            foreach (var member in _worldPieces)
             {
                 if (member == null || member.World != world) continue;
                 var t = member.transform;
@@ -130,7 +134,7 @@ namespace GC26.Timetraveler
             foreach (var piece in _pieces)
                 if (piece != null) Destroy(piece.gameObject);
             _pieces.Clear();
-            _worldSolids.Clear();
+            _worldPieces.Clear();
             _openGround = null;
         }
 
@@ -244,10 +248,10 @@ namespace GC26.Timetraveler
 
         void TallWall()
         {
-            // Higher than a quick tap jump: hold jump (6.5) or use the double jump.
+            // A double-jump wall: one jump only just scrapes over it, two jumps clear it easily.
             Flat(6f);
-            Teach("tallwall", "High wall: HOLD jump, or jump twice");
-            Hazard("TrackTallWall", _cursorX, _groundY, 1.2f, 4.8f);
+            Teach("tallwall", "High wall: jump TWICE  (tap, tap / Space, Space)");
+            Hazard("TrackTallWall", _cursorX, _groundY, 1.2f, 4.5f);
             Flat(10f);
         }
 
@@ -293,11 +297,12 @@ namespace GC26.Timetraveler
 
         void Blade()
         {
-            // Bobs between the ground and above jump height: pass under it or over it.
+            // Bobs between head height and high above. At its lowest it is still above a sliding
+            // traveler, so SLIDE always works; standing works only while it is up.
             Flat(8f);
-            Teach("moving", "Moving trap: SLOW TIME to pass safely  (E or Shift / swipe up)");
-            var blade = Hazard("TrackBlade", _cursorX, _groundY + 0.2f, 1.5f, 1.5f);
-            AddMover(blade, RunnerMover.Mode.Bob, low: _groundY + 0.95f, high: _groundY + 8f, period: 1.8f);
+            Teach("blade", "Moving blade: SLIDE under it  (or run while it is UP)");
+            var blade = Hazard("TrackBlade", _cursorX, _groundY + 2f, 1.5f, 1.5f);
+            AddMover(blade, RunnerMover.Mode.Bob, low: _groundY + 2.6f, high: _groundY + 10f, period: 2.4f);
             Flat(10f);
         }
 
@@ -318,24 +323,26 @@ namespace GC26.Timetraveler
             // Two or three boulders fall when the traveler gets close (they flash first).
             var count = Coin() ? 2 : 3;
             Flat(6f);
-            Teach("boulders", "Boulders flash, then fall. SLOW TIME and jump the ones that land  (E / Shift)");
+            Teach("boulders", "Boulders fall ahead of you. JUMP over them when they land");
             for (var i = 0; i < count; i++)
             {
                 var boulder = Hazard("TrackBoulder", _cursorX, _groundY + 18f, 1.8f, 1.8f);
                 var mover = AddMover(boulder, RunnerMover.Mode.Drop, low: _groundY + 0.9f, high: 0f, period: 1f);
-                mover.triggerDistance = 9f;
-                Flat(6f);
+                // Falls early enough to be on the ground well before the traveler gets there.
+                mover.triggerDistance = 19f;
+                Flat(9f);
             }
             Flat(4f);
         }
 
         void Crusher()
         {
-            // Slams down to the ground and slowly rises: run under while it is up.
+            // Slams down to just above a sliding traveler and slowly rises: SLIDE always works,
+            // running upright works only while it is up.
             Flat(8f);
-            Teach("crusher", "Crusher: run under it while it is UP. Slow time helps  (E / Shift)");
-            var crusher = Hazard("TrackCrusher", _cursorX, _groundY, 3f, 8f);
-            AddMover(crusher, RunnerMover.Mode.Crush, low: _groundY + 4f, high: _groundY + 13f, period: 2.2f,
+            Teach("crusher", "Crusher: SLIDE under it  (or run while it is UP)");
+            var crusher = Hazard("TrackCrusher", _cursorX, _groundY + 2f, 3f, 8f);
+            AddMover(crusher, RunnerMover.Mode.Crush, low: _groundY + 5.8f, high: _groundY + 13f, period: 2.4f,
                 phase: (float)_rng.NextDouble());
             Flat(10f);
         }
@@ -368,6 +375,7 @@ namespace GC26.Timetraveler
             var go = _shapes.Box(transform, name, x, y, width, height, RunnerShapes.HazardColor, isTrigger: true,
                 sortingOrder: 1);
             go.AddComponent<RunnerHazard>();
+            Inset(go, width, height);
             _pieces.Add(go.transform);
             return go;
         }
@@ -389,7 +397,7 @@ namespace GC26.Timetraveler
             var go = _shapes.Box(transform, name, x, y, width, height, color);
             var member = go.AddComponent<RunnerWorldMember>();
             member.Init(world, _worlds);
-            _worldSolids.Add(member);
+            _worldPieces.Add(member);
             _pieces.Add(go.transform);
         }
 
@@ -398,8 +406,19 @@ namespace GC26.Timetraveler
             var color = WallColor(world);
             var go = _shapes.Box(transform, name, x, y, width, height, color, isTrigger: true, sortingOrder: 1);
             go.AddComponent<RunnerHazard>();
-            go.AddComponent<RunnerWorldMember>().Init(world, _worlds);
+            Inset(go, width, height);
+            var member = go.AddComponent<RunnerWorldMember>();
+            member.Init(world, _worlds);
+            _worldPieces.Add(member);
             _pieces.Add(go.transform);
+        }
+
+        /// <summary>Shrinks a hazard's hitbox by HazardInset on each side (the drawing stays full size).</summary>
+        static void Inset(GameObject go, float width, float height)
+        {
+            var col = go.GetComponent<BoxCollider2D>();
+            col.size = new Vector2(Mathf.Max(0.2f, (width - 2f * HazardInset) / width),
+                Mathf.Max(0.2f, (height - 2f * HazardInset) / height));
         }
 
         RunnerMover AddMover(GameObject go, RunnerMover.Mode mode, float low, float high, float period, float phase = 0f)

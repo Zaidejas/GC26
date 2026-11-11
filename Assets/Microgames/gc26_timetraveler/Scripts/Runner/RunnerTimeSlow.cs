@@ -17,6 +17,12 @@ namespace GC26.Timetraveler
         public float refillDuration = 8f;
         [Tooltip("Energy needed to start (0..1)")]
         public float minEnergyToStart = 0.25f;
+        [Tooltip("While the world runs at slowScale, the traveler runs at this share of real speed, "
+                 + "so he really gets past moving traps faster than they move")]
+        public float travelerScale = 0.75f;
+
+        /// <summary>Multiply the traveler's run speed by this: while time is slowed he moves relatively faster.</summary>
+        public float TravelerSpeedFactor => Active ? travelerScale / slowScale : 1f;
 
         public bool Active { get; private set; }
         public float Energy { get; private set; } = 1f;

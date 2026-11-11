@@ -33,7 +33,7 @@ orange or blue pieces are solid only when he has the same colour.
 
 | Action | Touch | Keyboard |
 | --- | --- | --- |
-| Jump (hold = higher, again in the air = double jump) | Tap | Space / W |
+| Jump (again in the air = double jump) | Tap | Space / W |
 | Slide (hold to keep sliding) / fast fall in the air | Swipe down | S / Down |
 | Slow time (watch energy) | Swipe up | E / Shift |
 | Switch world (Past / Future) | Swipe left or right | Q |

@@ -5,7 +5,7 @@ namespace GC26.Timetraveler
 {
     /// <summary>
     /// One-thumb controls, read once per frame.
-    /// Touch / mouse: tap = jump (hold = higher), swipe down = slide, swipe up = time slow,
+    /// Touch / mouse: tap = jump, swipe down = slide, swipe up = time slow,
     /// swipe left or right = switch world.
     /// Keyboard (PC testing): Space / W / Up = jump, S / Down = slide (hold to keep sliding),
     /// E or Shift = time slow, Q / Left / Right = switch world.
