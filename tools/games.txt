@@ -3,7 +3,7 @@ gc26_spinv
 gc26_minesweeper
 gc26_subwaysurfers
 gc26_tetris
-gc26_aliceescape
+gc26_timetraveler
 gc26_findepair
 gc26_towerdefence
 gc26_lines

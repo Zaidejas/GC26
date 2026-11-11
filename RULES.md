@@ -12,7 +12,7 @@
 | `gc26_minesweeper` | `game/gc26_minesweeper` | `Assets/Microgames/gc26_minesweeper/` | `GC26.Minesweeper` |
 | `gc26_subwaysurfers` | `game/gc26_subwaysurfers` | `Assets/Microgames/gc26_subwaysurfers/` | `GC26.Subwaysurfers` |
 | `gc26_tetris` | `game/gc26_tetris` | `Assets/Microgames/gc26_tetris/` | `GC26.Tetris` |
-| `gc26_aliceescape` | `game/gc26_aliceescape` | `Assets/Microgames/gc26_aliceescape/` | `GC26.Aliceescape` |
+| `gc26_timetraveler` | `game/gc26_timetraveler` | `Assets/Microgames/gc26_timetraveler/` | `GC26.Timetraveler` |
 | `gc26_findepair` | `game/gc26_findepair` | `Assets/Microgames/gc26_findepair/` | `GC26.Findepair` |
 | `gc26_towerdefence` | `game/gc26_towerdefence` | `Assets/Microgames/gc26_towerdefence/` | `GC26.Towerdefence` |
 | `gc26_lines` | `game/gc26_lines` | `Assets/Microgames/gc26_lines/` | `GC26.Lines` |
