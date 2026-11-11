@@ -32,7 +32,8 @@ namespace GC26.Tetris
             bool fighting = mode == GameMode.Battle;
             // Bought boosters are spent only on a battle the player really starts, not on the menu's background game.
             BattleBoosts boosts = fighting && !inMenu ? TakeBattleBoosts() : default(BattleBoosts);
-            battle = fighting ? new Battle(boosts.DamageBonus, boosts.CoinFactor) : null;
+            battle = fighting ? new Battle(boosts.DamageBonus, boosts.CoinFactor, System.Environment.TickCount) : null;
+            view.ShowIncoming(0, 0f);
             if (boosts.StartBomb)
                 game.ForceCurrentSpecial(SpecialKind.Bomb);
             battleView.Show(fighting);
@@ -53,6 +54,18 @@ namespace GC26.Tetris
             {
                 PlayerPrefs.SetInt(recordsPrefix + CoinsName, coinsTotal);
                 PlayerPrefs.Save();
+            }
+
+            if (hit.AttackStopped)
+            {
+                Debug.Log("[BlockDrop] Attack stopped, blocked=" + hit.Blocked + " defeated=" + hit.Defeated);
+                AddPopup(PopupSlot.Attack, T("АТАКА ОТБИТА!", "ATTACK BLOCKED!"), -6.2f, 0.85f, 1.4f, 0.5f, new Color(0.55f, 0.95f, 0.5f));
+            }
+            else if (hit.Blocked > 0)
+            {
+                Debug.Log("[BlockDrop] Attack weakened, blocked=" + hit.Blocked + " left=" + battle.PendingRows);
+                AddPopup(PopupSlot.Attack, T("ОТБИТО: ", "BLOCKED: ") + hit.Blocked + T(", осталось ", ", left ") + battle.PendingRows,
+                    -6.2f, 0.7f, 1.3f, 0.4f, new Color(0.55f, 0.95f, 0.5f));
             }
 
             battleView.DropCoins(Mathf.Min(hit.Coins, MaxCoinsPerDrop));
@@ -113,7 +126,54 @@ namespace GC26.Tetris
                 return;
             }
             Label(T("Повержено: ", "Defeated: ") + battle.BotsDefeated, x, -8.75f, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
-            Label(T("C запас   P пауза", "C hold   P pause"), x, -9.7f, unit, 0.34f, TextAnchor.MiddleCenter, Muted);
+            // Where the key hints were: the bot's attack clock.
+            if (battle.Warning)
+                Label(T("АТАКА!", "ATTACK!"), x, -9.7f, unit, 0.42f, TextAnchor.MiddleCenter, new Color(1f, 0.45f, 0.4f));
+            else
+                Label(T("атака через ", "attack in ") + Mathf.CeilToInt(battle.TimeToAttack) + T(" с", " s"), x, -9.7f, unit, 0.36f, TextAnchor.MiddleCenter, Muted);
+        }
+
+        /// <summary>The bot's attack clock: a warning first, then garbage rows from below unless lines cancel them.</summary>
+        void UpdateBotAttacks(float deltaTime)
+        {
+            if (battle == null)
+                return;
+            if (game.State == GameState.Playing)
+            {
+                BotAttack attack = battle.Tick(deltaTime);
+                if (attack.Kind == BotAttackKind.Warning)
+                {
+                    Debug.Log("[BlockDrop] Bot attack warning, rows=" + attack.Rows + " bot=" + battle.Level);
+                    gameAudio.Play("zap", 0.45f, 0.55f);
+                    AddPopup(PopupSlot.Attack, T("БОТ ГОТОВИТ АТАКУ!", "THE BOT IS ABOUT TO ATTACK!"), -6.2f, 0.75f, 1.6f, 0.3f, new Color(1f, 0.45f, 0.4f));
+                }
+                else if (attack.Kind == BotAttackKind.Landed)
+                {
+                    Debug.Log("[BlockDrop] Bot attack landed, rows=" + attack.Rows + " hole=" + attack.Hole);
+                    game.AddGarbage(attack.Rows, attack.Hole);
+                    gameAudio.Play("bomb", 0.8f, 0.7f);
+                    view.Effects.Shake(0.75f);
+                    AddPopup(PopupSlot.Attack, "+" + attack.Rows + " " + RowsWord(attack.Rows), -6.2f, 0.95f, 1.4f, 0.6f, new Color(1f, 0.45f, 0.4f));
+                }
+            }
+            bool showing = battle.Warning && !game.IsFinished;
+            view.ShowIncoming(showing ? battle.PendingRows : 0, showing ? 1f - battle.TimeToAttack / Battle.WarningTime : 0f);
+        }
+
+        string RowsWord(int rows)
+        {
+            return rows == 1 ? T("РЯД МУСОРА", "GARBAGE ROW") : T("РЯДА МУСОРА", "GARBAGE ROWS");
+        }
+
+        /// <summary>Over the red rows: when the attack lands and how to stop it.</summary>
+        void DrawAttackWarning(float unit)
+        {
+            if (battle == null || !battle.Warning || game.IsFinished)
+                return;
+            float y = BoardView.BoardBottom + battle.PendingRows + 0.9f;
+            int seconds = Mathf.CeilToInt(battle.TimeToAttack);
+            Label(T("АТАКА ЧЕРЕЗ ", "ATTACK IN ") + seconds, 0f, y, unit, 0.7f, TextAnchor.MiddleCenter, new Color(1f, 0.45f, 0.4f));
+            Label(T("очисти линию — отобьёшь ряд", "clear a line to block a row"), 0f, y + 0.8f, unit, 0.36f, TextAnchor.MiddleCenter, Bright);
         }
 
         void RelayoutBattle()

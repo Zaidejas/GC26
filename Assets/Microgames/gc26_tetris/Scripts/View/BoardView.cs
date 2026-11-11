@@ -35,6 +35,8 @@ namespace GC26.Tetris.View
             new[] { Hex(0xFFD45C), Hex(0xE8A93A), Hex(0xC9A227), Hex(0xF2C76E), Hex(0xB8862B), Hex(0xFFE08A), Hex(0xD9B04A) }, // gold
         };
 
+        static readonly Color GarbageColor = Hex(0x6E6880);
+
         static readonly Color DisabledColor = Hex(0x5A5568);
         static readonly Color DangerColor = Hex(0x7A1F2E);
 
@@ -76,7 +78,7 @@ namespace GC26.Tetris.View
         readonly float[,] lockGlow = new float[Board.Width, Board.VisibleHeight];
         readonly int[,] rowSnapshot = new int[Board.Width, Board.VisibleHeight];
         float gameOverClock;
-        SpriteRenderer activeIcon, ghostIcon, holdIcon, zone;
+        SpriteRenderer activeIcon, ghostIcon, holdIcon, zone, incoming;
         readonly SpriteRenderer[] previewIcons = new SpriteRenderer[TetrisMatch.PreviewCount];
 
         public BoardEffects Effects { get; }
@@ -106,6 +108,24 @@ namespace GC26.Tetris.View
         public static Color SkinColor(int skin, int index)
         {
             return Skins[Mathf.Clamp(skin, 0, Skins.Length - 1)][index];
+        }
+
+        /// <summary>Colour of a settled cell: the skin's piece colour, or grey for a bot's garbage.</summary>
+        Color CellColor(int value)
+        {
+            return value == Board.Garbage ? GarbageColor : palette[value];
+        }
+
+        /// <summary>Red over the bottom rows a bot is about to push in; brighter as the attack gets closer (0 to 1).</summary>
+        public void ShowIncoming(int rows, float urgency)
+        {
+            incoming.enabled = rows > 0;
+            if (rows <= 0)
+                return;
+            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * (6f + urgency * 10f));
+            incoming.color = new Color(1f, 0.25f, 0.25f, 0.1f + 0.14f * urgency + 0.08f * pulse);
+            incoming.transform.localPosition = new Vector2(0f, BoardBottom + rows / 2f);
+            incoming.transform.localScale = new Vector3(Board.Width, rows, 1f);
         }
 
         public Color PieceColor(int index)
@@ -172,6 +192,8 @@ namespace GC26.Tetris.View
                 previewIcons[slot] = CreateIconRenderer();
             zone = CreateRenderer("SpecialZone", plainSprite, Vector2.zero, 1f, 3);
             zone.enabled = false;
+            incoming = CreateRenderer("IncomingAttack", plainSprite, Vector2.zero, 1f, 3);
+            incoming.enabled = false;
 
             CreateLegendIcon(SpecialKind.Bomb);
             CreateLegendIcon(SpecialKind.Lightning);
@@ -275,7 +297,7 @@ namespace GC26.Tetris.View
             foreach (RemovedCell cell in result.Removed)
             {
                 if (cell.Y < Board.VisibleHeight)
-                    Effects.Burst(GridPosition(cell.X, cell.Y), palette[cell.Value], perCell, 11f);
+                    Effects.Burst(GridPosition(cell.X, cell.Y), CellColor(cell.Value), perCell, 11f);
             }
         }
 
@@ -334,7 +356,7 @@ namespace GC26.Tetris.View
                 for (int x = 0; x < Board.Width; x++)
                 {
                     int value = rowSnapshot[x, row];
-                    Color color = value == Board.Empty ? Color.white : palette[value];
+                    Color color = value == Board.Empty ? Color.white : CellColor(value);
                     Effects.Burst(GridPosition(x, row), color, perCell, rows.Count >= 4 ? 13f : 9f);
                 }
             }
@@ -453,7 +475,7 @@ namespace GC26.Tetris.View
                         grid[x, y].color = emptyCellColor;
                         continue;
                     }
-                    Color color = palette[value];
+                    Color color = CellColor(value);
                     if (y >= greyFrom)
                     {
                         float grey = color.grayscale * 0.55f;

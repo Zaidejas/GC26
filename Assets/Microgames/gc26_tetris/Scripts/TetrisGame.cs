@@ -50,7 +50,7 @@ namespace GC26.Tetris
         bool hardDropping;
 
         // A new popup replaces the previous one in its slot, so fast clears never stack text on text.
-        enum PopupSlot { Points, Lines, Combo, Level, Special, Damage, Defeat }
+        enum PopupSlot { Points, Lines, Combo, Level, Special, Damage, Defeat, Attack }
 
         sealed class Popup
         {
@@ -477,6 +477,7 @@ namespace GC26.Tetris
 
             bool softDrop = Held(Key.DownArrow) || Held(Key.S);
             game.Tick(Time.deltaTime, softDrop);
+            UpdateBotAttacks(Time.deltaTime);
             view.Render(game, Time.deltaTime);
             UpdateJuice(Time.deltaTime);
             mainCamera.backgroundColor = view.BackgroundColor;
@@ -684,6 +685,7 @@ namespace GC26.Tetris
             if (game.Mode == GameMode.Battle)
             {
                 DrawBotPanel(unit);
+                DrawAttackWarning(unit);
             }
             else if (!portrait)
             {

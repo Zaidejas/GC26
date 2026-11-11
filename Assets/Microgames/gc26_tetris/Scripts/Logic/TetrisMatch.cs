@@ -87,6 +87,8 @@ namespace GC26.Tetris.Logic
         public event Action<PieceType> PieceLocked;
         /// <summary>Raised before the piece moves, with its start and landing rows.</summary>
         public event Action<int, int> HardDropped;
+        /// <summary>Garbage rows came in from below (the count).</summary>
+        public event Action<int> GarbageAdded;
         public event Action<int> LevelChanged;
         public event Action<SpecialResult> SpecialTriggered;
         public event Action GameEnded;
@@ -403,6 +405,35 @@ namespace GC26.Tetris.Logic
             upcomingSpecials.RemoveAt(0);
             DealUpcoming();
             Spawn(next, nextSpecial);
+        }
+
+        /// <summary>
+        /// A bot's attack: garbage rows push the stack up from below. The falling piece is lifted out of the way;
+        /// if it can't be, or blocks are pushed out of the well, the game is over.
+        /// </summary>
+        public void AddGarbage(int rows, int hole)
+        {
+            if (State == GameState.GameOver || rows <= 0)
+                return;
+            bool fits = Board.AddGarbage(rows, hole);
+            // Topped out: the stack now reaches above the visible well.
+            for (int x = 0; x < Board.Width && fits; x++)
+            {
+                for (int y = Board.VisibleHeight; y < Board.Height; y++)
+                {
+                    if (Board.Get(x, y) != Board.Empty)
+                        fits = false;
+                }
+            }
+            for (int lift = 0; lift <= rows && !Board.Fits(CurrentType, CurrentRotation, CurrentX, CurrentY); lift++)
+                CurrentY++;
+            lowestY = Math.Max(lowestY, CurrentY);
+            GarbageAdded?.Invoke(rows);
+            if (!fits || !Board.Fits(CurrentType, CurrentRotation, CurrentX, CurrentY))
+            {
+                State = GameState.GameOver;
+                GameEnded?.Invoke();
+            }
         }
 
         void Spawn(PieceType type, SpecialKind special)

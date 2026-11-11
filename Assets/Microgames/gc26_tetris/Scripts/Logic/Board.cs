@@ -9,6 +9,8 @@ namespace GC26.Tetris.Logic
         public const int VisibleHeight = 20;
         public const int Height = 24;
         public const int Empty = -1;
+        /// <summary>Cell value of the grey rows a bot pushes in from below.</summary>
+        public const int Garbage = 7;
 
         readonly int[,] cells = new int[Width, Height];
 
@@ -81,6 +83,37 @@ namespace GC26.Tetris.Logic
                     cells[x, y] = Empty;
             }
             return cleared;
+        }
+
+        /// <summary>
+        /// Pushes the stack up and fills the bottom rows with garbage, one hole per row in the same column.
+        /// Returns false when blocks were pushed out of the top of the well.
+        /// </summary>
+        public bool AddGarbage(int rows, int hole)
+        {
+            if (rows <= 0)
+                return true;
+            rows = System.Math.Min(rows, Height);
+            bool fits = true;
+            for (int y = Height - rows; y < Height; y++)
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    if (cells[x, y] != Empty)
+                        fits = false;
+                }
+            }
+            for (int y = Height - 1; y >= rows; y--)
+            {
+                for (int x = 0; x < Width; x++)
+                    cells[x, y] = cells[x, y - rows];
+            }
+            for (int y = 0; y < rows; y++)
+            {
+                for (int x = 0; x < Width; x++)
+                    cells[x, y] = x == hole ? Empty : Garbage;
+            }
+            return fits;
         }
 
         bool IsRowFull(int y)

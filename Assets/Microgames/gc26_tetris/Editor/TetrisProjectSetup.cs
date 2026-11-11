@@ -171,6 +171,13 @@ namespace GC26.Tetris.EditorTools
                 { "A battle uses one of each booster", ShopTakesBoosters },
                 { "Shop survives saving, and damaged saves don't break it", ShopRoundTrip },
                 { "Boosters raise damage and coins", BattleBoostsApply },
+                { "Garbage pushes the stack up with one hole", GarbageRowsFill },
+                { "Garbage pushed out of the well says so", GarbageOverflows },
+                { "The bot warns, then attacks, then starts over", BotAttackTiming },
+                { "Stronger bots attack sooner and harder", BotAttackScales },
+                { "Lines during the warning cancel garbage rows", LinesBlockAttack },
+                { "Defeating the bot calls off its attack", DefeatStopsAttack },
+                { "Garbage lifts the falling piece, or ends the game", MatchTakesGarbage },
             };
 
             int failures = 0;
@@ -1002,6 +1009,107 @@ namespace GC26.Tetris.EditorTools
             Check(b.Damage == (int)Math.Round(a.Damage * 1.5f), "damage x1.5: " + a.Damage + " -> " + b.Damage);
             Check(b.Coins == a.Coins * 2, "coins x2: " + a.Coins + " -> " + b.Coins);
             Check(boosted.CoinsEarned == b.Coins, "earned counts the boost");
+        }
+
+        static void GarbageRowsFill()
+        {
+            var board = new Board();
+            board.Set(3, 0, 2);
+            board.Set(3, 1, 4);
+            Check(board.AddGarbage(2, 7), "should fit");
+            Check(board.Get(3, 2) == 2 && board.Get(3, 3) == 4, "stack moved up two rows");
+            for (int y = 0; y < 2; y++)
+                for (int x = 0; x < Board.Width; x++)
+                    Check(board.Get(x, y) == (x == 7 ? Board.Empty : Board.Garbage), "garbage row " + y + " at " + x);
+        }
+
+        static void GarbageOverflows()
+        {
+            var board = new Board();
+            board.Set(0, Board.Height - 1, 1);
+            Check(!board.AddGarbage(1, 0), "a block went out of the top");
+            var low = new Board();
+            low.Set(0, Board.Height - 2, 1);
+            Check(low.AddGarbage(1, 0), "one row of room is enough");
+        }
+
+        static void BotAttackTiming()
+        {
+            var battle = new Battle(1f, 1, 5);
+            float interval = Battle.AttackInterval(1);
+            float time = 0f;
+            BotAttack warned = default, landed = default;
+            float warnedAt = -1f, landedAt = -1f;
+            while (time < interval + 1f)
+            {
+                time += 0.05f;
+                BotAttack attack = battle.Tick(0.05f);
+                if (attack.Kind == BotAttackKind.Warning) { warned = attack; warnedAt = time; }
+                if (attack.Kind == BotAttackKind.Landed) { landed = attack; landedAt = time; }
+            }
+            Check(Mathf.Abs(warnedAt - (interval - Battle.WarningTime)) < 0.06f, "warning at " + warnedAt);
+            Check(Mathf.Abs(landedAt - interval) < 0.06f, "attack at " + landedAt);
+            Check(warned.Rows == Battle.AttackRows(1) && landed.Rows == warned.Rows, "rows " + warned.Rows + "/" + landed.Rows);
+            Check(landed.Hole >= 0 && landed.Hole < Board.Width, "hole " + landed.Hole);
+            Check(!battle.Warning && Mathf.Abs(battle.TimeToAttack - (interval - (time - landedAt))) < 0.06f, "clock restarted");
+        }
+
+        static void BotAttackScales()
+        {
+            Check(Battle.AttackInterval(1) == 20f && Battle.AttackInterval(3) == 16f && Battle.AttackInterval(50) == 9f, "intervals");
+            Check(Battle.AttackRows(1) == 1 && Battle.AttackRows(3) == 2 && Battle.AttackRows(5) == 3 && Battle.AttackRows(40) == 4, "rows");
+        }
+
+        static Battle WarningBattle(int level)
+        {
+            var battle = new Battle(1f, 1, 9);
+            // Single-line hits raise the level by beating bots until the wanted one comes.
+            while (battle.Level < level)
+                battle.Hit(4, 7, 4f);
+            while (!battle.Warning)
+                battle.Tick(0.1f);
+            return battle;
+        }
+
+        static void LinesBlockAttack()
+        {
+            Battle battle = WarningBattle(3);
+            Check(battle.PendingRows == 2, "bot 3 sends two rows: " + battle.PendingRows);
+            BattleHit one = battle.Hit(1, 1, 1f);
+            Check(one.Blocked == 1 && !one.AttackStopped && battle.PendingRows == 1 && battle.Warning, "one row blocked");
+            BattleHit two = battle.Hit(1, 2, 1.5f);
+            Check(two.Blocked == 1 && two.AttackStopped && !battle.Warning, "attack stopped");
+            Check(Mathf.Abs(battle.TimeToAttack - Battle.AttackInterval(3)) < 0.01f, "clock restarted after the block");
+            Battle many = WarningBattle(3);
+            Check(many.Hit(4, 1, 1f).Blocked == 2, "a tetris blocks only what is coming");
+        }
+
+        static void DefeatStopsAttack()
+        {
+            Battle battle = WarningBattle(1);
+            BattleHit hit = battle.Hit(4, 7, 4f);
+            Check(hit.Defeated && hit.AttackStopped && !battle.Warning && battle.PendingRows == 0, "defeat calls off the attack");
+            Check(Mathf.Abs(battle.TimeToAttack - Battle.AttackInterval(2)) < 0.01f, "new bot, new clock");
+        }
+
+        static void MatchTakesGarbage()
+        {
+            var game = new TetrisMatch(40, false);
+            int rows = 0;
+            game.GarbageAdded += n => rows = n;
+            int before = game.CurrentY;
+            game.AddGarbage(2, 4);
+            Check(rows == 2 && game.State == GameState.Playing, "garbage in, still playing");
+            Check(game.Board.Get(0, 0) == Board.Garbage && game.Board.Get(4, 0) == Board.Empty, "rows at the bottom");
+            Check(game.CurrentY >= before, "piece not pushed down");
+            game.HardDrop();
+            Check(game.Board.Get(0, 1) == Board.Garbage, "the piece lands on the garbage");
+
+            var full = new TetrisMatch(41, false);
+            bool ended = false;
+            full.GameEnded += () => ended = true;
+            full.AddGarbage(Board.VisibleHeight + 2, 0);
+            Check(ended && full.State == GameState.GameOver, "a full well ends the game");
         }
 
         // Finds a seed that spawns the wanted piece first.
