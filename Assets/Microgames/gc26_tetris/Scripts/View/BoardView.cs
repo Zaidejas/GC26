@@ -537,13 +537,13 @@ namespace GC26.Tetris.View
 
         static Sprite CreatePlainSprite()
         {
-            var texture = new Texture2D(4, 4, TextureFormat.RGBA32, false);
+            var texture = RuntimeAssets.Keep(new Texture2D(4, 4, TextureFormat.RGBA32, false));
             var pixels = new Color32[16];
             for (int i = 0; i < pixels.Length; i++)
                 pixels[i] = new Color32(255, 255, 255, 255);
             texture.SetPixels32(pixels);
             texture.Apply();
-            return Sprite.Create(texture, new Rect(0, 0, 4, 4), new Vector2(0.5f, 0.5f), 4f, 0, SpriteMeshType.FullRect);
+            return RuntimeAssets.Keep(Sprite.Create(texture, new Rect(0, 0, 4, 4), new Vector2(0.5f, 0.5f), 4f, 0, SpriteMeshType.FullRect));
         }
 
         // Rounded tile with a soft top light, so blocks read as glazed ceramic.
@@ -551,7 +551,7 @@ namespace GC26.Tetris.View
         {
             const int size = 48;
             const float radius = 11f;
-            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var texture = RuntimeAssets.Keep(new Texture2D(size, size, TextureFormat.RGBA32, false));
             texture.filterMode = FilterMode.Bilinear;
             texture.wrapMode = TextureWrapMode.Clamp;
 
@@ -570,7 +570,7 @@ namespace GC26.Tetris.View
                 }
             }
             texture.Apply();
-            return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size, 0, SpriteMeshType.FullRect);
+            return RuntimeAssets.Keep(Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size, 0, SpriteMeshType.FullRect));
         }
 
         static Color Hex(int rgb)

@@ -28,7 +28,7 @@ namespace GC26.Tetris.View
         {
             foreach (KeyValuePair<string, float[]> sound in BuildAllSounds())
             {
-                AudioClip clip = AudioClip.Create(sound.Key, sound.Value.Length, 1, Rate, false);
+                AudioClip clip = RuntimeAssets.Keep(AudioClip.Create(sound.Key, sound.Value.Length, 1, Rate, false));
                 clip.SetData(sound.Value, 0);
                 clips[sound.Key] = clip;
             }

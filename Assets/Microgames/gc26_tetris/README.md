@@ -1,6 +1,6 @@
 # gc26_tetris — Block Drop
 
-- Ветка: `gc26_tetris` (по правилам — `game/gc26_tetris`)
+- Ветка: `game/gc26_tetris`
 - Неймспейс: `GC26.Tetris` (логика — `GC26.Tetris.Logic`, отрисовка — `GC26.Tetris.View`)
 - Стартовая сцена: `Scenes/gc26_tetris_Main.unity`, компонент `TetrisGame` (реализует `IMicrogame`)
 - Команда: Golemch1k

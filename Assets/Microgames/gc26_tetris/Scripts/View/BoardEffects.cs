@@ -164,7 +164,7 @@ namespace GC26.Tetris.View
         static Sprite CreateRingSprite()
         {
             const int Size = 128;
-            var texture = new Texture2D(Size, Size, TextureFormat.RGBA32, false);
+            var texture = RuntimeAssets.Keep(new Texture2D(Size, Size, TextureFormat.RGBA32, false));
             texture.filterMode = FilterMode.Bilinear;
             texture.wrapMode = TextureWrapMode.Clamp;
             for (int y = 0; y < Size; y++)
@@ -177,7 +177,7 @@ namespace GC26.Tetris.View
                 }
             }
             texture.Apply();
-            return Sprite.Create(texture, new Rect(0, 0, Size, Size), new Vector2(0.5f, 0.5f), Size, 0, SpriteMeshType.FullRect);
+            return RuntimeAssets.Keep(Sprite.Create(texture, new Rect(0, 0, Size, Size), new Vector2(0.5f, 0.5f), Size, 0, SpriteMeshType.FullRect));
         }
     }
 }

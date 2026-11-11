@@ -10,6 +10,13 @@ namespace GC26.Tetris.View
 
         static Sprite bomb, lightning;
 
+        /// <summary>Drops the cached icons; RuntimeAssets destroys them.</summary>
+        public static void Forget()
+        {
+            bomb = null;
+            lightning = null;
+        }
+
         public static readonly Color BombColor = new Color(1f, 0.42f, 0.24f);
         public static readonly Color LightningColor = new Color(1f, 0.9f, 0.32f);
 
@@ -37,7 +44,7 @@ namespace GC26.Tetris.View
 
         static Sprite Build(Painter paint)
         {
-            var texture = new Texture2D(Size, Size, TextureFormat.RGBA32, false);
+            var texture = RuntimeAssets.Keep(new Texture2D(Size, Size, TextureFormat.RGBA32, false));
             texture.filterMode = FilterMode.Bilinear;
             texture.wrapMode = TextureWrapMode.Clamp;
             for (int j = 0; j < Size; j++)
@@ -50,7 +57,7 @@ namespace GC26.Tetris.View
                 }
             }
             texture.Apply();
-            return Sprite.Create(texture, new Rect(0, 0, Size, Size), new Vector2(0.5f, 0.5f), Size, 0, SpriteMeshType.FullRect);
+            return RuntimeAssets.Keep(Sprite.Create(texture, new Rect(0, 0, Size, Size), new Vector2(0.5f, 0.5f), Size, 0, SpriteMeshType.FullRect));
         }
 
         // --- shape helpers ----------------------------------------------------------------

@@ -238,7 +238,7 @@ namespace GC26.Tetris.View
 
         static Sprite Build(int size, Painter paint)
         {
-            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var texture = RuntimeAssets.Keep(new Texture2D(size, size, TextureFormat.RGBA32, false));
             texture.filterMode = FilterMode.Bilinear;
             texture.wrapMode = TextureWrapMode.Clamp;
             for (int j = 0; j < size; j++)
@@ -251,7 +251,7 @@ namespace GC26.Tetris.View
                 }
             }
             texture.Apply();
-            return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size, 0, SpriteMeshType.FullRect);
+            return RuntimeAssets.Keep(Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size, 0, SpriteMeshType.FullRect));
         }
 
         static float Fill(float distance, float softness = 0.025f)

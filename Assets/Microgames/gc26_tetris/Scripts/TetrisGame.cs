@@ -91,6 +91,8 @@ namespace GC26.Tetris
 
         void Awake()
         {
+            // Layout is static, so read the window afresh rather than trust a previous visit.
+            HudLayout.Refresh(Screen.width, Screen.height);
             mainCamera = gameCamera != null ? gameCamera : Camera.main;
             view = new BoardView(transform, spriteMaterial);
             ReadCommandLine();
@@ -101,6 +103,12 @@ namespace GC26.Tetris
             StartNewGame();
             if (autoplay || assist || specialCycle)
                 inMenu = false;
+        }
+
+        void OnDestroy()
+        {
+            // The shell unloads the scene; code-made textures, sprites and clips go with it.
+            RuntimeAssets.ReleaseAll();
         }
 
         // --- GC26 shell ------------------------------------------------------------------------
