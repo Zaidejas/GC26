@@ -1,6 +1,6 @@
 # gc26_lines
 
-- Branch: `gc26_lines`
+- Branch: `game/gc26_lines`
 - New machine: run `Assets/Microgames/gc26_lines/Tools~/setup.sh` once before opening Unity (Git LFS pictures and fonts, the pre-push check with the LFS upload, local excludes)
 - Namespace: `GC26.Lines`
 - Start scene: `Scenes/gc26_lines_Main.unity` (made from code by `Lines → Run Project Setup`; holds `GameBootstrap` and `LinesMicrogame`)

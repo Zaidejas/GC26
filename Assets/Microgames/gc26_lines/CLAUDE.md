@@ -6,7 +6,7 @@ Lines is also one of the 11 GC26 microgames in one shared Unity project (team ru
 
 This file lives in the game folder because our branch may only change that folder. Each machine keeps a local, uncommitted `CLAUDE.md` in the project root containing the single line `@Assets/Microgames/gc26_lines/CLAUDE.md`, so Claude reads this file when it starts in the project root (it is listed in `.git/info/exclude`).
 
-**Only our branch.** We work only in `gc26_lines`: never create other branches (not even temporary ones in a test copy), never push anything else, never touch `main` or other teams' branches. `main` is only read, for merges the user asks for.
+**Only our branch.** We work only in `game/gc26_lines` (called `gc26_lines` until 11 Nov 2026): never create other branches (not even temporary ones in a test copy), never push anything else, never touch `main` or other teams' branches. `main` is only read, for merges the user asks for.
 
 ## New machine (or a fresh clone)
 
@@ -42,15 +42,15 @@ A global git ignore rule `*~` (on this Mac in `~/.gitignore_global`, common for 
 - **Names.** Namespaces `GC26.Lines.*`; code packages `GC26.Lines` (the game folder root) and `GC26.Lines.<Something>`; the scene name starts with `gc26_lines_`; Resources only under `Resources/gc26_lines/` and loaded as `Resources.Load("gc26_lines/...")`; no generic file names such as `GameController`, `Game`, `Menu`, `Settings`, `Player` (prefix them with `Lines`).
 - **Saves** only in `MicrogameSave.Folder(LinesMicrogame.Id)` (persistentDataPath/gc26_lines); PlayerPrefs keys start with `gc26_lines_`.
 - **No global state:** no `DontDestroyOnLoad`, no session-long static singletons, `Time.timeScale` and `Physics.gravity` put back in `OnDisable`. Everything the game makes lives in its scene.
-- **Checks** before pushing (both must show no ERROR; the pre-push hook from `setup.sh` runs them, but our branch is named `gc26_lines`, not `game/gc26_lines`, so the scope check skips it there; run it by hand with the team name):
+- **Checks** before pushing (both must show no ERROR; the pre-push hook from `setup.sh` runs them on every push, and they can be run by hand):
 
 ```bash
-python3 tools/check_scope.py --branch game/gc26_lines
+python3 tools/check_scope.py
 python3 tools/check_names.py gc26_lines
 ```
 
 - **Merge `main` into our branch** about once a week: `git fetch && git merge origin/main`.
-- **The shared menu** (later): it loads `gc26_lines_Main`, finds the one `IMicrogame` component (`LinesMicrogame`) and calls `Begin(exit)`. The game starts by itself without the menu, so phone builds work alone. Still to do when the games are merged: a "Back to games" button that calls `LinesMicrogame.ExitToMenu(score)`, and a pause. RULES.md names branches `game/<id>`, but most teams (us too) use `gc26_<name>`; we keep `gc26_lines` unless the organiser asks.
+- **The shared menu** (later): it loads `gc26_lines_Main`, finds the one `IMicrogame` component (`LinesMicrogame`) and calls `Begin(exit)`. The game starts by itself without the menu, so phone builds work alone. Still to do when the games are merged: a "Back to games" button that calls `LinesMicrogame.ExitToMenu(score)`, and a pause. Our branch follows RULES.md: `game/gc26_lines`.
 
 ## Code-first: no hand-built scenes
 
@@ -149,7 +149,7 @@ $SDK/platform-tools/adb exec-out screencap -p > shot.png
 
 ## Git and the board
 
-- Commit to the `gc26_lines` branch only, and only the game folder (see Team rules). Don't push unless the user asks.
+- Commit to the `game/gc26_lines` branch only, and only the game folder (see Team rules). Don't push unless the user asks.
 - Commit messages start with the task: `Task 05: Pathfinder`. Changes outside a task get a plain descriptive message.
 - `.png`, `.ttf` and other binaries go through Git LFS (see `.gitattributes`).
 - Board status changes use `gh` (signed in as `natlaur`, with the `project` scope):
