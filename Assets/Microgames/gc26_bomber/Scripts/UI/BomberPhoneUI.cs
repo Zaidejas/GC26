@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using GC26.Core;
 using TouchPhaseIS = UnityEngine.InputSystem.TouchPhase;
 
 namespace GC26.Bomber
@@ -27,6 +28,7 @@ namespace GC26.Bomber
         Font _font;
         CanvasScaler _scaler;
         RectTransform _safe;
+        float _btnScale = 1.3f, _bottomInset, _uiS = 1f; // button size chosen by the player (0.8 .. 1.6), saved in PlayerPrefs
         float _fw = -1f, _fh = -1f, _wx, _wy, _ws = 1f, _viewH = 960f, _viewTotal = 960f, _scroll, _scrollTarget; bool _scrollInit;
 
         RawImage _world; Image _fade, _flash, _vignette, _lowHp, _hudBg, _hudLine, _panelBg, _panelLine; readonly Image[] _border = new Image[4];
@@ -34,7 +36,7 @@ namespace GC26.Bomber
         readonly List<Image> _route = new List<Image>();
         readonly List<Text> _floatTexts = new List<Text>(), _doorLabels = new List<Text>();
 
-        sealed class Btn { public string Id; public bool AtTop; public Vector2 Local; public Vector2 Pos; public float R; public Color Col; public Image Bg, Cd, Rim, Glow; public Text Label, Sub; }
+        sealed class Btn { public string Id; public bool AtTop; public Vector2 Local; public Vector2 Pos; public float R, Rad; public int LabelFont; public Color Col; public Image Bg, Cd, Rim, Glow; public Text Label, Sub; }
         readonly List<Btn> _btns = new List<Btn>();
         Image _joyBase, _joyKnob, _joyHint; Text _joyHintText;
         int _joyId = int.MinValue; Vector2 _joyStart, _joyNow;
@@ -54,6 +56,7 @@ namespace GC26.Bomber
         public void Init(BomberContext ctx, RenderTexture worldTexture)
         {
             _ctx = ctx;
+            _btnScale = Mathf.Clamp(PlayerPrefs.GetFloat(MicrogameSave.Key(BomberGame.Id, "button_scale"), 1.3f), 0.8f, 1.6f);
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             var canvasGo = ctx.Spawn("gc26_bomber_Canvas", transform);
             var canvas = canvasGo.AddComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 100;
@@ -125,7 +128,8 @@ namespace GC26.Bomber
             b.Cd = Img(id + "Cd", t, _ctx.Art.UiCircle, new Color(0, 0, 0, 0.5f));
             b.Cd.type = Image.Type.Filled; b.Cd.fillMethod = Image.FillMethod.Radial360; b.Cd.fillOrigin = (int)Image.Origin360.Top; b.Cd.fillClockwise = false;
             b.Rim = Img(id + "Rim", t, _ctx.Art.UiRing, col);
-            b.Label = Txt(id + "Label", t, r >= 46 ? 16 : label.Length > 5 ? 13 : 14, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold); b.Label.text = label;
+            b.LabelFont = r >= 46 ? 16 : label.Length > 5 ? 13 : 14;
+            b.Label = Txt(id + "Label", t, b.LabelFont, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold); b.Label.text = label;
             b.Sub = Txt(id + "Sub", t, 15, TextAnchor.MiddleCenter, col, FontStyle.Bold);
             _btns.Add(b);
         }
@@ -144,8 +148,8 @@ namespace GC26.Bomber
             if (tablet) phys *= 1.3f;                                                   // held further away: bigger UI
             float s = Mathf.Max(0.1f, Mathf.Min(fit, phys));
             if (!Mathf.Approximately(_scaler.scaleFactor, s)) _scaler.scaleFactor = s;
-            float fw = sa.width / s, fh = sa.height / s;
-            if (Mathf.Abs(fw - _fw) > 0.5f || Mathf.Abs(fh - _fh) > 0.5f) Layout(fw, fh);
+            float fw = sa.width / s, fh = sa.height / s, inset = sa.yMin / s;
+            if (Mathf.Abs(fw - _fw) > 0.5f || Mathf.Abs(fh - _fh) > 0.5f || Mathf.Abs(inset - _bottomInset) > 0.5f) { _bottomInset = inset; _uiS = s; Layout(fw, fh); }
         }
 
         void Layout(float fw, float fh)
@@ -165,24 +169,27 @@ namespace GC26.Bomber
             Place(_weapon.rectTransform, fw - 220, 98, 208, 22);
 
             // control panel (full width at the bottom)
-            float py = fh - PanelH;
-            Place(_panelBg.rectTransform, 0, py - 40f, fw, PanelH + 40f); Place(_panelLine.rectTransform, 0, py, fw, 0);
+            // controls: the left cluster scales with the player's button size (but never wider than ~62% of the screen)
+            float k = Mathf.Min(_btnScale, fw * 0.62f / 300f), panelH = PanelH * k, py = fh - panelH;
+            Place(_panelBg.rectTransform, 0, py - 40f, fw, panelH + 40f + _bottomInset); Place(_panelLine.rectTransform, 0, py, fw, 0);
             foreach (var b in _btns)
             {
-                b.Pos = b.AtTop ? new Vector2(b.Local.x < 0 ? fw + b.Local.x : b.Local.x, b.Local.y) : new Vector2(b.Local.x, py + b.Local.y);
-                Circle(b.Glow.rectTransform, b.Pos, b.R + 8); Circle(b.Bg.rectTransform, b.Pos, b.R); Circle(b.Cd.rectTransform, b.Pos, b.R); Circle(b.Rim.rectTransform, b.Pos, b.R);
-                Place(b.Sub.rectTransform, b.Pos.x - b.R, b.Pos.y, b.R * 2, b.R);
+                float bk = b.AtTop ? 1f : k; b.Rad = b.R * bk;
+                b.Pos = b.AtTop ? new Vector2(b.Local.x < 0 ? fw + b.Local.x : b.Local.x, b.Local.y) : new Vector2(b.Local.x * k, fh - (PanelH - b.Local.y) * k);
+                Circle(b.Glow.rectTransform, b.Pos, b.Rad + 8 * bk); Circle(b.Bg.rectTransform, b.Pos, b.Rad); Circle(b.Cd.rectTransform, b.Pos, b.Rad); Circle(b.Rim.rectTransform, b.Pos, b.Rad);
+                Place(b.Sub.rectTransform, b.Pos.x - b.Rad, b.Pos.y, b.Rad * 2, b.Rad);
+                b.Label.fontSize = Mathf.RoundToInt(b.LabelFont * bk); b.Sub.fontSize = Mathf.RoundToInt(15 * bk);
             }
-            var jh = new Vector2(Mathf.Max(fw - 112, 410f), py + PanelH / 2f);
-            Circle(_joyHint.rectTransform, jh, 62); Place(_joyHintText.rectTransform, jh.x - 80, jh.y - 30, 160, 60);
+            var jh = new Vector2(fw - 112 * k, fh - PanelH * k / 2f);
+            Circle(_joyHint.rectTransform, jh, 62 * k); Place(_joyHintText.rectTransform, jh.x - 80, jh.y - 30, 160, 60);
 
             // the room between the HUD and the panel: (almost) full width; if the whole room would be too small,
             // show a vertical window of it that follows the drone (at most 1.35x bigger than "whole room" scale)
-            float areaTop = Top + Pad, areaH = fh - Top - Pad, areaW = fw - Pad * 2f;
-            float fitAll = Mathf.Min(areaW / BomberData.W, (areaH - PanelH) / BomberData.H);
+            float areaTop = Top + Pad, areaH = fh - Top - Pad + _bottomInset, areaW = fw - Pad * 2f; // reaches the physical bottom edge
+            float fitAll = Mathf.Min(areaW / BomberData.W, (fh - Top - Pad - panelH) / BomberData.H);
             _ws = Mathf.Min(areaW / BomberData.W, fitAll * 1.35f);
             // world px hidden under the controls: let the view scroll that far below the room (station shaft there)
-            float under = Mathf.Ceil(PanelH / _ws / 2f) * 2f;
+            float under = Mathf.Ceil((panelH + _bottomInset) / _ws / 2f) * 2f;
             _viewTotal = BomberData.H + under;
             _viewH = Mathf.Min(_viewTotal, Mathf.Floor(areaH / _ws / 2f) * 2f);
             float ww = BomberData.W * _ws, wh = _viewH * _ws;
@@ -196,9 +203,11 @@ namespace GC26.Bomber
 
             float tw = Mathf.Min(fw - 80, 520f);
             Place(_toastBg.rectTransform, (fw - tw) / 2f, py - 76, tw, 60); Place(_toast.rectTransform, (fw - tw) / 2f + 10, py - 76, tw - 20, 60);
+            Place(_flash.rectTransform, 0, 0, fw, fh + _bottomInset);
 
             float cw = Mathf.Min(fw - 60, 520f), cx = (fw - cw) / 2f, cy = Mathf.Max(Top, fh / 2f - 260f);
-            Place(_card.rectTransform, cx, cy, cw, 470); Place(_cardLine.rectTransform, cx, cy, cw, 3);
+            cy = Mathf.Max(Top * 0.5f, Mathf.Min(cy, fh - 300f - _panelButtons.Count * 76f));
+            Place(_card.rectTransform, cx, cy, cw, 290 + _panelButtons.Count * 76); Place(_cardLine.rectTransform, cx, cy, cw, 3);
             Place(_panelTitle.rectTransform, cx + 10, cy + 20, cw - 20, 50); Place(_panelText.rectTransform, cx + 20, cy + 80, cw - 40, 170);
             for (int i = 0; i < _panelButtons.Count; i++) Place(_panelButtons[i].rt, cx + 40, cy + 270 + i * 76, cw - 80, 60);
         }
@@ -220,8 +229,16 @@ namespace GC26.Bomber
 
         void HidePanel() { _panelKind = null; _panel.gameObject.SetActive(false); }
 
-        void Pause() => ShowPanel("pause", "Пауза", "Стрельба автоматическая. Джойстик — справа, способности — слева.\nФорсаж разгоняет ядро: больше урона, но можно перегреться.",
-            ("Продолжить", HidePanel), ("В меню", () => _ctx.ExitToMenu()));
+        void Pause() => ShowPanel("pause", "Пауза",
+            $"Размер кнопок: {Mathf.RoundToInt(_btnScale * 100)}%\n\nСтрельба автоматическая. Джойстик — справа, способности — слева. Форсаж разгоняет ядро: больше урона, но можно перегреться.",
+            ("Продолжить", HidePanel), ("Кнопки крупнее", () => SetButtonScale(_btnScale + 0.1f)), ("Кнопки мельче", () => SetButtonScale(_btnScale - 0.1f)), ("В меню", () => _ctx.ExitToMenu()));
+
+        void SetButtonScale(float v)
+        {
+            _btnScale = Mathf.Clamp(Mathf.Round(v * 10f) / 10f, 0.8f, 1.6f);
+            PlayerPrefs.SetFloat(MicrogameSave.Key(BomberGame.Id, "button_scale"), _btnScale); PlayerPrefs.Save();
+            _fw = -1f; UpdateScale(); Pause();
+        }
 
         void ShowEnd(BomberWorld w)
         {
@@ -291,7 +308,7 @@ namespace GC26.Bomber
                 }
                 foreach (var b in _btns)
                 {
-                    if (Vector2.Distance(b.Pos, p) > b.R + 10f) continue;
+                    if (Vector2.Distance(b.Pos, p) > b.Rad + 10f) continue;
                     _held[id] = b.Id;
                     switch (b.Id)
                     {
@@ -377,7 +394,7 @@ namespace GC26.Bomber
                 b.Bg.color = down ? new Color(0.16f, 0.24f, 0.4f, 0.8f) : new Color(0.027f, 0.043f, 0.086f, b.AtTop ? 0.72f : 0.45f);
                 b.Rim.color = isReady ? b.Col : new Color(0.43f, 0.51f, 0.67f, 0.6f);
                 b.Label.color = isReady ? Color.white : new Color(0.54f, 0.59f, 0.71f);
-                Place(b.Label.rectTransform, b.Pos.x - b.R, b.Pos.y - b.R + (sub.Length > 0 ? -2 : 4), b.R * 2, b.R * 2 - 10);
+                Place(b.Label.rectTransform, b.Pos.x - b.Rad, b.Pos.y - b.Rad + (sub.Length > 0 ? -2 : 4) * b.Rad / b.R, b.Rad * 2, b.Rad * 2 - 10 * b.Rad / b.R);
                 b.Sub.text = sub;
                 b.Glow.color = new Color(b.Col.r, b.Col.g, b.Col.b, b.Id == "od" && w.Governor.Forsage ? 0.35f + 0.25f * Mathf.Sin(w.Time * 10f) : 0f);
             }
