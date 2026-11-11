@@ -73,6 +73,8 @@ namespace GC26.Spinv
         public int sleepEvery = 4;
         [Range(0f, 1f)] public float sleepChance = 0.4f;
         public float fastSpeed = 1.3f;
+        [Tooltip("FAST: на сколько пришельцев меньше в строю (убираются снизу)")]
+        public int fastFewerInvaders = 5;
         [Tooltip("ELITE: во сколько раз чаще стреляет весь строй (вес 1.3 у элитных сам по себе этого не даёт, когда элитные все)")]
         public float eliteFireRate = 1.5f;
         [Tooltip("RICH: во сколько раз чаще выпадают монетки")]
@@ -115,17 +117,21 @@ namespace GC26.Spinv
         public bool IsArcade { get; private set; }
         // Обучение: волны не идут, строй и хилки выпускает SpinvTutorial
         public bool IsTutorial { get; private set; }
+        // Обучение аркады: волны тоже не идут, но надписи, счётчик и метки - как в аркаде
+        public bool IsArcadeTutorial { get; private set; }
+        // Надписи, номера волн и циклы считаются по-аркадному
+        public bool ArcadeStyle => IsArcade || IsArcadeTutorial;
         public int CurrentWave { get; private set; }
         public int TotalWaves => waves.Length;
         // Номер цикла в аркаде, с 1
-        public int Loop => IsArcade ? (Mathf.Max(1, CurrentWave) - 1) / (wavesPerLoop + 1) + 1 : 1;
+        public int Loop => ArcadeStyle ?(Mathf.Max(1, CurrentWave) - 1) / (wavesPerLoop + 1) + 1 : 1;
         public WaveModifier Modifiers { get; private set; }
 
         // (номер волны, всего волн)
         public event System.Action<int, int> WaveStarted;
         public event System.Action<Boss> BossSpawned;
 
-        public bool IsBossWave(int waveNumber) => IsArcade
+        public bool IsBossWave(int waveNumber) => ArcadeStyle
             ? (waveNumber - 1) % (wavesPerLoop + 1) == wavesPerLoop
             : waves[waveNumber - 1].bossPrefab != null;
 
@@ -134,8 +140,8 @@ namespace GC26.Spinv
             // До Start остальных: часы и UI сразу знают режим
             var flow = FindAnyObjectByType<SpinvMicrogame>();
             IsTutorial = flow != null && flow.TutorialRun;
-            IsArcade = !IsTutorial && ArcadeMode.IsSelected;
-            foreach (WaveData wave in waves)
+            IsArcadeTutorial = flow != null && flow.ArcadeTutorialRun;
+            IsArcade = !IsTutorial && ArcadeMode.IsSelected;            foreach (WaveData wave in waves)
                 (wave.bossPrefab != null ? bossWaves : regularWaves).Add(wave);
         }
 
@@ -280,7 +286,11 @@ namespace GC26.Spinv
             runtimeWave.eliteCountMax += loop;
             runtimeWave.coinDropChance = Mathf.Min(1f, runtimeWave.coinDropChance + coinChancePerLoop * loop);
 
-            if ((Modifiers & WaveModifier.Fast) != 0) runtimeWave.speed *= fastSpeed;
+            if ((Modifiers & WaveModifier.Fast) != 0)
+            {
+                runtimeWave.speed *= fastSpeed;
+                runtimeWave.shape = RemoveFromBottom(runtimeWave, fastFewerInvaders);
+            }
             if ((Modifiers & WaveModifier.Elite) != 0)
             {
                 runtimeWave.allElite = true;
@@ -288,6 +298,42 @@ namespace GC26.Spinv
             }
             if ((Modifiers & WaveModifier.Rich) != 0) runtimeWave.coinDropChance = Mathf.Min(1f, runtimeWave.coinDropChance * richCoinRate);
             return runtimeWave;
+        }
+
+        // Строй волны без count пришельцев снизу: с нижнего ряда, попеременно с левого и правого края,
+        // потом со следующего ряда. Опустевшие нижние ряды отрезаются (элитные встают в нижние настоящие ряды)
+        static string[] RemoveFromBottom(WaveData data, int count)
+        {
+            int rows = data.Rows, columns = data.Columns;
+            var cells = new char[rows][];
+            for (int r = 0; r < rows; r++)
+            {
+                cells[r] = new char[columns];
+                for (int c = 0; c < columns; c++)
+                    cells[r][c] = data.Filled(r, c) ? 'x' : '.';
+            }
+
+            for (int r = rows - 1; r >= 0 && count > 0; r--)
+            {
+                int left = 0, right = columns - 1;
+                bool fromLeft = true;
+                while (left <= right && count > 0)
+                {
+                    int c = fromLeft ? left++ : right--;
+                    fromLeft = !fromLeft;
+                    if (cells[r][c] == 'x')
+                    {
+                        cells[r][c] = '.';
+                        count--;
+                    }
+                }
+            }
+
+            int keep = rows;
+            while (keep > 1 && System.Array.IndexOf(cells[keep - 1], 'x') < 0) keep--;
+            var shape = new string[keep];
+            for (int r = 0; r < keep; r++) shape[r] = new string(cells[r]);
+            return shape;
         }
 
         // Метки, которые действуют на поле, а не на строй: моргание и бункеры
@@ -303,10 +349,27 @@ namespace GC26.Spinv
             if (bunkers != null) bunkers.SetActive(true);
         }
 
+        // Обучение аркады: надпись волны с меткой и сама механика метки (моргание, бункеры).
+        // Строй выпускает SpinvTutorial
+        public void BeginTutorialWave(int number, WaveModifier modifiers)
+        {
+            EndModifiers();
+            CurrentWave = number;
+            Modifiers = modifiers;
+            WaveStarted?.Invoke(number, TotalWaves);
+            BeginModifiers();
+        }
+
+        public void EndTutorialWave()
+        {
+            EndModifiers();
+            Modifiers = WaveModifier.None;
+        }
+
         // Надпись перед волной. Аркада: «LOOP 2» в начале цикла, метки строкой ниже
         public string BannerText(int wave)
         {
-            if (!IsArcade)
+            if (!ArcadeStyle)
             {
                 if (IsBossWave(wave))
                     return wave == TotalWaves ? "FINAL BOSS" : "BOSS";

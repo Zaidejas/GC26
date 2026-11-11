@@ -1101,6 +1101,14 @@ namespace GC26.Spinv
             menu.arcadeButton.background.color = HighScoreYellow;
             menu.arcadeButton.label.color = HighScoreYellow;
             if (menu.arcadeButton.glow != null) menu.arcadeButton.glow.color = HighScoreYellow;
+            // Справа от ARCADE MODE - жёлтая круглая «?», как пауза: обучение аркады (метки волн и циклы)
+            menu.arcadeHelpButton = MakeRoundButton(canvas, "ArcadeHelpButton", center, new Vector2(425f, -350f), 130f, null, 0f, 0f, "?");
+            menu.arcadeHelpButton.label.fontSize = 80f;
+            menu.arcadeHelpButton.normalColor = menu.arcadeHelpButton.litColor = HighScoreYellow;
+            menu.arcadeHelpButton.normalLabelColor = HighScoreYellow;
+            menu.arcadeHelpButton.background.color = HighScoreYellow;
+            menu.arcadeHelpButton.label.color = HighScoreYellow;
+            if (menu.arcadeHelpButton.glow != null) menu.arcadeHelpButton.glow.color = HighScoreYellow;
             menu.tutorialButton = MakeArcadeButton(canvas, "TutorialButton", "TUTORIAL", false, center, new Vector2(0f, -350f), new Vector2(640f, 150f));
             menu.quitButton = MakeArcadeButton(canvas, "QuitButton", "QUIT", false, center, new Vector2(0f, -530f), new Vector2(640f, 150f));
 
@@ -1782,6 +1790,7 @@ namespace GC26.Spinv
             tutorial.coinPrefab = coinPrefab;
             tutorial.coinCounter = coinIcon;
             tutorial.waveText = ui.waveText;
+            tutorial.scoreCounter = ui.scoreText.rectTransform;
             tutorial.canvasRect = (RectTransform)canvas;
             tutorial.uiCamera = sceneCamera;
 
@@ -1845,7 +1854,7 @@ namespace GC26.Spinv
 
         // Круглая аркадная кнопка со значком паузы: кольцо, при нажатии заливка и свечение
         static PressableButton MakeRoundButton(Transform parent, string name, Vector2 anchor, Vector2 position, float size,
-            string iconName = "icon_pause", float iconWidth = 0.32f, float iconHeight = 0.36f)
+            string iconName = "icon_pause", float iconWidth = 0.32f, float iconHeight = 0.36f, string fallbackLabel = "II")
         {
             var button = MakeArcadeButton(parent, name, "", false, anchor, position, new Vector2(size, size));
             var outline = Art("round_outline", 100f, null);
@@ -1862,7 +1871,7 @@ namespace GC26.Spinv
                 button.glow.rectTransform.sizeDelta = Vector2.one * size * 310f / 150f;
             }
 
-            var iconSprite = Art(iconName, 100f, null);
+            var iconSprite = iconName != null ? Art(iconName, 100f, null) : null;
             if (iconSprite != null)
             {
                 var icon = MakeChildImage(button.transform, "Icon", iconSprite, button.normalLabelColor);
@@ -1871,7 +1880,7 @@ namespace GC26.Spinv
             }
             else
             {
-                button.label.text = "II";
+                button.label.text = fallbackLabel;
             }
             return button;
         }

@@ -170,7 +170,7 @@ namespace GC26.Spinv
         void OnWaveStarted(int wave, int total)
         {
             // В аркаде волны бесконечные: только номер
-            waveText.text = waveManager.IsArcade ? wave.ToString() : $"{wave}/{total}";
+            waveText.text = waveManager.ArcadeStyle ? wave.ToString() : $"{wave}/{total}";
             StopAllCoroutines();
             StartCoroutine(ShowBanner(waveManager.BannerText(wave)));
         }

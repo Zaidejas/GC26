@@ -32,7 +32,7 @@ namespace GC26.Spinv
         int nextExtraLife;
 
         [Header("Достижения")]
-        public int highRollerScore = 50000;
+        public int highRollerScore = 15000;
         public int piggyBankCoins = 500;
         public const string LifetimeCoinsKey = SpinvMicrogame.Id + "_LifetimeCoins";
         int coinsCollected;

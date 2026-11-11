@@ -86,6 +86,7 @@ namespace GC26.Spinv
                     Invader invader = Instantiate(prefab, transform);
                     invader.transform.localPosition = new Vector3(startX + col * spacingX, -row * spacingY, 0f);
                     invader.Init(this, row, col, data.coinDropChance);
+                    if (data.allElite) invader.hitPoints = 1; // метка ELITE: элитные все, зато с 1 ХП
                     invaders[row, col] = invader;
                     placed++;
                 }

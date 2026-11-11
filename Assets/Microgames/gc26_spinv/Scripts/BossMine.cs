@@ -15,6 +15,10 @@ namespace GC26.Spinv
         [Tooltip("Ускорение падения, юнитов/с²: мина летит по дуге")]
         public float gravity = 10f;
         public float radius = 1.5f;
+        [Tooltip("Мина, задевшая в полёте бункер, ложится на него. Радиус, которым она его задевает")]
+        public float bunkerTouchRadius = 0.15f;
+        [Tooltip("Сколько бункера выбивает взрыв мины, лежащей на нём")]
+        public float bunkerBreakRadius = 0.6f;
         public float spinSpeed = 120f;
         public Color ringColor = new Color(1f, 0.34f, 0.29f, 0.55f);
 
@@ -24,6 +28,7 @@ namespace GC26.Spinv
         float flightTime, flightLeft;
         float fuse, fuseLeft;
         bool landed;
+        bool onBunker;
 
         // Бросок в точку landing: без начальной скорости по вертикали, вбок - ровно столько,
         // чтобы долететь до точки за время свободного падения
@@ -61,6 +66,12 @@ namespace GC26.Spinv
                     transform.position = landPoint;
                     landed = true;
                 }
+                else if (velocity.y < 0f && TouchesBunker())
+                {
+                    // Бункер укрывает: мина ложится на него и взрывается там
+                    landed = true;
+                    onBunker = true;
+                }
                 return;
             }
 
@@ -93,9 +104,21 @@ namespace GC26.Spinv
                 GameObject boom = Instantiate(explosionPrefab, transform.position, Quaternion.identity);
                 boom.transform.localScale = Vector3.one * radius * 1.6f;
             }
+            if (onBunker)
+            {
+                foreach (Collider2D hit in Physics2D.OverlapCircleAll(transform.position, bunkerBreakRadius))
+                    if (hit.TryGetComponent(out BunkerBlock block)) block.Break();
+            }
             if (player != null && Vector2.Distance(player.transform.position, transform.position) < radius)
                 player.Hit();
             Destroy(gameObject);
+        }
+
+        bool TouchesBunker()
+        {
+            foreach (Collider2D hit in Physics2D.OverlapCircleAll(transform.position, bunkerTouchRadius))
+                if (hit.GetComponent<BunkerBlock>() != null) return true;
+            return false;
         }
     }
 }

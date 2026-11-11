@@ -35,7 +35,7 @@ namespace GC26.Spinv
             Def(AchievementId.Exorcist, "EXORCIST", "Defeat Phantom", true),
             Def(AchievementId.Loop3, "LOOP 3", "Reach loop 3 in Arcade", true),
             Def(AchievementId.NightOwl, "NIGHT OWL", "Reach loop 5 in Arcade", true),
-            Def(AchievementId.HighRoller, "HIGH ROLLER", "Score 50,000 in one Arcade run", true),
+            Def(AchievementId.HighRoller, "HIGH ROLLER", "Score 15,000 in one Arcade run", true),
             Def(AchievementId.Shopaholic, "SHOPAHOLIC", "Use all 3 abilities in one wave"),
             Def(AchievementId.PiggyBank, "PIGGY BANK", "Collect 500 coins in total"),
             Def(AchievementId.HandsOff, "HANDS OFF", "Defeat Phantom without being caught by a hand", true),

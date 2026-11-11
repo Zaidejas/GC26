@@ -31,6 +31,14 @@ namespace GC26.Spinv
         public Camera uiCamera;
         public float charTime = 0.03f;
 
+        [Header("Обучение аркады")]
+        [Tooltip("Счёт в шапке: на шаге про циклы показываем на него")]
+        public RectTransform scoreCounter;
+        [Tooltip("Скорость пришельца-примера на волне с меткой")]
+        public float tagMobSpeed = 1.5f;
+        [Tooltip("Скорость пришельца на метке FAST (нарочно заметно быстрее)")]
+        public float fastMobSpeed = 3.5f;
+
         [Header("Монетный дождь (шаг со способностями)")]
         public int coinRows = 4;
         public int coinsPerRow = 5;
@@ -48,6 +56,14 @@ namespace GC26.Spinv
         Coroutine typing, hiding;
         int tipVersion; // меняется с каждой новой подсказкой
 
+        void Awake()
+        {
+            // В обучении аркады корабль не стреляет с самого первого кадра (Update игрока идёт раньше нашего Start)
+            var flow = FindAnyObjectByType<SpinvMicrogame>();
+            if (flow != null && flow.ArcadeTutorialRun && player != null)
+                player.canShoot = false;
+        }
+
         void Start()
         {
             if (!game.IsTutorial)
@@ -61,7 +77,7 @@ namespace GC26.Spinv
             abilities.Used += OnUsed;
             ring.gameObject.SetActive(false);
             dragHint.gameObject.SetActive(false);
-            StartCoroutine(Run());
+            StartCoroutine(waves.IsArcadeTutorial ? RunArcade() : Run());
         }
 
         void OnDestroy()
@@ -148,6 +164,179 @@ namespace GC26.Spinv
             Say("<color=#39FF6A>TUTORIAL COMPLETE</color> - tap to return to the menu");
             yield return WaitForTap();
             FindAnyObjectByType<SpinvMicrogame>().ToMenu();
+        }
+
+        // Обучение аркады (кнопка «?»): управление не объясняем. Волны идут с номерами, как в аркаде,
+        // на каждой метке - один пришелец-пример, который не стреляет, и сама механика метки.
+        // Пояснения сменяются по касанию; пришелец выходит после касания, дальше - когда его собьют.
+        // Волна 5 - надпись BOSS и показ четырёх боссов, волна 6 - LOOP 2
+        IEnumerator RunArcade()
+        {
+            yield return null;
+            player.canShoot = false; // здесь корабль не стреляет: пришельцы только показывают метки
+
+            yield return Next("In <color=#FFD45A>ARCADE</color> the waves never end. Survive as long as you can!");
+
+            // 1. FAST и счётчик волн
+            waves.BeginTutorialWave(1, WaveModifier.Fast);
+            PointAtUI(waveText.rectTransform, 200f);
+            yield return Next("The <color=#39FF6A>WAVE</color> counter never stops");
+            ClearPointer();
+            yield return TagStep("Most waves get a <color=#FFD45A>TAG</color>. <color=#FFD45A>FAST</color>: invaders move faster", fastMobSpeed, false, false);
+
+            // 2. ELITE
+            waves.BeginTutorialWave(2, WaveModifier.Elite);
+            yield return TagStep("<color=#FFD45A>ELITE</color>: every invader is elite and shoots more, but dies in one hit", tagMobSpeed, true, false);
+
+            // 3. DARK: игрок моргает, пока метка действует
+            waves.BeginTutorialWave(3, WaveModifier.Dark);
+            yield return TagStep("<color=#FFD45A>DARK</color>: you get sleepy and blink", tagMobSpeed, false, false);
+
+            // 4. RICH: из пришельца сыплются монетки, их можно ловить
+            waves.BeginTutorialWave(4, WaveModifier.Rich);
+            yield return TagStep("<color=#FFD45A>RICH</color>: coins drop 3x more often", tagMobSpeed, false, true);
+
+            // 5. Босс: надпись, потом по очереди все боссы аркады
+            waves.EndTutorialWave();
+            waves.BeginTutorialWave(5, WaveModifier.None);
+            yield return Next("Every <color=#FFD45A>5th</color> wave is a <color=#FF5A6E>BOSS</color> - one of four, picked at random");
+            HideTip();
+            if (waves.arcadeBosses != null)
+                foreach (Boss prefab in waves.arcadeBosses)
+                    if (prefab != null) yield return ShowBoss(prefab);
+
+            // 6. Новый цикл и NO BUNKERS
+            waves.BeginTutorialWave(6, WaveModifier.NoBunkers);
+            yield return Next("After the boss a new <color=#FFD45A>LOOP</color> begins");
+            PointAtUI(scoreCounter, 260f);
+            yield return Next("Each loop invaders get faster and tougher, but <color=#FFD45A>POINTS</color> grow: x1, x1.5, x2...");
+            ClearPointer();
+            yield return TagStep("<color=#FFD45A>NO BUNKERS</color>: no cover this wave", tagMobSpeed, false, false);
+            waves.EndTutorialWave();
+
+            Say("<color=#39FF6A>TUTORIAL COMPLETE</color> - tap to return to the menu");
+            yield return WaitForTap();
+            FindAnyObjectByType<SpinvMicrogame>().ToMenu();
+        }
+
+        // Пояснение, которое ждёт касания: снизу приписка TAP TO CONTINUE
+        // retype = false: текст уже на экране, приписка появляется сразу, без повторной печати
+        IEnumerator Next(string text, bool retype = true)
+        {
+            string full = text + "\n<size=70%><color=#2F7A45>TAP TO CONTINUE</color></size>";
+            if (retype)
+            {
+                Say(full);
+            }
+            else
+            {
+                if (typing != null) StopCoroutine(typing);
+                tipText.text = full;
+                tipText.maxVisibleCharacters = 99999;
+            }
+            yield return new WaitForSeconds(0.3f); // случайное двойное касание не проскакивает пункт
+            yield return WaitForTap();
+        }
+
+        void HideTip()
+        {
+            tipVersion++;
+            if (typing != null) StopCoroutine(typing);
+            tipText.transform.parent.gameObject.SetActive(false);
+        }
+
+        [Header("Показ боссов (шаг 5 обучения аркады)")]
+        public float bossEnterTime = 0.8f;
+        [Tooltip("Сколько босс стоит до приступа ярости")]
+        public float bossFitDelay = 0.3f;
+        public float bossExitTime = 0.6f;
+
+        // Босс-пример: выезжает сверху, один раз наливается красным и трясётся (BossAnger) и уезжает.
+        // Не атакует и не двигается сам (компонент Boss выключен до своего Start), в него нельзя попасть
+        IEnumerator ShowBoss(Boss prefab)
+        {
+            Vector3 stand = new Vector3(0f, waves.bossSpawnY, 0f);
+            Vector3 above = stand + Vector3.up * 9f;
+            Boss boss = Instantiate(prefab, above, Quaternion.identity);
+            boss.enabled = false;
+            foreach (Collider2D c in boss.GetComponentsInChildren<Collider2D>()) c.enabled = false;
+            var anger = boss.GetComponent<BossAnger>();
+            float fitLength = 1.2f;
+            if (anger != null)
+            {
+                anger.firstFitDelay = bossEnterTime + bossFitDelay;
+                anger.intervalFullHealth = anger.intervalMin = 999f; // только один приступ
+                fitLength = anger.fitDuration;
+            }
+
+            yield return Slide(boss.transform, above, stand, bossEnterTime);
+            yield return new WaitForSeconds(bossFitDelay + fitLength + 0.2f);
+            yield return Slide(boss.transform, stand, above, bossExitTime);
+            Destroy(boss.gameObject);
+        }
+
+        static IEnumerator Slide(Transform target, Vector3 from, Vector3 to, float time)
+        {
+            for (float t = 0f; t < time; t += Time.deltaTime)
+            {
+                if (target == null) yield break;
+                float k = t / time;
+                target.position = Vector3.Lerp(from, to, 1f - (1f - k) * (1f - k)); // с замедлением в конце
+                yield return null;
+            }
+            if (target != null) target.position = to;
+        }
+
+        [Header("Пришелец-пример (обучение аркады)")]
+        [Tooltip("Сколько секунд пришелец-пример летает, прежде чем взорваться")]
+        public float mobShowTime = 5f;
+        [Tooltip("RICH: монетка из пришельца раз в столько секунд")]
+        public float richCoinInterval = 0.8f;
+
+        // Метка на примере: выходит один пришелец (не стреляет, корабль тоже), висит пояснение.
+        // Пришелец летает mobShowTime секунд и взрывается сам, после этого касание ведёт дальше
+        IEnumerator TagStep(string text, float speed, bool elite, bool rich)
+        {
+            if (wave == null) wave = ScriptableObject.CreateInstance<WaveData>();
+            wave.rows = 1;
+            wave.columns = 1;
+            wave.speed = speed;
+            wave.missileInterval = 9999f; // не стреляет
+            wave.coinDropChance = 0f;
+            wave.allElite = elite;
+            grid.Build(wave);
+
+            Say(text);
+            Coroutine watch = StartCoroutine(WatchMob(rich));
+            yield return new WaitForSeconds(mobShowTime);
+            StopCoroutine(watch);
+            Invader mob = FindAnyObjectByType<Invader>();
+            if (mob != null) mob.Kill();
+            yield return Next(text, false);
+        }
+
+        // Пока висит пояснение: пролетел мимо корабля - выпускаем заново сверху; на RICH сыплются монетки
+        IEnumerator WatchMob(bool rich)
+        {
+            float coinTimer = 0.5f;
+            while (true)
+            {
+                yield return null;
+                Invader mob = FindAnyObjectByType<Invader>();
+                if (mob == null) continue;
+                if (mob.transform.position.y < player.transform.position.y + 1f)
+                {
+                    grid.Build(wave);
+                    continue;
+                }
+                if (!rich) continue;
+                coinTimer -= Time.deltaTime;
+                if (coinTimer <= 0f)
+                {
+                    coinTimer = richCoinInterval;
+                    Instantiate(coinPrefab, mob.transform.position, Quaternion.identity);
+                }
+            }
         }
 
         // Дать монет на способность, если не хватает, подсветить её ячейку и ждать нажатия

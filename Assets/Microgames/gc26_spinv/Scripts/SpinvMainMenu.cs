@@ -20,6 +20,8 @@ namespace GC26.Spinv
 
         public PressableButton playButton;
         public PressableButton arcadeButton;
+        [Tooltip("«?» справа от ARCADE MODE: обучение аркады")]
+        public PressableButton arcadeHelpButton;
         public PressableButton tutorialButton;
         public PressableButton quitButton;
         public string playLabel = "PLAY";
@@ -46,6 +48,7 @@ namespace GC26.Spinv
             trophyButton.onPress.AddListener(starMap.Open);
             playButton.onPress.AddListener(() => Play(false));
             arcadeButton.onPress.AddListener(() => Play(true));
+            arcadeHelpButton.onPress.AddListener(() => flow.StartGame(false, true));
             quitButton.onPress.AddListener(Quit);
         }
 
@@ -66,6 +69,7 @@ namespace GC26.Spinv
             arcadeScoreLabel.gameObject.SetActive(arcade);
             arcadeScoreText.gameObject.SetActive(arcade);
             arcadeButton.gameObject.SetActive(arcade);
+            arcadeHelpButton.gameObject.SetActive(arcade);
             float column = arcade ? scoreColumnOffset : 0f;
             SetX(highScoreLabel, -column);
             SetX(highScoreText, -column);

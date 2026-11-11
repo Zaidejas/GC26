@@ -321,11 +321,13 @@ namespace GC26.Spinv
             {
                 BossAttack attack = NextAttack();
 
-                // Телепорт и двойники прячут самого босса - их нельзя смешивать с другой атакой
+                // Телепорт и двойники прячут самого босса - их нельзя смешивать с другой атакой; мины тоже идут одни
                 if (Raging && attacks.Length > 1 && Random.value < doubleAttackChance)
                 {
                     BossAttack extra = NextAttack();
-                    if (!IsSolo(attack) && !IsSolo(extra))
+                    // Две атаки, которые обе таскают босса (ковёр + грозди у Bomber-а), тянули бы его каждая
+                    // к своей точке: он замирал между ними навсегда, и атаки больше не шли
+                    if (!IsSolo(attack) && !IsSolo(extra) && !(MovesBoss(attack) && MovesBoss(extra)))
                         StartCoroutine(TrackAttack(extra));
                 }
 
@@ -341,7 +343,12 @@ namespace GC26.Spinv
 
         int runningAttacks;
 
-        static bool IsSolo(BossAttack attack) => attack == BossAttack.Teleport || attack == BossAttack.Decoys;
+        // Мины тоже идут без второй атаки: в ярости мин и так много, вместе с ковром или гроздьями - почти верная смерть
+        static bool IsSolo(BossAttack attack) => attack == BossAttack.Teleport || attack == BossAttack.Decoys || attack == BossAttack.Mines;
+
+        // Атаки, которые сами двигают босса (рывки к точке, подлёт к кораблю)
+        static bool MovesBoss(BossAttack attack) => attack == BossAttack.Carpet || attack == BossAttack.Cluster
+            || attack == BossAttack.Dash || attack == BossAttack.Laser;
 
         IEnumerator TrackAttack(BossAttack attack)
         {
