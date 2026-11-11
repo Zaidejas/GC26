@@ -74,12 +74,21 @@ Builds (Unity closed; output in `Builds/`, which git ignores; logs in `Builds/lo
 ```bash
 scripts/build.sh ios-sim      # Unity → Xcode → installs and starts the game in the iOS Simulator (~2 min)
 scripts/build.sh ios-device   # Xcode project for a real iPhone: Builds/iOS-Device/Unity-iPhone.xcodeproj
-scripts/build.sh android      # Builds/Android/Lines.apk (needs Unity's Android module, task 29)
+scripts/build.sh android      # Builds/Android/Lines.apk
 ```
 
 - `LINES_SIM=<name or UDID>` picks the simulated iPhone (default: the running one, else "iPhone 18 Pro"); `LINES_APPLE_TEAM=<team id>` signs the iPhone build with the user's free Apple account.
 - This Xcode has no separate Simulator app window; watch the game with `mcp__Claude_Code_iOS_Simulator__control` (attach, screenshot).
 - The app id is `com.gc26.lines` (set in `ProjectSetup`). Builds switch Unity back to the Mac platform at the end.
+- Android tools come with Unity's Android module (installed through Unity Hub). The Android SDK, with the emulator and an Android 16 arm64 phone image, lives in `/Applications/Unity/Hub/Editor/6000.5.6f1/PlaybackEngines/AndroidPlayer/SDK`, and its Java in `…/AndroidPlayer/OpenJDK`. There are two emulator phones, `Lines_16x9` (1080×1920) and `Lines_20x9` (1080×2400):
+
+```bash
+SDK=/Applications/Unity/Hub/Editor/6000.5.6f1/PlaybackEngines/AndroidPlayer/SDK
+$SDK/emulator/emulator -avd Lines_16x9 -no-snapshot-save -no-audio &   # opens a phone window
+$SDK/platform-tools/adb install -r Builds/Android/Lines.apk
+$SDK/platform-tools/adb shell monkey -p com.gc26.lines 1             # starts the game
+$SDK/platform-tools/adb exec-out screencap -p > shot.png
+```
 
 ## How each task is checked
 

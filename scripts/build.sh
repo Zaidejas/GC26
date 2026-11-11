@@ -2,7 +2,7 @@
 # Builds Lines from the command line. Unity must be closed.
 #   scripts/build.sh ios-sim      build for the iOS Simulator, install it and start it
 #   scripts/build.sh ios-device   Xcode project for a real iPhone (Builds/iOS-Device)
-#   scripts/build.sh android      Android APK (Builds/Android/Lines.apk; needs task 29)
+#   scripts/build.sh android      Android APK (Builds/Android/Lines.apk)
 # Options (environment variables):
 #   LINES_SIM=<name or UDID>  which simulated iPhone to use (default: the running one, else "iPhone 18 Pro")
 #   LINES_APPLE_TEAM=<id>     your Apple team ID for signing the iPhone build
