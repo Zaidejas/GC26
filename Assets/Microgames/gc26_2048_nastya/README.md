@@ -1,6 +1,6 @@
 # gc26_2048_nastya — Colours
 
-- Ветка: `game/gc26_2048_nastya`
+- Ветка: `gc26_2048_2`
 - Неймспейс: `GC26._2048Nastya`
 - Стартовая сцена: `Scenes/gc26_2048_nastya_Main.unity` (создать в Unity, повесить `Game2048Nastya`)
 - Команда: Nastya

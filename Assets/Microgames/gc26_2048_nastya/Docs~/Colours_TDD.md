@@ -42,7 +42,7 @@ This repository has two separate 2048 games by different people. They share noth
 | --- | --- | --- |
 | ID | `gc26_2048_nastya` | `gc26_2048` |
 | Design | Colours, "night glass" (the GDD) | Cheese theme |
-| Branch | `game/gc26_2048_nastya` | `game/gc26_2048` |
+| Branch | `gc26_2048_2` | `game/gc26_2048` |
 | Folder | `Assets/Microgames/gc26_2048_nastya/` | `Assets/Microgames/gc26_2048/` |
 | Namespace / asmdef | `GC26._2048Nastya` | `GC26._2048` |
 | Entry scene | `gc26_2048_nastya_Main` | its own scene with the `gc26_2048_` prefix |
@@ -519,7 +519,7 @@ git config core.hooksPath tools/hooks
 | --- | --- | --- |
 | ID | `gc26_2048_nastya` | `gc26_2048` |
 | Дизайн | Colours, «ночное стекло» (см. GDD) | Сырная тема |
-| Ветка | `game/gc26_2048_nastya` | `game/gc26_2048` |
+| Ветка | `gc26_2048_2` | `game/gc26_2048` |
 | Папка | `Assets/Microgames/gc26_2048_nastya/` | `Assets/Microgames/gc26_2048/` |
 | Неймспейс / asmdef | `GC26._2048Nastya` | `GC26._2048` |
 | Стартовая сцена | `gc26_2048_nastya_Main` | своя сцена с префиксом `gc26_2048_` |
