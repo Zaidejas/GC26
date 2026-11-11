@@ -28,6 +28,9 @@ namespace GC26.Spinv
         public Transform bunkers;
         public float rapidFireMultiplier = 2f;
 
+        // Способность куплена (номер ячейки) - по нему обучение идёт дальше
+        public event System.Action<int> Used;
+
         WaveManager waves;
         int[] usedOnWave; // на какой волне способность применяли последний раз (достижение SHOPAHOLIC)
 
@@ -78,6 +81,7 @@ namespace GC26.Spinv
             SetEffect(ability.type, true);
             SpinvSoundManager.Play(Sfx.Coin);
             TrackForAchievement(index);
+            Used?.Invoke(index);
             return true;
         }
 

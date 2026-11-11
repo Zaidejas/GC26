@@ -40,7 +40,7 @@ namespace GC26.Spinv
 
         // Полный сброс сохранений. Чтобы сбросить ещё раз на всех устройствах - увеличить SeedVersion:
         // при первом запуске новой версии игра как после первой установки (Gekata в таблице остаётся всегда)
-        public const int SeedVersion = 7;
+        public const int SeedVersion = 8;
         public const string SeedVersionKey = SpinvMicrogame.Id + "_HighScoreSeedVersion";
 
         static void ApplySeed()

@@ -23,7 +23,7 @@ namespace GC26.Spinv
         {
             if (waveManager == null) return;
             // В аркаде часов нет: время суток там не идёт
-            if (waveManager.IsArcade)
+            if (waveManager.IsArcade || waveManager.IsTutorial)
             {
                 gameObject.SetActive(false);
                 return;

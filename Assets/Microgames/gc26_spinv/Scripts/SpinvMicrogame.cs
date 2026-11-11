@@ -21,6 +21,9 @@ namespace GC26.Spinv
         // Выход в общее меню. POWER OFF по решению автора закрывает приложение, поэтому сейчас не вызывается
         Action<int> exit;
         GameObject currentGame;
+
+        // Идёт ли сейчас обучение (кнопка TUTORIAL): игра узнаёт это при создании копии
+        public bool TutorialRun { get; private set; }
         readonly HashSet<GameObject> menuObjects = new HashSet<GameObject>();
 
         public void Begin(Action<int> exitCallback)
@@ -34,8 +37,9 @@ namespace GC26.Spinv
             menuRoot.SetActive(true);
         }
 
-        public void StartGame()
+        public void StartGame(bool tutorial = false)
         {
+            TutorialRun = tutorial;
             // Всё, что лежит в сцене до запуска, - меню и общие объекты; остальное потом считается игрой
             menuObjects.Clear();
             foreach (GameObject root in gameObject.scene.GetRootGameObjects())
@@ -50,12 +54,13 @@ namespace GC26.Spinv
         public void Restart()
         {
             ClearGame();
-            StartGame();
+            StartGame(TutorialRun);
         }
 
         public void ToMenu()
         {
             ClearGame();
+            TutorialRun = false;
             menuRoot.SetActive(true);
         }
 

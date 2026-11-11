@@ -16,6 +16,8 @@ namespace GC26.Spinv
         public int Lives { get; private set; }
         public int Coins { get; private set; }
         public bool IsGameOver { get; private set; }
+        // Обучение: смерти нет, рекорды, монеты и достижения не сохраняются
+        public bool IsTutorial { get; private set; }
 
         // Аркада: свой рекорд (в меню рядом с обычным), в таблицу лидеров не пишется
         public bool IsArcade { get; private set; }
@@ -62,7 +64,9 @@ namespace GC26.Spinv
             Time.timeScale = 1f;
             AudioListener.pause = false;
             Lives = startLives;
-            IsArcade = ArcadeMode.IsSelected;
+            var flow = FindAnyObjectByType<SpinvMicrogame>();
+            IsTutorial = flow != null && flow.TutorialRun;
+            IsArcade = !IsTutorial && ArcadeMode.IsSelected;
             nextExtraLife = extraLifeEvery;
         }
 
@@ -129,7 +133,7 @@ namespace GC26.Spinv
             if (IsGameOver) return;
 
             lostLife = true;
-            Lives = Mathf.Max(0, Lives - 1);
+            Lives = Mathf.Max(IsTutorial ? 1 : 0, Lives - 1);
             StatsChanged?.Invoke();
 
             if (Lives == 0)
@@ -150,7 +154,7 @@ namespace GC26.Spinv
 
         void EndGame(bool victory)
         {
-            if (IsGameOver) return;
+            if (IsGameOver || IsTutorial) return;
 
             IsGameOver = true;
             Won = victory;
@@ -184,6 +188,7 @@ namespace GC26.Spinv
         // Один раз за забег
         void SaveProgress()
         {
+            if (IsTutorial) return;
             if (progressSaved) return;
             progressSaved = true;
 

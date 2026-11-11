@@ -109,6 +109,8 @@ namespace GC26.Spinv
         int darkStreak; // сколько волн DARK подряд пережито
 
         public bool IsArcade { get; private set; }
+        // Обучение: волны не идут, строй и хилки выпускает SpinvTutorial
+        public bool IsTutorial { get; private set; }
         public int CurrentWave { get; private set; }
         public int TotalWaves => waves.Length;
         // Номер цикла в аркаде, с 1
@@ -126,13 +128,16 @@ namespace GC26.Spinv
         void Awake()
         {
             // До Start остальных: часы и UI сразу знают режим
-            IsArcade = ArcadeMode.IsSelected;
+            var flow = FindAnyObjectByType<SpinvMicrogame>();
+            IsTutorial = flow != null && flow.TutorialRun;
+            IsArcade = !IsTutorial && ArcadeMode.IsSelected;
             foreach (WaveData wave in waves)
                 (wave.bossPrefab != null ? bossWaves : regularWaves).Add(wave);
         }
 
         void Start()
         {
+            if (IsTutorial) return;
             grid.Cleared += OnWaveCleared;
             grid.ReachedBottom += OnReachedBottom;
             StartCoroutine(RunWave(0));
@@ -368,13 +373,14 @@ namespace GC26.Spinv
             }
         }
 
-        // Хилка падает из случайного места сверху
-        void SpawnHeal()
+        // Хилка из случайного места сверху; atX - над этой точкой (обучение)
+        public void SpawnHeal(float? atX = null)
         {
             Camera cam = Camera.main;
             float minX = cam.ViewportToWorldPoint(new Vector3(0f, 0f, 0f)).x + healEdgePadding;
             float maxX = cam.ViewportToWorldPoint(new Vector3(1f, 0f, 0f)).x - healEdgePadding;
-            Instantiate(healPrefab, new Vector3(Random.Range(minX, maxX), healSpawnY, 0f), Quaternion.identity);
+            float x = atX.HasValue ? Mathf.Clamp(atX.Value, minX, maxX) : Random.Range(minX, maxX);
+            Instantiate(healPrefab, new Vector3(x, healSpawnY, 0f), Quaternion.identity);
         }
 
         void OnWaveCleared()

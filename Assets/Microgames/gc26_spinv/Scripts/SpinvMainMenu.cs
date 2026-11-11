@@ -20,11 +20,13 @@ namespace GC26.Spinv
 
         public PressableButton playButton;
         public PressableButton arcadeButton;
+        public PressableButton tutorialButton;
         public PressableButton quitButton;
         public string playLabel = "PLAY";
         public string classicLabel = "CLASSIC";
-        [Tooltip("Где стоит QUIT, когда аркада открыта и кнопок три")]
-        public float quitYWithArcade = -530f;
+        [Tooltip("Где стоят TUTORIAL и QUIT, когда аркада открыта и кнопка ARCADE MODE встаёт под CLASSIC")]
+        public float tutorialYWithArcade = -530f;
+        public float quitYWithArcade = -710f;
 
         [Tooltip("Выключение автомата перед выходом. Без него игра закрывается сразу")]
         public QuitEffect quitEffect;
@@ -34,11 +36,13 @@ namespace GC26.Spinv
         public TMP_Text trophyCount;
         public StarMapScreen starMap;
 
-        float quitYAlone;
+        float quitYAlone, tutorialYAlone;
 
         void Awake()
         {
             quitYAlone = ((RectTransform)quitButton.transform).anchoredPosition.y;
+            tutorialYAlone = ((RectTransform)tutorialButton.transform).anchoredPosition.y;
+            tutorialButton.onPress.AddListener(() => flow.StartGame(true));
             trophyButton.onPress.AddListener(starMap.Open);
             playButton.onPress.AddListener(() => Play(false));
             arcadeButton.onPress.AddListener(() => Play(true));
@@ -69,8 +73,8 @@ namespace GC26.Spinv
             SetX(arcadeScoreText, column);
             if (arcade) arcadeScoreText.text = ArcadeMode.HighScore.ToString("00000");
 
-            var quitRect = (RectTransform)quitButton.transform;
-            quitRect.anchoredPosition = new Vector2(quitRect.anchoredPosition.x, arcade ? quitYWithArcade : quitYAlone);
+            SetY(tutorialButton, arcade ? tutorialYWithArcade : tutorialYAlone);
+            SetY(quitButton, arcade ? quitYWithArcade : quitYAlone);
             if (playButton.label != null) playButton.label.text = arcade ? classicLabel : playLabel;
         }
 
@@ -100,6 +104,12 @@ namespace GC26.Spinv
             flow.ReloadMenu();
         }
     #endif
+
+        static void SetY(PressableButton button, float y)
+        {
+            var rect = (RectTransform)button.transform;
+            rect.anchoredPosition = new Vector2(rect.anchoredPosition.x, y);
+        }
 
         static void SetX(TMP_Text text, float x)
         {

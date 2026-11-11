@@ -84,6 +84,8 @@ namespace GC26.Spinv
         {
             AchievementDef def = All[(int)id];
             if (IsUnlocked(id) || !IsVisible(def)) return;
+            var game = Object.FindAnyObjectByType<SpinvGameManager>();
+            if (game != null && game.IsTutorial) return; // обучение ничего не даёт
 
             PlayerPrefs.SetInt(Key(id), 1);
             if (toastInMenu)

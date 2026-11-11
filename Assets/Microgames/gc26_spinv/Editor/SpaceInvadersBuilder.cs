@@ -852,6 +852,10 @@ namespace GC26.Spinv
             MakeAbilitySlot(safeArea, abilities, 1, bunkerIconSprite, 0f);
             MakeAbilitySlot(safeArea, abilities, 2, rapidFireIconSprite, -220f);
 
+            // Обучение: окно подсказок, жёлтое кольцо-указатель и знак «зажми и веди».
+            // Выше HUD, но ниже паузы и экранов конца игры (они создаются дальше)
+            BuildTutorialUI(canvas, ui, abilities, waveManager, coinIconRect);
+
             // Круглая аркадная кнопка паузы в правом верхнем углу, подсвечивается при нажатии
             var pauseButton = MakeRoundButton(safeArea, "PauseButton", topRight, new Vector2(-95f, -85f), 130f);
 
@@ -1082,7 +1086,8 @@ namespace GC26.Spinv
             menu.arcadeButton.background.color = HighScoreYellow;
             menu.arcadeButton.label.color = HighScoreYellow;
             if (menu.arcadeButton.glow != null) menu.arcadeButton.glow.color = HighScoreYellow;
-            menu.quitButton = MakeArcadeButton(canvas, "QuitButton", "QUIT", false, center, new Vector2(0f, -350f), new Vector2(640f, 150f));
+            menu.tutorialButton = MakeArcadeButton(canvas, "TutorialButton", "TUTORIAL", false, center, new Vector2(0f, -350f), new Vector2(640f, 150f));
+            menu.quitButton = MakeArcadeButton(canvas, "QuitButton", "QUIT", false, center, new Vector2(0f, -530f), new Vector2(640f, 150f));
 
             var controls = MakeText(canvas, "Controls", "Drag your finger to move\nShooting is automatic",
                 44, TextAlignmentOptions.Center, new Vector2(0.5f, 0f), new Vector2(0f, 180f), new Vector2(1200f, 160f));
@@ -1743,6 +1748,45 @@ namespace GC26.Spinv
             MakeText(panel.transform, "Header", "ACHIEVEMENT UNLOCKED", 38, TextAlignmentOptions.Left, center, new Vector2(70f, 38f), new Vector2(760f, 56f)).color = PhosphorMid;
             toast.titleText = MakeText(panel.transform, "Title", "", 58, TextAlignmentOptions.Left, center, new Vector2(70f, -32f), new Vector2(760f, 80f));
             toast.titleText.color = PhosphorBright;
+        }
+
+        static void BuildTutorialUI(Transform canvas, UIManager ui, AbilityManager abilities, WaveManager waveManager, RectTransform coinIcon)
+        {
+            var center = new Vector2(0.5f, 0.5f);
+            var root = new GameObject("Tutorial", typeof(RectTransform));
+            root.transform.SetParent(canvas, false);
+            Stretch((RectTransform)root.transform);
+
+            var tutorial = root.AddComponent<SpinvTutorial>();
+            tutorial.root = root;
+            tutorial.game = Object.FindAnyObjectByType<SpinvGameManager>();
+            tutorial.waves = waveManager;
+            tutorial.grid = waveManager.grid;
+            tutorial.player = abilities.player;
+            tutorial.abilities = abilities;
+            tutorial.coinPrefab = coinPrefab;
+            tutorial.coinCounter = coinIcon;
+            tutorial.waveText = ui.waveText;
+            tutorial.canvasRect = (RectTransform)canvas;
+            tutorial.uiCamera = sceneCamera;
+
+            // Окно подсказки - как окно диалога в сценках, выше слотов способностей (не закрывает щит).
+            // Фон полупрозрачный, текст - нет
+            var window = MakeChildImage(root.transform, "TipWindow", windowSprite, new Color(1f, 1f, 1f, 0.5f));
+            window.type = Image.Type.Sliced;
+            window.rectTransform.anchoredPosition = new Vector2(0f, 700f);
+            window.rectTransform.sizeDelta = new Vector2(1150f, 240f);
+            tutorial.tipText = MakeText(window.transform, "Tip", "", 46, TextAlignmentOptions.Center, center, Vector2.zero, new Vector2(1050f, 200f));
+            tutorial.tipText.textWrappingMode = TextWrappingModes.Normal;
+
+            var ring = MakeChildImage(root.transform, "Pointer", MakeRingSprite("StarRing", 0.08f), HighScoreYellow);
+            ring.rectTransform.sizeDelta = new Vector2(200f, 200f);
+            tutorial.ring = ring.rectTransform;
+
+            var drag = MakeChildImage(root.transform, "DragHint", Art("icon_drag", 100f, uiSquareSprite), new Color(0.65f, 0.96f, 0.73f));
+            drag.preserveAspect = true;
+            drag.rectTransform.sizeDelta = new Vector2(260f, 130f);
+            tutorial.dragHint = drag.rectTransform;
         }
 
         // Аркадная кнопка-капсула: filled - залитая (главная), иначе с обводкой
