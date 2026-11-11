@@ -7,171 +7,231 @@ using TouchPhaseIS = UnityEngine.InputSystem.TouchPhase;
 namespace GC26.Bomber
 {
     /// <summary>
-    /// Phone (portrait) screen: HUD on top, the whole room in a neon frame in the middle (never cut by the screen
-    /// edges or covered by controls), and a control panel at the bottom. Layout is in reference units 544 wide,
-    /// fitted to Screen.safeArea; taller phones get a bigger room view. Movement joystick on the RIGHT (right thumb),
-    /// ability buttons on the LEFT. Shooting is automatic. In the Editor the mouse acts as a finger and the
-    /// keyboard also works (WASD, Space, Shift, R, G, V, Esc).
+    /// Phone / tablet screen, adaptive to any resolution and aspect:
+    /// - UI units keep about the same PHYSICAL size on every device (from Screen.dpi), so buttons and text are
+    ///   thumb-sized on a phone and on a tablet alike; all remaining space goes to the room;
+    /// - HUD on top and the control panel at the bottom span the full width (abilities on the left,
+    ///   joystick on the right), the whole room is drawn as big as fits between them, in a neon frame;
+    /// - everything stays inside Screen.safeArea (notch, rounded corners, home bar).
+    /// In the Editor the mouse acts as a finger and the keyboard works too (WASD, Space, Shift, R, G, V, Esc).
     /// </summary>
     public sealed class BomberPhoneUI : MonoBehaviour
     {
-        public const float RefW = 544f, Top = 126f, PanelH = 220f, RefH = 1086f; // RefH: minimum frame height
+        const float MinW = 544f, MinH = 1086f;            // smallest layout (reference phone)
+        const float Top = 126f, PanelH = 220f, Pad = 10f;  // HUD height, control panel height
+        const float InchPerUnit = 0.0047f;                 // physical size of one UI unit (iPhone 11 = 1 unit per 1.52 px)
 
         BomberContext _ctx;
         Font _font;
-        RectTransform _safe, _frame, _bottom; // _bottom: RefW x RefH box glued to the bottom of the frame (controls live here)
-        float _frameH = -1f, _wx, _wy, _ws = 1f; Image _vignette, _lowHp, _panelBg, _panelLine; readonly Image[] _border = new Image[4];
-        RawImage _worldImage;
-        Image _fade, _flash;
+        CanvasScaler _scaler;
+        RectTransform _safe;
+        float _fw = -1f, _fh = -1f, _wx, _wy, _ws = 1f;
 
-        // HUD
-        readonly List<Image> _hp = new List<Image>();
-        Image _heatFill, _odMark, _hudLine; Text _score, _heatText, _scrap, _status, _room, _combo, _toast, _weapon; Image _toastBg;
-        readonly List<Image> _route = new List<Image>(); Image _routeCur;
-        readonly List<Text> _floatTexts = new List<Text>();
-        readonly List<Text> _doorLabels = new List<Text>();
+        RawImage _world; Image _fade, _flash, _vignette, _lowHp, _hudBg, _hudLine, _panelBg, _panelLine; readonly Image[] _border = new Image[4];
+        readonly List<Image> _hp = new List<Image>(); Image _heatBg, _heatFill, _odMark, _scrapIcon, _routeCur; Text _score, _heatText, _scrap, _status, _room, _combo, _toast, _weapon; Image _toastBg;
+        readonly List<Image> _route = new List<Image>();
+        readonly List<Text> _floatTexts = new List<Text>(), _doorLabels = new List<Text>();
 
-        // controls
-        sealed class Btn { public bool Top; public string Id; public Vector2 Pos; public float R; public Color Col; public Image Bg, Cd, Rim, Glow; public Text Label, Sub; public bool Visible = true; }
+        sealed class Btn { public string Id; public bool AtTop; public Vector2 Local; public Vector2 Pos; public float R; public Color Col; public Image Bg, Cd, Rim, Glow; public Text Label, Sub; }
         readonly List<Btn> _btns = new List<Btn>();
         Image _joyBase, _joyKnob, _joyHint; Text _joyHintText;
         int _joyId = int.MinValue; Vector2 _joyStart, _joyNow;
         readonly Dictionary<int, string> _held = new Dictionary<int, string>();
 
-        // panels
-        GameObject _panel; Text _panelTitle, _panelText; readonly List<(RectTransform rt, System.Action act, Text label)> _panelButtons = new List<(RectTransform, System.Action, Text)>();
+        RectTransform _panel; Image _panelDim, _card, _cardLine; Text _panelTitle, _panelText;
+        readonly List<(RectTransform rt, System.Action act)> _panelButtons = new List<(RectTransform, System.Action)>();
         string _panelKind;
 
-        // intent collected this frame
         BomberIntent _intent; float _toastT;
         readonly Queue<(string, float)> _toasts = new Queue<(string, float)>();
 
         public bool Paused => _panelKind == "pause";
 
+        // ================= build =================
         public void Init(BomberContext ctx, RenderTexture worldTexture)
         {
             _ctx = ctx;
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             var canvasGo = ctx.Spawn("gc26_bomber_Canvas", transform);
             var canvas = canvasGo.AddComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 100;
-            var scaler = canvasGo.AddComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(RefW, RefH); scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
-
-            var bg = NewImage("Backdrop", canvasGo.transform, ctx.Art.UiWhite, new Color(0.024f, 0.035f, 0.063f)); Stretch(bg.rectTransform);
+            _scaler = canvasGo.AddComponent<CanvasScaler>(); _scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+            var bg = Img("Backdrop", canvasGo.transform, ctx.Art.UiWhite, new Color(0.024f, 0.035f, 0.063f)); Stretch(bg.rectTransform);
             _safe = new GameObject("Safe", typeof(RectTransform)).GetComponent<RectTransform>(); _safe.SetParent(canvasGo.transform, false); Stretch(_safe);
-            _frame = new GameObject("Frame", typeof(RectTransform)).GetComponent<RectTransform>(); _frame.SetParent(_safe, false);
-            _frame.anchorMin = _frame.anchorMax = new Vector2(0.5f, 0.5f); _frame.pivot = new Vector2(0.5f, 0.5f); _frame.sizeDelta = new Vector2(RefW, RefH);
+            var t = _safe.transform;
 
-            _worldImage = new GameObject("World", typeof(RectTransform)).AddComponent<RawImage>(); _worldImage.rectTransform.SetParent(_frame, false);
-            _worldImage.texture = worldTexture; Place(_worldImage.rectTransform, 0, Top, RefW, 960f);
-            _vignette = NewImage("Vignette", _frame, ctx.Art.UiVignette, new Color(0f, 0f, 0f, 0.55f)); Place(_vignette.rectTransform, 0, Top, RefW, 960f);
-            _lowHp = NewImage("LowHp", _frame, ctx.Art.UiVignette, new Color(1f, 0.12f, 0.24f, 0f)); Place(_lowHp.rectTransform, 0, Top, RefW, 960f);
-            _bottom = new GameObject("Bottom", typeof(RectTransform)).GetComponent<RectTransform>(); _bottom.SetParent(_frame, false);
-            _bottom.anchorMin = _bottom.anchorMax = new Vector2(0f, 0f); _bottom.pivot = new Vector2(0f, 0f); _bottom.anchoredPosition = Vector2.zero; _bottom.sizeDelta = new Vector2(RefW, RefH);
-            for (int i = 0; i < 4; i++) _border[i] = NewImage("Border", _frame, ctx.Art.UiWhite, new Color(0.29f, 0.44f, 0.65f));
-            _panelBg = NewImage("ControlPanel", _bottom, ctx.Art.UiWhite, new Color(0.027f, 0.043f, 0.086f, 0.96f)); Place(_panelBg.rectTransform, 0, RefH - PanelH, RefW, PanelH);
-            _panelLine = NewImage("ControlPanelLine", _bottom, ctx.Art.UiWhite, new Color(0.5f, 0.89f, 1f, 0.6f)); Place(_panelLine.rectTransform, 0, RefH - PanelH, RefW, 2);
-            _fade = NewImage("Fade", _frame, ctx.Art.UiWhite, Color.black); Place(_fade.rectTransform, 0, Top, RefW, 960f);
+            _world = new GameObject("World", typeof(RectTransform)).AddComponent<RawImage>(); _world.rectTransform.SetParent(t, false); _world.texture = worldTexture;
+            _vignette = Img("Vignette", t, ctx.Art.UiVignette, new Color(0, 0, 0, 0.5f));
+            _lowHp = Img("LowHp", t, ctx.Art.UiVignette, new Color(1f, 0.12f, 0.24f, 0f));
+            _fade = Img("Fade", t, ctx.Art.UiWhite, Color.black);
+            for (int i = 0; i < 4; i++) _border[i] = Img("Border", t, ctx.Art.UiWhite, Color.white);
 
-            BuildHud();
-            BuildControls();
-            BuildPanel();
-            _flash = NewImage("Flash", _frame, ctx.Art.UiWhite, new Color(1f, 0.24f, 0.31f, 0f)); Place(_flash.rectTransform, 0, 0, RefW, RefH); _flash.raycastTarget = false;
+            // HUD
+            _hudBg = Img("Hud", t, ctx.Art.UiWhite, new Color(0.027f, 0.043f, 0.086f, 0.94f));
+            _hudLine = Img("HudLine", t, ctx.Art.UiWhite, new Color(1f, 0.35f, 0.43f));
+            for (int i = 0; i < 12; i++) _hp.Add(Img("Hp", t, ctx.Art.UiWhite, Color.red));
+            _score = Txt("Score", t, 24, TextAnchor.MiddleRight, Color.white, FontStyle.Bold);
+            _heatBg = Img("HeatBg", t, ctx.Art.UiWhite, new Color(0.055f, 0.08f, 0.15f));
+            _heatFill = Img("HeatFill", t, ctx.Art.UiWhite, new Color(0.31f, 0.72f, 1f));
+            _odMark = Img("OdMark", t, ctx.Art.UiWhite, new Color(1f, 0.89f, 0.6f));
+            _heatText = Txt("HeatText", t, 15, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
+            _scrapIcon = Img("ScrapIcon", t, ctx.Art.UiWhite, new Color(1f, 0.81f, 0.36f));
+            _scrap = Txt("Scrap", t, 18, TextAnchor.MiddleLeft, new Color(1f, 0.81f, 0.36f), FontStyle.Bold);
+            _status = Txt("Status", t, 16, TextAnchor.MiddleLeft, new Color(0.66f, 0.71f, 0.84f), FontStyle.Bold);
+            for (int i = 0; i < 7; i++) _route.Add(Img("Route", t, ctx.Art.UiWhite, Color.gray));
+            _routeCur = Img("RouteCur", t, ctx.Art.UiRing, Color.white);
+            _room = Txt("Room", t, 15, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
+            _weapon = Txt("Weapon", t, 14, TextAnchor.MiddleRight, new Color(0.5f, 0.89f, 1f), FontStyle.Bold);
+            _combo = Txt("Combo", t, 22, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
+
+            // control panel
+            _panelBg = Img("ControlPanel", t, ctx.Art.UiWhite, new Color(0.027f, 0.043f, 0.086f, 0.96f));
+            _panelLine = Img("ControlPanelLine", t, ctx.Art.UiWhite, new Color(0.5f, 0.89f, 1f, 0.6f));
+            AddBtn("tac", 62, 58, 36, "СБРОС", new Color(1f, 0.6f, 0.87f));
+            AddBtn("emp", 150, 52, 30, "ЭМИ", new Color(0.62f, 0.82f, 1f));
+            AddBtn("od", 240, 58, 36, "ФОРСАЖ", new Color(1f, 0.7f, 0.28f));
+            AddBtn("dash", 66, 154, 48, "РЫВОК", new Color(0.5f, 0.89f, 1f));
+            AddBtn("ab", 172, 166, 36, "РАЗГОН", new Color(0.5f, 0.89f, 1f));
+            AddBtn("alt", 266, 166, 32, "ЗАРЯД", new Color(1f, 0.82f, 0.48f));
+            AddBtn("pause", -34, 30, 24, "II", new Color(0.51f, 0.58f, 0.74f), atTop: true);
+            _joyHint = Img("JoyHint", t, ctx.Art.UiRing, new Color(0.5f, 0.89f, 1f, 0.5f));
+            _joyHintText = Txt("JoyHintText", t, 14, TextAnchor.MiddleCenter, new Color(0.81f, 0.88f, 1f), FontStyle.Bold); _joyHintText.text = "Веди пальцем\nздесь";
+            _joyBase = Img("JoyBase", t, ctx.Art.UiRing, new Color(0.5f, 0.89f, 1f, 0.55f));
+            _joyKnob = Img("JoyKnob", t, ctx.Art.UiCircle, new Color(0.5f, 0.89f, 1f, 0.55f));
+
+            _toastBg = Img("ToastBg", t, ctx.Art.UiWhite, new Color(0.04f, 0.06f, 0.12f, 0.88f));
+            _toast = Txt("Toast", t, 16, TextAnchor.MiddleCenter, Color.white, FontStyle.Normal); _toast.horizontalOverflow = HorizontalWrapMode.Wrap;
+
+            // pause / end panel
+            _panel = new GameObject("Panel", typeof(RectTransform)).GetComponent<RectTransform>(); _panel.SetParent(t, false); Stretch(_panel);
+            _panelDim = Img("Dim", _panel, ctx.Art.UiWhite, new Color(0.016f, 0.027f, 0.055f, 0.86f)); Stretch(_panelDim.rectTransform);
+            _card = Img("Card", _panel, ctx.Art.UiWhite, new Color(0.05f, 0.08f, 0.14f, 1f));
+            _cardLine = Img("CardLine", _panel, ctx.Art.UiWhite, new Color(0.5f, 0.89f, 1f));
+            _panelTitle = Txt("Title", _panel, 32, TextAnchor.MiddleCenter, new Color(0.5f, 0.89f, 1f), FontStyle.Bold);
+            _panelText = Txt("Body", _panel, 17, TextAnchor.UpperCenter, new Color(0.75f, 0.8f, 0.9f), FontStyle.Normal); _panelText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _panel.gameObject.SetActive(false);
+
+            _flash = Img("Flash", t, ctx.Art.UiWhite, new Color(1f, 0.24f, 0.31f, 0f)); Stretch(_flash.rectTransform);
         }
 
-        // ================= building =================
-        void BuildHud()
+        void AddBtn(string id, float x, float y, float r, string label, Color col, bool atTop = false)
         {
-            var panel = NewImage("Hud", _frame, _ctx.Art.UiWhite, new Color(0.027f, 0.043f, 0.086f, 0.92f)); Place(panel.rectTransform, 0, 0, RefW, Top);
-            _hudLine = NewImage("HudLine", _frame, _ctx.Art.UiWhite, new Color(1f, 0.35f, 0.43f)); Place(_hudLine.rectTransform, 0, 0, RefW, 3);
-            for (int i = 0; i < 12; i++) { var c = NewImage("Hp", _frame, _ctx.Art.UiWhite, Color.red); Place(c.rectTransform, 12 + i * 24, 12, 20, 18); _hp.Add(c); }
-            _score = NewText("Score", _frame, 24, TextAnchor.MiddleRight, Color.white, FontStyle.Bold); Place(_score.rectTransform, RefW - 260, 8, 190, 30);
-            var heatBg = NewImage("HeatBg", _frame, _ctx.Art.UiWhite, new Color(0.055f, 0.08f, 0.15f)); Place(heatBg.rectTransform, 12, 44, RefW - 120, 20);
-            _heatFill = NewImage("HeatFill", _frame, _ctx.Art.UiWhite, new Color(0.31f, 0.72f, 1f)); Place(_heatFill.rectTransform, 12, 44, 0, 20);
-            _odMark = NewImage("OdMark", _frame, _ctx.Art.UiWhite, new Color(1f, 0.89f, 0.6f)); Place(_odMark.rectTransform, 12 + (RefW - 120) * 0.8f - 1, 40, 3, 28);
-            _heatText = NewText("HeatText", _frame, 15, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold); Place(_heatText.rectTransform, 20, 44, 200, 20);
-            var scrapIcon = NewImage("ScrapIcon", _frame, _ctx.Art.UiWhite, new Color(1f, 0.81f, 0.36f)); Place(scrapIcon.rectTransform, RefW - 96, 48, 12, 12);
-            _scrap = NewText("Scrap", _frame, 18, TextAnchor.MiddleLeft, new Color(1f, 0.81f, 0.36f), FontStyle.Bold); Place(_scrap.rectTransform, RefW - 78, 42, 70, 24);
-            _status = NewText("Status", _frame, 16, TextAnchor.MiddleLeft, new Color(0.66f, 0.71f, 0.84f), FontStyle.Bold); Place(_status.rectTransform, 12, 70, RefW - 24, 24);
-            for (int i = 0; i < 7; i++) { var n = NewImage("Route", _frame, _ctx.Art.UiWhite, Color.gray); Place(n.rectTransform, 14 + i * 22, 101, 15, 15); _route.Add(n); }
-            _routeCur = NewImage("RouteCur", _frame, _ctx.Art.UiRing, Color.white);
-            _room = NewText("Room", _frame, 15, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold); Place(_room.rectTransform, 14 + 7 * 22 + 6, 98, 170, 22);
-            _weapon = NewText("Weapon", _frame, 14, TextAnchor.MiddleRight, new Color(0.5f, 0.89f, 1f), FontStyle.Bold); Place(_weapon.rectTransform, RefW - 220, 98, 208, 22);
-            _combo = NewText("Combo", _frame, 22, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold); Place(_combo.rectTransform, 0, Top + 12, RefW, 30);
-            _toastBg = NewImage("ToastBg", _bottom, _ctx.Art.UiWhite, new Color(0.04f, 0.06f, 0.12f, 0.88f));
-            _toast = NewText("Toast", _bottom, 16, TextAnchor.MiddleCenter, Color.white, FontStyle.Normal); _toast.horizontalOverflow = HorizontalWrapMode.Wrap;
-            Place(_toastBg.rectTransform, 40, RefH - PanelH - 76, RefW - 80, 60); Place(_toast.rectTransform, 50, RefH - PanelH - 76, RefW - 100, 60);
-        }
-
-        void BuildControls()
-        {
-            // left-hand ability buttons (mirrored prototype layout), right thumb drives the joystick
-            float py = RefH - PanelH; // top of the control panel
-            AddBtn("tac", 62, py + 58, 36, "СБРОС", new Color(1f, 0.6f, 0.87f));
-            AddBtn("emp", 150, py + 52, 30, "ЭМИ", new Color(0.62f, 0.82f, 1f));
-            AddBtn("od", 240, py + 58, 36, "ФОРСАЖ", new Color(1f, 0.7f, 0.28f));
-            AddBtn("dash", 66, py + 154, 48, "РЫВОК", new Color(0.5f, 0.89f, 1f));
-            AddBtn("ab", 172, py + 166, 36, "РАЗГОН", new Color(0.5f, 0.89f, 1f));
-            AddBtn("alt", 266, py + 166, 32, "ЗАРЯД", new Color(1f, 0.82f, 0.48f));
-            AddBtn("pause", RefW - 34, 30, 24, "II", new Color(0.51f, 0.58f, 0.74f), _frame);
-            _joyHint = NewImage("JoyHint", _bottom, _ctx.Art.UiRing, new Color(0.5f, 0.89f, 1f, 0.5f)); PlaceCircle(_joyHint.rectTransform, RefW - 112, RefH - PanelH / 2f, 62);
-            _joyHintText = NewText("JoyHintText", _bottom, 14, TextAnchor.MiddleCenter, new Color(0.81f, 0.88f, 1f), FontStyle.Bold); _joyHintText.text = "Веди пальцем\nздесь";
-            Place(_joyHintText.rectTransform, RefW - 192, RefH - PanelH / 2f - 30, 160, 60);
-            _joyBase = NewImage("JoyBase", _frame, _ctx.Art.UiRing, new Color(0.5f, 0.89f, 1f, 0.55f));
-            _joyKnob = NewImage("JoyKnob", _frame, _ctx.Art.UiCircle, new Color(0.5f, 0.89f, 1f, 0.55f));
-        }
-
-        void AddBtn(string id, float x, float y, float r, string label, Color col, RectTransform parent = null)
-        {
-            var _bottom = parent ? parent : this._bottom; // buttons are laid out in the bottom box unless told otherwise
-            var b = new Btn { Id = id, Pos = new Vector2(x, y), R = r, Col = col, Top = parent != null };
-            b.Glow = NewImage(id + "Glow", _bottom, _ctx.Art.UiCircle, new Color(col.r, col.g, col.b, 0f)); PlaceCircle(b.Glow.rectTransform, x, y, r + 8);
-            b.Bg = NewImage(id, _bottom, _ctx.Art.UiCircle, new Color(0.027f, 0.043f, 0.086f, 0.72f)); PlaceCircle(b.Bg.rectTransform, x, y, r);
-            b.Cd = NewImage(id + "Cd", _bottom, _ctx.Art.UiCircle, new Color(0, 0, 0, 0.6f)); PlaceCircle(b.Cd.rectTransform, x, y, r);
+            var t = _safe.transform;
+            var b = new Btn { Id = id, Local = new Vector2(x, y), R = r, Col = col, AtTop = atTop };
+            b.Glow = Img(id + "Glow", t, _ctx.Art.UiCircle, new Color(col.r, col.g, col.b, 0f));
+            b.Bg = Img(id, t, _ctx.Art.UiCircle, new Color(0.027f, 0.043f, 0.086f, 0.72f));
+            b.Cd = Img(id + "Cd", t, _ctx.Art.UiCircle, new Color(0, 0, 0, 0.6f));
             b.Cd.type = Image.Type.Filled; b.Cd.fillMethod = Image.FillMethod.Radial360; b.Cd.fillOrigin = (int)Image.Origin360.Top; b.Cd.fillClockwise = false;
-            b.Rim = NewImage(id + "Rim", _bottom, _ctx.Art.UiRing, col); PlaceCircle(b.Rim.rectTransform, x, y, r);
-            b.Label = NewText(id + "Label", _bottom, r >= 46 ? 15 : label.Length > 5 ? 12 : 13, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold); b.Label.text = label;
-            Place(b.Label.rectTransform, x - r, y - r, r * 2, r * 2 - 10);
-            b.Sub = NewText(id + "Sub", _bottom, 15, TextAnchor.MiddleCenter, col, FontStyle.Bold); Place(b.Sub.rectTransform, x - r, y, r * 2, r);
+            b.Rim = Img(id + "Rim", t, _ctx.Art.UiRing, col);
+            b.Label = Txt(id + "Label", t, r >= 46 ? 15 : label.Length > 5 ? 12 : 13, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold); b.Label.text = label;
+            b.Sub = Txt(id + "Sub", t, 15, TextAnchor.MiddleCenter, col, FontStyle.Bold);
             _btns.Add(b);
         }
 
-        void BuildPanel()
+        // ================= layout =================
+        void UpdateScale()
         {
-            _panel = new GameObject("Panel", typeof(RectTransform)); _panel.transform.SetParent(_frame, false); Place((RectTransform)_panel.transform, 0, 0, RefW, RefH);
-            var dim = NewImage("Dim", _panel.transform, _ctx.Art.UiWhite, new Color(0.016f, 0.027f, 0.055f, 0.86f)); Place(dim.rectTransform, 0, 0, RefW, RefH);
-            var card = NewImage("Card", _panel.transform, _ctx.Art.UiWhite, new Color(0.05f, 0.08f, 0.14f, 1f)); Place(card.rectTransform, 30, 320, RefW - 60, 460);
-            var line = NewImage("CardLine", _panel.transform, _ctx.Art.UiWhite, new Color(0.5f, 0.89f, 1f)); Place(line.rectTransform, 30, 320, RefW - 60, 3);
-            _panelTitle = NewText("Title", _panel.transform, 32, TextAnchor.MiddleCenter, new Color(0.5f, 0.89f, 1f), FontStyle.Bold); Place(_panelTitle.rectTransform, 40, 340, RefW - 80, 50);
-            _panelText = NewText("Body", _panel.transform, 17, TextAnchor.UpperCenter, new Color(0.75f, 0.8f, 0.9f), FontStyle.Normal); _panelText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            Place(_panelText.rectTransform, 50, 400, RefW - 100, 170);
-            _panel.SetActive(false);
+            var sa = Screen.safeArea; float sw = Screen.width, sh = Screen.height;
+            if (sw < 1f || sh < 1f) return;
+            _safe.anchorMin = new Vector2(sa.xMin / sw, sa.yMin / sh); _safe.anchorMax = new Vector2(sa.xMax / sw, sa.yMax / sh); _safe.offsetMin = _safe.offsetMax = Vector2.zero;
+            // pixels per UI unit: never smaller than needed to fit the reference layout, and on big screens
+            // keep the physical size of a phone (so a tablet shows a much bigger room, not giant buttons)
+            float fit = Mathf.Min(sa.width / MinW, sa.height / MinH);
+            float dpi = Screen.dpi, phys = dpi >= 120f ? dpi * InchPerUnit : fit;
+            float s = Mathf.Max(0.1f, Mathf.Min(fit, phys));
+            if (!Mathf.Approximately(_scaler.scaleFactor, s)) _scaler.scaleFactor = s;
+            float fw = sa.width / s, fh = sa.height / s;
+            if (Mathf.Abs(fw - _fw) > 0.5f || Mathf.Abs(fh - _fh) > 0.5f) Layout(fw, fh);
         }
 
+        void Layout(float fw, float fh)
+        {
+            _fw = fw; _fh = fh;
+            // HUD (full width, right items glued to the right edge)
+            Place(_hudBg.rectTransform, 0, 0, fw, Top); Place(_hudLine.rectTransform, 0, 0, fw, 3);
+            for (int i = 0; i < _hp.Count; i++) Place(_hp[i].rectTransform, 12 + i * 24, 12, 20, 18);
+            Place(_score.rectTransform, fw - 260, 8, 190, 30);
+            float barW = Mathf.Min(fw - 120, 640f);
+            Place(_heatBg.rectTransform, 12, 44, barW, 20); Place(_heatFill.rectTransform, 12, 44, 0, 20);
+            Place(_odMark.rectTransform, 12 + barW * 0.8f - 1, 40, 3, 28); Place(_heatText.rectTransform, 20, 44, 200, 20);
+            Place(_scrapIcon.rectTransform, fw - 96, 48, 12, 12); Place(_scrap.rectTransform, fw - 78, 42, 70, 24);
+            Place(_status.rectTransform, 12, 70, fw - 24, 24);
+            for (int i = 0; i < _route.Count; i++) Place(_route[i].rectTransform, 14 + i * 22, 101, 15, 15);
+            Place(_room.rectTransform, 14 + 7 * 22 + 6, 98, 170, 22);
+            Place(_weapon.rectTransform, fw - 220, 98, 208, 22);
+
+            // control panel (full width at the bottom)
+            float py = fh - PanelH;
+            Place(_panelBg.rectTransform, 0, py, fw, PanelH); Place(_panelLine.rectTransform, 0, py, fw, 2);
+            foreach (var b in _btns)
+            {
+                b.Pos = b.AtTop ? new Vector2(b.Local.x < 0 ? fw + b.Local.x : b.Local.x, b.Local.y) : new Vector2(b.Local.x, py + b.Local.y);
+                Circle(b.Glow.rectTransform, b.Pos, b.R + 8); Circle(b.Bg.rectTransform, b.Pos, b.R); Circle(b.Cd.rectTransform, b.Pos, b.R); Circle(b.Rim.rectTransform, b.Pos, b.R);
+                Place(b.Sub.rectTransform, b.Pos.x - b.R, b.Pos.y, b.R * 2, b.R);
+            }
+            var jh = new Vector2(Mathf.Max(fw - 112, 410f), py + PanelH / 2f);
+            Circle(_joyHint.rectTransform, jh, 62); Place(_joyHintText.rectTransform, jh.x - 80, jh.y - 30, 160, 60);
+
+            // the whole room, as big as fits between the HUD and the panel, centred, framed
+            float areaTop = Top + Pad, areaH = py - Top - Pad * 2f, areaW = fw - Pad * 2f;
+            _ws = Mathf.Min(areaW / BomberData.W, areaH / BomberData.H);
+            float ww = BomberData.W * _ws, wh = BomberData.H * _ws;
+            _wx = (fw - ww) / 2f; _wy = areaTop + (areaH - wh) / 2f;
+            foreach (var rt in new[] { _world.rectTransform, _fade.rectTransform, _vignette.rectTransform, _lowHp.rectTransform }) Place(rt, _wx, _wy, ww, wh);
+            const float bw = 3f;
+            Place(_border[0].rectTransform, _wx - bw, _wy - bw, ww + bw * 2, bw); Place(_border[1].rectTransform, _wx - bw, _wy + wh, ww + bw * 2, bw);
+            Place(_border[2].rectTransform, _wx - bw, _wy, bw, wh); Place(_border[3].rectTransform, _wx + ww, _wy, bw, wh);
+            Place(_combo.rectTransform, 0, _wy + 6, fw, 30);
+
+            float tw = Mathf.Min(fw - 80, 520f);
+            Place(_toastBg.rectTransform, (fw - tw) / 2f, py - 76, tw, 60); Place(_toast.rectTransform, (fw - tw) / 2f + 10, py - 76, tw - 20, 60);
+
+            float cw = Mathf.Min(fw - 60, 520f), cx = (fw - cw) / 2f, cy = Mathf.Max(Top, fh / 2f - 260f);
+            Place(_card.rectTransform, cx, cy, cw, 470); Place(_cardLine.rectTransform, cx, cy, cw, 3);
+            Place(_panelTitle.rectTransform, cx + 10, cy + 20, cw - 20, 50); Place(_panelText.rectTransform, cx + 20, cy + 80, cw - 40, 170);
+            for (int i = 0; i < _panelButtons.Count; i++) Place(_panelButtons[i].rt, cx + 40, cy + 270 + i * 76, cw - 80, 60);
+        }
+
+        // ================= panels =================
         void ShowPanel(string kind, string title, string body, params (string label, System.Action act)[] buttons)
         {
-            _panelKind = kind; _panel.SetActive(true); _panelTitle.text = title; _panelText.text = body;
+            _panelKind = kind; _panel.gameObject.SetActive(true); _panelTitle.text = title; _panelText.text = body;
             foreach (var b in _panelButtons) Destroy(b.rt.gameObject);
             _panelButtons.Clear();
             for (int i = 0; i < buttons.Length; i++)
             {
-                var img = NewImage("Btn", _panel.transform, _ctx.Art.UiWhite, i == 0 ? new Color(0.5f, 0.89f, 1f) : new Color(0.15f, 0.2f, 0.32f));
-                Place(img.rectTransform, 70, 590 + i * 76, RefW - 140, 60);
-                var t = NewText("Label", img.transform, 20, TextAnchor.MiddleCenter, i == 0 ? new Color(0.02f, 0.07f, 0.1f) : Color.white, FontStyle.Bold); t.text = buttons[i].label;
-                Stretch(t.rectTransform);
-                _panelButtons.Add((img.rectTransform, buttons[i].act, t));
+                var img = Img("Btn", _panel, _ctx.Art.UiWhite, i == 0 ? new Color(0.5f, 0.89f, 1f) : new Color(0.15f, 0.2f, 0.32f));
+                var tx = Txt("Label", img.transform, 20, TextAnchor.MiddleCenter, i == 0 ? new Color(0.02f, 0.07f, 0.1f) : Color.white, FontStyle.Bold); tx.text = buttons[i].label; Stretch(tx.rectTransform);
+                _panelButtons.Add((img.rectTransform, buttons[i].act));
             }
+            if (_fw > 0f) Layout(_fw, _fh);
         }
 
-        void HidePanel() { _panelKind = null; _panel.SetActive(false); }
+        void HidePanel() { _panelKind = null; _panel.gameObject.SetActive(false); }
 
-        // ================= per-frame =================
+        void Pause() => ShowPanel("pause", "Пауза", "Стрельба автоматическая. Джойстик — справа, способности — слева.\nФорсаж разгоняет ядро: больше урона, но можно перегреться.",
+            ("Продолжить", HidePanel), ("В меню", () => _ctx.ExitToMenu()));
+
+        void ShowEnd(BomberWorld w)
+        {
+            bool win = w.Phase == BomberPhase.SectorClear;
+            ShowPanel("end", win ? "Сектор пройден!" : "Дрон уничтожен",
+                $"Счёт: {w.Score}\nКомнат: {w.Rooms} · Убийств: {w.Kills} · Макс. комбо: {w.MaxCombo}\nСкрап: {w.P.Scrap}" + (win ? "\n\nБоссы, награды и следующие секторы — следующие этапы переноса." : ""),
+                ("Заново", () => { HidePanel(); _ctx.Restart(); }), ("В меню", () => _ctx.ExitToMenu()));
+        }
+
+        public void Toast(string msg, float t) { _toasts.Enqueue((msg, t)); if (_toastT <= 0f) NextToast(); }
+        void NextToast()
+        {
+            if (_toasts.Count == 0) { _toastT = 0f; _toast.text = ""; _toastBg.enabled = false; return; }
+            var (m, t) = _toasts.Dequeue(); _toast.text = m; _toastT = t; _toastBg.enabled = true;
+        }
+
+        // ================= input =================
         public BomberIntent ReadIntent()
         {
+            UpdateScale();
             _intent = new BomberIntent();
             var w = _ctx.World;
-
-            // keyboard (Editor / PC testing)
             var kb = Keyboard.current; var kbMove = Vector2.zero;
             if (kb != null)
             {
@@ -184,8 +244,6 @@ namespace GC26.Bomber
                 }
                 if (kb.escapeKey.wasPressedThisFrame) { if (_panelKind == null) Pause(); else if (_panelKind == "pause") HidePanel(); }
             }
-
-            // touches (mouse acts as finger id -1)
             if (Touchscreen.current != null)
                 foreach (var t in Touchscreen.current.touches)
                 {
@@ -206,23 +264,22 @@ namespace GC26.Bomber
 
         void Pointer(int id, Vector2 screen, bool began, bool ended)
         {
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(_frame, screen, null, out var local)) return;
-            var p = new Vector2(local.x + RefW / 2f, RefH / 2f - local.y); // top-left origin, y down
+            if (_fw <= 0f || !RectTransformUtility.ScreenPointToLocalPointInRectangle(_safe, screen, null, out var local)) return;
+            var r = _safe.rect; var p = new Vector2(local.x - r.xMin, r.yMax - local.y); // top-left origin, y down
             if (began)
             {
                 if (_panelKind != null)
                 {
-                    foreach (var (rt, act, _) in _panelButtons)
+                    foreach (var (rt, act) in _panelButtons)
                     {
-                        var pos = rt.anchoredPosition; var size = rt.sizeDelta; float x0 = pos.x, y0 = -pos.y;
-                        if (p.x > x0 && p.x < x0 + size.x && p.y > y0 && p.y < y0 + size.y) { act(); return; }
+                        var pos = rt.anchoredPosition; var size = rt.sizeDelta;
+                        if (p.x > pos.x && p.x < pos.x + size.x && p.y > -pos.y && p.y < -pos.y + size.y) { act(); return; }
                     }
                     return;
                 }
                 foreach (var b in _btns)
                 {
-                    var bp = b.Top ? p : new Vector2(p.x, p.y - Mathf.Max(0f, _frameH - RefH));
-                    if (!b.Visible || Vector2.Distance(b.Pos, bp) > b.R + 10f) continue;
+                    if (Vector2.Distance(b.Pos, p) > b.R + 10f) continue;
                     _held[id] = b.Id;
                     switch (b.Id)
                     {
@@ -243,48 +300,18 @@ namespace GC26.Bomber
             if (ended) { if (id == _joyId) _joyId = int.MinValue; _held.Remove(id); }
         }
 
-        void Pause()
-        {
-            ShowPanel("pause", "Пауза", "Стрельба автоматическая. Джойстик — справа, способности — слева.\nФорсаж разгоняет ядро: больше урона, но можно перегреться.",
-                ("Продолжить", HidePanel), ("В меню", () => _ctx.ExitToMenu()));
-        }
-
-        void ShowEnd(BomberWorld w)
-        {
-            bool win = w.Phase == BomberPhase.SectorClear;
-            ShowPanel("end", win ? "Сектор пройден!" : "Дрон уничтожен",
-                $"Счёт: {w.Score}\nКомнат: {w.Rooms} · Убийств: {w.Kills} · Макс. комбо: {w.MaxCombo}\nСкрап: {w.P.Scrap}" + (win ? "\n\nБоссы, награды и следующие секторы — следующие этапы переноса." : ""),
-                ("Заново", () => { HidePanel(); _ctx.Restart(); }), ("В меню", () => _ctx.ExitToMenu()));
-        }
-
-        public void Toast(string msg, float t) { _toasts.Enqueue((msg, t)); if (_toastT <= 0f) NextToast(); }
-        void NextToast()
-        {
-            if (_toasts.Count == 0) { _toastT = 0f; _toast.text = ""; _toastBg.enabled = false; return; }
-            var (m, t) = _toasts.Dequeue(); _toast.text = m; _toastT = t; _toastBg.enabled = true;
-        }
-
+        // ================= per-frame =================
         public void Sync(float dt)
         {
-            var sa = Screen.safeArea; var full = new Vector2(Screen.width, Screen.height);
-            if (full.x > 0 && full.y > 0) { _safe.anchorMin = new Vector2(sa.xMin / full.x, sa.yMin / full.y); _safe.anchorMax = new Vector2(sa.xMax / full.x, sa.yMax / full.y); _safe.offsetMin = _safe.offsetMax = Vector2.zero; }
-            var room = _safe.rect.size;
-            if (room.x > 1f && room.y > 1f)
-            {
-                // fit the width; a taller phone gets a taller frame, so the room can be drawn bigger
-                float scale = room.x / RefW, h = room.y / scale;
-                if (h < RefH) { scale = room.y / RefH; h = RefH; }
-                _frame.localScale = Vector3.one * scale;
-                if (_frameH < 0f || Mathf.Abs(h - _frameH) > 0.5f) Resize(h);
-            }
+            UpdateScale();
             if (_toastT > 0f) { _toastT -= dt; if (_toastT <= 0f) NextToast(); } else if (_toastBg.enabled && _toasts.Count == 0) NextToast();
-
             var w = _ctx.World; var p = w.P; var core = w.Core;
+
             _fade.color = new Color(0, 0, 0, Mathf.Clamp01(w.Room.Fade / 0.35f));
-            var acc = (Color)BomberData.Sectors[w.Sector].Accent; acc = Color.Lerp(acc, Color.white, 0.25f); acc.a = 0.85f;
-            foreach (var bi in _border) bi.color = p.Hp <= 2 ? new Color(1f, 0.25f, 0.35f, 0.6f + 0.3f * Mathf.Sin(w.Time * 6f)) : acc;
             _lowHp.color = new Color(1f, 0.12f, 0.24f, p.Hp <= 2 && w.Phase == BomberPhase.Play ? 0.35f + 0.2f * Mathf.Sin(w.Time * 6f) : 0f);
             _flash.color = new Color(1f, 0.24f, 0.31f, Mathf.Max(0f, w.Flash));
+            var acc = Color.Lerp((Color)BomberData.Sectors[w.Sector].Accent, Color.white, 0.25f); acc.a = 0.85f;
+            foreach (var bi in _border) bi.color = p.Hp <= 2 ? new Color(1f, 0.25f, 0.35f, 0.6f + 0.3f * Mathf.Sin(w.Time * 6f)) : acc;
             _hudLine.color = p.Hp <= 2 ? new Color(1f, 0.13f, 0.27f) : new Color(1f, 0.35f, 0.43f);
             for (int i = 0; i < _hp.Count; i++)
             {
@@ -292,8 +319,7 @@ namespace GC26.Bomber
                 _hp[i].enabled = show; _hp[i].color = on ? (low ? new Color(1f, 0.6f, 0.66f) : new Color(1f, 0.35f, 0.43f)) : new Color(0.16f, 0.11f, 0.15f);
             }
             _score.text = w.Score.ToString("N0").Replace(',', ' ');
-            float bw = RefW - 120;
-            _heatFill.rectTransform.sizeDelta = new Vector2(bw * core.Normalized, 20);
+            _heatFill.rectTransform.sizeDelta = new Vector2(_heatBg.rectTransform.sizeDelta.x * core.Normalized, 20);
             _heatFill.color = core.State == CoreState.Overheated ? (Mathf.Sin(w.Time * 20f) > 0 ? new Color(1f, 0.13f, 0.27f) : new Color(0.4f, 0.06f, 0.13f)) : core.State == CoreState.Overdrive ? new Color(1f, 0.7f, 0.28f) : new Color(0.31f, 0.72f, 1f);
             _heatText.text = $"ЯДРО {Mathf.RoundToInt(core.Heat)}%";
             _scrap.text = p.Scrap.ToString();
@@ -303,18 +329,16 @@ namespace GC26.Bomber
             for (int i = 0; i < _route.Count; i++)
             {
                 bool show = i < plan.Count; _route[i].enabled = show; if (!show) continue;
-                var t = plan[i][0]; var col = (Color)BomberData.RoomColor[t];
+                var col = (Color)BomberData.RoomColor[plan[i][0]];
                 _route[i].color = i == w.Step ? col : i < w.Step ? new Color(col.r, col.g, col.b, 0.35f) : new Color(col.r * 0.45f, col.g * 0.45f, col.b * 0.5f);
             }
-            PlaceCircle(_routeCur.rectTransform, 14 + w.Step * 22 + 7.5f, 108.5f, 12);
+            Circle(_routeCur.rectTransform, new Vector2(14 + w.Step * 22 + 7.5f, 108.5f), 12);
             var curT = w.Room.Type == "start" ? "combat" : w.Room.Type;
             _room.text = $"С{w.Sector + 1} · {BomberData.RoomLabel[curT]}"; _room.color = (Color)BomberData.RoomColor[curT];
             _weapon.text = "Бластер";
-            _combo.rectTransform.anchoredPosition = new Vector2(0f, -(_wy + 6f));
             _combo.text = w.Combo >= 2 ? $"КОМБО ×{w.Combo}{(w.Combo >= 10 ? " · В УДАРЕ" : "")}" : "";
             _combo.color = w.Combo >= 10 ? new Color(1f, 0.84f, 0.36f) : Color.white;
 
-            // buttons
             foreach (var b in _btns)
             {
                 float ready = 1f; string sub = "";
@@ -332,29 +356,21 @@ namespace GC26.Bomber
                 b.Bg.color = down ? new Color(0.16f, 0.24f, 0.4f, 0.88f) : new Color(0.027f, 0.043f, 0.086f, 0.72f);
                 b.Rim.color = isReady ? b.Col : new Color(0.43f, 0.51f, 0.67f, 0.6f);
                 b.Label.color = isReady ? Color.white : new Color(0.54f, 0.59f, 0.71f);
-                b.Label.rectTransform.anchoredPosition = new Vector2(b.Pos.x - b.R, -(b.Pos.y - b.R + (sub.Length > 0 ? -2 : 4)));
+                Place(b.Label.rectTransform, b.Pos.x - b.R, b.Pos.y - b.R + (sub.Length > 0 ? -2 : 4), b.R * 2, b.R * 2 - 10);
                 b.Sub.text = sub;
-                bool glow = b.Id == "od" && w.Governor.Forsage;
-                b.Glow.color = new Color(b.Col.r, b.Col.g, b.Col.b, glow ? 0.35f + 0.25f * Mathf.Sin(w.Time * 10f) : 0f);
+                b.Glow.color = new Color(b.Col.r, b.Col.g, b.Col.b, b.Id == "od" && w.Governor.Forsage ? 0.35f + 0.25f * Mathf.Sin(w.Time * 10f) : 0f);
             }
 
-            // joystick
             bool joy = _joyId != int.MinValue;
             _joyBase.enabled = _joyKnob.enabled = joy; _joyHint.enabled = _joyHintText.enabled = !joy && _panelKind == null;
-            if (joy)
-            {
-                PlaceCircle(_joyBase.rectTransform, _joyStart.x, _joyStart.y, 60);
-                var d = Vector2.ClampMagnitude(_joyNow - _joyStart, 56f);
-                PlaceCircle(_joyKnob.rectTransform, _joyStart.x + d.x, _joyStart.y + d.y, 26);
-            }
+            if (joy) { Circle(_joyBase.rectTransform, _joyStart, 60); Circle(_joyKnob.rectTransform, _joyStart + Vector2.ClampMagnitude(_joyNow - _joyStart, 56f), 26); }
             else _joyHint.color = new Color(0.5f, 0.89f, 1f, 0.4f + 0.15f * Mathf.Sin(Time.unscaledTime * 3f));
 
-            // floating texts and door labels (world px == reference units, world drawn at y = Top)
             int n = 0;
             foreach (var t in w.Texts)
             {
                 if (n >= 40) break;
-                var tx = GetText(_floatTexts, n++, "Float"); tx.text = t.S; tx.fontSize = Mathf.RoundToInt((t.Big ? 30 : t.S.Length <= 3 ? 16 : 14) * Mathf.Max(0.85f, _ws));
+                var tx = GetText(_floatTexts, n++); tx.text = t.S; tx.fontSize = Mathf.RoundToInt((t.Big ? 30 : t.S.Length <= 3 ? 16 : 14) * Mathf.Clamp(_ws, 0.85f, 1.6f));
                 var c = (Color)t.Color; c.a = Mathf.Min(1f, t.T * 2f); tx.color = c;
                 Place(tx.rectTransform, _wx + t.X * _ws - 150, _wy + t.Y * _ws - 15, 300, 30);
             }
@@ -362,56 +378,40 @@ namespace GC26.Bomber
             int m = 0;
             foreach (var d in w.Doors)
             {
-                var tx = GetText(_doorLabels, m++, "Door"); tx.text = BomberData.RoomLabel[d.Type]; tx.fontSize = 15;
-                tx.color = (Color)BomberData.RoomColor[d.Type]; Place(tx.rectTransform, _wx + (d.X0 + d.X1) / 2f * _ws - 80, _wy + (BomberData.Cell + 4) * _ws, 160, 22);
+                var tx = GetText(_doorLabels, m++); tx.text = BomberData.RoomLabel[d.Type]; tx.fontSize = 15; tx.color = (Color)BomberData.RoomColor[d.Type];
+                Place(tx.rectTransform, _wx + (d.X0 + d.X1) / 2f * _ws - 80, _wy + (BomberData.Cell + 4) * _ws, 160, 22);
             }
             for (int i = m; i < _doorLabels.Count; i++) _doorLabels[i].enabled = false;
         }
 
-        void Resize(float h)
+        Text GetText(List<Text> list, int i)
         {
-            _frameH = h; _frame.sizeDelta = new Vector2(RefW, h);
-            // the whole room (544 x 960 world px) fits between the HUD and the control panel, centred, with a frame
-            const float pad = 10f;
-            float areaTop = Top + pad, areaH = h - PanelH - Top - pad * 2f;
-            _ws = Mathf.Min((RefW - pad * 2f) / BomberData.W, areaH / BomberData.H);
-            float ww = BomberData.W * _ws, wh = BomberData.H * _ws;
-            _wx = (RefW - ww) / 2f; _wy = areaTop + (areaH - wh) / 2f;
-            foreach (var rt in new[] { _worldImage.rectTransform, _fade.rectTransform, _vignette.rectTransform, _lowHp.rectTransform }) Place(rt, _wx, _wy, ww, wh);
-            const float b = 3f;
-            Place(_border[0].rectTransform, _wx - b, _wy - b, ww + b * 2f, b); Place(_border[1].rectTransform, _wx - b, _wy + wh, ww + b * 2f, b);
-            Place(_border[2].rectTransform, _wx - b, _wy, b, wh); Place(_border[3].rectTransform, _wx + ww, _wy, b, wh);
-            _worldImage.texture = _ctx.View.SetViewHeight(BomberData.H);
-        }
-
-        Text GetText(List<Text> list, int i, string name)
-        {
-            while (list.Count <= i) { var t = NewText(name, _frame, 14, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold); t.raycastTarget = false; list.Add(t); var o = t.gameObject.AddComponent<Outline>(); o.effectColor = new Color(0, 0, 0, 0.8f); }
+            while (list.Count <= i) { var t = Txt("Float", _safe, 14, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold); list.Add(t); var o = t.gameObject.AddComponent<Outline>(); o.effectColor = new Color(0, 0, 0, 0.8f); }
             var tx = list[i]; tx.enabled = true; tx.transform.SetSiblingIndex(_fade.transform.GetSiblingIndex() + 1); return tx;
         }
 
         // ================= helpers =================
-        Image NewImage(string name, Transform parent, Sprite sprite, Color color)
+        Image Img(string name, Transform parent, Sprite sprite, Color color)
         {
             var go = new GameObject(name, typeof(RectTransform)); go.transform.SetParent(parent, false);
             var img = go.AddComponent<Image>(); img.sprite = sprite; img.color = color; img.raycastTarget = false; return img;
         }
 
-        Text NewText(string name, Transform parent, int size, TextAnchor align, Color color, FontStyle style)
+        Text Txt(string name, Transform parent, int size, TextAnchor align, Color color, FontStyle style)
         {
             var go = new GameObject(name, typeof(RectTransform)); go.transform.SetParent(parent, false);
             var t = go.AddComponent<Text>(); t.font = _font; t.fontSize = size; t.alignment = align; t.color = color; t.fontStyle = style; t.raycastTarget = false;
             t.horizontalOverflow = HorizontalWrapMode.Overflow; t.verticalOverflow = VerticalWrapMode.Overflow; return t;
         }
 
-        /// <summary>Places a rect by its top-left corner in reference units (y down).</summary>
+        /// <summary>Places a rect by its top-left corner in UI units inside the safe area (y down).</summary>
         static void Place(RectTransform rt, float x, float y, float w, float h)
         {
             rt.anchorMin = rt.anchorMax = new Vector2(0f, 1f); rt.pivot = new Vector2(0f, 1f);
             rt.anchoredPosition = new Vector2(x, -y); rt.sizeDelta = new Vector2(w, h);
         }
 
-        static void PlaceCircle(RectTransform rt, float cx, float cy, float r) => Place(rt, cx - r, cy - r, r * 2f, r * 2f);
+        static void Circle(RectTransform rt, Vector2 c, float r) => Place(rt, c.x - r, c.y - r, r * 2f, r * 2f);
         static void Stretch(RectTransform rt) { rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = rt.offsetMax = Vector2.zero; }
     }
 }
