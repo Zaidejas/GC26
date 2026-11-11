@@ -187,7 +187,9 @@ namespace GC26.Bomber
             // show a vertical window of it that follows the drone (at most 1.35x bigger than "whole room" scale)
             float areaTop = Top + Pad, areaH = fh - Top - Pad + _bottomInset, areaW = fw - Pad * 2f; // reaches the physical bottom edge
             float fitAll = Mathf.Min(areaW / BomberData.W, (fh - Top - Pad - panelH) / BomberData.H);
-            _ws = Mathf.Min(areaW / BomberData.W, fitAll * 1.35f);
+            // full width on every device (phones and tablets); the view scrolls vertically. Only on very wide
+            // screens keep at least ~480 world px visible in height.
+            _ws = Mathf.Min(areaW / BomberData.W, Mathf.Max(fitAll, areaH / 480f));
             // world px hidden under the controls: let the view scroll that far below the room (station shaft there)
             float under = Mathf.Ceil((panelH + _bottomInset) / _ws / 2f) * 2f;
             _viewTotal = BomberData.H + under;
