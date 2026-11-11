@@ -46,6 +46,10 @@ namespace GC26.Tetris.View
         public static Vector2 HoldPanelCenter { get { return Portrait ? new Vector2(-SideX, 17.05f) : new Vector2(LeftX, 6.2f); } }
         public static Vector2 HoldPanelSize { get { return Portrait ? new Vector2(ColumnWidth, 4f) : new Vector2(5f, 4.6f); } }
 
+        /// <summary>The clickable pause button: top right in the wide layout, beside the well in the tall one.</summary>
+        public static Vector2 PauseButtonCenter { get { return Portrait ? new Vector2(6.05f, 9.1f) : new Vector2(RightX, 10.2f); } }
+        public static Vector2 PauseButtonSize { get { return Portrait ? new Vector2(1.4f, 1.5f) : new Vector2(5f, 1.2f); } }
+
         public static Vector2 NextLabel { get { return Portrait ? new Vector2(SideX, 18.45f) : new Vector2(RightX, 8f); } }
         public static Vector2 NextCenter(int slot)
         {

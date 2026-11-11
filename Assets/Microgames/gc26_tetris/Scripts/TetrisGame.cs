@@ -268,6 +268,8 @@ namespace GC26.Tetris
             game.SpecialTriggered += OnSpecialTriggered;
             game.GameEnded += OnGameEnded;
             heldDirection = 0;
+            SyncPointer();
+            ResetGameOverButtons();
             lastPlace = 0;
             shownScore = 0f;
             scoreKick = 0f;
@@ -451,7 +453,12 @@ namespace GC26.Tetris
             ApplySpecialCycle();
             // A key that pressed a pause button must not also act on the piece.
             if (!pauseInputUsed)
+            {
                 HandleMovement();
+                HandleMouse();
+            }
+            if (game.IsFinished)
+                UpdateGameOverButtons();
             if (autoplay)
                 RunAutoplay();
 
@@ -551,7 +558,8 @@ namespace GC26.Tetris
             }
             if (Pressed(Key.M))
                 gameAudio.ToggleMute();
-            if (Pressed(Key.R) || (game.IsFinished && Pressed(Key.Enter)))
+            // Enter after a game is the game-over screen's "new game" button.
+            if (Pressed(Key.R))
                 StartNewGame();
             // Not while playing, so a stray key can't throw a game away.
             if (Pressed(Key.Backspace) && game.State != GameState.Playing)
@@ -653,7 +661,7 @@ namespace GC26.Tetris
             if (!portrait)
             {
                 Label("BlockDrop", BoardView.LeftPanelX, 10.2f, unit, 0.8f, TextAnchor.MiddleCenter, view.AccentColor);
-                Label("← → ход   ↑ поворот   ↓ быстрее   Пробел сброс", 0f, -10.55f, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
+                Label(ControlsHint(), 0f, -10.55f, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
             }
             if (game.Mode == GameMode.Battle)
             {
@@ -690,13 +698,14 @@ namespace GC26.Tetris
 
             DrawPopups(unit);
 
+            DrawPauseButton(unit);
             if (game.State == GameState.Paused)
                 DrawPauseMenu(unit);
             else if (game.State == GameState.GameOver && game.Mode == GameMode.Battle)
                 Overlay("БОЙ ОКОНЧЕН", "Счёт: " + game.Score.ToString("N0") + "\n" + PlaceText() +
-                    "Ботов: " + battle.BotsDefeated + "    монет: +" + battle.CoinsEarned + "\nEnter — новый бой\nBackspace — в меню", unit);
+                    "Ботов: " + battle.BotsDefeated + "    монет: +" + battle.CoinsEarned, unit);
             else if (game.State == GameState.GameOver)
-                Overlay("ИГРА ОКОНЧЕНА", "Счёт: " + game.Score + "\n" + PlaceText() + "Enter — новая игра\nBackspace — в меню", unit);
+                Overlay("ИГРА ОКОНЧЕНА", "Счёт: " + game.Score.ToString("N0") + "\n" + PlaceText().TrimEnd('\n'), unit);
         }
 
         static readonly Color Muted = new Color(0.68f, 0.65f, 0.76f);
@@ -727,14 +736,16 @@ namespace GC26.Tetris
 
         void Overlay(string title, string subtitle, float unit)
         {
-            Vector2 min = WorldToGui(BoardView.BoardLeft, -3.6f);
+            // Tall enough for the result lines and the two buttons under them.
+            Vector2 min = WorldToGui(BoardView.BoardLeft, -5.85f);
             Vector2 max = WorldToGui(-BoardView.BoardLeft, 3.6f);
             GUI.color = new Color(0.07f, 0.05f, 0.11f, 0.92f);
             GUI.DrawTexture(new Rect(min.x, max.y, max.x - min.x, min.y - max.y), Texture2D.whiteTexture);
             GUI.color = Color.white;
 
             Label(title, 0f, 2.45f, unit, 0.95f, TextAnchor.MiddleCenter, view.AccentColor);
-            Label(subtitle, 0f, -0.75f, unit, 0.52f, TextAnchor.MiddleCenter, Bright);
+            Label(subtitle, 0f, -0.55f, unit, 0.52f, TextAnchor.MiddleCenter, Bright);
+            DrawGameOverButtons(unit);
         }
 
         void Label(string text, float worldX, float worldY, float unit, float sizeInUnits, TextAnchor anchor, Color color)
