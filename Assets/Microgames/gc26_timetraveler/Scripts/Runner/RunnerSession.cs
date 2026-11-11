@@ -86,6 +86,7 @@ namespace GC26.Timetraveler
             _follow = cam.GetComponent<RunnerCamera>();
             if (_follow == null) _follow = cam.gameObject.AddComponent<RunnerCamera>();
 
+            TimetravelerLog.Info($"Runner session created (best so far {_bestMeters} m).", this);
             StartRun();
             _follow.Init(cam, _traveler.transform);
         }
@@ -99,6 +100,7 @@ namespace GC26.Timetraveler
             _track.Build(_shapes, _worlds, _traveler.transform, _seed);
             _traveler.ResetAt(new Vector2(_track.StartX, 0f), startSpeed);
             if (_follow != null) _follow.Snap();
+            TimetravelerLog.Info($"Run #{_seed} started (track seed {_seed}, speed {startSpeed}).", this);
         }
 
         void Update()
@@ -123,8 +125,18 @@ namespace GC26.Timetraveler
                 return;
             }
 
-            if (_input.SlowPressed) _timeSlow.Toggle();
+            if (_input.SlowPressed)
+            {
+                var wasActive = _timeSlow.Active;
+                _timeSlow.Toggle();
+                if (_timeSlow.Active != wasActive)
+                    TimetravelerLog.Info($"Time slow {(_timeSlow.Active ? "ON" : "OFF")} (energy {_timeSlow.Energy:P0}).", this);
+                else
+                    TimetravelerLog.Info($"Time slow refused: energy {_timeSlow.Energy:P0}, needs {_timeSlow.minEnergyToStart:P0}.", this);
+            }
+            var slowBefore = _timeSlow.Active;
             _timeSlow.Tick(Time.unscaledDeltaTime);
+            if (slowBefore && !_timeSlow.Active) TimetravelerLog.Info("Time slow OFF (watch energy ran out).", this);
 
             if (_input.SwitchPressed) TrySwitchWorld();
 
@@ -141,10 +153,12 @@ namespace GC26.Timetraveler
             if (_track.SolidOverlaps(_traveler.BodyBounds, _worlds.Other))
             {
                 _blockedFlash = 0.6f;
+                TimetravelerLog.Info($"World switch refused at {DistanceMeters} m: would be inside a {_worlds.Other} solid.", this);
                 return;
             }
             _worlds.Switch();
             _switchFlash = 0.6f;
+            TimetravelerLog.Info($"World switched to {RunnerWorldState.NameOf(_worlds.Current)} at {DistanceMeters} m.", this);
         }
 
         void OnWorldChanged(RunnerWorld world)
@@ -155,17 +169,22 @@ namespace GC26.Timetraveler
             if (_travelerVisual != null) _travelerVisual.color = RunnerWorldState.ColorOf(world);
         }
 
-        void OnDied()
+        void OnDied(string reason)
         {
             _timeSlow.Restore();
             _deathTime = Time.unscaledTime;
+            TimetravelerLog.Info($"Died at {DistanceMeters} m: {reason} (world {RunnerWorldState.NameOf(_worlds.Current)}, speed {_traveler.RunSpeed:0.0}).", this);
+            SaveBest();
+        }
+
+        void SaveBest()
+        {
             var meters = DistanceMeters;
-            if (meters > _bestMeters)
-            {
-                _bestMeters = meters;
-                PlayerPrefs.SetInt(BestKey, _bestMeters);
-                PlayerPrefs.Save();
-            }
+            if (meters <= _bestMeters) return;
+            _bestMeters = meters;
+            PlayerPrefs.SetInt(BestKey, _bestMeters);
+            PlayerPrefs.Save();
+            TimetravelerLog.Info($"New best distance: {_bestMeters} m.", this);
         }
 
         // ---------- pause and exit (required by GC26: own pause + "To menu") ----------
@@ -176,6 +195,7 @@ namespace GC26.Timetraveler
             _paused = true;
             _scaleBeforePause = Time.timeScale;
             Time.timeScale = 0f;
+            TimetravelerLog.Info($"Paused at {DistanceMeters} m.", this);
         }
 
         public void Resume()
@@ -183,6 +203,7 @@ namespace GC26.Timetraveler
             if (!_paused) return;
             _paused = false;
             Time.timeScale = _scaleBeforePause;
+            TimetravelerLog.Info("Resumed.", this);
         }
 
         /// <summary>Saves the best distance, restores time, and hands the score to the game for ExitToMenu.</summary>
@@ -190,7 +211,8 @@ namespace GC26.Timetraveler
         {
             Resume();
             _timeSlow.Restore();
-            OnDied(); // saves the best distance if this run beat it
+            SaveBest();
+            TimetravelerLog.Info($"'To menu' pressed, sending score {_bestMeters}.", this);
             ExitRequested?.Invoke(_bestMeters);
         }
 

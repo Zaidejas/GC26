@@ -16,9 +16,9 @@ namespace GC26.Timetraveler
         readonly Sprite _sprite;
         readonly Material _material;
 
-        public RunnerShapes()
+        public RunnerShapes(HideFlags assetFlags = HideFlags.None)
         {
-            var tex = new Texture2D(1, 1) { filterMode = FilterMode.Point };
+            var tex = new Texture2D(1, 1) { filterMode = FilterMode.Point, hideFlags = assetFlags };
             tex.SetPixel(0, 0, Color.white);
             tex.Apply();
             // 1 px = 1 unit, so localScale is the size in world units.
@@ -26,7 +26,8 @@ namespace GC26.Timetraveler
 
             var shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default")
                          ?? Shader.Find("Sprites/Default");
-            _material = new Material(shader);
+            _material = new Material(shader) { hideFlags = assetFlags };
+            _sprite.hideFlags = assetFlags;
         }
 
         /// <summary>Box whose bottom-left corner is at (x, y).</summary>

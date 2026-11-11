@@ -47,7 +47,7 @@ namespace GC26.Timetraveler
 
         public Tuning tuning = new Tuning();
 
-        public event Action Died;
+        public event Action<string> Died;
 
         public float RunSpeed { get; set; }
         public bool IsDead { get; private set; }
@@ -189,7 +189,7 @@ namespace GC26.Timetraveler
                 if (_slideTimer <= 0f && !_input.SlideHeld && !BlockedOverhead()) EndSlide();
             }
 
-            if (_body.position.y < _killY) Die();
+            if (_body.position.y < _killY) Die("fell into a gap");
         }
 
         void StartSlideOrFastFall()
@@ -278,7 +278,7 @@ namespace GC26.Timetraveler
                     _body.linearVelocity = v;
                     return;
                 }
-                Die();
+                Die($"ran into the side of '{collision.collider.name}'");
                 return;
             }
         }
@@ -288,16 +288,16 @@ namespace GC26.Timetraveler
 
         void OnTriggerEnter2D(Collider2D other)
         {
-            if (!IsDead && other.GetComponent<RunnerHazard>() != null) Die();
+            if (!IsDead && other.GetComponent<RunnerHazard>() != null) Die($"hit '{other.name}'");
         }
 
-        public void Die()
+        public void Die(string reason)
         {
             if (IsDead) return;
             IsDead = true;
             _body.linearVelocity = Vector2.zero;
             _body.simulated = false;
-            Died?.Invoke();
+            Died?.Invoke(reason);
         }
     }
 }
