@@ -45,7 +45,8 @@ namespace GC26.Timetraveler
         float _deathTime;
         float _blockedFlash;
         float _switchFlash;
-        SpriteRenderer _travelerVisual;
+        SpriteRenderer _travelerVisual;   // plain box, only if the sprites are missing
+        TravelerAnimator _travelerSprite;
 
         bool _paused;
         float _scaleBeforePause = 1f;
@@ -77,10 +78,15 @@ namespace GC26.Timetraveler
             travelerObject.AddComponent<Rigidbody2D>();
             travelerObject.AddComponent<BoxCollider2D>();
             _traveler = travelerObject.AddComponent<TravelerController>();
-            var visual = _shapes.Visual(travelerObject.transform, "TravelerBody", _traveler.tuning.standSize,
-                RunnerShapes.TravelerColor, 2);
-            _travelerVisual = visual;
-            _traveler.Init(_input, visual.transform, _track.KillY);
+            _travelerSprite = TravelerAnimator.TryCreate(_traveler, _shapes.Material);
+            Transform boxVisual = null;
+            if (_travelerSprite == null)
+            {
+                _travelerVisual = _shapes.Visual(travelerObject.transform, "TravelerBody", _traveler.tuning.standSize,
+                    RunnerShapes.TravelerColor, 2);
+                boxVisual = _travelerVisual.transform;
+            }
+            _traveler.Init(_input, boxVisual, _track.KillY);
             _traveler.Died += OnDied;
 
             _follow = cam.GetComponent<RunnerCamera>();
@@ -168,6 +174,7 @@ namespace GC26.Timetraveler
                 _camera.backgroundColor = world == RunnerWorld.Past ? PastBackground : FutureBackground;
             // The traveler wears the colour of his world: same colour = solid for him.
             if (_travelerVisual != null) _travelerVisual.color = RunnerWorldState.ColorOf(world);
+            if (_travelerSprite != null) _travelerSprite.SetWorldColor(RunnerWorldState.ColorOf(world));
         }
 
         void OnDied(string reason)

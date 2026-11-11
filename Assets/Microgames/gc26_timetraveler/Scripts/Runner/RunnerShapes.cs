@@ -16,6 +16,9 @@ namespace GC26.Timetraveler
         readonly Sprite _sprite;
         readonly Material _material;
 
+        /// <summary>The shared unlit sprite material (also used by the traveler's sprites).</summary>
+        public Material Material => _material;
+
         public RunnerShapes(HideFlags assetFlags = HideFlags.None)
         {
             var tex = new Texture2D(1, 1) { filterMode = FilterMode.Point, hideFlags = assetFlags };

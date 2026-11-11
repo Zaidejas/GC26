@@ -127,7 +127,17 @@ namespace GC26.Timetraveler
             var groundTop = cy - 10.5f;
             var left = cx - 12f;
             shapes.Box(_preview.transform, "PreviewGround", left, groundTop - 6f, 24f, 6f, RunnerShapes.GroundColor);
-            shapes.Box(_preview.transform, "PreviewTraveler", cx - 5.2f, groundTop, 2f, 3f, RunnerWorldState.PastColor, sortingOrder: 2);
+            var travelerFrame = TravelerAnimator.LoadPreviewFrame();
+            if (travelerFrame != null)
+            {
+                var traveler = new GameObject("PreviewTraveler").AddComponent<SpriteRenderer>();
+                traveler.transform.SetParent(_preview.transform, false);
+                traveler.transform.position = new Vector3(cx - 4.2f, groundTop, 0f);   // pivot at the feet
+                traveler.sprite = travelerFrame;
+                traveler.sortingOrder = 2;
+            }
+            else
+                shapes.Box(_preview.transform, "PreviewTraveler", cx - 5.2f, groundTop, 2f, 3f, RunnerWorldState.PastColor, sortingOrder: 2);
             shapes.Box(_preview.transform, "PreviewRock", cx + 1f, groundTop, 1.5f, 1.5f, RunnerShapes.HazardColor, sortingOrder: 1);
             shapes.Box(_preview.transform, "PreviewLog", cx + 5f, groundTop + 2f, 2.5f, 14f, RunnerShapes.HazardColor, sortingOrder: 1);
             foreach (var t in _preview.GetComponentsInChildren<Transform>(true))

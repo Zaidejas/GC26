@@ -53,6 +53,8 @@ namespace GC26.Timetraveler
         public bool IsDead { get; private set; }
         public bool IsGrounded { get; private set; }
         public bool IsSliding => _sliding;
+        public float ColliderHeight => _collider != null ? _collider.size.y : tuning.standSize.y;
+        public float VelocityY => _body != null ? _body.linearVelocity.y : 0f;
 
         Rigidbody2D _body;
         BoxCollider2D _collider;
