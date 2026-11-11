@@ -31,6 +31,10 @@ namespace GC26.Timetraveler
 
         public float KillY => -12f;
         public float StartX => 0f;
+        /// <summary>X of the finish line once it is built (levels only); +infinity in endless mode.</summary>
+        public float FinishX { get; private set; } = float.PositiveInfinity;
+
+        const float CoinSize = 0.75f;
 
         // World pieces use the world's colour (same as the traveler in that world).
         // Solids are full colour; world walls are a darker shade of it.
@@ -50,13 +54,20 @@ namespace GC26.Timetraveler
         Transform _openGround;          // last ground box, extended while the height stays the same
         float _openGroundStartX;
         string _lastPattern;
+        int _tier = -1;                 // levels: obstacle groups 0..tier; endless (-1): unlocked by distance
+        float _plannedFinishX = float.PositiveInfinity;
+        bool _finishBuilt;
         readonly List<Transform> _pieces = new List<Transform>();
         // Pieces (solids and hazards) that exist in only one world, for the world-switch safety check.
         readonly List<RunnerWorldMember> _worldPieces = new List<RunnerWorldMember>();
 
         delegate void Pattern();
 
-        public void Build(RunnerShapes shapes, RunnerWorldState worlds, Transform target, int seed)
+        /// <param name="tier">Levels: which obstacle groups appear (0 basic, 1 +steps/ledge/wall, 2 +worlds, 3 +moving).
+        /// -1 = endless: groups unlock with distance.</param>
+        /// <param name="finishMeters">Levels: distance of the finish line; 0 = endless.</param>
+        public void Build(RunnerShapes shapes, RunnerWorldState worlds, Transform target, int seed,
+            int tier = -1, float finishMeters = 0f)
         {
             _shapes = shapes;
             _worlds = worlds;
@@ -68,12 +79,21 @@ namespace GC26.Timetraveler
             _cursorX = StartX - 20f;
             _groundY = 0f;
             _lastPattern = null;
+            _tier = tier;
+            _finishBuilt = false;
+            FinishX = float.PositiveInfinity;
+            _plannedFinishX = finishMeters > 0f ? StartX + finishMeters / MetersPerUnit : float.PositiveInfinity;
             Flat(SafeStartLength);
         }
 
         public void Extend(float untilX)
         {
-            while (_cursorX < untilX) AddPattern();
+            while (_cursorX < untilX)
+            {
+                if (_cursorX < _plannedFinishX) AddPattern();
+                else if (!_finishBuilt) BuildFinish();
+                else Flat(20f);
+            }
         }
 
         public void Trim(float behindX)
@@ -143,6 +163,10 @@ namespace GC26.Timetraveler
         bool Coin() => _rng.NextDouble() < 0.5;
         RunnerWorld RandomWorld() => Coin() ? RunnerWorld.Past : RunnerWorld.Future;
 
+        /// <summary>Levels unlock groups by tier; endless unlocks them by distance.</summary>
+        bool Unlocked(int group, float endlessDistance) =>
+            _tier >= 0 ? _tier >= group : Distance > endlessDistance;
+
         void AddPattern()
         {
             // Weighted list of what is unlocked at this distance. Newest group gets extra weight.
@@ -153,20 +177,20 @@ namespace GC26.Timetraveler
                 ("gap", () => Gap(Range(3f, 4.5f)), 1.6f),
                 ("log", Log, 1.6f),
             };
-            if (Distance > UnlockMedium)
+            if (Unlocked(1, UnlockMedium))
             {
                 options.Add(("stepup", StepUp, 1f));
                 options.Add(("stepdown", StepDown, 1f));
                 options.Add(("ledge", Ledge, 1f));
                 options.Add(("tallwall", TallWall, 1.2f));
             }
-            if (Distance > UnlockWorlds)
+            if (Unlocked(2, UnlockWorlds))
             {
                 options.Add(("worldbridge", WorldBridge, 1.6f));
                 options.Add(("worldwall", WorldWall, 1.6f));
                 options.Add(("worldsplit", WorldSplit, 1.2f));
             }
-            if (Distance > UnlockMoving)
+            if (Unlocked(3, UnlockMoving))
             {
                 options.Add(("blade", Blade, 1.3f));
                 options.Add(("flyer", Flyer, 1.3f));
@@ -184,7 +208,10 @@ namespace GC26.Timetraveler
                 if (roll > 0f) continue;
                 _lastPattern = o.name;
                 o.build();
-                Flat(Range(3f, 6f)); // breathing room between patterns
+                // Breathing room between patterns, sometimes with a row of coins.
+                var rest = Range(3f, 6f);
+                if (rest > 4.5f && Coin()) CoinRow(_cursorX + 0.5f, _groundY + 1.5f, 3, 1.3f);
+                Flat(rest);
                 return;
             }
         }
@@ -197,6 +224,7 @@ namespace GC26.Timetraveler
         {
             Flat(5f);
             Teach("gap", "Gap ahead: JUMP  (tap / Space)");
+            CoinArc(_cursorX + width / 2f, _groundY);
             _cursorX += width;
             _openGround = null;
             Flat(7f);
@@ -206,7 +234,8 @@ namespace GC26.Timetraveler
         {
             Flat(5f);
             Teach("rock", "Red = deadly. JUMP over the rock  (tap / Space)");
-            Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f);
+            Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
+            CoinArc(_cursorX + 0.75f, _groundY);
             Flat(8f);
         }
 
@@ -215,7 +244,8 @@ namespace GC26.Timetraveler
             // Overhead log: standing (3 units) hits it, sliding (1.2 units) passes under.
             Flat(5f);
             Teach("log", "SLIDE under the log  (swipe down / hold S)");
-            Hazard("TrackLog", _cursorX, _groundY + 2.0f, 2.5f, 14f);
+            Hazard("TrackLog", _cursorX, _groundY + 2.0f, 2.5f, 14f, TimetravelerArt.Log);
+            CoinRow(_cursorX - 1f, _groundY + 0.6f, 4, 1.2f);   // low coins reward the slide
             Flat(8f);
         }
 
@@ -243,7 +273,7 @@ namespace GC26.Timetraveler
             var startX = _cursorX;
             Flat(16f);
             OneWayPlatform(startX + 3f, _groundY + 4.5f, 9f, RunnerShapes.LedgeColor);
-            Hazard("TrackRock", startX + 9f, _groundY, 1.5f, 1.5f);
+            Hazard("TrackRock", startX + 9f, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
         }
 
         void TallWall()
@@ -251,7 +281,7 @@ namespace GC26.Timetraveler
             // A double-jump wall: one jump only just scrapes over it, two jumps clear it easily.
             Flat(6f);
             Teach("tallwall", "High wall: jump TWICE  (tap, tap / Space, Space)");
-            Hazard("TrackTallWall", _cursorX, _groundY, 1.2f, 4.5f);
+            Hazard("TrackTallWall", _cursorX, _groundY, 1.2f, 4.5f, TimetravelerArt.TallWall);
             Flat(10f);
         }
 
@@ -265,6 +295,7 @@ namespace GC26.Timetraveler
             Teach("worldbridge", $"Too wide to jump! The bridge is real only in the {Name(world)}.\nBe {Name(world)}-coloured to run on it  (Q / swipe sideways)");
             var width = Range(13f, 16f);
             WorldSolid("TrackBridge", world, _cursorX, _groundY - 1f, width, 1f);
+            CoinRow(_cursorX + 2f, _groundY + 1.5f, 5, 2f);   // coins over the bridge: only for the right world
             _cursorX += width;
             _openGround = null;
             Flat(8f);
@@ -301,7 +332,7 @@ namespace GC26.Timetraveler
             // traveler, so SLIDE always works; standing works only while it is up.
             Flat(8f);
             Teach("blade", "Moving blade: SLIDE under it  (or run while it is UP)");
-            var blade = Hazard("TrackBlade", _cursorX, _groundY + 2f, 1.5f, 1.5f);
+            var blade = Hazard("TrackBlade", _cursorX, _groundY + 2f, 1.5f, 1.5f, TimetravelerArt.Blade);
             AddMover(blade, RunnerMover.Mode.Bob, low: _groundY + 2.6f, high: _groundY + 10f, period: 2.4f);
             Flat(10f);
         }
@@ -311,7 +342,7 @@ namespace GC26.Timetraveler
             // Flies at head height toward the traveler: slide under it (or jump over early).
             Flat(20f);
             Teach("flyer", "Flyer at head height: SLIDE under it  (or slow time: E / Shift)");
-            var flyer = Hazard("TrackFlyer", _cursorX, _groundY + 2.1f, 2.2f, 1.2f);
+            var flyer = Hazard("TrackFlyer", _cursorX, _groundY + 2.1f, 2.2f, 1.2f, TimetravelerArt.Flyer);
             var mover = AddMover(flyer, RunnerMover.Mode.Fly, 0f, 0f, 1f);
             mover.speed = 5f;
             mover.triggerDistance = 22f;
@@ -326,7 +357,7 @@ namespace GC26.Timetraveler
             Teach("boulders", "Boulders fall ahead of you. JUMP over them when they land");
             for (var i = 0; i < count; i++)
             {
-                var boulder = Hazard("TrackBoulder", _cursorX, _groundY + 18f, 1.8f, 1.8f);
+                var boulder = Hazard("TrackBoulder", _cursorX, _groundY + 18f, 1.8f, 1.8f, TimetravelerArt.Boulder);
                 var mover = AddMover(boulder, RunnerMover.Mode.Drop, low: _groundY + 0.9f, high: 0f, period: 1f);
                 // Falls early enough to be on the ground well before the traveler gets there.
                 mover.triggerDistance = 19f;
@@ -341,7 +372,7 @@ namespace GC26.Timetraveler
             // running upright works only while it is up.
             Flat(8f);
             Teach("crusher", "Crusher: SLIDE under it  (or run while it is UP)");
-            var crusher = Hazard("TrackCrusher", _cursorX, _groundY + 2f, 3f, 8f);
+            var crusher = Hazard("TrackCrusher", _cursorX, _groundY + 2f, 3f, 8f, TimetravelerArt.Crusher);
             AddMover(crusher, RunnerMover.Mode.Crush, low: _groundY + 5.8f, high: _groundY + 13f, period: 2.4f,
                 phase: (float)_rng.NextDouble());
             Flat(10f);
@@ -362,7 +393,7 @@ namespace GC26.Timetraveler
             else
             {
                 var box = _shapes.Box(transform, "TrackGround", _cursorX, top - GroundDepth, length, GroundDepth,
-                    RunnerShapes.GroundColor);
+                    RunnerShapes.GroundColor, slot: TimetravelerArt.Ground, tile: true);
                 _openGround = box.transform;
                 _openGroundStartX = _cursorX;
                 _pieces.Add(box.transform);
@@ -370,10 +401,10 @@ namespace GC26.Timetraveler
             _cursorX += length;
         }
 
-        GameObject Hazard(string name, float x, float y, float width, float height)
+        GameObject Hazard(string name, float x, float y, float width, float height, string slot = null)
         {
             var go = _shapes.Box(transform, name, x, y, width, height, RunnerShapes.HazardColor, isTrigger: true,
-                sortingOrder: 1);
+                sortingOrder: 1, slot: slot);
             go.AddComponent<RunnerHazard>();
             Inset(go, width, height);
             _pieces.Add(go.transform);
@@ -382,7 +413,7 @@ namespace GC26.Timetraveler
 
         void OneWayPlatform(float x, float y, float width, Color color)
         {
-            var go = _shapes.Box(transform, "TrackLedge", x, y, width, 1f, color);
+            var go = _shapes.Box(transform, "TrackLedge", x, y, width, 1f, color, slot: TimetravelerArt.Ledge, tile: true);
             // Solid only from above: no deaths from bumping its side or underside.
             go.GetComponent<BoxCollider2D>().usedByEffector = true;
             var effector = go.AddComponent<PlatformEffector2D>();
@@ -394,7 +425,8 @@ namespace GC26.Timetraveler
         void WorldSolid(string name, RunnerWorld world, float x, float y, float width, float height)
         {
             var color = SolidColor(world);
-            var go = _shapes.Box(transform, name, x, y, width, height, color);
+            var go = _shapes.Box(transform, name, x, y, width, height, color, slot: TimetravelerArt.Bridge, tile: true,
+                tint: true);
             var member = go.AddComponent<RunnerWorldMember>();
             member.Init(world, _worlds);
             _worldPieces.Add(member);
@@ -404,7 +436,8 @@ namespace GC26.Timetraveler
         void WorldHazard(string name, RunnerWorld world, float x, float y, float width, float height)
         {
             var color = WallColor(world);
-            var go = _shapes.Box(transform, name, x, y, width, height, color, isTrigger: true, sortingOrder: 1);
+            var go = _shapes.Box(transform, name, x, y, width, height, color, isTrigger: true, sortingOrder: 1,
+                slot: TimetravelerArt.WorldWall, tile: true, tint: true);
             go.AddComponent<RunnerHazard>();
             Inset(go, width, height);
             var member = go.AddComponent<RunnerWorldMember>();
@@ -419,6 +452,46 @@ namespace GC26.Timetraveler
             var col = go.GetComponent<BoxCollider2D>();
             col.size = new Vector2(Mathf.Max(0.2f, (width - 2f * HazardInset) / width),
                 Mathf.Max(0.2f, (height - 2f * HazardInset) / height));
+        }
+
+        // ---------- coins and finish ----------
+
+        static readonly Color CoinColor = new Color(1f, 0.85f, 0.25f);
+        static readonly Color FinishColor = new Color(0.95f, 0.95f, 0.95f);
+
+        void CoinAt(float centerX, float centerY)
+        {
+            var go = _shapes.Box(transform, "TrackCoin", centerX - CoinSize / 2f, centerY - CoinSize / 2f, CoinSize, CoinSize,
+                CoinColor, isTrigger: true, sortingOrder: 2, slot: TimetravelerArt.Coin);
+            go.AddComponent<RunnerCoin>();
+            _pieces.Add(go.transform);
+        }
+
+        /// <summary>A straight row of coins (centre heights).</summary>
+        void CoinRow(float startX, float centerY, int count, float spacing)
+        {
+            for (var i = 0; i < count; i++) CoinAt(startX + i * spacing, centerY);
+        }
+
+        // Coin heights along a full jump (the 3-unit tall body passes through all of them).
+        static readonly float[] ArcHeights = { 2.5f, 6f, 7f, 6f, 2.5f };
+
+        /// <summary>Five coins along the path of a jump centred on <paramref name="centerX"/>.</summary>
+        void CoinArc(float centerX, float groundY)
+        {
+            for (var i = 0; i < ArcHeights.Length; i++)
+                CoinAt(centerX + (i - 2) * 1.3f, groundY + ArcHeights[i]);
+        }
+
+        void BuildFinish()
+        {
+            Flat(4f);
+            FinishX = _cursorX;
+            _finishBuilt = true;
+            // A tall gate the traveler runs through (no collider effect: it is a trigger with no component).
+            _pieces.Add(_shapes.Box(transform, "TrackFinish", _cursorX, _groundY, 2f, 6f, FinishColor, isTrigger: true,
+                sortingOrder: 0, slot: TimetravelerArt.Finish).transform);
+            Flat(40f);
         }
 
         RunnerMover AddMover(GameObject go, RunnerMover.Mode mode, float low, float high, float period, float phase = 0f)

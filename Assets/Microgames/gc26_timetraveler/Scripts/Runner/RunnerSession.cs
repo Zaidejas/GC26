@@ -1,12 +1,12 @@
-using GC26.Core;
 using UnityEngine;
 
 namespace GC26.Timetraveler
 {
     /// <summary>
-    /// Greybox runner session: creates the traveler, track and camera follow, ramps the speed,
-    /// runs the two mechanics (time slow and world switch), shows a debug HUD, and restarts on tap
-    /// after a death. Everything lives under this object inside the game's own scene
+    /// Runner session: creates the traveler, track and camera follow, ramps the speed,
+    /// runs the two mechanics (time slow and world switch), coins, and a debug HUD.
+    /// Story level: fixed track with a finish line and a results panel. Endless: new track every run.
+    /// Restarts on tap after a death. Everything lives under this object inside the game's own scene
     /// (no DontDestroyOnLoad, no static state). Time.timeScale is always restored (rule 6).
     /// </summary>
     [DefaultExecutionOrder(-50)] // read input before the traveler's Update
@@ -30,8 +30,6 @@ namespace GC26.Timetraveler
         static readonly Color PastBackground = new Color(0.16f, 0.13f, 0.1f);
         static readonly Color FutureBackground = new Color(0.07f, 0.12f, 0.2f);
 
-        static string BestKey => MicrogameSave.Key(TimetravelerGame.Id, "runner_best");
-
         RunnerShapes _shapes;
         TravelerInput _input;
         TravelerController _traveler;
@@ -51,10 +49,16 @@ namespace GC26.Timetraveler
         bool _paused;
         float _scaleBeforePause = 1f;
 
-        /// <summary>Called with the score (best distance in metres) when the player picks "To menu".</summary>
-        public System.Action<int> ExitRequested;
+        /// <summary>The player wants to leave the run (pause "To map/menu", or "Continue" after the finish).</summary>
+        public System.Action LeaveRequested;
         int _seed;
-        int _bestMeters;
+        TimetravelerSave _save;
+        TimetravelerLevel _level;       // null = endless
+        int _runCoins;
+        bool _coinsBanked;
+        bool _finished;
+        bool _newRecord;
+        SpriteRenderer _background;
         GUIStyle _bigStyle;
         GUIStyle _smallStyle;
         GUIStyle _centerStyle;
@@ -62,13 +66,23 @@ namespace GC26.Timetraveler
         public int DistanceMeters =>
             _traveler == null ? 0 : Mathf.Max(0, Mathf.RoundToInt((_traveler.transform.position.x - _track.StartX) * MetersPerUnit));
 
-        public void Init(Camera cam)
+        public bool IsEndless => _level == null;
+
+        /// <param name="level">Story level to play, or null for the endless run.</param>
+        public void Init(Camera cam, TimetravelerSave save, TimetravelerLevel level)
         {
             _camera = cam;
+            _save = save;
+            _level = level;
             _shapes = new RunnerShapes();
             _input = new TravelerInput();
-            _bestMeters = PlayerPrefs.GetInt(BestKey, 0);
             _worlds.Changed += OnWorldChanged;
+
+            var bg = new GameObject("RunnerBackground");
+            bg.transform.SetParent(transform, false);
+            _background = bg.AddComponent<SpriteRenderer>();
+            _background.sharedMaterial = _shapes.Material;
+            _background.sortingOrder = -100;
 
             _track = new GameObject("TimetravelerTrack").AddComponent<RunnerTrack>();
             _track.transform.SetParent(transform, false);
@@ -88,25 +102,32 @@ namespace GC26.Timetraveler
             }
             _traveler.Init(_input, boxVisual, _track.KillY);
             _traveler.Died += OnDied;
+            _traveler.CoinTouched += OnCoin;
 
-            _follow = cam.GetComponent<RunnerCamera>();
-            if (_follow == null) _follow = cam.gameObject.AddComponent<RunnerCamera>();
+            // Our own follow component (removed again in OnDestroy, so the map can move the camera).
+            _follow = cam.gameObject.AddComponent<RunnerCamera>();
 
-            TimetravelerLog.Info($"Runner session created (best so far {_bestMeters} m).", this);
+            TimetravelerLog.Info(IsEndless ? $"Endless run created (best so far {_save.BestMeters} m)."
+                : $"Level {_level.Title} created ({_level.LengthMeters} m, tier {_level.Tier}, seed {_level.Seed}).", this);
             StartRun();
             _follow.Init(cam, _traveler.transform);
         }
 
         void StartRun()
         {
-            _seed++;
+            _seed = IsEndless ? _seed + 1 : _level.Seed;   // a level is the same track every attempt
             _runTime = 0f;
+            _runCoins = 0;
+            _coinsBanked = false;
+            _finished = false;
+            _newRecord = false;
             _timeSlow.Reset();
             _worlds.Reset();
-            _track.Build(_shapes, _worlds, _traveler.transform, _seed);
+            if (IsEndless) _track.Build(_shapes, _worlds, _traveler.transform, _seed);
+            else _track.Build(_shapes, _worlds, _traveler.transform, _seed, _level.Tier, _level.LengthMeters);
             _traveler.ResetAt(new Vector2(_track.StartX, 0f), startSpeed);
             if (_follow != null) _follow.Snap();
-            TimetravelerLog.Info($"Run #{_seed} started (track seed {_seed}, speed {startSpeed}).", this);
+            TimetravelerLog.Info($"Run started (track seed {_seed}, speed {startSpeed}).", this);
         }
 
         void Update()
@@ -128,6 +149,19 @@ namespace GC26.Timetraveler
             if (_traveler.IsDead)
             {
                 if (_input.AnyPressed && Time.unscaledTime - _deathTime > restartDelay) StartRun();
+                return;
+            }
+
+            if (_finished)
+            {
+                // Jog on past the finish while the results are shown.
+                _traveler.RunSpeed = startSpeed;
+                _track.Extend(_follow.RightEdge + buildAhead);
+                return;
+            }
+            if (_traveler.transform.position.x >= _track.FinishX)
+            {
+                Finish();
                 return;
             }
 
@@ -182,18 +216,54 @@ namespace GC26.Timetraveler
             _timeSlow.Restore();
             _deathTime = Time.unscaledTime;
             TimetravelerLog.Info($"Died at {DistanceMeters} m: {reason} (world {RunnerWorldState.NameOf(_worlds.Current)}, speed {_traveler.RunSpeed:0.0}).", this);
-            SaveBest();
+            EndRunBookkeeping();
         }
 
-        void SaveBest()
+        void OnCoin(RunnerCoin coin)
         {
-            var meters = DistanceMeters;
-            if (meters <= _bestMeters) return;
-            _bestMeters = meters;
-            PlayerPrefs.SetInt(BestKey, _bestMeters);
-            PlayerPrefs.Save();
-            TimetravelerLog.Info($"New best distance: {_bestMeters} m.", this);
+            _runCoins++;
+            Destroy(coin.gameObject);
         }
+
+        void Finish()
+        {
+            _finished = true;
+            _timeSlow.Restore();
+            _save.CompleteLevel(_level, _runCoins);
+            EndRunBookkeeping();
+            TimetravelerLog.Info($"Level {_level.Title} finished with {_runCoins} coins.", this);
+        }
+
+        /// <summary>Puts this run's coins in the bank (once) and records the endless distance.</summary>
+        void EndRunBookkeeping()
+        {
+            if (!_coinsBanked)
+            {
+                _save.AddCoins(_runCoins);
+                _coinsBanked = true;
+            }
+            if (IsEndless && _save.ReportDistance(DistanceMeters))
+            {
+                _newRecord = true;
+                TimetravelerLog.Info($"New best distance: {_save.BestMeters} m.", this);
+            }
+        }
+
+        void LateUpdate()
+        {
+            if (_background == null || _camera == null) return;
+            var slot = _worlds.Current == RunnerWorld.Future ? TimetravelerArt.RunnerBackgroundFuture : TimetravelerArt.RunnerBackgroundPast;
+            if (_backgroundSlot != slot)
+            {
+                _backgroundSlot = slot;
+                _background.sprite = TimetravelerArt.Sprite(slot) ?? TimetravelerArt.Sprite(TimetravelerArt.RunnerBackgroundPast);
+            }
+            // A 270x480 px picture at 16 px per unit fills the view exactly; it follows the camera.
+            var p = _camera.transform.position;
+            _background.transform.position = new Vector3(p.x, p.y, 0f);
+        }
+
+        string _backgroundSlot;
 
         // ---------- pause and exit (required by GC26: own pause + "To menu") ----------
 
@@ -214,14 +284,14 @@ namespace GC26.Timetraveler
             TimetravelerLog.Info("Resumed.", this);
         }
 
-        /// <summary>Saves the best distance, restores time, and hands the score to the game for ExitToMenu.</summary>
-        void ExitToMenu()
+        /// <summary>Banks the coins, restores time and asks the game flow to leave this run.</summary>
+        void Leave()
         {
             Resume();
             _timeSlow.Restore();
-            SaveBest();
-            TimetravelerLog.Info($"'To menu' pressed, sending score {_bestMeters}.", this);
-            ExitRequested?.Invoke(_bestMeters);
+            if (!_traveler.IsDead && !_finished) EndRunBookkeeping();
+            TimetravelerLog.Info($"Leaving the run ({(IsEndless ? "to the menu" : "to the map")}).", this);
+            LeaveRequested?.Invoke();
         }
 
         Rect PauseButtonRectGui()
@@ -249,8 +319,14 @@ namespace GC26.Timetraveler
         {
             Resume();
             _timeSlow.Restore();
-            if (_traveler != null) _traveler.Died -= OnDied;
+            if (_traveler != null)
+            {
+                _traveler.Died -= OnDied;
+                _traveler.CoinTouched -= OnCoin;
+            }
             _worlds.Changed -= OnWorldChanged;
+            // The map and menu move the camera themselves.
+            if (_follow != null) Destroy(_follow);
         }
 
         // ---------- temporary debug HUD (real UI comes later) ----------
@@ -274,8 +350,10 @@ namespace GC26.Timetraveler
             var y = Screen.height - safe.yMax + unit * 0.5f;
             var width = safe.width - unit * 2f;
 
-            GUI.Label(new Rect(left, y, width, unit * 1.2f),
-                $"{DistanceMeters} m   best {_bestMeters} m   speed {_traveler.RunSpeed:0.0}", _smallStyle);
+            var progress = IsEndless
+                ? $"{DistanceMeters} m   best {_save.BestMeters} m"
+                : $"Level {_level.Title}   {Mathf.Min(DistanceMeters, _level.LengthMeters)} / {_level.LengthMeters} m";
+            GUI.Label(new Rect(left, y, width, unit * 1.2f), $"{progress}   coins {_runCoins}", _smallStyle);
             y += unit * 1.3f;
 
             // Current world, in its own colour.
@@ -333,8 +411,16 @@ namespace GC26.Timetraveler
 
             if (_traveler.IsDead)
             {
-                GUI.Label(new Rect(0, Screen.height * 0.35f, Screen.width, unit * 2f), $"{DistanceMeters} m", _bigStyle);
-                GUI.Label(new Rect(0, Screen.height * 0.35f + unit * 2.2f, Screen.width, unit * 2f), "Tap to run again", _bigStyle);
+                GUI.Label(new Rect(0, Screen.height * 0.35f, Screen.width, unit * 2f),
+                    _newRecord ? $"{DistanceMeters} m  NEW BEST!" : $"{DistanceMeters} m   +{_runCoins} coins", _bigStyle);
+                GUI.Label(new Rect(0, Screen.height * 0.35f + unit * 2.2f, Screen.width, unit * 2f),
+                    IsEndless ? "Tap to run again" : "Tap to try again", _bigStyle);
+            }
+
+            if (_finished)
+            {
+                DrawResults(unit);
+                return;
             }
 
             DrawPause(unit);
@@ -359,7 +445,23 @@ namespace GC26.Timetraveler
             var x = (Screen.width - w) / 2f;
             var h = unit * 2.4f;
             if (GUI.Button(new Rect(x, Screen.height * 0.42f, w, h), "Resume", buttonStyle)) Resume();
-            if (GUI.Button(new Rect(x, Screen.height * 0.42f + h + unit, w, h), "To menu", buttonStyle)) ExitToMenu();
+            if (GUI.Button(new Rect(x, Screen.height * 0.42f + h + unit, w, h), IsEndless ? "To menu" : "To map", buttonStyle)) Leave();
+        }
+
+        void DrawResults(float unit)
+        {
+            GUI.color = new Color(0f, 0f, 0f, 0.6f);
+            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+            GUI.Label(new Rect(0, Screen.height * 0.28f, Screen.width, unit * 2f), $"LEVEL {_level.Title} COMPLETE", _bigStyle);
+            GUI.Label(new Rect(0, Screen.height * 0.28f + unit * 2.4f, Screen.width, unit * 2f),
+                $"Coins: {_runCoins}   (best {_save.LevelBestCoins(_level)})", _bigStyle);
+            var buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(unit * 0.9f), fontStyle = FontStyle.Bold };
+            var w = Mathf.Min(Screen.width * 0.6f, unit * 12f);
+            var x = (Screen.width - w) / 2f;
+            var h = unit * 2.4f;
+            if (GUI.Button(new Rect(x, Screen.height * 0.45f, w, h), "Continue", buttonStyle)) Leave();
+            if (GUI.Button(new Rect(x, Screen.height * 0.45f + h + unit, w, h), "Play again", buttonStyle)) StartRun();
         }
     }
 }

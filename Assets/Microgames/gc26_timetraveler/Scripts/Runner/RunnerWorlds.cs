@@ -78,7 +78,7 @@ namespace GC26.Timetraveler
             World = world;
             _state = state;
             _collider = GetComponent<Collider2D>();
-            _renderer = GetComponent<SpriteRenderer>();
+            _renderer = TimetravelerArt.ShownRenderer(gameObject);
             if (_renderer != null) _baseColor = _renderer.color;
             _state.Changed += Apply;
             Apply(_state.Current);

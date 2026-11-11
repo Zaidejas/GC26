@@ -35,8 +35,7 @@ namespace GC26.Timetraveler
             _exit = exit;
             TimetravelerLog.Info($"Begin ({(MicrogameRunner.IsRunning ? "from the GC26 menu" : "scene opened on its own")}).", this);
             LockPortrait();
-            StartGreyboxRunner();
-            // TODO: load the save (MicrogameSave.Folder(Id)) and show the title screen
+            StartFlow();
         }
 
         void Start()
@@ -58,10 +57,10 @@ namespace GC26.Timetraveler
             RestoreOrientation();
         }
 
-        /// <summary>Week 1-2: go straight into the greybox runner for feel testing.</summary>
-        void StartGreyboxRunner()
+        /// <summary>Title screen -> world map -> levels (see TimetravelerFlow). Progress is loaded there.</summary>
+        void StartFlow()
         {
-            if (GetComponent<RunnerSession>() != null) return;
+            if (GetComponent<TimetravelerFlow>() != null) return;
             var cam = FindOwnCamera();
             if (cam == null)
             {
@@ -69,9 +68,7 @@ namespace GC26.Timetraveler
                 return;
             }
             TimetravelerLog.Info($"Using camera '{cam.name}', screen {Screen.width}x{Screen.height}.", cam);
-            var session = gameObject.AddComponent<RunnerSession>();
-            session.ExitRequested = ExitToMenu;
-            session.Init(cam);
+            gameObject.AddComponent<TimetravelerFlow>().Init(cam, ExitToMenu);
         }
 
         /// <summary>The camera in this game's own scene (the shell may have its own camera).</summary>
@@ -88,7 +85,7 @@ namespace GC26.Timetraveler
         /// <summary>Call from the pause menu ("To menu") or the game-over screen.</summary>
         public void ExitToMenu(int score)
         {
-            // TODO: save progress before leaving
+            // Progress is already saved by TimetravelerSave whenever it changes.
             TimetravelerLog.Info($"ExitToMenu, score = {score}.", this);
             RestoreOrientation();
             var exit = _exit;

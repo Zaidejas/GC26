@@ -40,7 +40,7 @@ namespace GC26.Timetraveler
             _body = GetComponent<Rigidbody2D>();
             _body.bodyType = RigidbodyType2D.Kinematic;
             _body.interpolation = RigidbodyInterpolation2D.Interpolate;
-            _renderer = GetComponent<SpriteRenderer>();
+            _renderer = TimetravelerArt.ShownRenderer(gameObject);
             if (_renderer != null) _baseColor = _renderer.color;
             _time = phase * period;
         }

@@ -33,9 +33,11 @@ namespace GC26.Timetraveler
             _sprite.hideFlags = assetFlags;
         }
 
-        /// <summary>Box whose bottom-left corner is at (x, y).</summary>
+        /// <summary>Box whose bottom-left corner is at (x, y). With a <paramref name="slot"/>, the artist's picture
+        /// for that slot replaces the coloured box as soon as the PNG exists (see TimetravelerArt).</summary>
         public GameObject Box(Transform parent, string name, float x, float y, float width, float height,
-            Color color, bool isTrigger = false, int sortingOrder = 0)
+            Color color, bool isTrigger = false, int sortingOrder = 0, string slot = null, bool tile = false,
+            bool tint = false)
         {
             var go = new GameObject(name);
             go.transform.SetParent(parent, false);
@@ -51,6 +53,7 @@ namespace GC26.Timetraveler
             var col = go.AddComponent<BoxCollider2D>();
             col.size = Vector2.one; // scaled by the transform
             col.isTrigger = isTrigger;
+            TimetravelerArt.Dress(go, slot, tile, tint);
             return go;
         }
 

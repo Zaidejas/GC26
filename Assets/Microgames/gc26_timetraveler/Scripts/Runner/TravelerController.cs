@@ -48,6 +48,7 @@ namespace GC26.Timetraveler
         public Tuning tuning = new Tuning();
 
         public event Action<string> Died;
+        public event Action<RunnerCoin> CoinTouched;
 
         public float RunSpeed { get; set; }
         public bool IsDead { get; private set; }
@@ -221,7 +222,7 @@ namespace GC26.Timetraveler
             var filter = new ContactFilter2D { useTriggers = true };
             var count = Physics2D.OverlapBox(center, size, 0f, filter, _overhead);
             for (var i = 0; i < count; i++)
-                if (_overhead[i] != _collider) return true;
+                if (_overhead[i] != _collider && _overhead[i].GetComponent<RunnerCoin>() == null) return true;
             return false;
         }
 
@@ -291,7 +292,9 @@ namespace GC26.Timetraveler
 
         void OnTriggerEnter2D(Collider2D other)
         {
-            if (!IsDead && other.GetComponent<RunnerHazard>() != null) Die($"hit '{other.name}'");
+            if (IsDead) return;
+            if (other.TryGetComponent<RunnerCoin>(out var coin)) CoinTouched?.Invoke(coin);
+            else if (other.GetComponent<RunnerHazard>() != null) Die($"hit '{other.name}'");
         }
 
         public void Die(string reason)

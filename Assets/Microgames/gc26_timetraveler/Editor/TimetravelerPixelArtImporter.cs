@@ -39,6 +39,16 @@ namespace GC26.Timetraveler.EditorTools
             importer.spritePixelsPerUnit = PixelsPerUnit;
             importer.filterMode = FilterMode.Point;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
+
+            // Art slots: centred pivot and full-rect meshes, so tiled slots (ground, paths) repeat cleanly.
+            if (path.Contains("/Slots/"))
+            {
+                var settings = new TextureImporterSettings();
+                importer.ReadTextureSettings(settings);
+                settings.spriteAlignment = (int)SpriteAlignment.Center;
+                settings.spriteMeshType = SpriteMeshType.FullRect;
+                importer.SetTextureSettings(settings);
+            }
         }
     }
 }
