@@ -55,33 +55,9 @@ namespace GC26.Spinv
             float start = hudClock != null ? hudClock.Angle : 60f;
             bigClock.SetAngle(start);
 
-            // Экран темнеет, часы проявляются
-            for (float t = 0f; t < fadeTime; t += Time.deltaTime)
-            {
-                group.alpha = t / fadeTime;
-                yield return null;
-            }
-            group.alpha = 1f;
+            yield return Fade(0f, 1f); // экран темнеет, часы проявляются
             yield return new WaitForSeconds(0.4f);
-
-            // Диск рывками докручивается до ночи: каждый рывок чуть перелетает и возвращается
-            float step = (nightAngle - start) / Mathf.Max(1, ticks);
-            for (int i = 0; i < ticks; i++)
-            {
-                float from = bigClock.Angle, to = from + step;
-                const float tickTime = 0.15f;
-                for (float t = 0f; t < tickTime; t += Time.deltaTime)
-                {
-                    float k = t / tickTime;
-                    float eased = k < 0.7f ? k / 0.7f * 1.1f : 1.1f - (k - 0.7f) / 0.3f * 0.1f;
-                    bigClock.SetAngle(from + step * eased);
-                    yield return null;
-                }
-                bigClock.SetAngle(to);
-                yield return new WaitForSeconds(0.17f);
-            }
-            bigClock.SetAngle(nightAngle);
-            if (hudClock != null) hudClock.SetAngle(nightAngle);
+            yield return TickTo(nightAngle, ticks);
             yield return new WaitForSeconds(0.5f);
 
             // Долгое моргание: пока глаза закрыты, часы сменяются окном
@@ -112,6 +88,65 @@ namespace GC26.Spinv
 
             // Глаза открылись - бой начался, можно стрелять
             if (player != null) player.canShoot = true;
+        }
+
+        // Между обычными волнами: та же первая часть сценки - экран темнеет, крупные часы рывками
+        // докручиваются до времени следующей волны, - потом всё гаснет обратно. Без моргания и реплики
+        public IEnumerator PlayClockTurn(float target)
+        {
+            gameObject.SetActive(true);
+            if (player != null) player.canShoot = false;
+            group.alpha = 0f;
+            bigClock.gameObject.SetActive(true);
+            dialog.SetActive(false);
+            line.text = "";
+            tapHint.text = "";
+            float start = hudClock != null ? hudClock.Angle : target;
+            bigClock.SetAngle(start);
+
+            yield return Fade(0f, 1f);
+            yield return new WaitForSeconds(0.4f);
+            // Рывков столько же на градус, сколько в ночной сценке (~20° за рывок), но не меньше двух
+            int count = Mathf.Clamp(Mathf.RoundToInt(Mathf.Abs(target - start) / 20f), 2, ticks);
+            yield return TickTo(target, count);
+            yield return new WaitForSeconds(0.5f);
+            yield return Fade(1f, 0f);
+
+            gameObject.SetActive(false);
+            if (player != null) player.canShoot = true;
+        }
+
+        IEnumerator Fade(float from, float to)
+        {
+            for (float t = 0f; t < fadeTime; t += Time.deltaTime)
+            {
+                group.alpha = Mathf.Lerp(from, to, t / fadeTime);
+                yield return null;
+            }
+            group.alpha = to;
+        }
+
+        // Диск рывками докручивается до цели: каждый рывок чуть перелетает и возвращается.
+        // Часы в HUD в конце показывают то же время
+        IEnumerator TickTo(float target, int count)
+        {
+            float step = (target - bigClock.Angle) / Mathf.Max(1, count);
+            for (int i = 0; i < count; i++)
+            {
+                float from = bigClock.Angle, to = from + step;
+                const float tickTime = 0.15f;
+                for (float t = 0f; t < tickTime; t += Time.deltaTime)
+                {
+                    float k = t / tickTime;
+                    float eased = k < 0.7f ? k / 0.7f * 1.1f : 1.1f - (k - 0.7f) / 0.3f * 0.1f;
+                    bigClock.SetAngle(from + step * eased);
+                    yield return null;
+                }
+                bigClock.SetAngle(to);
+                yield return new WaitForSeconds(0.17f);
+            }
+            bigClock.SetAngle(target);
+            if (hudClock != null) hudClock.SetAngle(target);
         }
 
         // «???:» цветом говорящего, затем реплика, с курсором «_» пока печатается

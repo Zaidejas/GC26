@@ -876,6 +876,7 @@ namespace GC26.Spinv
             // Часы «утро-день-ночь» под кнопкой паузы: поворачиваются в начале каждой волны
             hudDayClock = MakeDayClock(safeArea, "DayClock", topRight, new Vector2(-95f, -240f), 130f);
             hudDayClock.waveManager = waveManager;
+            waveManager.dayClock = hudDayClock; // новая волна ждёт поворота часов
 
             // Экраны конца игры: аркадная победа и окно Game Over
             ui.victoryScreen = BuildVictoryScreen(canvas);

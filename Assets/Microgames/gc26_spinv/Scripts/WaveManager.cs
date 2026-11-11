@@ -41,6 +41,10 @@ namespace GC26.Spinv
         [Header("Сценка")]
         [Tooltip("Сценка «наступает ночь» перед последней волной. Без неё волна начинается как обычно. В аркаде её нет")]
         public NightCutscene nightCutscene;
+        [Tooltip("Часы в HUD: между волнами классики новая волна ждёт, пока они повернутся")]
+        public DayClock dayClock;
+        [Tooltip("Пауза между концом волны и поворотом часов")]
+        public float pauseBeforeClock = 0.3f;
 
         [Header("Аркада")]
         [Tooltip("Моргание игрока: метка DARK и сонливость")]
@@ -404,7 +408,22 @@ namespace GC26.Spinv
             else if (nightCutscene != null && CurrentWave == TotalWaves - 1)
                 StartCoroutine(CutsceneThenWave(CurrentWave));
             else
-                StartCoroutine(RunWave(CurrentWave));
+                StartCoroutine(ClockThenWave(CurrentWave));
+        }
+
+        // Классика: после волны короткая пауза, сценка с крупными часами (как перед ночью, но без моргания),
+        // и только потом надпись и новая волна
+        IEnumerator ClockThenWave(int index)
+        {
+            if (dayClock != null && dayClock.isActiveAndEnabled)
+            {
+                yield return new WaitForSeconds(pauseBeforeClock);
+                if (nightCutscene != null)
+                    yield return nightCutscene.PlayClockTurn(dayClock.AngleForWave(index + 1));
+                else
+                    yield return dayClock.TurnForWave(index + 1);
+            }
+            yield return RunWave(index);
         }
 
         // Перед последней волной - сценка «наступает ночь»; волна стартует за закрытыми веками
