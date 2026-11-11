@@ -11,7 +11,8 @@ namespace GC26.Bomber
     /// - UI units keep about the same PHYSICAL size on every device (from Screen.dpi), so buttons and text are
     ///   thumb-sized on a phone and on a tablet alike; all remaining space goes to the room;
     /// - HUD on top and the control panel at the bottom span the full width (abilities on the left,
-    ///   joystick on the right), the whole room is drawn as big as fits between them, in a neon frame;
+    ///   joystick on the right); the room fills (almost) the full width in a neon frame and, when the screen
+    ///   is not tall enough for the whole room, the view follows the drone vertically (no tiny map, no empty margins);
     /// - everything stays inside Screen.safeArea (notch, rounded corners, home bar).
     /// In the Editor the mouse acts as a finger and the keyboard works too (WASD, Space, Shift, R, G, V, Esc).
     /// </summary>
@@ -25,7 +26,7 @@ namespace GC26.Bomber
         Font _font;
         CanvasScaler _scaler;
         RectTransform _safe;
-        float _fw = -1f, _fh = -1f, _wx, _wy, _ws = 1f;
+        float _fw = -1f, _fh = -1f, _wx, _wy, _ws = 1f, _viewH = 960f, _scroll, _scrollTarget; bool _scrollInit;
 
         RawImage _world; Image _fade, _flash, _vignette, _lowHp, _hudBg, _hudLine, _panelBg, _panelLine; readonly Image[] _border = new Image[4];
         readonly List<Image> _hp = new List<Image>(); Image _heatBg, _heatFill, _odMark, _scrapIcon, _routeCur; Text _score, _heatText, _scrap, _status, _room, _combo, _toast, _weapon; Image _toastBg;
@@ -46,6 +47,7 @@ namespace GC26.Bomber
         readonly Queue<(string, float)> _toasts = new Queue<(string, float)>();
 
         public bool Paused => _panelKind == "pause";
+        float _scroll0; // snapped scroll used for drawing this frame (world px)
 
         // ================= build =================
         public void Init(BomberContext ctx, RenderTexture worldTexture)
@@ -171,11 +173,14 @@ namespace GC26.Bomber
             var jh = new Vector2(Mathf.Max(fw - 112, 410f), py + PanelH / 2f);
             Circle(_joyHint.rectTransform, jh, 62); Place(_joyHintText.rectTransform, jh.x - 80, jh.y - 30, 160, 60);
 
-            // the whole room, as big as fits between the HUD and the panel, centred, framed
+            // the room between the HUD and the panel: (almost) full width; if the whole room would be too small,
+            // show a vertical window of it that follows the drone (at most 1.35x bigger than "whole room" scale)
             float areaTop = Top + Pad, areaH = py - Top - Pad * 2f, areaW = fw - Pad * 2f;
-            _ws = Mathf.Min(areaW / BomberData.W, areaH / BomberData.H);
-            float ww = BomberData.W * _ws, wh = BomberData.H * _ws;
-            _wx = (fw - ww) / 2f; _wy = areaTop + (areaH - wh) / 2f;
+            float fitAll = Mathf.Min(areaW / BomberData.W, areaH / BomberData.H);
+            _ws = Mathf.Min(areaW / BomberData.W, fitAll * 1.35f);
+            _viewH = Mathf.Min(BomberData.H, Mathf.Floor(areaH / _ws / 2f) * 2f);
+            float ww = BomberData.W * _ws, wh = _viewH * _ws;
+            _wx = (fw - ww) / 2f; _wy = areaTop + (areaH - wh) / 2f; _scrollInit = false;
             foreach (var rt in new[] { _world.rectTransform, _fade.rectTransform, _vignette.rectTransform, _lowHp.rectTransform }) Place(rt, _wx, _wy, ww, wh);
             const float bw = 3f;
             Place(_border[0].rectTransform, _wx - bw, _wy - bw, ww + bw * 2, bw); Place(_border[1].rectTransform, _wx - bw, _wy + wh, ww + bw * 2, bw);
@@ -307,6 +312,15 @@ namespace GC26.Bomber
             if (_toastT > 0f) { _toastT -= dt; if (_toastT <= 0f) NextToast(); } else if (_toastBg.enabled && _toasts.Count == 0) NextToast();
             var w = _ctx.World; var p = w.P; var core = w.Core;
 
+            // vertical camera window: follow the drone, clamp to the room, snap to whole texels (crisp pixels)
+            float maxScroll = BomberData.H - _viewH;
+            _scrollTarget = Mathf.Clamp(p.Y - _viewH * 0.55f, 0f, maxScroll);
+            if (!_scrollInit || w.Room.Fade > 0.3f) { _scroll = _scrollTarget; _scrollInit = true; }
+            else _scroll = Mathf.Lerp(_scroll, _scrollTarget, 1f - Mathf.Exp(-6f * dt));
+            float snapped = Mathf.Round(_scroll / 2f) * 2f;
+            _world.uvRect = new Rect(0f, (BomberData.H - snapped - _viewH) / BomberData.H, 1f, _viewH / BomberData.H);
+            _scroll0 = snapped;
+
             _fade.color = new Color(0, 0, 0, Mathf.Clamp01(w.Room.Fade / 0.35f));
             _lowHp.color = new Color(1f, 0.12f, 0.24f, p.Hp <= 2 && w.Phase == BomberPhase.Play ? 0.35f + 0.2f * Mathf.Sin(w.Time * 6f) : 0f);
             _flash.color = new Color(1f, 0.24f, 0.31f, Mathf.Max(0f, w.Flash));
@@ -372,14 +386,16 @@ namespace GC26.Bomber
                 if (n >= 40) break;
                 var tx = GetText(_floatTexts, n++); tx.text = t.S; tx.fontSize = Mathf.RoundToInt((t.Big ? 30 : t.S.Length <= 3 ? 16 : 14) * Mathf.Clamp(_ws, 0.85f, 1.6f));
                 var c = (Color)t.Color; c.a = Mathf.Min(1f, t.T * 2f); tx.color = c;
-                Place(tx.rectTransform, _wx + t.X * _ws - 150, _wy + t.Y * _ws - 15, 300, 30);
+                float ty = t.Y - _scroll0; if (ty < 0f || ty > _viewH) { tx.enabled = false; continue; }
+                Place(tx.rectTransform, _wx + t.X * _ws - 150, _wy + ty * _ws - 15, 300, 30);
             }
             for (int i = n; i < _floatTexts.Count; i++) _floatTexts[i].enabled = false;
             int m = 0;
             foreach (var d in w.Doors)
             {
                 var tx = GetText(_doorLabels, m++); tx.text = BomberData.RoomLabel[d.Type]; tx.fontSize = 15; tx.color = (Color)BomberData.RoomColor[d.Type];
-                Place(tx.rectTransform, _wx + (d.X0 + d.X1) / 2f * _ws - 80, _wy + (BomberData.Cell + 4) * _ws, 160, 22);
+                float dy = BomberData.Cell + 4 - _scroll0; tx.enabled = dy > 0f && dy < _viewH;
+                Place(tx.rectTransform, _wx + (d.X0 + d.X1) / 2f * _ws - 80, _wy + dy * _ws, 160, 22);
             }
             for (int i = m; i < _doorLabels.Count; i++) _doorLabels[i].enabled = false;
         }
