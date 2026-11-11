@@ -4,15 +4,29 @@ namespace Lines.EditorTools
 {
     /// <summary>
     /// Imports the art exported from the prototype as sprites: the mushrooms (Assets/Resources/Mushrooms,
-    /// transparent, sharp) and the forest backgrounds (Assets/Resources/Backgrounds, 1080×2160).
+    /// transparent, sharp), the forest backgrounds (Assets/Resources/Backgrounds, 1080×2160) and the app
+    /// icon and splash logo (Assets/Art/AppIcon, 1024×1024, not in Resources: only the build needs them).
     /// </summary>
     sealed class ArtImportSettings : AssetPostprocessor
     {
         public const string MushroomFolder = "Assets/Resources/Mushrooms/";
         public const string BackgroundFolder = "Assets/Resources/Backgrounds/";
+        public const string AppIconFolder = "Assets/Art/AppIcon/";
 
         void OnPreprocessTexture()
         {
+            if (assetPath.StartsWith(AppIconFolder))
+            {
+                // The app icon, its two Android layers and the splash logo (task 32): exact pixels, no compression.
+                var icon = (TextureImporter)assetImporter;
+                icon.textureType = TextureImporterType.Sprite; // the splash logo must be a sprite; icons accept it too
+                icon.spriteImportMode = SpriteImportMode.Single;
+                icon.alphaIsTransparency = true;
+                icon.mipmapEnabled = false;
+                icon.maxTextureSize = 1024;
+                icon.textureCompression = TextureImporterCompression.Uncompressed;
+                return;
+            }
             bool mushroom = assetPath.StartsWith(MushroomFolder), background = assetPath.StartsWith(BackgroundFolder);
             if (!mushroom && !background) return;
             var importer = (TextureImporter)assetImporter;

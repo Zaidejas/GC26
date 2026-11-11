@@ -42,7 +42,57 @@ namespace Lines.EditorTools
             PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
             PlayerSettings.allowedAutorotateToLandscapeLeft = false;
             PlayerSettings.allowedAutorotateToLandscapeRight = false;
+            ApplyIconAndSplash();
         }
+
+        public const string IconFolder = ArtImportSettings.AppIconFolder;
+        const string SplashBackground = "Assets/Resources/Backgrounds/forest_plain.png";
+
+        /// <summary>
+        /// The app icon (one glowing mushroom on the dark forest) and the splash screen (the same mushroom and
+        /// the "Lines" title over the forest, no Unity logo). Android 8+ gets the icon as two layers, so the
+        /// phone can cut it into its own shape.
+        /// </summary>
+        static void ApplyIconAndSplash()
+        {
+            var icon = Load<Texture2D>("icon.png");
+            if (icon == null) { Debug.LogWarning("Lines: app icon not found in " + IconFolder); return; }
+            PlayerSettings.SetIcons(UnityEditor.Build.NamedBuildTarget.Unknown, new[] { icon }, IconKind.Any);
+
+            // Android's adaptive icon kind lives in the Android module; it is looked up by name so this
+            // still compiles on a Unity without that module.
+            var android = UnityEditor.Build.NamedBuildTarget.Android;
+            var foreground = Load<Texture2D>("icon_foreground.png");
+            var background = Load<Texture2D>("icon_background.png");
+            foreach (var kind in PlayerSettings.GetSupportedIconKinds(android))
+            {
+                var icons = PlayerSettings.GetPlatformIcons(android, kind);
+                bool adaptive = kind.ToString().Contains("Adaptive");
+                foreach (var platformIcon in icons)
+                {
+                    if (adaptive) platformIcon.SetTextures(background, foreground);
+                    else platformIcon.SetTexture(icon);
+                }
+                PlayerSettings.SetPlatformIcons(android, kind, icons);
+            }
+
+            var screen = Lines.View.Palette.Screen;
+            PlayerSettings.SplashScreen.show = true;
+            PlayerSettings.SplashScreen.showUnityLogo = false;
+            PlayerSettings.SplashScreen.backgroundColor = screen;
+            PlayerSettings.SplashScreen.background = AssetDatabase.LoadAssetAtPath<Sprite>(SplashBackground);
+            PlayerSettings.SplashScreen.overlayOpacity = 0f;
+            PlayerSettings.SplashScreen.animationMode = PlayerSettings.SplashScreen.AnimationMode.Static;
+            PlayerSettings.SplashScreen.drawMode = PlayerSettings.SplashScreen.DrawMode.AllSequential;
+            PlayerSettings.SplashScreen.logos = new[]
+            {
+                PlayerSettings.SplashScreenLogo.Create(2f, AssetDatabase.LoadAssetAtPath<Sprite>(IconFolder + "splash_logo.png")),
+            };
+            // The screen iOS shows before Unity starts: a plain colour, the same dark as the game.
+            PlayerSettings.iOS.SetiPhoneLaunchScreenType(iOSLaunchScreenType.Default);
+        }
+
+        static T Load<T>(string file) where T : Object => AssetDatabase.LoadAssetAtPath<T>(IconFolder + file);
 
         static void CreateMainScene()
         {

@@ -51,7 +51,10 @@ case "${1:-}" in
     unity Android Android unity-android
     echo "APK ready: Builds/Android/Lines.apk"
     ADB="$(dirname "$UNITY")/../../../PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb"
-    for DEVICE in $("$ADB" devices | awk 'NR > 1 && $2 == "device" { print $1 }'); do
+    devices() { "$ADB" devices 2>/dev/null | awk 'NR > 1 && $2 == "device" { print $1 }'; }
+    # The build restarts adb; running emulators take a few seconds to reconnect.
+    for _ in 1 2 3 4 5 6 7 8 9 10; do [ -n "$(devices)" ] && break; sleep 1; done
+    for DEVICE in $(devices); do
       "$ADB" -s "$DEVICE" install -r Builds/Android/Lines.apk >/dev/null
       "$ADB" -s "$DEVICE" shell monkey -p com.gc26.lines 1 >/dev/null 2>&1
       echo "Running com.gc26.lines on $DEVICE."

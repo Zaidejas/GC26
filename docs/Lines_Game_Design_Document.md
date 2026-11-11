@@ -229,6 +229,8 @@ The look is a dark, magical mushroom forest at night: glowing mushrooms on a dar
 - **Board:** dark purple glass with a soft violet-and-turquoise glow around the edge; each cell glows faintly from inside.
 - **Buttons and pop-ups:** dark glass with a warm outline; main buttons (Continue, Yes, Save, Play again) are glowing gold. Text is light cream; the "Lines" title is a glowing gold gradient.
 - **Fonts:** Mystery Quest (playful, witchy) for the title, numbers, labels, buttons and headings; Nunito for longer text (How to play explanations, pop-up messages, leaderboard names). Both are free Google Fonts under the SIL Open Font License, so they can be included in the game.
+- **App icon:** the red spotted mushroom, large and glowing, on the dark forest with a few fireflies. On Android 8+ it is made of two layers (the forest and the mushroom), so each phone can cut it into its own shape.
+- **Splash screen:** while the game loads: the same glowing mushroom and the gold "Lines" title over the plain forest background, for about 2 seconds, with no Unity logo. Before that, iOS shows a plain screen in the game's dark colour.
 - One theme (the dark magic forest) in the MVP.
 - Preview dots: small versions of the next mushrooms, drawn in their target cells.
 - Animations: the selected ball bounces, balls grow in when they spawn, cleared balls shrink and burst into particles, and a blocked move shakes the ball.
