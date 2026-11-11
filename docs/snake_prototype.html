@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Science Snake</title>
+<style>
+  :root{
+    --bg:#13241a; --panel:#eaf4ea; --ink:#173a22; --muted:#5d7a64;
+    --g1:#2e7d32; --g2:#1b5e20; --g3:#c8e6c9; --line:#cfe3d0;
+    --red:#d32f2f; --wine:#7b1e3a; --card:#ffffff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;
+    -webkit-user-select:none;user-select:none}
+  #app{position:relative;max-width:480px;height:100%;margin:0 auto;background:var(--panel);
+    display:flex;flex-direction:column;overflow:hidden}
+  .screen{position:absolute;inset:0;display:none;flex-direction:column}
+  .screen.on{display:flex}
+  h1,h2,.serif{font-family:Georgia,"Times New Roman",serif}
+  button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+
+  /* ---------- menu ---------- */
+  #menu{align-items:center;justify-content:center;padding:24px 22px;gap:10px;
+    background:radial-gradient(120% 70% at 50% 0%,#f6fbf6 0%,#e3f0e3 60%,#d6ead7 100%)}
+  #menu svg{width:92px;height:92px}
+  #menu h1{margin:4px 0 0;font-size:34px;color:var(--g2);letter-spacing:.3px}
+  #menu .tag{margin:0 0 14px;color:var(--muted);font-style:italic;font-family:Georgia,serif;font-size:15px}
+  .mbtn{width:100%;max-width:320px;min-height:56px;border-radius:16px;background:#fff;
+    box-shadow:0 1px 0 #b9d6bb,0 3px 10px rgba(20,60,30,.08);padding:10px 16px;text-align:left;
+    display:flex;align-items:center;gap:14px;transition:transform .08s}
+  .mbtn:active{transform:scale(.98)}
+  .mbtn .ic{width:36px;height:36px;border-radius:10px;background:var(--g3);display:grid;place-items:center;font-size:19px;flex:none}
+  .mbtn b{display:block;font-size:17px}
+  .mbtn small{display:block;color:var(--muted);font-size:13px;margin-top:1px}
+  .mbtn.primary{background:var(--g1);color:#fff;box-shadow:0 3px 0 var(--g2),0 6px 14px rgba(20,60,30,.2)}
+  .mbtn.primary small{color:#d7ecd8}
+  .mbtn.primary .ic{background:rgba(255,255,255,.18)}
+  .mrow{display:flex;gap:10px;width:100%;max-width:320px}
+  .mrow .mbtn{min-height:48px;justify-content:center;text-align:center;font-weight:600;padding:8px 6px;font-size:14px}
+  #menuStats{margin-top:10px;color:var(--muted);font-size:13px}
+
+  /* ---------- game ---------- */
+  #game{touch-action:none}
+  .top{height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;
+    padding:0 12px;background:var(--g1);color:#fff}
+  .top .hud{display:flex;flex-direction:column;line-height:1.15}
+  .top .hud b{font-size:16px;font-family:Georgia,serif}
+  .top .hud span{font-size:12px;opacity:.85}
+  .ibtn{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:18px;color:#fff}
+  .ibtn:active{background:rgba(255,255,255,.28)}
+  .top .mid{display:flex;flex-direction:column;align-items:center;gap:3px}
+  #lives{font-size:16px;letter-spacing:2px;line-height:1;height:16px;color:#ff8a80}
+  #lives.hurt{animation:shake .3s}
+  @keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+  #phaseTag{font-size:12px;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.16);white-space:nowrap}
+  .stage{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:0;padding:10px}
+  canvas{display:block;border-radius:14px;box-shadow:0 2px 0 #b9d6bb,0 6px 18px rgba(20,60,30,.12)}
+  #toast{position:absolute;left:50%;top:18px;transform:translate(-50%,-8px);max-width:86%;
+    background:rgba(23,58,34,.92);color:#fff;padding:9px 14px;border-radius:12px;font-size:14px;
+    text-align:center;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  /* arrow keys laid out like a keyboard: inverted T */
+  .keys{display:grid;grid-template-columns:repeat(3,var(--k));grid-template-rows:repeat(2,calc(var(--k)*.86));
+    gap:6px;justify-content:center}
+  .keys .u{grid-column:2;grid-row:1}.keys .l{grid-column:1;grid-row:2}.keys .d{grid-column:2;grid-row:2}.keys .r{grid-column:3;grid-row:2}
+  .key{border-radius:10px;background:linear-gradient(#ffffff,#eef3ee);color:#2b3a2f;font-size:calc(var(--k)*.36);
+    border:1px solid #c3d3c4;box-shadow:0 4px 0 #b3c4b4,0 5px 8px rgba(20,60,30,.12);
+    display:grid;place-items:center;touch-action:none;transition:transform .05s,box-shadow .05s,background .1s}
+  .key:active,.key.hit{transform:translateY(3px);box-shadow:0 1px 0 #b3c4b4;background:linear-gradient(#e3f2e4,#d3e8d4);color:var(--g2)}
+  #pad{--k:64px;flex:none;padding:6px 0 16px;display:grid}
+  #pad.off{display:none}
+  .demo{display:flex;flex-direction:column;align-items:center;gap:12px;margin:2px 0 14px}
+  .demo canvas{border-radius:10px;box-shadow:none;border:1px solid #d5e6d6}
+  .demo .keys{--k:38px}
+  .demo .key{font-size:14px;box-shadow:0 3px 0 #b3c4b4}
+  .demo .key.hit{box-shadow:0 0 0 #b3c4b4;transform:translateY(3px)}
+
+  /* ---------- modal ---------- */
+  #ov{position:absolute;inset:0;background:rgba(10,25,15,.6);display:none;align-items:center;justify-content:center;padding:22px;z-index:10}
+  #ov.on{display:flex}
+  #ov.dark{background:rgba(0,0,0,.86)}
+  .card{width:100%;max-width:360px;background:var(--card);border-radius:20px;padding:22px 20px 18px;
+    box-shadow:0 10px 40px rgba(0,0,0,.3);animation:pop .18s ease-out;max-height:100%;overflow:auto}
+  #ov.dark .card{background:#1b1416;color:#f3e6e8}
+  @keyframes pop{from{transform:scale(.94);opacity:0}to{transform:none;opacity:1}}
+  .card .kick{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:6px}
+  .card h2{margin:0 0 10px;font-size:22px;text-align:center}
+  .card p{margin:0 0 10px;font-size:18px;line-height:1.4;text-align:center}
+  .card p.big{font-family:Georgia,serif;font-size:24px;line-height:1.3}
+  .card p.src{font-size:12px;color:var(--muted)}
+  .card ul{margin:0 0 12px;padding-left:20px;font-size:16px;line-height:1.45}
+  .btns{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+  .btn{min-height:48px;border-radius:14px;font-size:16px;font-weight:600;background:#eef5ee;color:var(--ink);padding:10px}
+  .btn.p{background:var(--g1);color:#fff;box-shadow:0 3px 0 var(--g2)}
+  .btn.warn{background:#fdecec;color:#a12626}
+  #ov.dark .btn{background:#2c2225;color:#f3e6e8}
+  #ov.dark .btn.p{background:var(--wine);box-shadow:0 3px 0 #4e1124;color:#fff}
+  .set{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 10px;padding:10px 0;border-bottom:1px solid #edf3ed;font-size:16px}
+  .set small{display:block;color:var(--muted);font-size:12px}
+  .seg{display:flex;background:#eef5ee;border-radius:12px;padding:3px}
+  .seg button{padding:8px 8px;border-radius:9px;font-size:13px;min-height:36px;white-space:nowrap}
+  .seg button.on{background:var(--g1);color:#fff}
+  .tgl{width:52px;height:30px;border-radius:99px;background:#c9d6ca;position:relative;flex:none}
+  .tgl::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .15s}
+  .tgl.on{background:var(--g1)}.tgl.on::after{left:25px}
+  .dots{display:flex;justify-content:center;gap:6px;margin:4px 0 12px}
+  .dots i{width:7px;height:7px;border-radius:50%;background:#cfdccf}.dots i.on{background:var(--g1)}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- MENU -->
+  <section id="menu" class="screen on">
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="48" fill="#d4ead5"/>
+      <path d="M22 70 C 22 50, 44 52, 46 40 C 48 28, 62 24, 70 32" fill="none" stroke="#2e7d32" stroke-width="13" stroke-linecap="round"/>
+      <circle cx="72" cy="33" r="10" fill="#2e7d32"/>
+      <circle cx="75" cy="30" r="2.6" fill="#fff"/><circle cx="75.6" cy="30" r="1.3" fill="#111"/>
+      <circle cx="64" cy="70" r="9" fill="#d32f2f"/><path d="M64 61 q2 -5 6 -6" stroke="#5d4037" stroke-width="2" fill="none"/>
+      <ellipse cx="69" cy="58" rx="4" ry="2" fill="#43a047" transform="rotate(-25 69 58)"/>
+    </svg>
+    <h1>Science Snake</h1>
+    <p class="tag" data-t="tagline"></p>
+    <button class="mbtn primary" id="bStory"><span class="ic">📖</span><span><b data-t="story"></b><small data-t="storySub"></small></span></button>
+    <button class="mbtn" id="bCont" style="display:none"><span class="ic">⏵</span><span><b data-t="cont"></b><small id="contSub"></small></span></button>
+    <button class="mbtn" id="bSimple"><span class="ic">🍎</span><span><b data-t="simple"></b><small data-t="simpleSub"></small></span></button>
+    <div class="mrow">
+      <button class="mbtn" id="bTut" data-t="tutorial"></button>
+      <button class="mbtn" id="bSettings" data-t="settings"></button>
+      <button class="mbtn" id="bAbout" data-t="about"></button>
+    </div>
+    <div id="menuStats"></div>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="screen">
+    <div class="top">
+      <div class="hud"><b id="hud1"></b><span id="hud2"></span></div>
+      <div class="mid"><div id="lives" aria-label="lives"></div><div id="phaseTag"></div></div>
+      <button class="ibtn" id="bPause" aria-label="pause">❚❚</button>
+    </div>
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <div id="toast"></div>
+    </div>
+    <div id="pad" class="keys">
+      <button class="key u" data-d="up" aria-label="up">▲</button>
+      <button class="key l" data-d="left" aria-label="left">◀</button>
+      <button class="key d" data-d="down" aria-label="down">▼</button>
+      <button class="key r" data-d="right" aria-label="right">▶</button>
+    </div>
+  </section>
+
+  <div id="ov"><div class="card" id="card"></div></div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* =========================================================
+   CONFIG
+   ========================================================= */
+const N = 20;                                       // 20x20 grid, wrap-around edges
+const SPEEDS = { slow: 2.75, normal: 3.5, fast: 4.5 }; // cells / second
+const HUNGRY_MULT = 0.9;                            // GDD: 4.5 vs 5
+const EVIL_MAX = 9;
+const APPLE_LIFE = 20, TUT_APPLE_LIFE = 20;         // seconds an apple stays on the field
+const HUNGER_LIFE = [9, 12];                         // seconds a Hunger-branch object stays
+const SPAWN_GAP = [4, 6];                          // seconds between appearances
+const LIVES = 3;                                    // lives per run (checkpoint restart refills)
+const WARN_SEC = 2;                                 // blink warning before disappearing
+const POP_SEC = 0.25;                               // grow-in animation on appearance
+const TUT_MISS_LIMIT = 3;                           // missed tutorial apples -> ending C
+const DIRS = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
+const isTouch = matchMedia("(pointer:coarse)").matches || "ontouchstart" in window;
+
+function TH(){ return settings.test
+  ? { tut:5, question:10, greed:15, avoid:8, texts:5 }
+  : { tut:5, question:10, greed:50, avoid:30, texts:5 }; }
+
+/* =========================================================
+   STORAGE (safe)
+   ========================================================= */
+function load(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ? Object.assign(d, v) : d; }catch(e){ return d; } }
+function store(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+const settings = load("ss3_settings", { speed:"normal", buttons:true, sound:true, vibe:true, lang:"ru", test:false });
+const save = load("ss2_save", { best:0, endings:{}, checkpoint:null });
+const persistSettings = () => store("ss3_settings", settings);
+const persistSave = () => store("ss2_save", save);
+
+/* =========================================================
+   TEXT
+   ========================================================= */
+const L = {
+ ru:{
+  tagline:"змейка о голоде и изобилии",
+  story:"История", storySub:"Сюжет, выбор и концовки",
+  cont:"Продолжить историю",
+  simple:"Простая змейка", simpleSub:"Классика без сюжета",
+  settings:"Настройки", about:"Об игре",
+  stats:"Рекорд: {0} · Концовки: {1}/3",
+  pause:"Пауза", resume:"Продолжить", restart:"Начать заново", restartCp:"С чекпоинта", toMenu:"В меню", mainMenu:"Главное меню",
+  speed:"Скорость", slow:"Медленно", normal:"Нормально", fast:"Быстро",
+  pad:"Экранные стрелки", padSub:"Клавиатура и свайпы работают всегда", sound:"Звук", vibe:"Вибрация", lang:"Язык",
+  test:"Тестовые пороги", testSub:"15 съеденных / 8 избеганий вместо 50 / 30",
+  reset:"Сбросить прогресс", resetQ:"Удалить рекорд, концовки и сохранённую историю?", resetDone:"Прогресс сброшен",
+  yes:"Да", cancel:"Отмена", done:"Готово",
+  tutorial:"Туториал", stepOf:"Шаг {0} из {1}", skip:"Пропустить", play:"Играть",
+  tutSteps:[
+   {title:"Движение", text:"Змейка ползёт сама. Поворачивай стрелками — на экране или на клавиатуре — или свайпами. Развернуться назад нельзя."},
+   {title:"Края открыты", text:"Стен нет: уполз за край — появился с другой стороны. Опасно только собственное тело."},
+   {title:"Яблоки", text:"Каждое яблоко удлиняет змейку. Кольцо вокруг яблока показывает, сколько ему осталось. Для начала съешь 5 яблок."}
+  ],
+  introTitle:"Как играть",
+  intro:["Свайпай или жми стрелки — змейка повернёт.","Развернуться назад нельзя.","Стен нет: уполз за край — появился с другой стороны.","Опасно только собственное тело."],
+  go:"Поехали",
+  tutGoal:"Съешь 5 яблок",
+  enough:"Мне хватит.", ok:"ОК",
+  question:"Хочешь ли ты узнать о том, что такое голод, дорогой игрок?", qYes:"Да", qNo:"Нет, я просто хочу играть",
+  over:"Игра окончена", score:"Счёт: {0}", best:"Рекорд: {0}", newBest:"Новый рекорд!", again:"Ещё раз",
+  starveTitle:"Змея умерла от голода",
+  starveText:"Если совсем не заботиться о себе, то тебе не хватит сил помочь другим. К счастью, я всего лишь концепция Змеи и ты можешь начать заново.",
+  newGame:"Новая игра",
+  e1Kick:"Концовка 1", e1Title:"Спасибо",
+  e1Text:"Спасибо. Я хорошо провёл с тобой время. Это любимая концовка Марка — он тоже будет рад.",
+  playAgain:"Играть снова",
+  e2Kick:"Концовка 2", e2Title:"Алчность", e2Text:"Конец игры",
+  newRoute:"Открыть новый рут", routeHint:"Попробуй не есть яблоки",
+  hungerHint:"Уворачивайся — пусть всё исчезнет само",
+  tutMiss:"Яблоко исчезло. Змея проголодалась…",
+  evilToast:"Змее мало. Ей всегда мало.",
+  hudTut:"Яблоки {0}/{1}", hudEaten:"Съедено {0}", hudIgnored:"Пропущено {0}",
+  hudClassic:"Съедено {0}/{1}", hudAvoid:"Избегнуто {0}/{1}", hudAvoidSub:"съедено {0}/{1}",
+  lifeLost:"Ой! Осталось жизней: {0}",
+  hudScore:"Счёт {0}", hudBest:"Рекорд {0}", hudEvil:"Алчность",
+  ph:{tutorial:"Туториал", choice:"Выбор", classic:"Классика", hunger:"Голод", evil:"Злая змея", simple:"Простая"},
+  ready:"Готов?", hint:"Свайп или стрелки · края открыты",
+  textKick:"О голоде · {0}/{1}", next:"Далее",
+  greedKick:"Съедено: {0}",
+  greedLines:[
+   "Ещё одно. Просто чтобы было.",
+   "Яблок на поле много. Значит, они мои?",
+   "Я уже не голоден. Но остановиться почему-то трудно.",
+   "Если не съем я — съест кто-то другой. Так ведь?",
+   "Поле большое. Его хватит на всех… а мне всё мало.",
+   "Я длиннее всех. Почему мне всё ещё мало?",
+   "Кажется, я ем уже не яблоки, а место, где они росли.",
+   "Ещё чуть-чуть — и останусь только я."
+  ],
+  hungerTexts:[
+   "В 2024 году от хронического голода страдали около 673 миллионов человек — примерно каждый двенадцатый на Земле.",
+   "В том же мире за 2022 год выбросили 1,05 миллиарда тонн еды — почти пятую часть всего, что было в магазинах, кафе и дома.",
+   "Одни только домохозяйства каждый день выбрасывают больше миллиарда порций еды. Это больше одной порции на каждого голодающего.",
+   "2,6 миллиарда человек не могут позволить себе здоровое питание. Еды хватает. Не хватает доступа к ней.",
+   "Голод — это не про то, сколько яблок выросло. Это про то, кому они достались. Давай попробуем не брать лишнего."
+  ],
+  touch:{apple:"Это яблоко досталось тебе. Кому-то — нет.", kitten:"Это котёнок. Он тоже хочет есть.", farmer:"Фермер вырастил еду, которую сам не может купить.", basket:"Урожай ушёл не туда, где его ждали."},
+  aboutTitle:"Об игре",
+  aboutBody:"Знакомая змейка, переосмысленная как сатира: еда всегда под рукой, а решение «есть или не есть» становится выбором. Прототип по GDD «Science Snake» (рабочее название).",
+  aboutSrc:"Данные в текстах о голоде: ФАО и др., SOFI 2025 (данные за 2024 г.); ЮНЕП, Food Waste Index Report 2024 (данные за 2022 г.).",
+  close:"Закрыть"
+ },
+ en:{
+  tagline:"a snake about hunger and plenty",
+  story:"Story", storySub:"Plot, choices and endings",
+  cont:"Continue story",
+  simple:"Simple snake", simpleSub:"Classic, no story",
+  settings:"Settings", about:"About",
+  stats:"Best: {0} · Endings: {1}/3",
+  pause:"Paused", resume:"Resume", restart:"Restart", restartCp:"From checkpoint", toMenu:"Menu", mainMenu:"Main menu",
+  speed:"Speed", slow:"Slow", normal:"Normal", fast:"Fast",
+  pad:"On-screen arrows", padSub:"Keyboard and swipes always work", sound:"Sound", vibe:"Vibration", lang:"Language",
+  test:"Test thresholds", testSub:"15 eaten / 8 avoided instead of 50 / 30",
+  reset:"Reset progress", resetQ:"Delete best score, endings and saved story?", resetDone:"Progress reset",
+  yes:"Yes", cancel:"Cancel", done:"Done",
+  tutorial:"Tutorial", stepOf:"Step {0} of {1}", skip:"Skip", play:"Play",
+  tutSteps:[
+   {title:"Move", text:"The snake never stops. Turn with the arrows — on screen or on your keyboard — or swipe. You can't turn straight back."},
+   {title:"Open edges", text:"No walls: leave one edge and you come back from the opposite one. Only your own body is dangerous."},
+   {title:"Apples", text:"Every apple makes the snake longer. The ring around an apple shows how long it stays. To begin, eat 5 apples."}
+  ],
+  introTitle:"How to play",
+  intro:["Swipe or press the arrows to turn.","You can't turn straight back.","No walls: leave one edge, come back from the opposite one.","Only your own body is dangerous."],
+  go:"Let's go",
+  tutGoal:"Eat 5 apples",
+  enough:"I've had enough.", ok:"OK",
+  question:"Do you want to learn what hunger is, dear player?", qYes:"Yes", qNo:"No, I just want to play",
+  over:"Game over", score:"Score: {0}", best:"Best: {0}", newBest:"New best!", again:"Play again",
+  starveTitle:"The snake starved",
+  starveText:"If you don't take care of yourself at all, you won't have the strength to help others. Luckily, I'm only the concept of a Snake, and you can start over.",
+  newGame:"New game",
+  e1Kick:"Ending 1", e1Title:"Thank you",
+  e1Text:"Thank you. I had a good time with you. This is Mark's favourite ending — he'll be glad too.",
+  playAgain:"Play again",
+  e2Kick:"Ending 2", e2Title:"Greed", e2Text:"Game over",
+  newRoute:"Unlock a new route", routeHint:"Try not to eat the apples",
+  hungerHint:"Dodge — let everything vanish on its own",
+  tutMiss:"The apple vanished. The snake is getting hungry…",
+  evilToast:"It's never enough for the snake.",
+  hudTut:"Apples {0}/{1}", hudEaten:"Eaten {0}", hudIgnored:"Skipped {0}",
+  hudClassic:"Eaten {0}/{1}", hudAvoid:"Avoided {0}/{1}", hudAvoidSub:"eaten {0}/{1}",
+  lifeLost:"Ouch! Lives left: {0}",
+  hudScore:"Score {0}", hudBest:"Best {0}", hudEvil:"Greed",
+  ph:{tutorial:"Tutorial", choice:"Choice", classic:"Classic", hunger:"Hunger", evil:"Evil snake", simple:"Simple"},
+  ready:"Ready?", hint:"Swipe or arrows · edges wrap",
+  textKick:"On hunger · {0}/{1}", next:"Next",
+  greedKick:"Eaten: {0}",
+  greedLines:[
+   "One more. Just to have it.",
+   "There are lots of apples here. So they're mine?",
+   "I'm not hungry any more. But stopping is strangely hard.",
+   "If I don't eat it, someone else will. Right?",
+   "The field is big. Enough for everyone… yet never enough for me.",
+   "I'm the longest one here. Why is it still not enough?",
+   "I think I'm no longer eating apples, but the place where they grew.",
+   "Just a little more, and only I will be left."
+  ],
+  hungerTexts:[
+   "In 2024 about 673 million people lived with chronic hunger — roughly one in twelve people on Earth.",
+   "In the same world, 1.05 billion tonnes of food were thrown away in 2022 — almost a fifth of everything in shops, restaurants and homes.",
+   "Households alone throw away over a billion meals a day. That is more than one meal for every hungry person.",
+   "2.6 billion people cannot afford a healthy diet. There is enough food. There isn't enough access to it.",
+   "Hunger isn't about how many apples grew. It's about who got them. Let's try not to take more than we need."
+  ],
+  touch:{apple:"This apple went to you. Someone else went without.", kitten:"That's a kitten. It's hungry too.", farmer:"The farmer grew food they can't afford.", basket:"The harvest went somewhere it wasn't needed."},
+  aboutTitle:"About",
+  aboutBody:"The familiar snake, reimagined as satire: food is always within reach, and \"eat or don't eat\" becomes a choice. Prototype based on the \"Science Snake\" GDD (working title).",
+  aboutSrc:"Hunger text figures: FAO et al., SOFI 2025 (2024 data); UNEP, Food Waste Index Report 2024 (2022 data).",
+  close:"Close"
+ }
+};
+const T = () => L[settings.lang] || L.ru;
+function t(k, ...a){ let s = T()[k]; if (typeof s !== "string") return s; a.forEach((v,i)=> s = s.replace("{"+i+"}", v)); return s; }
+function applyLang(){
+  document.documentElement.lang = settings.lang;
+  document.querySelectorAll("[data-t]").forEach(el => el.textContent = t(el.dataset.t));
+  refreshMenu();
+}
+
+/* =========================================================
+   AUDIO / HAPTICS
+   ========================================================= */
+let actx = null;
+function audio(){ if (!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if (actx && actx.state==="suspended") actx.resume().catch(()=>{}); return actx; }
+function tone(f, d=0.1, type="sine", vol=0.12, f2=null, delay=0){
+  if (!settings.sound) return; const a = audio(); if (!a) return;
+  const o = a.createOscillator(), g = a.createGain(), t0 = a.currentTime + delay;
+  o.type = type; o.frequency.setValueAtTime(f, t0); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0+d);
+  g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0+d);
+  o.connect(g).connect(a.destination); o.start(t0); o.stop(t0+d+0.02);
+}
+const sfx = {
+  eat(){ tone(520+Math.random()*260, .09, "triangle", .14, 900); },
+  die(){ tone(180, .35, "sawtooth", .12, 50); },
+  ding(){ tone(880, .25, "sine", .08); tone(1320, .3, "sine", .05, null, .05); },
+  growl(){ tone(110, .6, "sawtooth", .16, 45); tone(90, .6, "square", .06, 40); },
+  warm(){ [392,494,587,784].forEach((f,i)=>tone(f, 1.2, "sine", .06, null, i*.08)); },
+  boom(){ tone(70, 1.0, "sawtooth", .2, 30); },
+  miss(){ tone(300, .15, "sine", .06, 200); }
+};
+function buzz(ms){ if (settings.vibe && navigator.vibrate) try{ navigator.vibrate(ms); }catch(e){} }
+
+/* =========================================================
+   DOM
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+const ov = $("ov"), card = $("card");
+let screen = "menu", modalOpen = false, cell = 20, dpr = 1;
+
+function show(id){ document.querySelectorAll(".screen").forEach(s => s.classList.toggle("on", s.id===id)); screen = id; if (id==="game") layout(); }
+
+function refreshMenu(){
+  const n = Object.keys(save.endings||{}).length;
+  $("menuStats").textContent = t("stats", save.best||0, n);
+  const cp = save.checkpoint;
+  $("bCont").style.display = cp ? "" : "none";
+  if (cp) $("contSub").textContent = T().ph[cp.phase] || "";
+}
+
+/* ---------- modal ---------- */
+function modal({kick, title, text, big, list, src, buttons=[], dark=false, dots=null, html=null, quiet=false}){
+  modalOpen = true;
+  ov.classList.toggle("dark", !!dark);
+  let h = "";
+  if (kick) h += `<div class="kick">${kick}</div>`;
+  if (dots) h += `<div class="dots">${Array.from({length:dots[1]},(_,i)=>`<i class="${i<=dots[0]?"on":""}"></i>`).join("")}</div>`;
+  if (title) h += `<h2>${title}</h2>`;
+  if (text) h += `<p class="${big?"big":""}">${text}</p>`;
+  if (list) h += `<ul>${list.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+  if (html) h += html;
+  if (src) h += `<p class="src">${src}</p>`;
+  h += `<div class="btns">${buttons.map((b,i)=>`<button class="btn ${b.cls||""}" data-i="${i}">${b.label}</button>`).join("")}</div>`;
+  card.innerHTML = h;
+  card.querySelectorAll(".btns .btn").forEach(el => el.onclick = () => { audio(); const b = buttons[+el.dataset.i]; if (!b.keep) closeModal(); b.on && b.on(); });
+  ov.classList.add("on");
+  if (!quiet) sfx.ding();
+  const first = card.querySelector(".btn.p") || card.querySelector(".btn"); first && first.focus({preventScroll:true});
+}
+function closeModal(){ modalOpen = false; ov.classList.remove("on","dark"); }
+
+let toastTimer = 0;
+function toast(msg, ms=2400){ const el = $("toast"); el.textContent = msg; el.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(()=>el.classList.remove("show"), ms); }
+
+/* ---------- settings ---------- */
+function settingsModal(after){
+  const seg = (key, opts) => `<div class="seg">${opts.map(o=>`<button data-k="${key}" data-v="${o}" class="${settings[key]===o?"on":""}">${t(o) || o.toUpperCase()}</button>`).join("")}</div>`;
+  const tg = key => `<button class="tgl ${settings[key]?"on":""}" data-tg="${key}" aria-label="${key}"></button>`;
+  const html = `
+   <div class="set"><span>${t("speed")}</span>${seg("speed",["slow","normal","fast"])}</div>
+   <div class="set"><span>${t("pad")}<small>${t("padSub")}</small></span>${tg("buttons")}</div>
+   <div class="set"><span>${t("sound")}</span>${tg("sound")}</div>
+   <div class="set"><span>${t("vibe")}</span>${tg("vibe")}</div>
+   <div class="set"><span>${t("lang")}</span><div class="seg"><button data-k="lang" data-v="ru" class="${settings.lang==="ru"?"on":""}">RU</button><button data-k="lang" data-v="en" class="${settings.lang==="en"?"on":""}">EN</button></div></div>
+   <div class="set"><span>${t("test")}<small>${t("testSub")}</small></span>${tg("test")}</div>`;
+  modal({ title:t("settings"), html, quiet:true, buttons:[
+    {label:t("reset"), cls:"warn", on:()=>confirmReset(after)},
+    {label:t("done"), cls:"p", on:()=>after&&after()}
+  ]});
+  card.querySelectorAll("[data-k]").forEach(b => b.onclick = () => {
+    settings[b.dataset.k] = b.dataset.v; persistSettings();
+    if (b.dataset.k==="lang") applyLang();
+    applyPad(); settingsModal(after);
+  });
+  card.querySelectorAll("[data-tg]").forEach(b => b.onclick = () => {
+    settings[b.dataset.tg] = !settings[b.dataset.tg]; persistSettings(); applyPad(); audio(); settingsModal(after);
+  });
+}
+function confirmReset(after){
+  modal({ title:t("reset"), text:t("resetQ"), buttons:[
+    {label:t("yes"), cls:"warn", on:()=>{ save.best=0; save.endings={}; save.checkpoint=null; persistSave(); refreshMenu(); toast(t("resetDone")); after&&after(); }},
+    {label:t("cancel"), cls:"p", on:()=>settingsModal(after)}
+  ]});
+}
+function applyPad(){ $("pad").classList.toggle("off", !settings.buttons); if (screen==="game") layout(); }
+
+/* =========================================================
+   GAME STATE
+   ========================================================= */
+let G = null;
+function freshCounters(){ return { tut:0, tutMiss:0, total:0, ignored:0, avoided:0, q:false, seen:0, greed:0 }; }
+function newGame(mode, phase, counters){
+  G = { mode, phase: phase || (mode==="simple" ? "simple" : "tutorial"),
+        snake:[], prev:[], dir:DIRS.right, queue:[], grow:0, items:[],
+        t:0, acc:0, nextSpawn:0.3, countdown:0, c: counters || freshCounters(),
+        score:0, over:false, black:new Set(), evil:null, flash:0, dark:0, hintUntil:0, tongue:0,
+        pace:{ ignoreT:0, lastWin:0, pending:null }, lives:LIVES, hurt:0 };
+  resetSnake();
+}
+function resetSnake(){
+  const cx = N/2, cy = N/2;
+  G.snake = [{x:cx,y:cy},{x:cx-1,y:cy},{x:cx-2,y:cy}];
+  G.prev = G.snake.map(s=>({...s}));
+  G.dir = DIRS.right; G.queue = []; G.grow = 0; G.items = []; G.acc = 0;
+  G.nextSpawn = G.t + 0.3; G.over = false; G.black = new Set(); G.evil = null; G.dark = 0;
+}
+function respawnSnake(){
+  const cx = N/2, cy = N/2;
+  G.snake = [{x:cx,y:cy},{x:cx-1,y:cy},{x:cx-2,y:cy}];
+  G.prev = G.snake.map(s=>({...s}));
+  G.dir = DIRS.right; G.queue = []; G.grow = 0; G.acc = 0;
+  G.items = G.items.filter(i => !(Math.abs(i.y-cy)<=1 && i.x>=cx-3 && i.x<=cx+4));   // nothing in the way at restart
+}
+function countdown(sec){ G.countdown = sec; G.cdTotal = sec; }
+
+function baseSpeed(){ return SPEEDS[settings.speed] || SPEEDS.normal; }
+function speed(){
+  if (!G) return 1;
+  if (G.phase==="evil") return G.evil.speed;
+  const b = baseSpeed();
+  if (G.phase==="simple") return b + Math.min(1.5, Math.floor(G.score/5)*0.15);
+  if (G.phase==="hunger") return b*HUNGRY_MULT;
+  return b;
+}
+function snakeLook(){
+  if (G.phase==="evil") return "evil";
+  if (G.phase==="hunger") return "hungry";
+  if (G.mode==="story" && G.c.total>=10) return "fed";
+  return "base";
+}
+
+/* ---------- checkpoints ---------- */
+function saveCheckpoint(){
+  if (!G || G.mode!=="story") return;
+  if (["choice","classic","hunger"].includes(G.phase)) { save.checkpoint = { phase:G.phase, c:{...G.c} }; persistSave(); }
+}
+function clearCheckpoint(){ save.checkpoint = null; persistSave(); }
+
+/* ---------- start flows ---------- */
+function startSimple(){
+  newGame("simple"); show("game"); countdown(1.8); G.hintUntil = 5;
+}
+function startStory(){
+  clearCheckpoint();
+  newGame("story"); show("game");
+  tutorial(0, () => { countdown(1.8); G.hintUntil = 5; }, true);
+}
+function continueStory(){
+  const cp = save.checkpoint; if (!cp) return startStory();
+  newGame("story", cp.phase, Object.assign(freshCounters(), cp.c)); show("game"); countdown(1.8);
+  if (cp.phase==="hunger") toast(t("hungerHint"));
+}
+function toMenu(){ saveCheckpoint(); G = null; show("menu"); refreshMenu(); }
+
+/* =========================================================
+   INPUT
+   ========================================================= */
+function pushDir(name){
+  if (!G || modalOpen || G.over || G.phase==="evil") return;
+  audio();
+  const d = DIRS[name];
+  const last = G.queue.length ? G.queue[G.queue.length-1] : G.dir;
+  if (d===last) return;
+  if (d.x === -last.x && d.y === -last.y) return;     // no 180°
+  if (G.queue.length < 2) G.queue.push(d);           // buffer up to 2
+}
+addEventListener("keydown", e => {
+  const k = e.key;
+  const map = {ArrowUp:"up",ArrowDown:"down",ArrowLeft:"left",ArrowRight:"right",w:"up",s:"down",a:"left",d:"right",W:"up",S:"down",A:"left",D:"right"};
+  if (screen!=="game") return;
+  if (map[k]) { e.preventDefault(); pushDir(map[k]); flashKey(map[k]); }
+  else if (k===" "||k==="p"||k==="P"||k==="Escape") { e.preventDefault(); if (!modalOpen) pauseMenu(); }
+});
+function flashKey(d){ const b = document.querySelector(`#pad [data-d="${d}"]`); if (!b) return; b.classList.add("hit"); setTimeout(()=>b.classList.remove("hit"), 120); }
+// swipes anywhere on the game screen
+(() => {
+  let sx=0, sy=0, active=false;
+  const el = $("game");
+  el.addEventListener("pointerdown", e => { if (e.target.closest("button")) return; active=true; sx=e.clientX; sy=e.clientY; });
+  el.addEventListener("pointermove", e => {
+    if (!active) return; const dx=e.clientX-sx, dy=e.clientY-sy;
+    if (Math.max(Math.abs(dx),Math.abs(dy)) < 22) return;
+    pushDir(Math.abs(dx)>Math.abs(dy) ? (dx>0?"right":"left") : (dy>0?"down":"up"));
+    sx=e.clientX; sy=e.clientY;               // allow chained turns in one gesture
+  });
+  const end = () => active=false;
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end); el.addEventListener("pointerleave", end);
+})();
+document.querySelectorAll("#pad button").forEach(b => b.addEventListener("pointerdown", e => { e.preventDefault(); pushDir(b.dataset.d); }));
+$("bPause").onclick = () => { audio(); if (!modalOpen) pauseMenu(); };
+document.addEventListener("visibilitychange", () => { if (document.hidden && screen==="game" && G && !modalOpen && !G.over) pauseMenu(); });
+
+/* =========================================================
+   PAUSE
+   ========================================================= */
+function resume(){ if (G && !G.over) countdown(1.2); }
+function pauseMenu(){
+  if (!G || G.over) return;
+  saveCheckpoint();
+  const story = G.mode==="story";
+  modal({ title:t("pause"), buttons:[
+    {label:t("resume"), cls:"p", on:resume},
+    {label: story ? t("restartCp") : t("restart"), on:()=> story ? restartPhase() : startSimple()},
+    {label:t("settings"), on:()=>settingsModal(pauseMenu)},
+    {label:t("toMenu"), on:toMenu}
+  ]});
+}
+
+/* =========================================================
+   TUTORIAL (3 animated steps)
+   ========================================================= */
+let demo = null;
+function tutorial(i, onDone, forStory){
+  const steps = T().tutSteps, n = steps.length, last = i === n-1;
+  const html = `<div class="demo"><canvas id="demoCv"></canvas>
+    <div class="keys">${[["u","up","▲"],["l","left","◀"],["d","down","▼"],["r","right","▶"]].map(([c,d,g])=>`<span class="key ${c}" data-dk="${d}">${g}</span>`).join("")}</div></div>`;
+  modal({ kick:t("stepOf", i+1, n), dots:[i,n], title:steps[i].title, html, text:steps[i].text, quiet:i>0,
+    buttons: [
+      {label: last ? (forStory ? t("play") : t("done")) : t("next"), cls:"p", on:()=>{ stopDemo(); last ? onDone() : tutorial(i+1, onDone, forStory); }},
+      ...(last ? [] : [{label:t("skip"), on:()=>{ stopDemo(); onDone(); }}])
+    ]});
+  // move text below the demo
+  const p = card.querySelector("p"), d = card.querySelector(".demo"); if (p && d) d.after(p);
+  startDemo(i);
+}
+function stopDemo(){ if (demo) { cancelAnimationFrame(demo.raf); demo = null; } }
+function startDemo(kind){
+  stopDemo();
+  const c = document.getElementById("demoCv"); if (!c) return;
+  const W = 10, H = 6, s = 22, r = Math.min(3, devicePixelRatio||1);
+  c.width = W*s*r; c.height = H*s*r; c.style.width = W*s+"px"; c.style.height = H*s+"px";
+  const x = c.getContext("2d"); x.setTransform(r,0,0,r,0,0);
+  const D = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
+  const st = { snake:[{x:3,y:1},{x:2,y:1},{x:1,y:1}], dir:"right", tick:0, apple:null, acc:0, last:performance.now() };
+  if (kind===0) st.snake = [{x:3,y:1},{x:2,y:1},{x:1,y:1}];
+  if (kind===1) st.snake = [{x:5,y:3},{x:4,y:3},{x:3,y:3}];
+  if (kind===2) { st.snake = [{x:2,y:2},{x:1,y:2},{x:0,y:2}]; st.apple = {x:6,y:2}; }
+  const route = ["right","right","right","right","down","down","down","left","left","left","left","left","up","up","up","right"]; // loop for step 1
+  const keyHit = d => { const k = card.querySelector(`[data-dk="${d}"]`); if (!k) return; k.classList.add("hit"); setTimeout(()=>k.classList.remove("hit"), 220); };
+  const tick = () => {
+    st.tick++;
+    let nd = st.dir;
+    if (kind===0) nd = route[st.tick % route.length];
+    if (kind===2 && st.apple) { const h = st.snake[0]; if (h.y!==st.apple.y) nd = st.apple.y>h.y?"down":"up"; else nd = "right"; }
+    if (nd !== st.dir) keyHit(nd);
+    st.dir = nd;
+    const h = st.snake[0], v = D[st.dir];
+    const nh = { x:(h.x+v.x+W)%W, y:(h.y+v.y+H)%H };
+    st.snake.unshift(nh);
+    if (kind===2 && st.apple && nh.x===st.apple.x && nh.y===st.apple.y) {
+      if (st.snake.length > 8) st.snake = st.snake.slice(0,3);
+      st.apple = { x:(nh.x+4+Math.floor(Math.random()*3))%W, y:Math.floor(Math.random()*H) };
+    } else st.snake.pop();
+  };
+  const draw = (k) => {
+    for (let yy=0;yy<H;yy++) for (let xx=0;xx<W;xx++){ x.fillStyle=(xx+yy)%2?"#dcefdd":"#e6f4e7"; x.fillRect(xx*s,yy*s,s,s); }
+    if (kind===1){ x.strokeStyle="rgba(46,125,50,.6)"; x.setLineDash([5,4]); x.lineWidth=2; x.strokeRect(1,1,W*s-2,H*s-2); x.setLineDash([]);
+      x.fillStyle="rgba(46,125,50,.55)"; x.font="bold 14px system-ui"; x.textAlign="center"; x.textBaseline="middle";
+      x.fillText("⇢", W*s-8, 3.5*s); x.fillText("⇢", 8, 3.5*s); }
+    if (st.apple){
+      const ax=(st.apple.x+.5)*s, ay=(st.apple.y+.55)*s;
+      x.strokeStyle="rgba(211,47,47,.4)"; x.lineWidth=2; x.beginPath(); x.arc(ax,ay-1,s*.48,-Math.PI/2,-Math.PI/2+Math.PI*2*(0.35+0.65*((Math.sin(performance.now()/900)+1)/2))); x.stroke();
+      x.fillStyle="#d32f2f"; x.beginPath(); x.arc(ax,ay,s*.3,0,7); x.fill();
+      x.fillStyle="#43a047"; x.beginPath(); x.ellipse(ax+4,ay-s*.38,4,2,-.5,0,7); x.fill();
+    }
+    // snake (interpolated, wrap-aware, drawn twice across edges)
+    const prev = st.prevSnake || st.snake;
+    const pts = st.snake.map((p,i)=>{ const q = prev[i]||p; let dx=p.x-q.x, dy=p.y-q.y; if(dx>1)dx-=W; if(dx<-1)dx+=W; if(dy>1)dy-=H; if(dy<-1)dy+=H; return {x:q.x+dx*k,y:q.y+dy*k}; });
+    for (const [ox,oy] of [[0,0],[W,0],[-W,0],[0,H],[0,-H]]){
+      x.lineCap="round"; x.lineWidth=s*.74;
+      for (let i=pts.length-1;i>=1;i--){ const a=pts[i], b=pts[i-1];
+        x.strokeStyle = i/(pts.length-1) > .5 ? "#81c784" : "#43a047";
+        if (Math.abs(a.x-b.x)>1.5||Math.abs(a.y-b.y)>1.5) continue;
+        x.beginPath(); x.moveTo((a.x+ox+.5)*s,(a.y+oy+.5)*s); x.lineTo((b.x+ox+.5)*s,(b.y+oy+.5)*s); x.stroke(); }
+      const hp = pts[0], v = D[st.dir];
+      x.fillStyle="#2e7d32"; x.beginPath(); x.arc((hp.x+ox+.5)*s,(hp.y+oy+.5)*s,s*.46,0,7); x.fill();
+      for (const sg of [-1,1]){ const ex=(hp.x+ox+.5)*s+v.x*4-v.y*sg*5, ey=(hp.y+oy+.5)*s+v.y*4+v.x*sg*5;
+        x.fillStyle="#fff"; x.beginPath(); x.arc(ex,ey,3,0,7); x.fill(); x.fillStyle="#111"; x.beginPath(); x.arc(ex+v.x,ey+v.y,1.6,0,7); x.fill(); }
+    }
+  };
+  const SPS = 3.2;
+  const loop = (now) => {
+    if (!demo) return;
+    st.acc += Math.min(.05,(now-st.last)/1000)*SPS; st.last = now;
+    while (st.acc >= 1){ st.acc -= 1; st.prevSnake = st.snake.map(p=>({...p})); tick(); }
+    draw(st.acc);
+    demo.raf = requestAnimationFrame(loop);
+  };
+  demo = { raf: requestAnimationFrame(loop) };
+}
+
+/* =========================================================
+   SPAWNING
+   ========================================================= */
+function wrapDist(a,b){ const dx=Math.abs(a.x-b.x), dy=Math.abs(a.y-b.y); return Math.min(dx,N-dx)+Math.min(dy,N-dy); }
+function freeCell(minDist){
+  const occ = new Set(G.snake.map(s=>s.x+","+s.y)); G.items.forEach(i=>occ.add(i.x+","+i.y));
+  const h = G.snake[0], cands = [];
+  for (let y=0;y<N;y++) for (let x=0;x<N;x++){
+    if (occ.has(x+","+y) || G.black.has(x+","+y)) continue;
+    if (wrapDist({x,y},h) < minDist) continue;
+    cands.push({x,y});
+  }
+  return cands.length ? cands[(Math.random()*cands.length)|0] : null;
+}
+function rand(a,b){ return a+Math.random()*(b-a); }
+function maxItems(){
+  switch(G.phase){
+    case "simple": case "tutorial": return 1;
+    case "choice": case "classic": return 2;
+    case "hunger": return Math.min(3, 2 + Math.floor(G.c.avoided/15));
+    default: return 0;
+  }
+}
+function spawnOne(type, life){
+  const p = freeCell(G.phase==="hunger" ? 4 : 3) || freeCell(1); if (!p) return;
+  G.items.push({ ...p, type, born:G.t, life });
+}
+function spawnLogic(){
+  if (G.items.length >= maxItems() || G.t < G.nextSpawn) return;
+  switch(G.phase){
+    case "simple": spawnOne("apple", Infinity); break;
+    case "tutorial": spawnOne("apple", TUT_APPLE_LIFE); break;
+    case "choice": case "classic": spawnOne("apple", APPLE_LIFE); break;
+    case "hunger": {
+      const r = Math.random();
+      spawnOne(r<.3?"apple":r<.55?"kitten":r<.8?"farmer":"basket", rand(HUNGER_LIFE[0],HUNGER_LIFE[1])); break;
+    }
+  }
+  G.nextSpawn = G.t + (G.phase==="tutorial" ? 1.2 : G.phase==="hunger" ? rand(2.5,3.5) : rand(SPAWN_GAP[0],SPAWN_GAP[1]));
+}
+function expireItems(){
+  for (let i=G.items.length-1;i>=0;i--){
+    const it = G.items[i];
+    if (G.t >= it.born + it.life){ G.items.splice(i,1); onExpire(it); if (modalOpen || G.over) return; }
+  }
+}
+
+/* =========================================================
+   STORY EVENTS
+   ========================================================= */
+/* ---------------------------------------------------------
+   WINDOW PACING
+   Story windows (narrative texts) never pop on every apple:
+   • EAT trigger    – every 5th apple eaten  -> snake monologue line
+                      (choice phase: the 10th apple -> the question)
+   • IGNORE trigger – 20 s of game time without eating -> next hunger text
+                      (in the choice phase the 1st one opens the Hunger branch)
+   • COOLDOWN       – at least 15 s of play between two paced windows;
+                      an eat-window that falls into the cooldown waits
+                      in a queue and shows as soon as the cooldown ends.
+   Critical windows (Мне хватит, the question, death, endings) are never
+   delayed. Timers only run while the snake is actually moving.
+   --------------------------------------------------------- */
+const PACE = { eatEvery:5, ignoreSec:20, cooldown:15 };
+function pacerReset(){ G.pace = { ignoreT:0, lastWin:G.t, pending:null }; }
+function canWindow(){ return G.t - G.pace.lastWin >= PACE.cooldown; }
+function markWindow(){ G.pace.lastWin = G.t; G.pace.ignoreT = 0; }
+function pacerTick(dt){
+  if (!G.pace) pacerReset();
+  const ph = G.phase;
+  if (ph==="choice" || ph==="hunger") G.pace.ignoreT += dt;
+  if (G.pace.pending && canWindow()){ const f = G.pace.pending; G.pace.pending = null; markWindow(); f(); return; }
+  if ((ph==="choice" || ph==="hunger") && G.pace.ignoreT >= PACE.ignoreSec && canWindow()){
+    const c = G.c, n = T().hungerTexts.length;
+    if (c.seen < n){
+      const i = c.seen++; markWindow();
+      hungerText(i, () => ph==="choice" ? enterHunger() : resume());
+    } else if (ph==="choice") { markWindow(); enterHunger(); }
+    else G.pace.ignoreT = 0;
+  }
+}
+function onExpire(it){
+  const c = G.c;
+  switch(G.phase){
+    case "tutorial":
+      c.tutMiss++; sfx.miss();
+      if (c.tutMiss >= TUT_MISS_LIMIT) return endingStarve();
+      toast(t("tutMiss")); break;
+    case "choice": case "classic": c.ignored++; break;
+    case "hunger":
+      c.avoided++;
+      if (c.avoided >= TH().avoid) return endingThanks();
+      break;
+  }
+}
+function hungerText(i, after){
+  const arr = T().hungerTexts, n = arr.length;
+  modal({ kick:t("textKick", i+1, n), dots:[i,n], text:arr[i],
+    buttons:[{label:t("ok"), cls:"p", on:after}] });
+}
+function greedLine(){
+  // one queued window at most; lines are taken in order when the window actually opens
+  if (G.pace.pending || G.c.greed >= T().greedLines.length) return;
+  G.pace.pending = () => {
+    const c = G.c, i = c.greed++;
+    modal({ kick:t("greedKick", c.total), text:T().greedLines[i], big:true, buttons:[{label:t("ok"), cls:"p", on:resume}] });
+  };
+}
+function eatItem(it){
+  G.grow++; sfx.eat(); buzz(12);
+  const c = G.c;
+  if (G.pace) G.pace.ignoreT = 0;           // eating breaks an ignore streak
+  switch(G.phase){
+    case "simple":
+      G.score++; break;
+    case "tutorial":
+      c.tut++; c.total++;
+      if (c.tut >= TH().tut){
+        G.items = [];
+        modal({ text:t("enough"), big:true, buttons:[{label:t("ok"), cls:"p", on:()=>{ G.phase="choice"; G.nextSpawn=G.t+0.5; pacerReset(); saveCheckpoint(); resume(); }}] });
+      }
+      break;
+    case "choice":
+      c.total++;
+      if (c.total >= TH().question && !c.q){
+        c.q = true; G.pace.pending = null;
+        modal({ text:t("question"), big:true, buttons:[
+          {label:t("qYes"), cls:"p", on:()=>{
+            markWindow();
+            if (c.seen < T().hungerTexts.length) { const i = c.seen++; hungerText(i, enterHunger); } else enterHunger();
+          }},
+          {label:t("qNo"), on:()=>{ G.phase="classic"; markWindow(); saveCheckpoint(); resume(); }}
+        ]});
+      }
+      break;
+    case "classic":
+      c.total++;
+      if (c.total >= TH().greed) startEvil();
+      else if (c.total % PACE.eatEvery === 0) greedLine();
+      break;
+    case "hunger":
+      c.total++;
+      if (c.total >= TH().greed) startEvil();
+      else {
+        toast(T().touch[it.type] || "");          // short, non-blocking (GDD 7.3)
+        if (c.total % PACE.eatEvery === 0) greedLine();
+      }
+      break;
+    case "evil":
+      G.evil.speed = Math.min(EVIL_MAX, G.evil.speed + 0.35); break;
+  }
+}
+function enterHunger(hint){
+  G.phase = "hunger"; G.items = []; G.nextSpawn = G.t + 0.8;
+  markWindow(); saveCheckpoint(); resume(); toast(hint || t("hungerHint"), 3200);
+}
+function restartPhase(){
+  // story checkpoint = start of current phase, counters persist (GDD 8.7)
+  const ph = G.phase==="evil" ? (save.checkpoint ? save.checkpoint.phase : "classic") : G.phase;
+  if (ph==="tutorial") G.c = freshCounters();
+  G.phase = ph; G.lives = LIVES; resetSnake(); pacerReset(); countdown(1.8);
+}
+function die(){
+  G.lives = Math.max(0, G.lives-1); G.hurt = 0.6;
+  if (G.lives > 0){                         // lose a life, keep playing
+    G.flash = 0.35; sfx.die(); buzz([40,40,80]);
+    toast(t("lifeLost", G.lives), 1800);
+    respawnSnake(); countdown(1.8);
+    return;
+  }
+  G.over = true; G.flash = 0.35; sfx.die(); buzz([40,40,80]);
+  setTimeout(() => {
+    if (G.mode==="simple"){
+      const rec = G.score > (save.best||0); if (rec){ save.best = G.score; persistSave(); }
+      modal({ title:t("over"), text: t("score",G.score) + "<br><small>" + (rec ? t("newBest") : t("best",save.best)) + "</small>",
+        buttons:[{label:t("again"), cls:"p", on:startSimple},{label:t("toMenu"), on:toMenu}] });
+    } else {
+      saveCheckpoint();
+      modal({ title:t("over"), buttons:[{label:t("restart"), cls:"p", on:restartPhase},{label:t("toMenu"), on:toMenu}] });
+    }
+  }, 450);
+}
+
+/* ---------- evil snake ---------- */
+function startEvil(){
+  G.phase = "evil"; G.queue = []; G.flash = 0.6;
+  G.evil = { speed: Math.min(EVIL_MAX, baseSpeed()*1.8), fieldStart:null };
+  sfx.growl(); buzz([60,40,120]); toast(t("evilToast"), 2600);
+  G.items = [];
+  ["apple","kitten","farmer","apple","basket","farmer","kitten"].forEach(ty => spawnOne(ty, Infinity));
+}
+function autopilot(){
+  const h = G.snake[0];
+  let target = null, best = 1e9;
+  if (G.items.length){
+    G.items.forEach(i => { const d = wrapDist(h,i); if (d<best){best=d;target=i;} });
+  } else {
+    for (let y=0;y<N;y++) for (let x=0;x<N;x++){
+      if (G.black.has(x+","+y)) continue;
+      const d = wrapDist(h,{x,y}); if (d>0 && d<best){best=d;target={x,y};}
+    }
+  }
+  if (!target) return G.dir;
+  let dx = target.x-h.x, dy = target.y-h.y;
+  if (dx > N/2) dx -= N; if (dx < -N/2) dx += N;
+  if (dy > N/2) dy -= N; if (dy < -N/2) dy += N;
+  const opts = [];
+  if (dx) opts.push({d: dx>0?DIRS.right:DIRS.left, w:Math.abs(dx)});
+  if (dy) opts.push({d: dy>0?DIRS.down:DIRS.up, w:Math.abs(dy)});
+  opts.sort((a,b)=>b.w-a.w);
+  for (const o of opts) if (!(o.d.x===-G.dir.x && o.d.y===-G.dir.y)) return o.d;
+  // only option is a U-turn: sidestep first
+  return G.dir.x ? DIRS.down : DIRS.right;
+}
+
+/* ---------- endings ---------- */
+function endingStarve(){
+  G.over = true; save.endings.starve = 1; clearCheckpoint();
+  modal({ title:t("starveTitle"), text:t("starveText"), buttons:[{label:t("newGame"), cls:"p", on:startStory},{label:t("mainMenu"), on:toMenu}] });
+}
+function endingThanks(){
+  G.over = true; save.endings.thanks = 1; clearCheckpoint(); sfx.warm();
+  G.items = [];
+  modal({ kick:t("e1Kick"), title:t("e1Title"), text:t("e1Text"), big:true,
+    buttons:[{label:t("mainMenu"), cls:"p", on:toMenu},{label:t("playAgain"), on:startStory}] });
+}
+function endingGreed(){
+  G.over = true; save.endings.greed = 1; clearCheckpoint(); sfx.boom();
+  modal({ dark:true, kick:t("e2Kick"), title:t("e2Title"), text:t("e2Text"),
+    buttons:[{label:t("newRoute"), cls:"p", on:newRoute},{label:t("mainMenu"), on:toMenu}] });
+}
+function newRoute(){
+  // reset story progress, start Hunger branch right after the tutorial
+  const c = freshCounters(); c.tut = TH().tut; c.q = true;
+  newGame("story", "hunger", c); show("game"); saveCheckpoint(); countdown(1.8);
+  toast(t("routeHint"), 3500);
+}
+
+/* =========================================================
+   SIMULATION
+   ========================================================= */
+function step(){
+  if (G.phase==="evil") G.dir = autopilot();
+  else if (G.queue.length) G.dir = G.queue.shift();
+  const h = G.snake[0];
+  const nh = { x:(h.x+G.dir.x+N)%N, y:(h.y+G.dir.y+N)%N };   // wrap-around
+  G.prev = G.snake.map(s=>({...s}));
+  const growing = G.grow > 0;
+  const body = growing ? G.snake : G.snake.slice(0,-1);
+  if (G.phase!=="evil" && body.some(s=>s.x===nh.x && s.y===nh.y)) { G.prev = G.snake.map(s=>({...s})); return die(); }
+  G.snake.unshift(nh);
+  if (growing) G.grow--; else G.snake.pop();
+  const idx = G.items.findIndex(i=>i.x===nh.x && i.y===nh.y);
+  if (idx>=0){ const it = G.items.splice(idx,1)[0]; eatItem(it); }
+  if (G.phase==="evil"){
+    if (!G.items.length && G.evil.fieldStart===null) G.evil.fieldStart = G.t;
+    if (G.evil.fieldStart!==null){
+      for (let oy=-1;oy<=1;oy++) for (let ox=-1;ox<=1;ox++)
+        G.black.add(((nh.x+ox+N)%N)+","+((nh.y+oy+N)%N));
+    }
+  }
+}
+function update(dt){
+  if (!G || screen!=="game") return;
+  if (G.flash>0) G.flash -= dt;
+  if (G.hurt>0) G.hurt -= dt;
+  G.tongue += dt;
+  if (modalOpen || G.over) return;
+  if (G.countdown>0){ G.countdown -= dt; return; }
+  G.t += dt;
+  if (G.hintUntil>0) G.hintUntil -= dt;
+  expireItems(); if (modalOpen || G.over) return;
+  spawnLogic();
+  G.acc += dt;
+  let st = 1/speed();
+  while (G.acc >= st && !modalOpen && !G.over){ G.acc -= st; step(); st = 1/speed(); }
+  if (G.mode==="story" && !modalOpen && !G.over) pacerTick(dt);
+  if (G.phase==="evil" && G.evil.fieldStart!==null && !G.over){
+    const e = G.t - G.evil.fieldStart;
+    G.dark = Math.min(1, e/3);
+    if (e >= 3) endingGreed();
+  }
+}
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+function layout(){
+  const st = $("stage"); const r = st.getBoundingClientRect();
+  const avail = Math.max(160, Math.min(r.width-20, r.height-20));
+  cell = Math.max(8, Math.floor(avail / N));
+  dpr = Math.min(3, window.devicePixelRatio||1);
+  const px = cell*N;
+  cv.style.width = cv.style.height = px+"px";
+  cv.width = cv.height = Math.round(px*dpr);
+}
+addEventListener("resize", () => { if (screen==="game") layout(); });
+
+const PAL = {
+  base:  { head:"#2e7d32", a:[46,125,50],  b:[129,199,132], eye:"#111" },
+  fed:   { head:"#558b2f", a:[85,139,47],  b:[205,220,57],  eye:"#111" },
+  hungry:{ head:"#6f9a73", a:[111,154,115],b:[190,214,191], eye:"#333" },
+  evil:  { head:"#5c0f25", a:[92,15,37],   b:[178,58,72],   eye:"#ff1744" }
+};
+const lerp=(a,b,t)=>a+(b-a)*t;
+const rgb=(a,b,t)=>`rgb(${lerp(a[0],b[0],t)|0},${lerp(a[1],b[1],t)|0},${lerp(a[2],b[2],t)|0})`;
+
+function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+function drawApple(x,y,s){
+  const cx=(x+.5)*s, cy=(y+.55)*s, r=s*.36;
+  ctx.fillStyle="#d32f2f"; ctx.beginPath(); ctx.arc(cx-r*.28,cy,r*.82,0,7); ctx.arc(cx+r*.28,cy,r*.82,0,7); ctx.fill();
+  ctx.fillStyle="rgba(255,255,255,.45)"; ctx.beginPath(); ctx.arc(cx-r*.42,cy-r*.3,r*.2,0,7); ctx.fill();
+  ctx.strokeStyle="#5d4037"; ctx.lineWidth=Math.max(1,s*.07); ctx.beginPath(); ctx.moveTo(cx,cy-r*.7); ctx.quadraticCurveTo(cx+s*.03,cy-r*1.2,cx+s*.1,cy-r*1.35); ctx.stroke();
+  ctx.fillStyle="#43a047"; ctx.beginPath(); ctx.ellipse(cx+s*.14,cy-r*1.05,s*.12,s*.06,-.5,0,7); ctx.fill();
+}
+const EMOJI = { kitten:"🐱", farmer:"🧑‍🌾", basket:"🧺" };
+
+function render(){
+  if (screen!=="game" || !G) return;
+  const s = cell;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W = s*N;
+  ctx.clearRect(0,0,W,W);
+  ctx.save(); roundRect(0,0,W,W,14); ctx.clip();
+
+  // field
+  for (let y=0;y<N;y++) for (let x=0;x<N;x++){
+    ctx.fillStyle = (x+y)%2 ? "#dcefdd" : "#e6f4e7";
+    if (G.black.has(x+","+y)) ctx.fillStyle = "#050505";
+    ctx.fillRect(x*s,y*s,s,s);
+  }
+  // open edges hint: soft dashed frame
+  ctx.strokeStyle="rgba(46,125,50,.35)"; ctx.setLineDash([s*.4,s*.35]); ctx.lineWidth=2;
+  ctx.strokeRect(1,1,W-2,W-2); ctx.setLineDash([]);
+
+  // items
+  G.items.forEach(it => {
+    const rem = it.born + it.life - G.t;
+    ctx.globalAlpha = (isFinite(rem) && rem < WARN_SEC) ? (0.55 + 0.45*Math.cos((WARN_SEC-rem)*Math.PI*2*(rem<0.7?4:2))) : 1;
+    const age = G.t - it.born, pop = Math.min(1, age/POP_SEC), sc = pop<1 ? 0.3 + 0.7*(1-Math.pow(1-pop,3)) + Math.sin(pop*Math.PI)*0.12 : 1;
+    ctx.save(); ctx.translate((it.x+.5)*s,(it.y+.5)*s); ctx.scale(sc,sc); ctx.translate(-(it.x+.5)*s,-(it.y+.5)*s);
+    if (isFinite(it.life)){
+      ctx.strokeStyle = G.phase==="hunger" ? "rgba(23,58,34,.35)" : "rgba(211,47,47,.35)";
+      ctx.lineWidth = Math.max(1.5, s*.07);
+      ctx.beginPath(); ctx.arc((it.x+.5)*s,(it.y+.5)*s,s*.48,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.max(0,rem/it.life)); ctx.stroke();
+    }
+    if (it.type==="apple") drawApple(it.x,it.y,s);
+    else { ctx.font = `${Math.floor(s*.78)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(EMOJI[it.type],(it.x+.5)*s,(it.y+.56)*s); }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  });
+
+  drawSnake(s);
+
+  // overlays
+  if (G.dark>0){ ctx.fillStyle=`rgba(0,0,0,${G.dark*.9})`; ctx.fillRect(0,0,W,W); }
+  if (G.flash>0){ ctx.fillStyle = G.phase==="evil" ? `rgba(180,0,30,${G.flash*.6})` : `rgba(0,0,0,${G.flash*.6})`; ctx.fillRect(0,0,W,W); }
+  if (G.countdown>0 && !modalOpen){
+    ctx.fillStyle="rgba(234,244,234,.55)"; ctx.fillRect(0,0,W,W);
+    ctx.fillStyle="#1b5e20"; ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.font=`600 ${Math.floor(s*1.1)}px Georgia,serif`; ctx.fillText(t("ready"), W/2, W/2 - s*1.6);
+    ctx.font=`700 ${Math.floor(s*2.2)}px Georgia,serif`; ctx.fillText(String(Math.ceil(G.countdown/0.6)), W/2, W/2 + s*.6);
+  }
+  if (G.hintUntil>0 && G.countdown<=0 && !modalOpen){
+    const msg = t("hint"); ctx.font=`${Math.max(12,Math.floor(s*.62))}px system-ui,sans-serif`;
+    const w = ctx.measureText(msg).width + s;
+    ctx.globalAlpha = Math.min(1, G.hintUntil);
+    ctx.fillStyle="rgba(23,58,34,.82)"; roundRect(W/2-w/2, W-s*2.1, w, s*1.3, s*.4); ctx.fill();
+    ctx.fillStyle="#fff"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(msg, W/2, W-s*1.45);
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  updateHud();
+}
+
+function drawSnake(s){
+  const sn = G.snake, look = PAL[snakeLook()];
+  const tt = Math.max(0, Math.min(1, G.acc*speed()));
+  const pts = sn.map((p,i)=>{
+    const q = G.prev[i] || p;
+    let dx=p.x-q.x, dy=p.y-q.y;
+    if (dx>1) dx-=N; if (dx<-1) dx+=N; if (dy>1) dy-=N; if (dy<-1) dy+=N;
+    return { x:q.x+dx*tt, y:q.y+dy*tt };
+  });
+  const len = pts.length;
+  const width = i => { const base=.78; const fromTail=len-1-i; return fromTail<3 ? base*(.6+.13*fromTail) : base; };
+  const offs = [[0,0],[N,0],[-N,0],[0,N],[0,-N]];
+  ctx.lineCap="round"; ctx.lineJoin="round";
+  for (const [ox,oy] of offs){
+    for (let i=len-1;i>=1;i--){
+      const a=pts[i], b=pts[i-1];
+      const k = i/(len-1||1);
+      ctx.strokeStyle = rgb(look.a, look.b, k);
+      ctx.lineWidth = width(i)*s;
+      if (Math.abs(a.x-b.x)>1.5 || Math.abs(a.y-b.y)>1.5){
+        ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc((a.x+ox+.5)*s,(a.y+oy+.5)*s,width(i)*s/2,0,7); ctx.fill(); continue;
+      }
+      ctx.beginPath(); ctx.moveTo((a.x+ox+.5)*s,(a.y+oy+.5)*s); ctx.lineTo((b.x+ox+.5)*s,(b.y+oy+.5)*s); ctx.stroke();
+    }
+    drawHead(pts[0].x+ox, pts[0].y+oy, s, look);
+  }
+}
+function drawHead(x,y,s,look){
+  const cx=(x+.5)*s, cy=(y+.5)*s, d=G.dir, r=s*.47;
+  if (cx<-s || cy<-s || cx>s*(N+1) || cy>s*(N+1)) return;
+  ctx.fillStyle = look.head;
+  ctx.beginPath(); ctx.ellipse(cx+d.x*s*.04, cy+d.y*s*.04, d.x? r*1.06:r, d.y? r*1.06:r, 0,0,7); ctx.fill();
+  // tongue
+  if ((G.tongue % 1.6) < .22 && !G.over){
+    const tx=cx+d.x*r*1.0, ty=cy+d.y*r*1.0, L=s*.32;
+    ctx.strokeStyle="#e53935"; ctx.lineWidth=Math.max(1.2,s*.06);
+    ctx.beginPath(); ctx.moveTo(tx,ty); const ex=tx+d.x*L, ey=ty+d.y*L; ctx.lineTo(ex,ey);
+    ctx.moveTo(ex,ey); ctx.lineTo(ex+d.x*s*.1-d.y*s*.08, ey+d.y*s*.1+d.x*s*.08);
+    ctx.moveTo(ex,ey); ctx.lineTo(ex+d.x*s*.1+d.y*s*.08, ey+d.y*s*.1-d.x*s*.08); ctx.stroke();
+  }
+  // eyes
+  const px=-d.y, py=d.x, look2 = snakeLook();
+  for (const sgn of [-1,1]){
+    const ex = cx + d.x*s*.12 + px*sgn*s*.2, ey = cy + d.y*s*.12 + py*sgn*s*.2;
+    ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(ex,ey,s*.13,0,7); ctx.fill();
+    if (look2==="fed"){ ctx.strokeStyle="#111"; ctx.lineWidth=Math.max(1.2,s*.05); ctx.beginPath(); ctx.arc(ex,ey+s*.03,s*.07,Math.PI*1.1,Math.PI*1.9); ctx.stroke(); continue; }
+    const sad = look2==="hungry" ? s*.04 : 0;
+    ctx.fillStyle = look.eye; ctx.beginPath(); ctx.arc(ex+d.x*s*.04, ey+d.y*s*.04+sad, s*.07,0,7); ctx.fill();
+    if (look2==="evil"){
+      ctx.strokeStyle="#111"; ctx.lineWidth=Math.max(1.5,s*.06); ctx.beginPath();
+      ctx.moveTo(ex - d.x*s*.12 + px*sgn*s*.14, ey - d.y*s*.12 + py*sgn*s*.14);
+      ctx.lineTo(ex + d.x*s*.06 - px*sgn*s*.02, ey + d.y*s*.06 - py*sgn*s*.02); ctx.stroke();
+    }
+  }
+}
+
+let hudCache = "";
+function updateHud(){
+  const c = G.c, th = TH(); let a="", b="";
+  switch(G.phase){
+    case "simple": a=t("hudScore",G.score); b=t("hudBest",Math.max(save.best||0,G.score)); break;
+    case "tutorial": a=t("hudTut",c.tut,th.tut); b=t("tutGoal"); break;
+    case "choice": a=t("hudEaten",c.total); b=t("hudIgnored",c.ignored); break;
+    case "classic": a=t("hudClassic",c.total,th.greed); b=t("hudIgnored",c.ignored); break;
+    case "hunger": a=t("hudAvoid",c.avoided,th.avoid); b=t("hudAvoidSub",c.total,th.greed); break;
+    case "evil": a=t("hudEvil"); b="…"; break;
+  }
+  const ph = T().ph[G.phase] || "";
+  const hearts = G.phase==="evil" ? "" : "♥".repeat(G.lives) + "♡".repeat(Math.max(0, LIVES-G.lives));
+  const key = a+"|"+b+"|"+ph+"|"+hearts;
+  if (key!==hudCache){ hudCache=key; $("hud1").textContent=a; $("hud2").textContent=b; $("phaseTag").textContent=ph; $("lives").textContent=hearts; }
+  $("lives").classList.toggle("hurt", G.hurt>0);
+}
+
+/* =========================================================
+   LOOP + WIRING
+   ========================================================= */
+let last = performance.now();
+function frame(now){ const dt = Math.min(0.05,(now-last)/1000); last = now; update(dt); render(); requestAnimationFrame(frame); }
+requestAnimationFrame(frame);
+
+$("bStory").onclick = () => { audio(); if (save.checkpoint) modal({ text:t("restart")+"?", buttons:[{label:t("restart"), cls:"p", on:startStory},{label:t("cancel")}] }); else startStory(); };
+$("bCont").onclick = () => { audio(); continueStory(); };
+$("bSimple").onclick = () => { audio(); startSimple(); };
+$("bSettings").onclick = () => { audio(); settingsModal(()=>{}); };
+$("bTut").onclick = () => { audio(); tutorial(0, ()=>{}, false); };
+$("bAbout").onclick = () => { audio(); modal({ title:t("aboutTitle"), text:t("aboutBody"), src:t("aboutSrc"), buttons:[{label:t("close"), cls:"p"}] }); };
+
+// test hook for QA automation
+window.__ss = { get G(){ return G; }, settings, save, step, startEvil };  // QA hook
+
+applyLang(); applyPad();
+})();
+</script>
+</body>
+</html>
