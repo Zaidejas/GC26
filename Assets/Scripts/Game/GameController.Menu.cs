@@ -52,14 +52,14 @@ namespace BlockDrop
                 var piece = new FallingPiece();
                 RespawnPiece(piece);
                 // Spread the first ones over the whole screen so the menu never opens empty.
-                piece.Y = MenuRange(-12f, 13f);
+                piece.Y = MenuRange(-mainCamera.orthographicSize, mainCamera.orthographicSize + 2f);
                 menuPieces.Add(piece);
             }
 
             foreach (FallingPiece piece in menuPieces)
             {
                 piece.Y -= piece.Speed * deltaTime;
-                if (piece.Y < -15f)
+                if (piece.Y < -mainCamera.orthographicSize - 3f)
                     RespawnPiece(piece);
             }
         }
@@ -70,7 +70,7 @@ namespace BlockDrop
             piece.Rotation = menuRandom.Next(PieceShapes.RotationCount);
             float halfWidth = mainCamera.orthographicSize * Screen.width / Mathf.Max(1, Screen.height) + 1f;
             piece.X = MenuRange(-halfWidth, halfWidth);
-            piece.Y = MenuRange(13f, 18f);
+            piece.Y = MenuRange(mainCamera.orthographicSize + 2f, mainCamera.orthographicSize + 7f);
             // Nearer pieces are larger, brighter and faster, which gives the background some depth.
             float depth = (float)menuRandom.NextDouble();
             piece.Cell = Mathf.Lerp(0.55f, 1.1f, depth);
@@ -92,10 +92,11 @@ namespace BlockDrop
             for (int i = 0; i < MenuItems.Length; i++)
                 DrawMenuButton(i, unit);
 
-            DrawTablePanel("Марафон: лучшие очки", -4.65f, marathonTable, unit);
-            DrawTablePanel("Бой: лучшие очки", 4.65f, battleTable, unit);
-            Label("↑ ↓ выбрать    Enter подтвердить    или мышью", 0f, -9.95f, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
-            Label("Монеты: " + coinsTotal.ToString("N0"), 9.6f, -9.95f, unit, 0.42f, TextAnchor.MiddleCenter, new Color(1f, 0.8f, 0.25f));
+            DrawTablePanel("Марафон: лучшие очки", HudLayout.MenuTable(0), marathonTable, unit);
+            DrawTablePanel("Бой: лучшие очки", HudLayout.MenuTable(1), battleTable, unit);
+            Label("↑ ↓ выбрать    Enter подтвердить    или мышью", 0f, HudLayout.MenuHintY, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
+            Vector2 coins = HudLayout.MenuCoins;
+            Label("Монеты: " + coinsTotal.ToString("N0"), coins.x, coins.y, unit, 0.42f, TextAnchor.MiddleCenter, new Color(1f, 0.8f, 0.25f));
         }
 
         void DrawMenuBackground()
@@ -114,7 +115,7 @@ namespace BlockDrop
             float visibleWidth = 2f * mainCamera.orthographicSize * Screen.width / Mathf.Max(1, Screen.height);
             float cell = Mathf.Min(0.5f, visibleWidth * 0.92f / TitleColumns);
             float left = -TitleColumns * cell / 2f + cell / 2f;
-            const float CenterY = 7.3f;
+            float CenterY = HudLayout.MenuTitleY;
 
             int column = 0;
             for (int letter = 0; letter < TitleLetters.Length; letter++)
@@ -231,6 +232,8 @@ namespace BlockDrop
         static readonly PauseItem[] PauseItems = { PauseItem.Resume, PauseItem.Restart, PauseItem.Sound, PauseItem.Menu };
 
         const float PauseTopY = 2.6f;
+
+        static float PauseCenterY { get { return HudLayout.GameCameraY; } }
         const float PauseStepY = 2.2f;
         const float PauseItemWidth = 11f;
         const float PauseItemHeight = 1.85f;
@@ -254,7 +257,7 @@ namespace BlockDrop
             for (int i = 0; i < pauseGlow.Length; i++)
                 pauseGlow[i] = Mathf.MoveTowards(pauseGlow[i], i == pauseIndex ? 1f : 0f, Time.deltaTime * 7f);
 
-            if (HandleButtons(ref pauseIndex, PauseItems.Length, PauseTopY, PauseStepY, PauseItemWidth, PauseItemHeight))
+            if (HandleButtons(ref pauseIndex, PauseItems.Length, PauseTopY + PauseCenterY, PauseStepY, PauseItemWidth, PauseItemHeight))
                 ActivatePauseItem();
         }
 
@@ -286,18 +289,21 @@ namespace BlockDrop
         {
             FillWorld(0f, 0f, 200f, 200f, new Color(0.03f, 0.02f, 0.06f, 0.8f));
 
+            // Centred on the screen, which in the tall layout is above the middle of the well.
+            float cy = PauseCenterY;
             Color accent = view.AccentColor;
-            RoundedWorld(0f, -0.35f, 14.6f, 16.9f, new Color(0f, 0f, 0f, 0.45f), 0.6f, 0f, unit);
-            RoundedWorld(0f, -0.2f, 14.6f, 16.9f, new Color(0.09f, 0.075f, 0.14f, 1f), 0.6f, 0f, unit);
-            RoundedWorld(0f, -0.2f, 14.6f, 16.9f, new Color(accent.r, accent.g, accent.b, 0.35f), 0.6f, 0.05f, unit);
+            RoundedWorld(0f, cy - 0.35f, 14.6f, 16.9f, new Color(0f, 0f, 0f, 0.45f), 0.6f, 0f, unit);
+            RoundedWorld(0f, cy - 0.2f, 14.6f, 16.9f, new Color(0.09f, 0.075f, 0.14f, 1f), 0.6f, 0f, unit);
+            RoundedWorld(0f, cy - 0.2f, 14.6f, 16.9f, new Color(accent.r, accent.g, accent.b, 0.35f), 0.6f, 0.05f, unit);
 
-            Label("ПАУЗА", 0f, 6.65f, unit, 1.25f, TextAnchor.MiddleCenter, accent);
-            Label(PauseStats(), 0f, 4.75f, unit, 0.5f, TextAnchor.MiddleCenter, Muted);
+            Label("ПАУЗА", 0f, cy + 6.65f, unit, 1.25f, TextAnchor.MiddleCenter, accent);
+            Label(PauseStats(), 0f, cy + 4.75f, unit, HudLayout.Portrait ? 0.42f : 0.5f, TextAnchor.MiddleCenter, Muted);
 
             for (int i = 0; i < PauseItems.Length; i++)
-                DrawButton(PauseText(PauseItems[i]), null, PauseTopY - i * PauseStepY, PauseItemWidth, PauseItemHeight, pauseGlow[i], TitleColors[i], unit);
+                DrawButton(PauseText(PauseItems[i]), null, cy + PauseTopY - i * PauseStepY, PauseItemWidth, PauseItemHeight, pauseGlow[i], TitleColors[i], unit);
 
-            Label("P продолжить   R заново   Backspace в меню", 0f, -7.65f, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
+            if (!HudLayout.Portrait)
+                Label("P продолжить   R заново   Backspace в меню", 0f, cy - 7.65f, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
         }
 
         string PauseText(PauseItem item)
@@ -328,16 +334,17 @@ namespace BlockDrop
             }
         }
 
-        void DrawTablePanel(string title, float x, Leaderboard table, float unit)
+        void DrawTablePanel(string title, Vector2 center, Leaderboard table, float unit)
         {
-            RoundedWorld(x, -6.9f, 8.7f, 4.7f, new Color(0.11f, 0.09f, 0.16f, 0.92f), 0.35f, 0f, unit);
-            Label(title, x, -5.08f, unit, 0.5f, TextAnchor.MiddleCenter, view.AccentColor);
+            float x = center.x;
+            RoundedWorld(x, center.y, 8.7f, 4.7f, new Color(0.11f, 0.09f, 0.16f, 0.92f), 0.35f, 0f, unit);
+            Label(title, x, center.y + 1.82f, unit, 0.5f, TextAnchor.MiddleCenter, view.AccentColor);
             for (int i = 0; i < Leaderboard.Size; i++)
             {
                 bool filled = i < table.Entries.Count;
                 string value = filled ? ((long)table.Entries[i]).ToString("N0") : "—";
                 Color color = !filled ? new Color(Muted.r, Muted.g, Muted.b, 0.4f) : i == 0 ? Bright : Muted;
-                float rowY = -5.82f - i * 0.68f;
+                float rowY = center.y + 1.08f - i * 0.68f;
                 Label((i + 1).ToString(), x - 2.6f, rowY, unit, 0.46f, TextAnchor.MiddleCenter, color);
                 Label(value, x + 0.5f, rowY, unit, 0.5f, TextAnchor.MiddleCenter, color);
             }

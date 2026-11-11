@@ -18,8 +18,6 @@ namespace BlockDrop
         const string CoinsName = "Coins";
         const float RepeatDelay = 0.17f;
         const float RepeatInterval = 0.045f;
-        const float WorldWidth = 22f;
-        const float WorldHeight = 22f;
         const float PopupLife = 1.1f;
         const float BannerLife = 1.5f;
 
@@ -59,7 +57,7 @@ namespace BlockDrop
 
         static readonly MenuItem[] MenuItems = { MenuItem.Marathon, MenuItem.Battle, MenuItem.Sound, MenuItem.Exit };
 
-        const float MenuTopY = 4.3f;
+        static float MenuTopY { get { return HudLayout.MenuTopY; } }
         const float MenuStepY = 2.05f;
         const float MenuItemWidth = 12f;
         const float MenuItemHeight = 1.75f;
@@ -396,6 +394,7 @@ namespace BlockDrop
                 view.Render(game, Time.deltaTime);
                 UpdateJuice(Time.deltaTime);
                 mainCamera.backgroundColor = view.BackgroundColor;
+                // The menu is laid out around the middle of the screen in both layouts.
                 mainCamera.transform.position = new Vector3(0f, 0f, -10f);
                 return;
             }
@@ -418,7 +417,7 @@ namespace BlockDrop
             UpdateJuice(Time.deltaTime);
             mainCamera.backgroundColor = view.BackgroundColor;
             Vector2 shake = view.Effects.ShakeOffset;
-            mainCamera.transform.position = new Vector3(shake.x, shake.y, -10f);
+            mainCamera.transform.position = new Vector3(shake.x, HudLayout.GameCameraY + shake.y, -10f);
         }
 
         // Test aid (-specialCycle): every piece is special, bomb and lightning in turn.
@@ -484,9 +483,18 @@ namespace BlockDrop
 
         void FitCameraToWindow()
         {
+            if (HudLayout.Refresh(Screen.width, Screen.height) || !layoutApplied)
+            {
+                layoutApplied = true;
+                view.ApplyLayout();
+                RelayoutBattle();
+                Debug.Log("[BlockDrop] Layout " + (HudLayout.Portrait ? "portrait" : "landscape") + " " + Screen.width + "x" + Screen.height);
+            }
             float aspect = (float)Screen.width / Mathf.Max(1, Screen.height);
-            mainCamera.orthographicSize = Mathf.Max(WorldHeight / 2f, WorldWidth / aspect / 2f);
+            mainCamera.orthographicSize = HudLayout.OrthoSize(aspect);
         }
+
+        bool layoutApplied;
 
         void HandleSystemKeys()
         {
@@ -573,31 +581,41 @@ namespace BlockDrop
                 return;
             }
 
-            Label("ЗАПАС", BoardView.LeftPanelX, 8.0f, unit, 0.55f, TextAnchor.MiddleCenter, Muted);
-            Label("ДАЛЕЕ", BoardView.RightPanelX, 8.0f, unit, 0.55f, TextAnchor.MiddleCenter, Muted);
+            bool portrait = HudLayout.Portrait;
+            Vector2 holdLabel = HudLayout.HoldLabel, nextLabel = HudLayout.NextLabel;
+            float headerSize = portrait ? 0.45f : 0.55f;
+            Label("ЗАПАС", holdLabel.x, holdLabel.y, unit, headerSize, TextAnchor.MiddleCenter, Muted);
+            Label("ДАЛЕЕ", nextLabel.x, nextLabel.y, unit, headerSize, TextAnchor.MiddleCenter, Muted);
 
-            Stat("СЧЁТ", Mathf.RoundToInt(shownScore).ToString("N0"), 2.2f, unit, 1f + scoreKick * 0.35f);
-            Stat("УРОВЕНЬ", game.Level.ToString("N0"), -2.2f, unit);
+            Stat("СЧЁТ", Mathf.RoundToInt(shownScore).ToString("N0"), StatSlot.Score, unit, 1f + scoreKick * 0.35f);
+            Stat("УРОВЕНЬ", game.Level.ToString("N0"), StatSlot.Level, unit);
+            Stat("ЛИНИИ", game.Lines.ToString("N0"), StatSlot.Lines, unit);
             if (game.Mode == GameMode.Battle)
             {
-                int best = Mathf.Max(Best(battleTable), game.Score);
-                Label("рекорд " + best.ToString("N0"), BoardView.LeftPanelX, 1.2f, unit, 0.36f, TextAnchor.MiddleCenter, Muted);
-                Stat("МОНЕТЫ", Mathf.RoundToInt(shownCoins).ToString("N0"), 0f, unit, 1f + coinKick * 0.25f);
-                Stat("ЛИНИИ", game.Lines.ToString("N0"), -4.4f, unit);
+                // In the tall layout the bot panel shows coins and the best score itself.
+                if (!portrait)
+                {
+                    int best = Mathf.Max(Best(battleTable), game.Score);
+                    Label("рекорд " + best.ToString("N0"), BoardView.LeftPanelX, 1.2f, unit, 0.36f, TextAnchor.MiddleCenter, Muted);
+                    Stat("МОНЕТЫ", Mathf.RoundToInt(shownCoins).ToString("N0"), StatSlot.Second, unit, 1f + coinKick * 0.25f);
+                }
             }
             else
             {
-                Stat("РЕКОРД", Mathf.Max(bestScore, game.Score).ToString("N0"), 0f, unit);
-                Stat("ЛИНИИ", game.Lines.ToString("N0"), -4.4f, unit);
+                Stat("РЕКОРД", Mathf.Max(bestScore, game.Score).ToString("N0"), StatSlot.Second, unit);
             }
 
-            Label("BlockDrop", BoardView.LeftPanelX, 10.2f, unit, 0.8f, TextAnchor.MiddleCenter, view.AccentColor);
-            Label("← → ход   ↑ поворот   ↓ быстрее   Пробел сброс", 0f, -10.55f, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
+            // Keyboard hints and the side title only fit the wide layout.
+            if (!portrait)
+            {
+                Label("BlockDrop", BoardView.LeftPanelX, 10.2f, unit, 0.8f, TextAnchor.MiddleCenter, view.AccentColor);
+                Label("← → ход   ↑ поворот   ↓ быстрее   Пробел сброс", 0f, -10.55f, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
+            }
             if (game.Mode == GameMode.Battle)
             {
                 DrawBotPanel(unit);
             }
-            else
+            else if (!portrait)
             {
                 Label("C запас   P пауза   R заново", BoardView.RightPanelX, -3.0f, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
                 Label("M звук: " + (gameAudio.Muted ? "выкл." : "вкл."), BoardView.RightPanelX, -3.7f, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
@@ -607,15 +625,23 @@ namespace BlockDrop
             {
                 // The multiplier the next clear would earn, so keeping the chain feels worth it.
                 float next = Game.ComboMultiplier(game.Combo + 1);
-                Label("КОМБО " + game.Combo, BoardView.LeftPanelX, -6.6f, unit, 0.6f, TextAnchor.MiddleCenter, view.AccentColor);
-                Label("дальше ×" + MultiplierText(next), BoardView.LeftPanelX, -7.5f, unit, 0.62f * (1f + comboKick * 0.4f), TextAnchor.MiddleCenter, Bright);
+                Vector2 combo = HudLayout.ComboLine;
+                if (portrait)
+                {
+                    Label("КОМБО " + game.Combo + "   ·   дальше ×" + MultiplierText(next), combo.x, combo.y, unit, 0.5f * (1f + comboKick * 0.3f), TextAnchor.MiddleCenter, view.AccentColor);
+                }
+                else
+                {
+                    Label("КОМБО " + game.Combo, combo.x, combo.y, unit, 0.6f, TextAnchor.MiddleCenter, view.AccentColor);
+                    Label("дальше ×" + MultiplierText(next), combo.x, combo.y - 0.9f, unit, 0.62f * (1f + comboKick * 0.4f), TextAnchor.MiddleCenter, Bright);
+                }
             }
 
             if (game.Mode != GameMode.Battle)
             {
-                float legendX = BoardView.RightPanelX + 0.45f;
-                Label("взрыв 5×5", legendX, BoardView.LegendY(0), unit, 0.4f, TextAnchor.MiddleCenter, Muted);
-                Label("весь столбец", legendX, BoardView.LegendY(1), unit, 0.4f, TextAnchor.MiddleCenter, Muted);
+                float legendX = HudLayout.LegendTextX;
+                Label("взрыв 5×5", legendX, HudLayout.LegendIcon(0).y, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
+                Label("весь столбец", legendX, HudLayout.LegendIcon(1).y, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
             }
 
             DrawPopups(unit);
@@ -632,10 +658,12 @@ namespace BlockDrop
         static readonly Color Muted = new Color(0.68f, 0.65f, 0.76f);
         static readonly Color Bright = new Color(0.96f, 0.94f, 0.98f);
 
-        void Stat(string caption, string value, float worldY, float unit, float valueScale = 1f)
+        void Stat(string caption, string value, StatSlot slot, float unit, float valueScale = 1f)
         {
-            Label(caption, BoardView.LeftPanelX, worldY + 0.55f, unit, 0.5f, TextAnchor.MiddleCenter, Muted);
-            Label(value, BoardView.LeftPanelX, worldY - 0.25f, unit, 0.85f * valueScale, TextAnchor.MiddleCenter, Bright);
+            Vector2 at = HudLayout.Stat(slot);
+            float scale = HudLayout.StatScale(slot);
+            Label(caption, at.x, at.y + 0.55f * scale, unit, 0.5f * scale, TextAnchor.MiddleCenter, Muted);
+            Label(value, at.x, at.y - 0.25f * scale, unit, 0.85f * scale * valueScale, TextAnchor.MiddleCenter, Bright);
         }
 
         void DrawPopups(float unit)

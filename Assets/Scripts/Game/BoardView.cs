@@ -78,6 +78,7 @@ namespace BlockDrop.View
         public Color PanelColor { get { return panelColor; } }
 
         readonly List<SpriteRenderer> legendIcons = new List<SpriteRenderer>();
+        SpriteRenderer nextPanel, holdPanel, statsPanel;
 
         /// <summary>The battle mode uses this corner for the bot.</summary>
         public void SetLegendVisible(bool visible)
@@ -151,23 +152,32 @@ namespace BlockDrop.View
             zone = CreateRenderer("SpecialZone", plainSprite, Vector2.zero, 1f, 3);
             zone.enabled = false;
 
-            CreateLegendIcon(SpecialKind.Bomb, LegendY(0));
-            CreateLegendIcon(SpecialKind.Lightning, LegendY(1));
+            CreateLegendIcon(SpecialKind.Bomb);
+            CreateLegendIcon(SpecialKind.Lightning);
+            ApplyLayout();
         }
 
-        /// <summary>World height of a line in the special-block legend under the right panel.</summary>
-        public static float LegendY(int line)
+        void CreateLegendIcon(SpecialKind kind)
         {
-            return -5.0f - line * 1.05f;
-        }
-
-        public static float LegendIconX { get { return RightPanelX - 2.05f; } }
-
-        void CreateLegendIcon(SpecialKind kind, float y)
-        {
-            SpriteRenderer icon = CreateRenderer("LegendIcon", SpecialIcons.Get(kind), new Vector2(LegendIconX, y), 0.8f, 2);
+            SpriteRenderer icon = CreateRenderer("LegendIcon", SpecialIcons.Get(kind), Vector2.zero, 0.8f, 2);
             icon.color = Color.white;
             legendIcons.Add(icon);
+        }
+
+        /// <summary>Moves the panels and legend to the current layout. Call after the window changes shape.</summary>
+        public void ApplyLayout()
+        {
+            PlacePanel(nextPanel, HudLayout.NextPanelCenter, HudLayout.NextPanelSize);
+            PlacePanel(holdPanel, HudLayout.HoldPanelCenter, HudLayout.HoldPanelSize);
+            PlacePanel(statsPanel, HudLayout.StatsPanelCenter, HudLayout.StatsPanelSize);
+            for (int i = 0; i < legendIcons.Count; i++)
+                legendIcons[i].transform.localPosition = HudLayout.LegendIcon(i);
+        }
+
+        static void PlacePanel(SpriteRenderer panel, Vector2 center, Vector2 size)
+        {
+            panel.transform.localPosition = center;
+            panel.transform.localScale = new Vector3(size.x, size.y, 1f);
         }
 
         SpriteRenderer CreateIconRenderer()
@@ -368,15 +378,14 @@ namespace BlockDrop.View
 
             for (int slot = 0; slot < previews.Length; slot++)
             {
-                Vector2 center = new Vector2(RightPanelX, 6.2f - slot * 3f);
-                DrawPreview(previews[slot], game.GetUpcoming(slot), center, true);
+                DrawPreview(previews[slot], game.GetUpcoming(slot), HudLayout.NextCenter(slot), true);
             }
 
             bool hasHold = game.HeldType.HasValue;
             foreach (SpriteRenderer cell in holdCells)
                 cell.enabled = hasHold;
             if (hasHold)
-                DrawPreview(holdCells, game.HeldType.Value, new Vector2(LeftPanelX, 6.2f), game.CanHold);
+                DrawPreview(holdCells, game.HeldType.Value, HudLayout.HoldCenter, game.CanHold);
 
             UpdateSpecialVisuals(game);
             UpdateFlashes(deltaTime);
@@ -487,17 +496,17 @@ namespace BlockDrop.View
             wellRenderer.transform.localScale = new Vector3(Board.Width + 0.3f, Board.VisibleHeight + 0.3f, 1f);
             wellRenderer.color = wellColor;
 
-            CreatePanel(new Vector2(RightPanelX, 3.2f), new Vector2(5f, 10.6f));
-            CreatePanel(new Vector2(LeftPanelX, 6.2f), new Vector2(5f, 4.6f));
-            CreatePanel(new Vector2(LeftPanelX, -1.05f), new Vector2(5f, 9.1f));
+            nextPanel = CreatePanel();
+            holdPanel = CreatePanel();
+            statsPanel = CreatePanel();
         }
 
-        void CreatePanel(Vector2 center, Vector2 size)
+        SpriteRenderer CreatePanel()
         {
-            SpriteRenderer panel = CreateRenderer("Panel", plainSprite, center, 1f, 0);
-            panel.transform.localScale = new Vector3(size.x, size.y, 1f);
+            SpriteRenderer panel = CreateRenderer("Panel", plainSprite, Vector2.zero, 1f, 0);
             panel.color = panelColor;
             panels.Add(panel);
+            return panel;
         }
 
         SpriteRenderer[] CreateCellGroup()

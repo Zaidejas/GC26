@@ -7,10 +7,6 @@ namespace BlockDrop
     /// <summary>The battle mode on screen: bot panel, damage numbers and coins.</summary>
     public sealed partial class GameController
     {
-        const float BotPanelCenterY = -6.5f;
-        const float BotPanelHeight = 7.8f;
-        const float BotPanelWidth = 5f;
-        const float BotCenterY = -6.3f;
         const int MaxCoinsPerDrop = 14;
 
         Battle battle;
@@ -23,10 +19,7 @@ namespace BlockDrop
         void CreateBattleView()
         {
             battleView = new BattleView(transform, spriteMaterial, view.PlainSprite, view.PanelColor, view.Effects,
-                new Vector2(BoardView.RightPanelX, BotCenterY),
-                new Vector2(BoardView.LeftPanelX, -0.25f),
-                new Vector2(BoardView.RightPanelX, BotPanelCenterY),
-                new Vector2(BotPanelWidth, BotPanelHeight));
+                HudLayout.BotCenter, HudLayout.CoinCounter, HudLayout.BotPanelCenter, HudLayout.BotPanelSize);
             battleView.CoinArrived += () =>
             {
                 coinKick = 1f;
@@ -60,8 +53,9 @@ namespace BlockDrop
 
             battleView.DropCoins(Mathf.Min(hit.Coins, MaxCoinsPerDrop));
             string multiplier = clear.Multiplier > 1f ? "  ×" + MultiplierText(clear.Multiplier) : "";
-            AddPopup(PopupSlot.Damage, "−" + hit.Damage + multiplier, BotCenterY + 1.05f, 0.8f, 0.9f, 0.45f,
-                new Color(1f, 0.45f, 0.35f), BoardView.RightPanelX);
+            Vector2 bot = HudLayout.BotCenter;
+            AddPopup(PopupSlot.Damage, "−" + hit.Damage + multiplier, bot.y + 1.05f, 0.8f, 0.9f, 0.45f,
+                new Color(1f, 0.45f, 0.35f), bot.x);
 
             if (hit.Defeated)
             {
@@ -91,10 +85,11 @@ namespace BlockDrop
 
         void DrawBotPanel(float unit)
         {
-            float x = BoardView.RightPanelX;
-            Label("Бот " + battle.Level + ": " + BattleView.NameFor(battle.Level), x, -3.12f, unit, 0.44f, TextAnchor.MiddleCenter, Bright);
+            float x = HudLayout.BotCenter.x;
+            Label("Бот " + battle.Level + ": " + BattleView.NameFor(battle.Level), x, HudLayout.BotNameY, unit, 0.44f, TextAnchor.MiddleCenter, Bright);
 
-            const float BarWidth = 4.3f, BarHeight = 0.5f, BarY = -3.85f;
+            const float BarWidth = 4.3f, BarHeight = 0.5f;
+            float BarY = HudLayout.BotBarY;
             RoundedWorld(x, BarY, BarWidth, BarHeight, new Color(0.05f, 0.04f, 0.08f, 1f), 0.14f, 0f, unit);
             float fill = (BarWidth - 0.1f) * Mathf.Clamp01(shownHpShare);
             if (fill > 0.05f)
@@ -104,8 +99,22 @@ namespace BlockDrop
             }
             Label(battle.Hp + " / " + battle.MaxHp, x, BarY, unit, 0.32f, TextAnchor.MiddleCenter, Bright);
 
+            if (HudLayout.Portrait)
+            {
+                // The tall layout has no left column to spare, so coins and best score sit under the bot.
+                int best = Mathf.Max(Best(battleTable), game.Score);
+                Vector2 coins = HudLayout.CoinCounter;
+                Label("монеты " + Mathf.RoundToInt(shownCoins).ToString("N0"), coins.x, coins.y, unit, 0.5f * (1f + coinKick * 0.25f), TextAnchor.MiddleCenter, new Color(1f, 0.8f, 0.25f));
+                Label("рекорд " + best.ToString("N0") + "   ·   повержено " + battle.BotsDefeated, coins.x, coins.y - 0.62f, unit, 0.34f, TextAnchor.MiddleCenter, Muted);
+                return;
+            }
             Label("Повержено: " + battle.BotsDefeated, x, -8.75f, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
             Label("C запас   P пауза", x, -9.7f, unit, 0.34f, TextAnchor.MiddleCenter, Muted);
+        }
+
+        void RelayoutBattle()
+        {
+            battleView.Relayout(HudLayout.BotCenter, HudLayout.CoinCounter, HudLayout.BotPanelCenter, HudLayout.BotPanelSize);
         }
     }
 }

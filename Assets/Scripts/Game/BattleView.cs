@@ -47,8 +47,8 @@ namespace BlockDrop.View
         Color tint = BotColors[0];
         float hitTimer, appearTimer, clock;
 
-        public Vector2 BotCenter { get; }
-        public Vector2 CoinTarget { get; }
+        public Vector2 BotCenter { get; private set; }
+        public Vector2 CoinTarget { get; private set; }
         public Sprite CoinSprite { get { return coinSprite; } }
 
         /// <summary>Raised when a coin reaches the counter.</summary>
@@ -88,6 +88,15 @@ namespace BlockDrop.View
             coins.Clear();
             if (visible)
                 BotAppears(1);
+        }
+
+        /// <summary>Moves the bot, its panel and the coin target, for example when the window changes shape.</summary>
+        public void Relayout(Vector2 botCenter, Vector2 coinTarget, Vector2 panelCenter, Vector2 panelSize)
+        {
+            BotCenter = botCenter;
+            CoinTarget = coinTarget;
+            panel.transform.localPosition = panelCenter;
+            panel.transform.localScale = new Vector3(panelSize.x, panelSize.y, 1f);
         }
 
         public void SetPanelColor(Color color)
