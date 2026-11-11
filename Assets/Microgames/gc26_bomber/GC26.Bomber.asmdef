@@ -2,7 +2,8 @@
   "name": "GC26.Bomber",
   "rootNamespace": "GC26.Bomber",
   "references": [
-    "GC26.Core"
+    "GC26.Core",
+    "Unity.InputSystem"
   ],
   "autoReferenced": false
 }

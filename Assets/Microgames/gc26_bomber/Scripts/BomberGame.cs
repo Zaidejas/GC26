@@ -4,18 +4,30 @@ using UnityEngine;
 
 namespace GC26.Bomber
 {
+    /// <summary>
+    /// Entry point for the GC26 shell (the only IMicrogame in gc26_bomber_Main).
+    /// Builds the whole session under a BomberContext child, so the scene needs just this one object.
+    /// </summary>
     public class BomberGame : MonoBehaviour, IMicrogame
     {
         public const string Id = "gc26_bomber";
 
         Action<int> _exit;
         bool _started;
+        BomberContext _context;
 
         public void Begin(Action<int> exit)
         {
             _started = true;
             _exit = exit;
-            // TODO: load the save (MicrogameSave.Folder(Id)) and start the game
+            // TODO: load meta progress from MicrogameSave.Folder(Id) when the hub is ported
+            if (_context == null)
+            {
+                var go = new GameObject("gc26_bomber_Context");
+                go.transform.SetParent(transform, false);
+                _context = go.AddComponent<BomberContext>();
+                _context.Init(this);
+            }
         }
 
         void Start()
@@ -29,6 +41,7 @@ namespace GC26.Bomber
         public void ExitToMenu(int score)
         {
             // TODO: save progress before leaving
+            Time.timeScale = 1f;
             var exit = _exit;
             _exit = null;
             exit?.Invoke(score);
