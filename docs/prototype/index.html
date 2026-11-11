@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Red Flags Prototype</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- Main menu -->
+    <section id="menu" class="screen">
+      <h1>Avoid the<br><span class="red">Red Flags</span></h1>
+      <p class="hint">Tap to open · long press (or right-click) for a yellow flag</p>
+      <div id="levels"></div>
+    </section>
+
+    <!-- Game screen -->
+    <section id="game" class="screen hidden">
+      <header class="topbar">
+        <button id="btn-menu" class="icon-btn" aria-label="Menu">☰</button>
+        <span id="counter" class="digits">010</span>
+        <button id="btn-face" class="icon-btn face" aria-label="Restart">🙂</button>
+        <span id="timer" class="digits">000</span>
+      </header>
+
+      <div id="board-wrap"><div id="board"></div></div>
+
+      <footer class="bottombar">
+        <button id="mode-reveal" class="mode active">⛏ Reveal</button>
+        <button id="mode-flag" class="mode"><span class="flag yellow small"></span> Flag</button>
+      </footer>
+
+      <!-- End-of-round panel -->
+      <div id="panel" class="panel hidden">
+        <h2 id="panel-title"></h2>
+        <p id="panel-line"></p>
+        <div class="panel-buttons">
+          <button id="btn-again">Play again</button>
+          <button id="btn-panel-menu">Menu</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+  <script src="loss_lines.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
