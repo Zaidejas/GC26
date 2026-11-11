@@ -3,7 +3,7 @@
 **Language / Язык:** English (below) · [Русский](#русская-версия)
 
 Companion to [Colours_GDD.md](Colours_GDD.md). This document describes **how** the game is built inside the GC26 microgames project.
-The repository rules are in [RULES.md](../RULES.md) and take priority over anything here.
+The repository rules are in [RULES.md](../../../../RULES.md) and take priority over anything here.
 
 | | |
 | --- | --- |
@@ -57,6 +57,7 @@ Assets/Microgames/gc26_2048_nastya/
     microgame.json
     GC26._2048Nastya.asmdef                 references: GC26.Core, Unity.InputSystem, Unity.TextMeshPro, UnityEngine.UI
     README.md
+    Docs~/                           Colours_GDD.md, Colours_TDD.md, Colours_prototype.html (Unity ignores folders ending in ~)
     Scenes/
         gc26_2048_nastya_Main.unity          entry scene (one IMicrogame component)
     Scripts/
@@ -468,7 +469,6 @@ git config core.hooksPath tools/hooks
 | Mixing this game up with the other 2048 in the same repository (`gc26_2048`, cheese design, branch `game/gc26_2048`, clone `C:\Users\20260047\Unity\2048`) | Separate ID, folder, branch, namespace, scene names and save keys (section 1.1); separate clone `C:\Users\20260047\Unity\GC26_Nastya`; never copy files between the two folders |
 | `gc26_2048_nastya` is not in `tools/games.txt` on `main` yet | PR from branch `core/add-gc26_2048_nastya` to the organizer; until it is merged, `check_scope.py` also reports `tools/games.txt` |
 | `Assets/Microgames.meta` is not in `main` yet; Unity creates it on first open, and it is outside our folder | Do not commit it on the game branch; ask the organizer to add it to `main` |
-| The design docs are in `docs/` at the repository root, outside the game folder (rule 1), so `check_scope.py` reports them | Agree with the organizer that `docs/Colours_GDD.md` and `docs/Colours_TDD.md` may stay there, or keep them out of the PR to `main` |
 | The shell's camera and EventSystem setup is not in `main` yet | The fallback in sections 7.3 and 9; re-check when the shell scene lands |
 | Animation desync under very fast input | A single source of truth (model); `FinishNow()` before every new move; PlayMode test with rapid input |
 
@@ -480,7 +480,7 @@ git config core.hooksPath tools/hooks
 # Colours — технический дизайн-документ (TDD, gc26_2048_nastya)
 
 Дополняет [Colours_GDD.md](Colours_GDD.md). Этот документ описывает, **как** игра устроена внутри проекта микроигр GC26.
-Правила репозитория — в [RULES.md](../RULES.md); они важнее всего, что написано здесь.
+Правила репозитория — в [RULES.md](../../../../RULES.md); они важнее всего, что написано здесь.
 
 | | |
 | --- | --- |
@@ -534,6 +534,7 @@ Assets/Microgames/gc26_2048_nastya/
     microgame.json
     GC26._2048Nastya.asmdef                 ссылки: GC26.Core, Unity.InputSystem, Unity.TextMeshPro, UnityEngine.UI
     README.md
+    Docs~/                           Colours_GDD.md, Colours_TDD.md, Colours_prototype.html (Unity игнорирует папки, оканчивающиеся на ~)
     Scenes/
         gc26_2048_nastya_Main.unity          стартовая сцена (один компонент IMicrogame)
     Scripts/
@@ -945,6 +946,5 @@ git config core.hooksPath tools/hooks
 | Перепутать эту игру с другой 2048 в том же репозитории (`gc26_2048`, сырный дизайн, ветка `game/gc26_2048`, клон `C:\Users\20260047\Unity\2048`) | Отдельные ID, папка, ветка, неймспейс, имена сцен и ключи сохранений (раздел 1.1); отдельный клон `C:\Users\20260047\Unity\GC26_Nastya`; никогда не копировать файлы между двумя папками |
 | `gc26_2048_nastya` ещё нет в `tools/games.txt` в `main` | PR из ветки `core/add-gc26_2048_nastya` организатору; пока он не влит, `check_scope.py` также ругается на `tools/games.txt` |
 | `Assets/Microgames.meta` ещё нет в `main`; Unity создаст его при первом открытии, и он вне нашей папки | Не коммитить его в игровую ветку; попросить организатора добавить его в `main` |
-| Документы лежат в `docs/` в корне репозитория, вне папки игры (правило 1), поэтому `check_scope.py` на них ругается | Договориться с организатором, что `docs/Colours_GDD.md` и `docs/Colours_TDD.md` могут там лежать, или не включать их в PR в `main` |
 | Настройка камеры и EventSystem в оболочке ещё не попала в `main` | Запасные варианты из разделов 7.3 и 9; перепроверить, когда появится сцена оболочки |
 | Рассинхрон анимации при очень быстром вводе | Единый источник правды (модель); `FinishNow()` перед каждым новым ходом; PlayMode-тест с быстрым вводом |
