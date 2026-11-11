@@ -8,7 +8,7 @@
 
 Как играть: строй башни на свободных местах у дороги и не дай врагам дойти до замка. 10 волн, 20 жизней.
 
-A mobile tower defence game, rebuilt in Unity/C# from the browser prototype in [`Docs~/prototype/`](Docs~/prototype/).
+A mobile tower defence game, rebuilt in Unity/C# from the browser prototype in [`Docs~/towerdefence_prototype/`](Docs~/towerdefence_prototype/).
 It is one of the GC26 microgames: it runs from the shared GC26 menu, so follow [`RULES.md`](../../../RULES.md)
 (work only in this folder, everything in `namespace GC26.Towerdefence`, no generic names like `GameManager`).
 
@@ -49,12 +49,12 @@ The last line turns on the check that runs before every `git push` (see `tools/R
 - Pull before you start working and push when you finish, so the team stays in sync.
 
 ## Browser prototype
-The prototype in [`Docs~/prototype/`](Docs~/prototype/) needs no install: double-click `index.html` to play it in a browser.
+The prototype in [`Docs~/towerdefence_prototype/`](Docs~/towerdefence_prototype/) needs no install: double-click `index.html` to play it in a browser.
 To try it on a phone, run this from the repository root, then open the address it prints on a phone on the same Wi-Fi:
 ```
-python "Assets/Microgames/gc26_towerdefence/Docs~/prototype/serve.py" --lan
+python "Assets/Microgames/gc26_towerdefence/Docs~/towerdefence_prototype/serve.py" --lan
 ```
-See [`Docs~/prototype/README.md`](Docs~/prototype/README.md) for the controls and what's in it.
+See [`Docs~/towerdefence_prototype/README.md`](Docs~/towerdefence_prototype/README.md) for the controls and what's in it.
 The folder name ends with `~`, so Unity ignores it.
 
 ## Docs
