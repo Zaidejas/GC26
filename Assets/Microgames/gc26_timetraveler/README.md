@@ -15,4 +15,17 @@ and restores the orientation on exit.
 - `Editor/` - editor tools: menu **Tools > Time Traveler** (phone view, open main scene).
 - `Scripts/Core`, `Scripts/Runner`, `Scripts/UI` - game code, namespace `GC26.Timetraveler`.
 
-How to play: tap to jump (hold for higher), tap in the air to double jump, swipe down to slide.
+## Как играть / How to play
+
+Run as far as you can. Red is always deadly. The traveler is orange in the PAST and blue in the FUTURE:
+orange or blue pieces are solid only when he has the same colour.
+
+| Action | Touch | Keyboard |
+| --- | --- | --- |
+| Jump (hold = higher, again in the air = double jump) | Tap | Space / W |
+| Slide (hold to keep sliding) / fast fall in the air | Swipe down | S / Down |
+| Slow time (watch energy) | Swipe up | E / Shift |
+| Switch world (Past / Future) | Swipe left or right | Q |
+| Pause, then "To menu" | II button (top right) | Esc / P |
+
+Score sent to the menu: best distance in metres.

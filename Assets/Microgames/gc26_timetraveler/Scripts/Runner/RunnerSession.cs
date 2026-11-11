@@ -46,6 +46,12 @@ namespace GC26.Timetraveler
         float _blockedFlash;
         float _switchFlash;
         SpriteRenderer _travelerVisual;
+
+        bool _paused;
+        float _scaleBeforePause = 1f;
+
+        /// <summary>Called with the score (best distance in metres) when the player picks "To menu".</summary>
+        public System.Action<int> ExitRequested;
         int _seed;
         int _bestMeters;
         GUIStyle _bigStyle;
@@ -98,7 +104,16 @@ namespace GC26.Timetraveler
         void Update()
         {
             if (_traveler == null) return;
+            _input.IgnoreRect = PauseButtonRectInput();
             _input.Update();
+
+            if (_input.PausePressed)
+            {
+                if (_paused) Resume();
+                else if (!_traveler.IsDead) Pause();
+            }
+            if (_paused) return;
+
             _blockedFlash -= Time.unscaledDeltaTime;
             _switchFlash -= Time.unscaledDeltaTime;
 
@@ -153,13 +168,56 @@ namespace GC26.Timetraveler
             }
         }
 
+        // ---------- pause and exit (required by GC26: own pause + "To menu") ----------
+
+        public void Pause()
+        {
+            if (_paused) return;
+            _paused = true;
+            _scaleBeforePause = Time.timeScale;
+            Time.timeScale = 0f;
+        }
+
+        public void Resume()
+        {
+            if (!_paused) return;
+            _paused = false;
+            Time.timeScale = _scaleBeforePause;
+        }
+
+        /// <summary>Saves the best distance, restores time, and hands the score to the game for ExitToMenu.</summary>
+        void ExitToMenu()
+        {
+            Resume();
+            _timeSlow.Restore();
+            OnDied(); // saves the best distance if this run beat it
+            ExitRequested?.Invoke(_bestMeters);
+        }
+
+        Rect PauseButtonRectGui()
+        {
+            var unit = Screen.height / 40f;
+            var safe = Screen.safeArea;
+            var size = unit * 2.4f;
+            return new Rect(safe.xMax - size - unit * 0.5f, Screen.height - safe.yMax + unit * 0.5f, size, size);
+        }
+
+        /// <summary>Same rect in Input System coordinates (origin bottom-left).</summary>
+        Rect PauseButtonRectInput()
+        {
+            var r = PauseButtonRectGui();
+            return new Rect(r.x, Screen.height - r.yMax, r.width, r.height);
+        }
+
         void OnDisable()
         {
+            Resume();
             _timeSlow.Restore();
         }
 
         void OnDestroy()
         {
+            Resume();
             _timeSlow.Restore();
             if (_traveler != null) _traveler.Died -= OnDied;
             _worlds.Changed -= OnWorldChanged;
@@ -248,6 +306,30 @@ namespace GC26.Timetraveler
                 GUI.Label(new Rect(0, Screen.height * 0.35f, Screen.width, unit * 2f), $"{DistanceMeters} m", _bigStyle);
                 GUI.Label(new Rect(0, Screen.height * 0.35f + unit * 2.2f, Screen.width, unit * 2f), "Tap to run again", _bigStyle);
             }
+
+            DrawPause(unit);
+        }
+
+        void DrawPause(float unit)
+        {
+            var buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(unit * 0.9f), fontStyle = FontStyle.Bold };
+
+            if (!_paused)
+            {
+                if (!_traveler.IsDead && GUI.Button(PauseButtonRectGui(), "II", buttonStyle)) Pause();
+                return;
+            }
+
+            GUI.color = new Color(0f, 0f, 0f, 0.6f);
+            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+
+            GUI.Label(new Rect(0, Screen.height * 0.3f, Screen.width, unit * 2f), "PAUSED", _bigStyle);
+            var w = Mathf.Min(Screen.width * 0.6f, unit * 12f);
+            var x = (Screen.width - w) / 2f;
+            var h = unit * 2.4f;
+            if (GUI.Button(new Rect(x, Screen.height * 0.42f, w, h), "Resume", buttonStyle)) Resume();
+            if (GUI.Button(new Rect(x, Screen.height * 0.42f + h + unit, w, h), "To menu", buttonStyle)) ExitToMenu();
         }
     }
 }

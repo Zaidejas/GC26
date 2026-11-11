@@ -27,6 +27,12 @@ namespace GC26.Timetraveler
         public bool SwitchPressed { get; private set; }
         public bool AnyPressed { get; private set; }
 
+        /// <summary>Screen area (Input System coordinates, origin bottom-left) where presses are ignored,
+        /// e.g. the pause button, so pressing it does not also make the traveler jump.</summary>
+        public Rect IgnoreRect { get; set; }
+
+        public bool PausePressed { get; private set; }
+
         bool _pointerDown;
         bool _pointerDecided;
         bool _pointerIsJump;
@@ -40,6 +46,7 @@ namespace GC26.Timetraveler
             SlidePressed = false;
             SlowPressed = false;
             SwitchPressed = false;
+            PausePressed = false;
             AnyPressed = false;
 
             ReadKeyboard(out var keyJumpHeld, out var keySlideHeld);
@@ -56,6 +63,7 @@ namespace GC26.Timetraveler
             var kb = Keyboard.current;
             if (kb == null) return;
             slideHeld = kb.downArrowKey.isPressed || kb.sKey.isPressed;
+            if (kb.escapeKey.wasPressedThisFrame || kb.pKey.wasPressedThisFrame) PausePressed = true;
 
             if (kb.spaceKey.wasPressedThisFrame || kb.upArrowKey.wasPressedThisFrame || kb.wKey.wasPressedThisFrame)
                 JumpPressed = AnyPressed = true;
@@ -76,6 +84,8 @@ namespace GC26.Timetraveler
             if (pointer == null) return;
 
             var pos = pointer.position.ReadValue();
+
+            if (pointer.press.wasPressedThisFrame && IgnoreRect.Contains(pos)) return;
 
             if (pointer.press.wasPressedThisFrame)
             {

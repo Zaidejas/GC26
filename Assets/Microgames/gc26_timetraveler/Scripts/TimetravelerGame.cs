@@ -38,7 +38,9 @@ namespace GC26.Timetraveler
                 Debug.LogError($"[{Id}] No camera in the game scene.");
                 return;
             }
-            gameObject.AddComponent<RunnerSession>().Init(cam);
+            var session = gameObject.AddComponent<RunnerSession>();
+            session.ExitRequested = ExitToMenu;
+            session.Init(cam);
         }
 
         /// <summary>The camera in this game's own scene (the shell may have its own camera).</summary>
