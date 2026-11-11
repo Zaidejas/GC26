@@ -1,0 +1,9 @@
+{
+  "name": "GC26.Tetris",
+  "rootNamespace": "GC26.Tetris",
+  "references": [
+    "GC26.Core",
+    "Unity.InputSystem"
+  ],
+  "autoReferenced": false
+}

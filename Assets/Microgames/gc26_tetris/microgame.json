@@ -1,0 +1,7 @@
+{
+  "id": "gc26_tetris",
+  "title": "Block Drop",
+  "description": "Тетрис с комбо, бомбами, молниями и боем с ботом",
+  "entry_scene": "gc26_tetris_Main",
+  "authors": ["Golemch1k"]
+}
