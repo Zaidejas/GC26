@@ -13,6 +13,12 @@ namespace GC26.Timetraveler
         /// <summary>Obstacle groups: 0 basic, 1 +steps/ledge/tall wall, 2 +world switch, 3 +moving traps.</summary>
         public int Tier;
         public Vector2 MapPosition;
+        /// <summary>Run speed at the start and the top speed (units per second).</summary>
+        public float StartSpeed = 7f, MaxSpeed = 12f;
+        /// <summary>Ground between patterns: 1 = normal, smaller = obstacles closer together.</summary>
+        public float Density = 1f;
+        /// <summary>Adds triple and mixed combos.</summary>
+        public bool Hard;
     }
 
     public enum PlaceKind { Npc, Shop, Minigame }
@@ -43,11 +49,11 @@ namespace GC26.Timetraveler
 
         public static readonly TimetravelerLevel[] Era1 =
         {
-            new TimetravelerLevel { Key = "dino_1", Title = "1-1", Order = 0, LengthMeters = 120, Seed = 101, Tier = 0, MapPosition = new Vector2(-12f, 4f) },
-            new TimetravelerLevel { Key = "dino_2", Title = "1-2", Order = 1, LengthMeters = 160, Seed = 102, Tier = 1, MapPosition = new Vector2(-1f, 8f) },
-            new TimetravelerLevel { Key = "dino_3", Title = "1-3", Order = 2, LengthMeters = 200, Seed = 103, Tier = 2, MapPosition = new Vector2(11f, 12f) },
-            new TimetravelerLevel { Key = "dino_4", Title = "1-4", Order = 3, LengthMeters = 240, Seed = 104, Tier = 3, MapPosition = new Vector2(15f, 24f) },
-            new TimetravelerLevel { Key = "dino_5", Title = "1-5", Order = 4, LengthMeters = 300, Seed = 105, Tier = 3, MapPosition = new Vector2(2f, 30f) },
+            new TimetravelerLevel { Key = "dino_1", Title = "1-1", Order = 0, LengthMeters = 150, Seed = 101, Tier = 0, StartSpeed = 7f, MaxSpeed = 9.5f, Density = 1f, MapPosition = new Vector2(-12f, 4f) },
+            new TimetravelerLevel { Key = "dino_2", Title = "1-2", Order = 1, LengthMeters = 220, Seed = 102, Tier = 1, StartSpeed = 7.5f, MaxSpeed = 10.5f, Density = 0.85f, MapPosition = new Vector2(-1f, 8f) },
+            new TimetravelerLevel { Key = "dino_3", Title = "1-3", Order = 2, LengthMeters = 280, Seed = 103, Tier = 2, StartSpeed = 8f, MaxSpeed = 11.5f, Density = 0.75f, MapPosition = new Vector2(11f, 12f) },
+            new TimetravelerLevel { Key = "dino_4", Title = "1-4", Order = 3, LengthMeters = 340, Seed = 104, Tier = 3, StartSpeed = 8.5f, MaxSpeed = 12.5f, Density = 0.65f, MapPosition = new Vector2(15f, 24f) },
+            new TimetravelerLevel { Key = "dino_5", Title = "1-5", Order = 4, LengthMeters = 420, Seed = 105, Tier = 3, StartSpeed = 9f, MaxSpeed = 13f, Density = 0.55f, Hard = true, MapPosition = new Vector2(2f, 30f) },
         };
 
         /// <summary>The endless-run node on the map (after the last level of the first timeline).</summary>

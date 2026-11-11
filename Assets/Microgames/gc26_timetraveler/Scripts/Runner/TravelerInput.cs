@@ -40,8 +40,28 @@ namespace GC26.Timetraveler
         Vector2 _pointerStart;
         float _pointerStartTime;
 
+        /// <summary>Tests only: when set, replaces touch and keyboard (a bot fills the frame's input).</summary>
+        internal System.Func<ScriptedFrame> Scripted;
+
+        internal struct ScriptedFrame
+        {
+            public bool Jump, Slide, SlideHeld, Switch, Slow, Restart;
+        }
+
         public void Update()
         {
+            if (Scripted != null)
+            {
+                var f = Scripted();
+                JumpPressed = JumpHeld = f.Jump;
+                SlidePressed = f.Slide;
+                SlideHeld = f.SlideHeld;
+                SwitchPressed = f.Switch;
+                SlowPressed = f.Slow;
+                PausePressed = false;
+                AnyPressed = f.Jump || f.Slide || f.Switch || f.Slow || f.Restart;
+                return;
+            }
             JumpPressed = false;
             SlidePressed = false;
             SlowPressed = false;

@@ -55,9 +55,13 @@ namespace GC26.Timetraveler
         float _openGroundStartX;
         string _lastPattern;
         int _tier = -1;                 // levels: obstacle groups 0..tier; endless (-1): unlocked by distance
+        float _density = 1f;            // levels: < 1 = less ground between patterns
+        bool _hard;                     // levels: triple and mixed combos
         float _plannedFinishX = float.PositiveInfinity;
         bool _finishBuilt;
         readonly List<Transform> _pieces = new List<Transform>();
+        /// <summary>Tests: every live track piece (ground, hazards, coins...).</summary>
+        internal IReadOnlyList<Transform> Pieces => _pieces;
         // Pieces (solids and hazards) that exist in only one world, for the world-switch safety check.
         readonly List<RunnerWorldMember> _worldPieces = new List<RunnerWorldMember>();
 
@@ -67,7 +71,7 @@ namespace GC26.Timetraveler
         /// -1 = endless: groups unlock with distance.</param>
         /// <param name="finishMeters">Levels: distance of the finish line; 0 = endless.</param>
         public void Build(RunnerShapes shapes, RunnerWorldState worlds, Transform target, int seed,
-            int tier = -1, float finishMeters = 0f)
+            int tier = -1, float finishMeters = 0f, float density = 1f, bool hard = false)
         {
             _shapes = shapes;
             _worlds = worlds;
@@ -80,6 +84,8 @@ namespace GC26.Timetraveler
             _groundY = 0f;
             _lastPattern = null;
             _tier = tier;
+            _density = density;
+            _hard = hard;
             _finishBuilt = false;
             FinishX = float.PositiveInfinity;
             _plannedFinishX = finishMeters > 0f ? StartX + finishMeters / MetersPerUnit : float.PositiveInfinity;
@@ -169,14 +175,15 @@ namespace GC26.Timetraveler
 
         void AddPattern()
         {
-            // Weighted list of what is unlocked at this distance. Newest group gets extra weight.
+            // Weighted list of what is unlocked at this distance.
+            // In a level, the level's newest group is featured and plain flat ground is gone after level 1.
             var options = new List<(string name, Pattern build, float weight)>
             {
-                ("flat", () => Flat(Range(6f, 9f)), 0.5f),
                 ("rock", Rock, 2f),
                 ("gap", () => Gap(Range(3f, 4.5f)), 1.6f),
                 ("log", Log, 1.6f),
             };
+            if (_tier <= 0) options.Add(("flat", () => Flat(Range(6f, 9f)), 0.5f));
             if (Unlocked(1, UnlockMedium))
             {
                 options.Add(("stepup", StepUp, 1f));
@@ -187,6 +194,12 @@ namespace GC26.Timetraveler
                 options.Add(("rockrock", RockRock, 1.1f));
                 options.Add(("rocklog", RockLog, 1.1f));
                 options.Add(("gaprock", GapRock, 1f));
+                options.Add(("logrock", LogRock, 1f));
+            }
+            if (_hard)
+            {
+                options.Add(("rock3", RockRockRock, 1.2f));
+                options.Add(("worldwallrock", WorldWallRock, 1.2f));
             }
             if (Unlocked(2, UnlockWorlds))
             {
@@ -202,6 +215,11 @@ namespace GC26.Timetraveler
                 options.Add(("crusher", Crusher, 1.1f));
             }
 
+            if (_tier >= 1)
+                for (var i = 0; i < options.Count; i++)
+                    if (GroupOf(options[i].name) == _tier)
+                        options[i] = (options[i].name, options[i].build, options[i].weight * 1.6f);
+
             float total = 0f;
             foreach (var o in options) if (o.name != _lastPattern) total += o.weight;
             var roll = (float)_rng.NextDouble() * total;
@@ -214,9 +232,9 @@ namespace GC26.Timetraveler
                 o.build();
                 // Breathing room between patterns, shrinking as the run goes on, sometimes with coins.
                 var tighten = Mathf.Lerp(1f, 0.6f, Mathf.Clamp01(Distance / 600f));
-                var rest = Range(2f, 4.5f) * tighten;
+                var rest = Range(2f, 4.5f) * tighten * _density;
                 if (rest > 3f && Coin()) CoinRow(_cursorX + 0.5f, _groundY + 1.5f, 3, 1.3f);
-                Flat(rest);
+                Ground(Mathf.Max(1.5f, rest));   // every pattern already starts and ends with its own run-up
                 return;
             }
         }
@@ -254,6 +272,18 @@ namespace GC26.Timetraveler
             Flat(6f);
         }
 
+        static int GroupOf(string pattern)
+        {
+            switch (pattern)
+            {
+                case "stepup": case "stepdown": case "ledge": case "tallwall":
+                case "rockrock": case "rocklog": case "gaprock": case "logrock": return 1;
+                case "worldbridge": case "worldwall": case "worldsplit": case "worldwallrock": return 2;
+                case "blade": case "flyer": case "boulders": case "crusher": return 3;
+                default: return 0;
+            }
+        }
+
         // ---------- combos ----------
 
         const float ComboGap = 12f;
@@ -278,6 +308,43 @@ namespace GC26.Timetraveler
             Flat(ComboGap);
             Hazard("TrackLog", _cursorX, _groundY + 2.0f, 2.5f, 14f, TimetravelerArt.Log);
             CoinRow(_cursorX - 1f, _groundY + 0.6f, 4, 1.2f);
+            Flat(6f);
+        }
+
+        void LogRock()
+        {
+            // Slide under, stand up, jump: jumping is allowed as soon as nothing is overhead.
+            Flat(4f);
+            Teach("logrock", "Slide under the log, then JUMP the rock");
+            Hazard("TrackLog", _cursorX, _groundY + 2.0f, 2.5f, 14f, TimetravelerArt.Log);
+            CoinRow(_cursorX - 1f, _groundY + 0.6f, 4, 1.2f);
+            Flat(ComboGap + 2.5f);
+            Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
+            CoinArc(_cursorX + 0.75f, _groundY);
+            Flat(6f);
+        }
+
+        void RockRockRock()
+        {
+            Flat(4f);
+            Teach("rock3", "Three rocks! Jump, jump, jump");
+            for (var i = 0; i < 3; i++)
+            {
+                Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
+                CoinArc(_cursorX + 0.75f, _groundY);
+                Flat(i < 2 ? ComboGap : 6f);
+            }
+        }
+
+        void WorldWallRock()
+        {
+            // Switch through a one-world wall, then jump a rock right behind it.
+            var world = RandomWorld();
+            Flat(9f);
+            Teach("worldwallrock", $"Switch to the {Other(world)} for the wall, then JUMP");
+            WorldHazard("TrackWorldWall", world, _cursorX, _groundY, 1.5f, 16f);
+            Flat(ComboGap);
+            Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
             Flat(6f);
         }
 
@@ -326,7 +393,8 @@ namespace GC26.Timetraveler
             Flat(6f);
             Teach("tallwall", "High wall: jump TWICE  (tap, tap / Space, Space)");
             Hazard("TrackTallWall", _cursorX, _groundY, 1.2f, 4.5f, TimetravelerArt.TallWall);
-            Flat(10f);
+            // A double jump at top speed carries the traveler ~13 units past the wall: land on clear ground.
+            Flat(16f);
         }
 
         // ---------- world patterns ----------

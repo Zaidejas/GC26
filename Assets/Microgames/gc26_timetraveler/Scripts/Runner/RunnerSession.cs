@@ -78,12 +78,25 @@ namespace GC26.Timetraveler
 
         public bool IsEndless => _level == null;
 
+        // ---- for the automated tests (Tests/ folder) ----
+        internal TravelerController Traveler => _traveler;
+        internal RunnerTrack Track => _track;
+        internal TravelerInput Input => _input;
+        internal RunnerWorldState Worlds => _worlds;
+        internal bool IsFinished => _finished;
+        internal int RunCoins => _runCoins;
+
         /// <param name="level">Story level to play, or null for the endless run.</param>
         public void Init(Camera cam, TimetravelerSave save, TimetravelerLevel level)
         {
             _camera = cam;
             _save = save;
             _level = level;
+            if (level != null)
+            {
+                startSpeed = level.StartSpeed;
+                maxSpeed = level.MaxSpeed;
+            }
             _shapes = new RunnerShapes();
             _input = new TravelerInput();
             _worlds.Changed += OnWorldChanged;
@@ -131,7 +144,8 @@ namespace GC26.Timetraveler
 
         void StartRun()
         {
-            _seed = IsEndless ? _seed + 1 : _level.Seed;   // a level is the same track every attempt
+            // A level is the same track every attempt; every endless run is a new random track.
+            _seed = IsEndless ? Random.Range(1, int.MaxValue) : _level.Seed;
             _runTime = 0f;
             _runCoins = 0;
             _coinsBanked = false;
@@ -143,7 +157,8 @@ namespace GC26.Timetraveler
             _speedFlash = 0f;
             _worlds.Reset();
             if (IsEndless) _track.Build(_shapes, _worlds, _traveler.transform, _seed);
-            else _track.Build(_shapes, _worlds, _traveler.transform, _seed, _level.Tier, _level.LengthMeters);
+            else _track.Build(_shapes, _worlds, _traveler.transform, _seed, _level.Tier, _level.LengthMeters,
+                _level.Density, _level.Hard);
             _traveler.ResetAt(new Vector2(_track.StartX, 0f), startSpeed);
             if (_follow != null) _follow.Snap();
             TimetravelerLog.Info($"Run started (track seed {_seed}, speed {startSpeed}).", this);

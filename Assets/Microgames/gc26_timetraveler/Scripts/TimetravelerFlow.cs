@@ -17,6 +17,8 @@ namespace GC26.Timetraveler
         TimetravelerSave _save;
         Action<int> _exitToShell;
         GameObject _screen;
+        /// <summary>Tests: the current screen object (menu, map or run).</summary>
+        internal GameObject CurrentScreen => _screen;
         Action _pending;
 
         /// <summary>Remembers which map node the player stood on, so the map reopens there.</summary>
@@ -46,7 +48,7 @@ namespace GC26.Timetraveler
             return _screen;
         }
 
-        void ShowMenu()
+        internal void ShowMenu()
         {
             TimetravelerLog.Info("Screen: main menu.", this);
             var menu = NewScreen("TimetravelerMenu").AddComponent<TimetravelerMenu>();
@@ -56,7 +58,7 @@ namespace GC26.Timetraveler
                 exit: () => _pending = ExitToShell);
         }
 
-        void ShowMap()
+        internal void ShowMap()
         {
             TimetravelerLog.Info("Screen: world map.", this);
             var map = NewScreen("TimetravelerMap").AddComponent<WorldMap>();
@@ -67,7 +69,7 @@ namespace GC26.Timetraveler
             map.PositionChanged += p => _mapPosition = p;
         }
 
-        void StartRun(TimetravelerLevel level)
+        internal void StartRun(TimetravelerLevel level)
         {
             TimetravelerLog.Info(level == null ? "Screen: endless run." : $"Screen: level {level.Title}.", this);
             var session = NewScreen("TimetravelerRun").AddComponent<RunnerSession>();

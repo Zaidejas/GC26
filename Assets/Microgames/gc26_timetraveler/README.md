@@ -54,5 +54,28 @@ orange or blue pieces are solid only when he has the same colour.
 
 Score sent to the GC26 menu: best endless distance in metres.
 
+## Levels
+
+| Level | Length | Speed | New obstacles |
+| --- | --- | --- | --- |
+| 1-1 | 150 m | 7 -> 9.5 | rocks, gaps, logs |
+| 1-2 | 220 m | 7.5 -> 10.5 | steps, ledge, tall wall, combos |
+| 1-3 | 280 m | 8 -> 11.5 | world switch (bridges, walls, split) |
+| 1-4 | 340 m | 8.5 -> 12.5 | moving traps (blade, flyer, boulders, crusher) |
+| 1-5 | 420 m | 9 -> 13 | everything, denser, triple and mixed combos |
+
+Each level features its newest obstacle group. Edit lengths, speeds and density in `TimetravelerLevels.cs`.
+
+## Automated tests
+
+`Tests/` (PlayMode, 19 tests): **Window > General > Test Runner > PlayMode > Run All**.
+- data: level list, map spots, save/unlock logic;
+- track: every level and 3 endless tracks are built and checked (no coin inside a hazard,
+  no rock over a gap, jump obstacles far enough apart);
+- flow: menu -> map -> level -> map, pause, time slow and camera are cleaned up;
+- playthrough: an autopilot bot (`TimetravelerBot`) must finish every level and run 700 m endless.
+  If it dies, the message shows the cause, nearby track pieces and its last frames.
+Tests back up and restore your saved progress.
+
 Testing: progress is in PlayerPrefs (keys start with `gc26_timetraveler_`). To start over, delete them with
 **Edit > Clear All PlayerPrefs** (this clears every game's PlayerPrefs in the project).
