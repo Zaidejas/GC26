@@ -49,7 +49,8 @@ namespace BlockDrop
         {
             BattleHit hit = battle.Hit(clear.Rows.Count, clear.Combo, clear.Multiplier);
             coinsTotal += hit.Coins;
-            Debug.Log("[BlockDrop] Bot hit damage=" + hit.Damage + " coins=" + hit.Coins + " bot=" + hit.BotLevel +
+            game.AddBonusScore(hit.Points);
+            Debug.Log("[BlockDrop] Bot hit damage=" + hit.Damage + " points=" + hit.Points + " score=" + game.Score + " coins=" + hit.Coins + " bot=" + hit.BotLevel +
                       " defeated=" + hit.Defeated + " hp=" + battle.Hp + "/" + battle.MaxHp + " total=" + coinsTotal);
             if (!autoplay && !noRecords)
             {
@@ -68,7 +69,7 @@ namespace BlockDrop
                 view.Effects.Shake(0.9f);
                 battleView.BotDefeated(battle.Level);
                 shownHpShare = 1f;
-                AddPopup(PopupSlot.Defeat, "БОТ ПОВЕРЖЕН!", -2.2f, 1.25f, 1.6f, 0.6f, view.AccentColor);
+                AddPopup(PopupSlot.Defeat, "БОТ ПОВЕРЖЕН!  +" + (Battle.DefeatPointsPerLevel * hit.BotLevel).ToString("N0"), -2.2f, 1.15f, 1.6f, 0.6f, view.AccentColor);
             }
             else
             {

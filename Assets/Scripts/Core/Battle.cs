@@ -7,14 +7,17 @@ namespace BlockDrop.Core
     {
         public readonly int Damage;
         public readonly int Coins;
+        /// <summary>Bonus score for the hit, on top of the points for the lines themselves.</summary>
+        public readonly int Points;
         public readonly bool Defeated;
         /// <summary>The bot that took the hit, counted from 1.</summary>
         public readonly int BotLevel;
 
-        public BattleHit(int damage, int coins, bool defeated, int botLevel)
+        public BattleHit(int damage, int coins, int points, bool defeated, int botLevel)
         {
             Damage = damage;
             Coins = coins;
+            Points = points;
             Defeated = defeated;
             BotLevel = botLevel;
         }
@@ -30,6 +33,8 @@ namespace BlockDrop.Core
         public const int HpPerLevel = 60;
         public const int DefeatCoinsPerLevel = 10;
         public const int MaxComboCoins = 5;
+        public const int PointsPerDamage = 2;
+        public const int DefeatPointsPerLevel = 500;
 
         static readonly int[] LineDamage = { 0, 10, 25, 45, 80 };
 
@@ -68,6 +73,7 @@ namespace BlockDrop.Core
             int level = Level;
             int damage = DamageFor(rows, multiplier);
             int coins = CoinsFor(rows, combo);
+            int points = damage * PointsPerDamage;
             bool defeated = false;
 
             Hp -= damage;
@@ -77,13 +83,14 @@ namespace BlockDrop.Core
                 defeated = true;
                 BotsDefeated++;
                 coins += DefeatCoinsPerLevel * level;
+                points += DefeatPointsPerLevel * level;
                 Level++;
                 MaxHp = MaxHpFor(Level);
                 Hp = MaxHp;
             }
 
             CoinsEarned += coins;
-            return new BattleHit(damage, coins, defeated, level);
+            return new BattleHit(damage, coins, points, defeated, level);
         }
     }
 }

@@ -153,6 +153,14 @@ namespace BlockDrop.Core
             }
         }
 
+        /// <summary>Score from outside the board rules, such as hitting the bot. Ignored once the game is over.</summary>
+        public void AddBonusScore(int points)
+        {
+            if (State == GameState.GameOver || points <= 0)
+                return;
+            Score += points;
+        }
+
         public void TogglePause()
         {
             if (State == GameState.Playing)

@@ -14,6 +14,7 @@ namespace BlockDrop
         const string TestRecordsPrefix = "BlockDrop.Test.";
         const string BestScoreName = "BestScore";
         const string MarathonTableName = "MarathonTable";
+        const string BattleTableName = "BattleTable";
         const string CoinsName = "Coins";
         const float RepeatDelay = 0.17f;
         const float RepeatInterval = 0.045f;
@@ -31,6 +32,7 @@ namespace BlockDrop
         int bestScore;
         string recordsPrefix = RecordsPrefix;
         Leaderboard marathonTable;
+        Leaderboard battleTable;
         int lastPlace;
         int heldDirection;
         float repeatTimer;
@@ -99,6 +101,7 @@ namespace BlockDrop
             bestScore = PlayerPrefs.GetInt(recordsPrefix + BestScoreName, 0);
             coinsTotal = PlayerPrefs.GetInt(recordsPrefix + CoinsName, 0);
             marathonTable = Leaderboard.Parse(PlayerPrefs.GetString(recordsPrefix + MarathonTableName, ""), false);
+            battleTable = Leaderboard.Parse(PlayerPrefs.GetString(recordsPrefix + BattleTableName, ""), false);
 
             // A best score from before the table existed becomes its first entry.
             if (bestScore > 0 && marathonTable.Entries.Count == 0)
@@ -118,6 +121,21 @@ namespace BlockDrop
             }
             PlayerPrefs.Save();
             Debug.Log("[BlockDrop] Marathon result " + game.Score + " place=" + lastPlace + " table=" + marathonTable.Serialize());
+        }
+
+        void SaveBattleResult()
+        {
+            if (autoplay || noRecords)
+                return;
+            lastPlace = battleTable.Add(game.Score);
+            PlayerPrefs.SetString(recordsPrefix + BattleTableName, battleTable.Serialize());
+            PlayerPrefs.Save();
+            Debug.Log("[BlockDrop] Battle result " + game.Score + " place=" + lastPlace + " table=" + battleTable.Serialize());
+        }
+
+        static int Best(Leaderboard table)
+        {
+            return table.Entries.Count > 0 ? (int)table.Entries[0] : 0;
         }
 
         string PlaceText()
@@ -327,9 +345,11 @@ namespace BlockDrop
             Debug.Log("[BlockDrop] Game over, score " + game.Score);
             gameAudio.Play("gameover");
             view.Effects.Shake(0.8f);
-            // The best score belongs to the marathon; a battle pays out in coins instead.
+            // Each mode keeps its own table: a battle scores extra for the bot, so the two do not compare.
             if (game.Mode == GameMode.Marathon)
                 SaveMarathonResult();
+            else
+                SaveBattleResult();
         }
 
         static string MultiplierText(float multiplier)
@@ -560,6 +580,8 @@ namespace BlockDrop
             Stat("УРОВЕНЬ", game.Level.ToString("N0"), -2.2f, unit);
             if (game.Mode == GameMode.Battle)
             {
+                int best = Mathf.Max(Best(battleTable), game.Score);
+                Label("рекорд " + best.ToString("N0"), BoardView.LeftPanelX, 1.2f, unit, 0.36f, TextAnchor.MiddleCenter, Muted);
                 Stat("МОНЕТЫ", Mathf.RoundToInt(shownCoins).ToString("N0"), 0f, unit, 1f + coinKick * 0.25f);
                 Stat("ЛИНИИ", game.Lines.ToString("N0"), -4.4f, unit);
             }
@@ -601,7 +623,8 @@ namespace BlockDrop
             if (game.State == GameState.Paused)
                 DrawPauseMenu(unit);
             else if (game.State == GameState.GameOver && game.Mode == GameMode.Battle)
-                Overlay("БОЙ ОКОНЧЕН", "Повержено ботов: " + battle.BotsDefeated + "\nМонет за бой: +" + battle.CoinsEarned + "\nEnter — новый бой\nBackspace — в меню", unit);
+                Overlay("БОЙ ОКОНЧЕН", "Счёт: " + game.Score.ToString("N0") + "\n" + PlaceText() +
+                    "Ботов: " + battle.BotsDefeated + "    монет: +" + battle.CoinsEarned + "\nEnter — новый бой\nBackspace — в меню", unit);
             else if (game.State == GameState.GameOver)
                 Overlay("ИГРА ОКОНЧЕНА", "Счёт: " + game.Score + "\n" + PlaceText() + "Enter — новая игра\nBackspace — в меню", unit);
         }
@@ -632,14 +655,14 @@ namespace BlockDrop
 
         void Overlay(string title, string subtitle, float unit)
         {
-            Vector2 min = WorldToGui(BoardView.BoardLeft, -3f);
-            Vector2 max = WorldToGui(-BoardView.BoardLeft, 3f);
+            Vector2 min = WorldToGui(BoardView.BoardLeft, -3.6f);
+            Vector2 max = WorldToGui(-BoardView.BoardLeft, 3.6f);
             GUI.color = new Color(0.07f, 0.05f, 0.11f, 0.92f);
             GUI.DrawTexture(new Rect(min.x, max.y, max.x - min.x, min.y - max.y), Texture2D.whiteTexture);
             GUI.color = Color.white;
 
-            Label(title, 0f, 1.75f, unit, 0.95f, TextAnchor.MiddleCenter, view.AccentColor);
-            Label(subtitle, 0f, -0.7f, unit, 0.55f, TextAnchor.MiddleCenter, Bright);
+            Label(title, 0f, 2.45f, unit, 0.95f, TextAnchor.MiddleCenter, view.AccentColor);
+            Label(subtitle, 0f, -0.75f, unit, 0.52f, TextAnchor.MiddleCenter, Bright);
         }
 
         void Label(string text, float worldX, float worldY, float unit, float sizeInUnits, TextAnchor anchor, Color color)
@@ -655,7 +678,9 @@ namespace BlockDrop
 
             Vector2 center = WorldToGui(worldX, worldY);
             float width = 26f * unit;
-            float height = 3f * unit;
+            // Tall enough for every line, so multi-line text is never clipped.
+            int lines = text.Split('\n').Length;
+            float height = Mathf.Max(3f, lines * sizeInUnits * 1.5f) * unit;
             GUI.Label(new Rect(center.x - width / 2f, center.y - height / 2f, width, height), text, style);
         }
 
@@ -722,6 +747,7 @@ namespace BlockDrop
                 {
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + BestScoreName);
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + MarathonTableName);
+                    PlayerPrefs.DeleteKey(TestRecordsPrefix + BattleTableName);
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + CoinsName);
                     PlayerPrefs.Save();
                 }

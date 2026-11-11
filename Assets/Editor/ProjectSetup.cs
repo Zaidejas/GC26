@@ -137,6 +137,8 @@ namespace BlockDrop.EditorTools
                 { "A defeated bot pays out and a stronger one comes", BattleDefeatAdvances },
                 { "No lines means no damage and no coins", BattleEmptyHit },
                 { "Battle games play on like a marathon", BattleModeKeepsGoing },
+                { "Hits and defeated bots give bonus points", BattlePoints },
+                { "Bonus score adds up, but not after game over", BonusScore },
             };
 
             int failures = 0;
@@ -809,6 +811,37 @@ namespace BlockDrop.EditorTools
             BattleHit hit = battle.Hit(0, 0, 1f);
             Check(hit.Damage == 0 && hit.Coins == 0 && !hit.Defeated, "empty hit did something");
             Check(battle.Hp == battle.MaxHp && battle.CoinsEarned == 0, "state changed");
+        }
+
+        static void BattlePoints()
+        {
+            var battle = new Battle();
+            BattleHit hit = battle.Hit(2, 2, 1.5f);
+            Check(hit.Points == hit.Damage * Battle.PointsPerDamage, "hit points " + hit.Points);
+
+            BattleHit finisher = battle.Hit(4, 7, 4f);
+            Check(finisher.Defeated, "bot survived 320 damage");
+            Check(finisher.Points == finisher.Damage * Battle.PointsPerDamage + Battle.DefeatPointsPerLevel, "defeat points " + finisher.Points);
+
+            BattleHit second = battle.Hit(4, 7, 4f);
+            Check(second.Defeated && second.BotLevel == 2, "second bot");
+            Check(second.Points == second.Damage * Battle.PointsPerDamage + 2 * Battle.DefeatPointsPerLevel, "stronger bots must pay more");
+            Check(battle.Hit(0, 0, 1f).Points == 0, "no lines, no points");
+        }
+
+        static void BonusScore()
+        {
+            var game = new Game(52, false, GameMode.Battle);
+            game.AddBonusScore(150);
+            game.AddBonusScore(-40);
+            game.AddBonusScore(0);
+            Check(game.Score == 150, "score " + game.Score);
+            for (int i = 0; i < 200 && game.State == GameState.Playing; i++)
+                game.HardDrop();
+            Check(game.State == GameState.GameOver, "game did not end");
+            int final = game.Score;
+            game.AddBonusScore(1000);
+            Check(game.Score == final, "score changed after game over");
         }
 
         static void BattleModeKeepsGoing()
