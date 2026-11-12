@@ -6,7 +6,7 @@ namespace GC26.Timetraveler
     /// Minimal pixel-art look for the traveler (based on MC Concept Art No.1): 6-frame run, jump, fall, slide.
     /// A 1 px "aura" outline around him is tinted with the current world's colour, so the rule
     /// "same colour as the platform = solid for you" stays readable without recolouring the character.
-    /// Frames live in Resources/gc26_timetraveler/Traveler/ (drawn by Tools~/traveler_sprites.py).
+    /// Frames live in Resources/gc26_timetraveler/Traveler/ (built from the artist's sprite by Tools~/traveler_from_art.py).
     /// </summary>
     public class TravelerAnimator : MonoBehaviour
     {
