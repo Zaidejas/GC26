@@ -194,14 +194,16 @@ body {
 
 /* Settings pop-up: switches for music, sounds and vibration, and How to play. */
 .card.settings { position: relative; text-align: left; }
-.card.settings h2 { text-align: center; margin-bottom: 4cqw; }
+/* Fixed line heights: Mystery Quest (English) and Kurale (Russian) are different heights, and the card
+   must not change size (and jump) when the language changes. */
+.card.settings h2 { text-align: center; margin-bottom: 4cqw; line-height: 1.25; }
 .card.settings .close { position: absolute; top: 3cqw; right: 3cqw; }
 .card.settings .close svg { width: 5cqw; height: 5cqw; }
 .set-rows { display: flex; flex-direction: column; margin-bottom: 5cqw; }
 .set-row { display: grid; grid-template-columns: 7cqw 1fr auto; align-items: center; gap: 3cqw; min-height: 13cqw; border-bottom: 0.3cqw solid var(--line); }
 .set-row:last-child { border-bottom: 0; }
 .set-ico { width: 6cqw; height: 6cqw; color: var(--soft); }
-.set-name { font-family: var(--font-display); font-size: 5.4cqw; }
+.set-name { font-family: var(--font-display); font-size: 5.4cqw; line-height: 1.25; }
 .switch {
   position: relative; width: 15cqw; height: 8.4cqw; border-radius: 999px; cursor: pointer; padding: 0;
   border: 0.4cqw solid var(--line); background: rgba(255, 255, 255, 0.08); transition: background 0.2s, border-color 0.2s;
