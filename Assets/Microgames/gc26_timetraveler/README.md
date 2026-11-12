@@ -64,11 +64,14 @@ Score sent to the GC26 menu: best endless distance in metres.
 | 1-4 | 340 m | 8.5 -> 12.5 | moving traps (blade, flyer, boulders, crusher) |
 | 1-5 | 420 m | 9 -> 13 | everything, denser, triple and mixed combos |
 
-Each level features its newest obstacle group. Edit lengths, speeds and density in `TimetravelerLevels.cs`.
+Each level features its newest obstacle group. Every level has a **checkpoint** half way (shown on the
+progress bar): after it, a death restarts there. Every 6th pattern is a calm stretch with a coin wave, so the
+run has a rhythm (burst - breather). The background has 3 parallax layers (art slots `runner_layer_far/mid/near`).
+ Edit lengths, speeds and density in `TimetravelerLevels.cs`.
 
 ## Automated tests
 
-`Tests/` (PlayMode, 19 tests): **Window > General > Test Runner > PlayMode > Run All**.
+`Tests/` (PlayMode, 20 tests): **Window > General > Test Runner > PlayMode > Run All**.
 - data: level list, map spots, save/unlock logic;
 - track: every level and 3 endless tracks are built and checked (no coin inside a hazard,
   no rock over a gap, jump obstacles far enough apart);

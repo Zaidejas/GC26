@@ -252,6 +252,34 @@ namespace GC26.Timetraveler.Tests
             yield return Play(null, 700);
         }
 
+        [UnityTest, Timeout(120000)]
+        public IEnumerator Checkpoint_DeathAfterItRestartsHalfWay()
+        {
+            var level = TimetravelerLevels.Era1[0];
+            var session = NewSession(level);
+            var bot = new TimetravelerBot(session);
+            var restart = false;
+            session.Input.Scripted = () => restart ? new TravelerInput.ScriptedFrame { Restart = true } : bot.Next();
+            Time.timeScale = 2f;
+            var timeout = Time.realtimeSinceStartup + 90f;
+            while (!session.CheckpointReached)
+            {
+                if (Time.realtimeSinceStartup > timeout || session.Traveler.IsDead) Assert.Fail("never reached the checkpoint");
+                yield return null;
+            }
+            yield return new WaitForSeconds(1f);
+            session.Traveler.Die("test death after the checkpoint");
+            yield return new WaitForSecondsRealtime(0.6f);
+            restart = true;
+            yield return null;
+            yield return null;
+            restart = false;
+            Time.timeScale = 1f;
+            Assert.IsFalse(session.Traveler.IsDead, "did not restart");
+            Assert.AreEqual(session.Track.CheckpointX + 1f, session.Traveler.transform.position.x, 2f,
+                "restart did not put the traveler at the checkpoint");
+        }
+
         static readonly string NL = System.Environment.NewLine;
 
         /// <summary>Track pieces around the traveler, for failure messages.</summary>

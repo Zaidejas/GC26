@@ -60,6 +60,12 @@ namespace GC26.Timetraveler
         bool _finished;
         bool _newRecord;
         SpriteRenderer _background;
+        RunnerParallax _parallax;
+
+        // ---- checkpoints (levels) ----
+        bool _checkpointReached;
+        float _checkpointRunTime;
+        float _checkpointFlash;
 
         // ---- feel (effects only, no gameplay) ----
         RunnerFx _fx;
@@ -85,6 +91,7 @@ namespace GC26.Timetraveler
         internal RunnerWorldState Worlds => _worlds;
         internal bool IsFinished => _finished;
         internal int RunCoins => _runCoins;
+        internal bool CheckpointReached => _checkpointReached;
 
         /// <param name="level">Story level to play, or null for the endless run.</param>
         public void Init(Camera cam, TimetravelerSave save, TimetravelerLevel level)
@@ -106,6 +113,10 @@ namespace GC26.Timetraveler
             _background = bg.AddComponent<SpriteRenderer>();
             _background.sharedMaterial = _shapes.Material;
             _background.sortingOrder = -100;
+
+            _parallax = new GameObject("RunnerParallax").AddComponent<RunnerParallax>();
+            _parallax.transform.SetParent(transform, false);
+            _parallax.Init(cam, _shapes, level != null ? level.Seed : 7);
 
             _track = new GameObject("TimetravelerTrack").AddComponent<RunnerTrack>();
             _track.transform.SetParent(transform, false);
@@ -142,7 +153,10 @@ namespace GC26.Timetraveler
             _follow.Init(cam, _traveler.transform);
         }
 
-        void StartRun()
+        void StartRun() => StartRun(false);
+
+        /// <param name="fromCheckpoint">Levels: rebuild the same track and start at the half-way checkpoint.</param>
+        void StartRun(bool fromCheckpoint)
         {
             // A level is the same track every attempt; every endless run is a new random track.
             _seed = IsEndless ? Random.Range(1, int.MaxValue) : _level.Seed;
@@ -159,7 +173,20 @@ namespace GC26.Timetraveler
             if (IsEndless) _track.Build(_shapes, _worlds, _traveler.transform, _seed);
             else _track.Build(_shapes, _worlds, _traveler.transform, _seed, _level.Tier, _level.LengthMeters,
                 _level.Density, _level.Hard);
-            _traveler.ResetAt(new Vector2(_track.StartX, 0f), startSpeed);
+            if (fromCheckpoint)
+            {
+                _track.Extend(_level.LengthMeters * 0.5f / MetersPerUnit + 60f);
+                _runTime = _checkpointRunTime;
+                _traveler.ResetAt(new Vector2(_track.CheckpointX + 1f, _track.CheckpointGroundY),
+                    Mathf.Min(maxSpeed, startSpeed + speedRampPerSecond * _runTime));
+                _checkpointReached = true;
+                TimetravelerLog.Info("Continuing from the checkpoint.", this);
+            }
+            else
+            {
+                _checkpointReached = false;
+                _traveler.ResetAt(new Vector2(_track.StartX, 0f), startSpeed);
+            }
             if (_follow != null) _follow.Snap();
             TimetravelerLog.Info($"Run started (track seed {_seed}, speed {startSpeed}).", this);
         }
@@ -183,7 +210,7 @@ namespace GC26.Timetraveler
 
             if (_traveler.IsDead)
             {
-                if (_input.AnyPressed && Time.unscaledTime - _deathTime > restartDelay) StartRun();
+                if (_input.AnyPressed && Time.unscaledTime - _deathTime > restartDelay) StartRun(!IsEndless && _checkpointReached);
                 return;
             }
 
@@ -193,6 +220,14 @@ namespace GC26.Timetraveler
                 _traveler.RunSpeed = startSpeed;
                 _track.Extend(_follow.RightEdge + buildAhead);
                 return;
+            }
+            if (!IsEndless && !_checkpointReached && _traveler.transform.position.x >= _track.CheckpointX)
+            {
+                _checkpointReached = true;
+                _checkpointRunTime = _runTime;
+                _checkpointFlash = 1.5f;
+                _fx.Burst(_traveler.transform.position, 16, new Color(0.4f, 0.9f, 1f), new Vector2(0f, 4f), 6f, 0.35f, 0.6f, falls: false);
+                TimetravelerLog.Info($"Checkpoint reached at {DistanceMeters} m.", this);
             }
             if (_traveler.transform.position.x >= _track.FinishX)
             {
@@ -248,6 +283,7 @@ namespace GC26.Timetraveler
             // The traveler wears the colour of his world: same colour = solid for him.
             if (_travelerVisual != null) _travelerVisual.color = RunnerWorldState.ColorOf(world);
             if (_travelerSprite != null) _travelerSprite.SetWorldColor(RunnerWorldState.ColorOf(world));
+            if (_parallax != null) _parallax.SetWorld(world);
         }
 
         void OnDied(string reason)
@@ -431,34 +467,15 @@ namespace GC26.Timetraveler
             _centerStyle.fontSize = Mathf.RoundToInt(unit * 0.7f);
 
             var safe = Screen.safeArea;
-            var left = safe.x + unit;
-            var y = Screen.height - safe.yMax + unit * 0.5f;
+            var top = Screen.height - safe.yMax;
             var width = safe.width - unit * 2f;
-
-            var progress = IsEndless
-                ? $"{DistanceMeters} m   best {_save.BestMeters} m"
-                : $"Level {_level.Title}   {Mathf.Min(DistanceMeters, _level.LengthMeters)} / {_level.LengthMeters} m";
-            GUI.Label(new Rect(left, y, width, unit * 1.2f), $"{progress}   coins {_runCoins}", _smallStyle);
-            y += unit * 1.3f;
-
-            // Current world, in its own colour.
             var oldColor = GUI.color;
-            GUI.color = RunnerWorldState.ColorOf(_worlds.Current);
-            GUI.Label(new Rect(left, y, width, unit * 1.2f),
-                $"World: {RunnerWorldState.NameOf(_worlds.Current)}  (your colour = solid)", _smallStyle);
-            GUI.color = oldColor;
-            y += unit * 1.3f;
+            DrawTopBar(unit, safe, top);
 
-            // Watch energy bar.
-            GUI.Label(new Rect(left, y, width, unit * 1.2f),
-                _timeSlow.Active ? "Time slow: ON  (E / Shift to stop)" : "Time slow  (E / Shift)", _smallStyle);
-            var barY = y + unit * 1.2f;
-            var barWidth = width * 0.5f;
-            GUI.color = new Color(1f, 1f, 1f, 0.25f);
-            GUI.DrawTexture(new Rect(left, barY, barWidth, unit * 0.4f), Texture2D.whiteTexture);
-            GUI.color = _timeSlow.Energy >= _timeSlow.minEnergyToStart ? new Color(0.4f, 0.85f, 1f) : new Color(0.6f, 0.6f, 0.6f);
-            GUI.DrawTexture(new Rect(left, barY, barWidth * _timeSlow.Energy, unit * 0.4f), Texture2D.whiteTexture);
-            GUI.color = oldColor;
+            _checkpointFlash -= Time.unscaledDeltaTime;
+            if (_checkpointFlash > 0f && !_traveler.IsDead && !_finished)
+                ShadowLabel(new Rect(0, Screen.height * 0.17f, Screen.width, unit * 2f), "CHECKPOINT!", _bigStyle,
+                    new Color(0.5f, 0.95f, 1f, Mathf.Clamp01(_checkpointFlash)));
 
             if (_speedFlash > 0f && !_traveler.IsDead && !_finished)
             {
@@ -495,18 +512,24 @@ namespace GC26.Timetraveler
                 GUI.color = oldColor;
             }
 
-            // Controls legend: always visible during the greybox phase.
-            var legend = _runTime < hintDuration
-                ? "Tap: jump (tap again = double)   Swipe down: slide\nSwipe up: slow time   Swipe sideways: switch world\nKeys: Space jump  S slide  E/Shift slow  Q switch"
-                : "Space jump   S slide   E/Shift slow   Q switch";
-            GUI.Label(new Rect(safe.x + unit, Screen.height - safe.y - unit * 3.4f, width, unit * 3.2f), legend, _centerStyle);
+            // Controls: on a phone only the gestures, and only at the start; with a keyboard a short key list.
+            var touch = UnityEngine.InputSystem.Touchscreen.current != null || Application.isMobilePlatform;
+            string legend = null;
+            if (touch && _runTime < hintDuration)
+                legend = "Tap: jump (again in the air = double)\nSwipe down: slide   Swipe up: slow time\nSwipe sideways: switch world";
+            else if (!touch)
+                legend = _runTime < hintDuration
+                    ? "Space jump (twice = double)   S slide   E/Shift slow time   Q switch world"
+                    : "Space jump   S slide   E/Shift slow   Q switch";
+            if (legend != null)
+                ShadowLabel(new Rect(safe.x + unit, Screen.height - safe.y - unit * 3.6f, width, unit * 3.4f), legend, _centerStyle, Color.white);
 
             if (_traveler.IsDead)
             {
                 GUI.Label(new Rect(0, Screen.height * 0.35f, Screen.width, unit * 2f),
                     _newRecord ? $"{DistanceMeters} m  NEW BEST!" : $"{DistanceMeters} m   +{_runCoins} coins", _bigStyle);
                 GUI.Label(new Rect(0, Screen.height * 0.35f + unit * 2.2f, Screen.width, unit * 2f),
-                    IsEndless ? "Tap to run again" : "Tap to try again", _bigStyle);
+                    IsEndless ? "Tap to run again" : _checkpointReached ? "Tap: continue from checkpoint" : "Tap to try again", _bigStyle);
             }
 
             if (_finished)
@@ -516,6 +539,94 @@ namespace GC26.Timetraveler
             }
 
             DrawPause(unit);
+        }
+
+        static readonly Color PanelColor = new Color(0f, 0f, 0f, 0.45f);
+        static readonly Color CoinColor = new Color(1f, 0.85f, 0.25f);
+        GUIStyle _hudStyle, _hudSmallStyle;
+
+        /// <summary>Text with a dark shadow: readable on any background, also outdoors on a phone.</summary>
+        static void ShadowLabel(Rect r, string text, GUIStyle style, Color color)
+        {
+            var old = GUI.color;
+            var o = Mathf.Max(1f, style.fontSize / 14f);
+            GUI.color = new Color(0f, 0f, 0f, 0.8f * color.a);
+            GUI.Label(new Rect(r.x + o, r.y + o, r.width, r.height), text, style);
+            GUI.color = color;
+            GUI.Label(r, text, style);
+            GUI.color = old;
+        }
+
+        static void Fill(Rect r, Color c)
+        {
+            var old = GUI.color;
+            GUI.color = c;
+            GUI.DrawTexture(r, Texture2D.whiteTexture);
+            GUI.color = old;
+        }
+
+        /// <summary>
+        /// Phone HUD inside the safe area (notch-proof): progress bar (levels) or distance (endless), a coin chip,
+        /// then the current world and the watch energy. Big, few words, shadowed.
+        /// </summary>
+        void DrawTopBar(float unit, Rect safe, float top)
+        {
+            if (_hudStyle == null)
+            {
+                _hudStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+                _hudSmallStyle = new GUIStyle(_hudStyle) { alignment = TextAnchor.MiddleLeft };
+            }
+            _hudStyle.fontSize = Mathf.RoundToInt(unit * 0.85f);
+            _hudSmallStyle.fontSize = Mathf.RoundToInt(unit * 0.7f);
+
+            var left = safe.x + unit * 0.5f;
+            var rowY = top + unit * 0.5f;
+            var rowH = unit * 1.8f;
+            var rightLimit = PauseButtonRectGui().x - unit * 0.4f;
+
+            // Coins chip, left of the pause button.
+            var coinRect = new Rect(rightLimit - unit * 4.4f, rowY, unit * 4.4f, rowH);
+            Fill(coinRect, PanelColor);
+            Fill(new Rect(coinRect.x + unit * 0.5f, rowY + rowH / 2f - unit * 0.4f, unit * 0.8f, unit * 0.8f), CoinColor);
+            ShadowLabel(new Rect(coinRect.x + unit * 1.2f, rowY, coinRect.width - unit * 1.3f, rowH), _runCoins.ToString(),
+                _hudStyle, Color.white);
+
+            // Progress: a bar to the finish in a level, the distance and best in endless.
+            var progRect = new Rect(left, rowY, coinRect.x - left - unit * 0.4f, rowH);
+            Fill(progRect, PanelColor);
+            if (IsEndless)
+            {
+                ShadowLabel(progRect, $"{DistanceMeters} m   best {_save.BestMeters}", _hudStyle, Color.white);
+            }
+            else
+            {
+                var t = Mathf.Clamp01(DistanceMeters / (float)_level.LengthMeters);
+                var inner = new Rect(progRect.x + unit * 0.2f, progRect.y + unit * 0.2f, progRect.width - unit * 0.4f, rowH - unit * 0.4f);
+                Fill(new Rect(inner.x, inner.y, inner.width * t, inner.height), new Color(0.35f, 0.75f, 0.35f, 0.85f));
+                if (_track.CheckpointMeters > 0f)
+                {
+                    var cx = inner.x + inner.width * Mathf.Clamp01(_track.CheckpointMeters / _level.LengthMeters);
+                    Fill(new Rect(cx - 1f, inner.y, 3f, inner.height), _checkpointReached ? CoinColor : Color.white);
+                }
+                ShadowLabel(progRect, $"{_level.Title}   {Mathf.Min(DistanceMeters, _level.LengthMeters)} / {_level.LengthMeters} m",
+                    _hudStyle, Color.white);
+            }
+
+            // Second row: world chip (in its colour) and the watch energy.
+            var row2 = rowY + rowH + unit * 0.35f;
+            var worldRect = new Rect(left, row2, unit * 5f, unit * 1.4f);
+            var wc = RunnerWorldState.ColorOf(_worlds.Current);
+            Fill(worldRect, new Color(wc.r, wc.g, wc.b, 0.9f));
+            ShadowLabel(worldRect, RunnerWorldState.NameOf(_worlds.Current), _hudStyle, Color.white);
+
+            var bar = new Rect(worldRect.xMax + unit * 0.5f, row2 + unit * 0.35f, unit * 7f, unit * 0.7f);
+            Fill(bar, PanelColor);
+            var ready = _timeSlow.Energy >= _timeSlow.minEnergyToStart;
+            var energyColor = _timeSlow.Active ? new Color(0.55f, 0.95f, 1f)
+                : ready ? new Color(0.4f, 0.85f, 1f) : new Color(0.55f, 0.55f, 0.6f);
+            Fill(new Rect(bar.x, bar.y, bar.width * _timeSlow.Energy, bar.height), energyColor);
+            ShadowLabel(new Rect(bar.xMax + unit * 0.3f, row2, unit * 4f, unit * 1.4f), _timeSlow.Active ? "SLOW!" : "slow",
+                _hudSmallStyle, energyColor);
         }
 
         void DrawPause(float unit)

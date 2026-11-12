@@ -25,6 +25,10 @@ namespace GC26.Timetraveler
         public const string Finish = "finish";
         public const string RunnerBackgroundPast = "runner_bg_past";
         public const string RunnerBackgroundFuture = "runner_bg_future";
+        public const string RunnerLayerFar = "runner_layer_far";     // parallax, tiled sideways
+        public const string RunnerLayerMid = "runner_layer_mid";
+        public const string RunnerLayerNear = "runner_layer_near";
+        public const string Checkpoint = "checkpoint";
 
         // ---- world map ----
         public const string MapGround = "map_ground";     // tiled

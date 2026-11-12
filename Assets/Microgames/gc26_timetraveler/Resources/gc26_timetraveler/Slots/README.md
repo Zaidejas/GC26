@@ -30,6 +30,10 @@ Put a PNG here with the **exact name from the table** and the game shows it inst
 | `finish.png` | финиш (арка / флаг) | 32×96 | растянуть |
 | `runner_bg_past.png` | фон забега, PAST | 270×480 | следует за камерой |
 | `runner_bg_future.png` | фон забега, FUTURE (нет — берётся PAST) | 270×480 | следует за камерой |
+| `runner_layer_far.png` | дальний слой фона (горы), едет медленно | любая ширина × до 480 | плитка вбок |
+| `runner_layer_mid.png` | средний слой (холмы, деревья) | любая ширина × до 300 | плитка вбок |
+| `runner_layer_near.png` | ближний слой (кусты) | любая ширина × до 120 | плитка вбок |
+| `checkpoint.png` | флаг контрольной точки | 10×80 | растянуть |
 
 ## World map / Карта
 

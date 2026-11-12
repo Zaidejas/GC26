@@ -57,6 +57,15 @@ namespace GC26.Timetraveler
         int _tier = -1;                 // levels: obstacle groups 0..tier; endless (-1): unlocked by distance
         float _density = 1f;            // levels: < 1 = less ground between patterns
         bool _hard;                     // levels: triple and mixed combos
+        int _patternCount;              // every few patterns a calm "breather" with a coin wave
+        float _plannedCheckpointX = float.PositiveInfinity;
+        bool _checkpointBuilt;
+
+        /// <summary>Levels: where a death sends you back to (half way). +infinity until built / in endless.</summary>
+        public float CheckpointX { get; private set; } = float.PositiveInfinity;
+        public float CheckpointGroundY { get; private set; }
+        /// <summary>Levels: checkpoint distance in metres (for the progress bar), 0 in endless.</summary>
+        public float CheckpointMeters { get; private set; }
         float _plannedFinishX = float.PositiveInfinity;
         bool _finishBuilt;
         readonly List<Transform> _pieces = new List<Transform>();
@@ -86,6 +95,11 @@ namespace GC26.Timetraveler
             _tier = tier;
             _density = density;
             _hard = hard;
+            _patternCount = 0;
+            _checkpointBuilt = false;
+            CheckpointX = float.PositiveInfinity;
+            CheckpointMeters = finishMeters > 0f ? finishMeters * 0.5f : 0f;
+            _plannedCheckpointX = finishMeters > 0f ? StartX + CheckpointMeters / MetersPerUnit : float.PositiveInfinity;
             _finishBuilt = false;
             FinishX = float.PositiveInfinity;
             _plannedFinishX = finishMeters > 0f ? StartX + finishMeters / MetersPerUnit : float.PositiveInfinity;
@@ -96,7 +110,8 @@ namespace GC26.Timetraveler
         {
             while (_cursorX < untilX)
             {
-                if (_cursorX < _plannedFinishX) AddPattern();
+                if (!_checkpointBuilt && _cursorX >= _plannedCheckpointX) BuildCheckpoint();
+                else if (_cursorX < _plannedFinishX) AddPattern();
                 else if (!_finishBuilt) BuildFinish();
                 else Flat(20f);
             }
@@ -175,6 +190,14 @@ namespace GC26.Timetraveler
 
         void AddPattern()
         {
+            // Rhythm: a burst of obstacles, then a short calm stretch with a coin wave to breathe and collect.
+            _patternCount++;
+            if (_patternCount % 6 == 0)
+            {
+                Breather();
+                return;
+            }
+
             // Weighted list of what is unlocked at this distance.
             // In a level, the level's newest group is featured and plain flat ground is gone after level 1.
             var options = new List<(string name, Pattern build, float weight)>
@@ -195,11 +218,13 @@ namespace GC26.Timetraveler
                 options.Add(("rocklog", RockLog, 1.1f));
                 options.Add(("gaprock", GapRock, 1f));
                 options.Add(("logrock", LogRock, 1f));
+                options.Add(("stairs", Stairs, 0.9f));
             }
             if (_hard)
             {
                 options.Add(("rock3", RockRockRock, 1.2f));
                 options.Add(("worldwallrock", WorldWallRock, 1.2f));
+                options.Add(("rocklogrock", RockLogRock, 1f));
             }
             if (Unlocked(2, UnlockWorlds))
             {
@@ -277,7 +302,7 @@ namespace GC26.Timetraveler
             switch (pattern)
             {
                 case "stepup": case "stepdown": case "ledge": case "tallwall":
-                case "rockrock": case "rocklog": case "gaprock": case "logrock": return 1;
+                case "rockrock": case "rocklog": case "gaprock": case "logrock": case "stairs": return 1;
                 case "worldbridge": case "worldwall": case "worldsplit": case "worldwallrock": return 2;
                 case "blade": case "flyer": case "boulders": case "crusher": return 3;
                 default: return 0;
@@ -322,6 +347,61 @@ namespace GC26.Timetraveler
             Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
             CoinArc(_cursorX + 0.75f, _groundY);
             Flat(6f);
+        }
+
+        void RockLogRock()
+        {
+            // jump - slide - jump
+            Flat(4f);
+            Teach("rocklogrock", "Jump, SLIDE, jump!");
+            Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
+            Flat(ComboGap);
+            Hazard("TrackLog", _cursorX, _groundY + 2.0f, 2.5f, 14f, TimetravelerArt.Log);
+            CoinRow(_cursorX - 1f, _groundY + 0.6f, 4, 1.2f);
+            Flat(ComboGap + 2.5f);
+            Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
+            CoinArc(_cursorX + 0.75f, _groundY);
+            Flat(6f);
+        }
+
+        /// <summary>Up two steps and down again, with coins following the climb.</summary>
+        void Stairs()
+        {
+            if (_groundY + StepHeight * 2f > MaxGroundY) { StepDown(); return; }
+            Flat(5f);
+            for (var i = 0; i < 2; i++)
+            {
+                _groundY += StepHeight;
+                _openGround = null;
+                CoinRow(_cursorX + 2f, _groundY + 1.5f, 4, 1.6f);
+                // A jump at top speed is ~9.6 units long: land on this step before the next one starts.
+                Flat(12f);
+            }
+            CoinArc(_cursorX + 2f, _groundY - StepHeight * 2f);
+            _groundY -= StepHeight * 2f;
+            _openGround = null;
+            Flat(8f);
+        }
+
+        /// <summary>Calm stretch: a wave of coins over flat ground.</summary>
+        void Breather()
+        {
+            Flat(3f);
+            for (var i = 0; i < 9; i++)
+                CoinAt(_cursorX + i * 1.3f, _groundY + 1.5f + Mathf.Sin(i * 0.8f) * 1.6f + 1.6f);
+            Flat(14f);
+        }
+
+        void BuildCheckpoint()
+        {
+            Flat(4f);
+            CheckpointX = _cursorX;
+            CheckpointGroundY = _groundY;
+            _checkpointBuilt = true;
+            // A flag the traveler runs through (trigger without a component: not deadly).
+            _pieces.Add(_shapes.Box(transform, "TrackCheckpoint", _cursorX, _groundY, 0.6f, 5f, new Color(0.4f, 0.9f, 1f),
+                isTrigger: true, sortingOrder: 0, slot: TimetravelerArt.Checkpoint).transform);
+            Flat(10f);
         }
 
         void RockRockRock()
