@@ -214,7 +214,10 @@ body {
 .switch[aria-checked="true"] span { left: calc(100% - 6.9cqw); background: #fff8e6; }
 .switch:focus-visible { outline: 0.7cqw solid var(--focus); outline-offset: 0.5cqw; }
 #settings-howto { width: 100%; }
-.langs { display: flex; border: 0.4cqw solid var(--line); border-radius: 999px; padding: 0.6cqw; gap: 0.6cqw; }
+/* The language row: the label on top, the choice on its own full-width line below, so it fits in any language. */
+.set-row.lang { grid-template-columns: 7cqw 1fr; padding-bottom: 3cqw; }
+.langs { grid-column: 1 / -1; display: flex; border: 0.4cqw solid var(--line); border-radius: 999px; padding: 0.6cqw; gap: 0.6cqw; }
+.langs button { flex: 1; }
 .langs button {
   border: 0; border-radius: 999px; padding: 1.4cqw 2.8cqw; cursor: pointer; background: transparent; color: var(--soft);
   font: 700 3.6cqw var(--font-body);
@@ -477,7 +480,7 @@ body {
               <div class="set-row"><svg class="set-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span class="set-name" id="set-music-name" data-i18n="music">Music</span><button type="button" class="switch" role="switch" data-key="music" aria-labelledby="set-music-name"><span></span></button></div>
               <div class="set-row"><svg class="set-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg><span class="set-name" id="set-sounds-name" data-i18n="sounds">Sounds</span><button type="button" class="switch" role="switch" data-key="sounds" aria-labelledby="set-sounds-name"><span></span></button></div>
               <div class="set-row"><svg class="set-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M3 9v6M21 9v6"/></svg><span class="set-name" id="set-vibration-name" data-i18n="vibration">Vibration</span><button type="button" class="switch" role="switch" data-key="vibration" aria-labelledby="set-vibration-name"><span></span></button></div>
-              <div class="set-row"><svg class="set-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19"/><path d="M12 2.5c2.6 2.6 3.9 5.8 3.9 9.5s-1.3 6.9-3.9 9.5c-2.6-2.6-3.9-5.8-3.9-9.5s1.3-6.9 3.9-9.5z"/></svg><span class="set-name" id="set-language-name" data-i18n="language">Language</span><div class="langs" role="radiogroup" aria-labelledby="set-language-name"><button type="button" role="radio" data-lang="en">English</button><button type="button" role="radio" data-lang="ru">Русский</button></div></div>
+              <div class="set-row lang"><svg class="set-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19"/><path d="M12 2.5c2.6 2.6 3.9 5.8 3.9 9.5s-1.3 6.9-3.9 9.5c-2.6-2.6-3.9-5.8-3.9-9.5s1.3-6.9 3.9-9.5z"/></svg><span class="set-name" id="set-language-name" data-i18n="language">Language</span><div class="langs" role="radiogroup" aria-labelledby="set-language-name"><button type="button" role="radio" data-lang="en">English</button><button type="button" role="radio" data-lang="ru">Русский</button></div></div>
             </div>
             <button type="button" class="btn" id="settings-howto" data-i18n="howToPlay">How to play</button>
           </div>
