@@ -5,7 +5,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&family=Mystery+Quest&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700;800&family=Mystery+Quest&family=Kurale&display=swap">
 <style>
 /* Layout: a phone-shaped frame centered on the page; inside it the MVP game screen
    (HUD, 9×9 board, Undo/Reset) scales with the frame width via container units. */
@@ -187,7 +187,40 @@ body {
 /* Screens */
 .view { position: absolute; inset: 0; }
 #screen-game .content { padding-top: 15cqw; }
-.topbar { position: absolute; top: 3.5cqw; left: 4cqw; right: 4cqw; display: flex; z-index: 2; }
+.topbar { position: absolute; top: 3.5cqw; left: 4cqw; right: 4cqw; display: flex; justify-content: space-between; z-index: 2; }
+#settings-menu { position: absolute; top: 3.5cqw; right: 4cqw; z-index: 2; padding: 0; }
+.icon-btn.gear { padding: 0; }
+.icon-btn.gear svg { width: 6cqw; height: 6cqw; }
+
+/* Settings pop-up: switches for music, sounds and vibration, and How to play. */
+.card.settings { position: relative; text-align: left; }
+.card.settings h2 { text-align: center; margin-bottom: 4cqw; }
+.card.settings .close { position: absolute; top: 3cqw; right: 3cqw; }
+.card.settings .close svg { width: 5cqw; height: 5cqw; }
+.set-rows { display: flex; flex-direction: column; margin-bottom: 5cqw; }
+.set-row { display: grid; grid-template-columns: 7cqw 1fr auto; align-items: center; gap: 3cqw; min-height: 13cqw; border-bottom: 0.3cqw solid var(--line); }
+.set-row:last-child { border-bottom: 0; }
+.set-ico { width: 6cqw; height: 6cqw; color: var(--soft); }
+.set-name { font-family: var(--font-display); font-size: 5.4cqw; }
+.switch {
+  position: relative; width: 15cqw; height: 8.4cqw; border-radius: 999px; cursor: pointer; padding: 0;
+  border: 0.4cqw solid var(--line); background: rgba(255, 255, 255, 0.08); transition: background 0.2s, border-color 0.2s;
+}
+.switch span {
+  position: absolute; top: 50%; left: 0.9cqw; width: 6cqw; height: 6cqw; border-radius: 50%; transform: translateY(-50%);
+  background: var(--soft); transition: left 0.2s, background 0.2s;
+}
+.switch[aria-checked="true"] { background: linear-gradient(180deg, #ffe08a, #ffad45); border-color: #ffe7a8; }
+.switch[aria-checked="true"] span { left: calc(100% - 6.9cqw); background: #fff8e6; }
+.switch:focus-visible { outline: 0.7cqw solid var(--focus); outline-offset: 0.5cqw; }
+#settings-howto { width: 100%; }
+.langs { display: flex; border: 0.4cqw solid var(--line); border-radius: 999px; padding: 0.6cqw; gap: 0.6cqw; }
+.langs button {
+  border: 0; border-radius: 999px; padding: 1.4cqw 2.8cqw; cursor: pointer; background: transparent; color: var(--soft);
+  font: 700 3.6cqw var(--font-body);
+}
+.langs button[aria-checked="true"] { background: linear-gradient(180deg, #ffe08a, #ffad45); color: #3a2208; }
+.langs button:focus-visible { outline: 0.6cqw solid var(--focus); outline-offset: 0.3cqw; }
 .icon-btn {
   display: inline-flex; align-items: center; justify-content: center; width: 10cqw; height: 10cqw; padding: 0 0.6cqw 0 0;
   border-radius: 999px; border: 0.4cqw solid var(--line); background: #ffffff;
@@ -195,7 +228,7 @@ body {
 }
 .icon-btn svg { width: 5.4cqw; height: 5.4cqw; }
 #back { padding: 0; } /* the house is symmetric, so no nudge like the back arrows */
-.phone.forest #back { /* the house button: just the icon, no ring or disc behind it */
+.phone.forest #back, .phone.forest .icon-btn.gear { /* house and gear: just the icon, no ring or disc behind it */
   background: none; border-color: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
 }
 .icon-btn:focus-visible { outline: 0.7cqw solid var(--focus); outline-offset: 0.6cqw; }
@@ -313,7 +346,7 @@ body {
 
 /* The magic font: Mystery Quest (Google Fonts, OFL) for titles, numbers, labels and buttons;
    longer text stays in Nunito so it is easy to read. One weight only, so no fake bold. */
-.phone.forest .screen { --font-display: "Mystery Quest", "Nunito", serif; font-synthesis: none; }
+.phone.forest .screen { --font-display: "Mystery Quest", "Kurale", "Nunito", serif; font-synthesis: none; }
 .phone.forest .screen button.btn, .phone.forest .label, .phone.forest .tag { font-family: var(--font-display); font-weight: 400; }
 .phone.forest .screen button.btn { font-size: 5cqw; }
 .phone.forest .label { letter-spacing: 0.06em; }
@@ -345,22 +378,23 @@ body {
     <div class="phone" id="phone">
       <div class="screen">
         <div class="view menu" id="screen-menu">
+          <button type="button" class="icon-btn gear" id="settings-menu" data-i18n-aria="settings" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
           <div class="brand">
             <div class="deco" id="deco"></div>
             <div class="logo">Lines</div>
-            <p class="tag">Line up five of a kind</p>
+            <p class="tag" data-i18n="tagline">Line up five of a kind</p>
           </div>
           <div class="menu-buttons">
-            <button type="button" class="btn primary" id="continue"><span>Continue</span><span class="sub" id="continue-sub"></span></button>
-            <button type="button" class="btn" id="new">New game</button>
-            <button type="button" class="btn" id="howto">How to play</button>
-            <button type="button" class="btn" id="scores">Leaderboard</button>
+            <button type="button" class="btn primary" id="continue"><span data-i18n="continue">Continue</span><span class="sub" id="continue-sub"></span></button>
+            <button type="button" class="btn" id="new" data-i18n="newGame">New game</button>
+            <button type="button" class="btn" id="howto" data-i18n="howToPlay">How to play</button>
+            <button type="button" class="btn" id="scores" data-i18n="leaderboard">Leaderboard</button>
           </div>
         </div>
 
         <div class="view subview" id="screen-howto" hidden>
           <div class="subhead">
-            <button type="button" class="icon-btn" id="howto-back" aria-label="Back to menu" title="Back to menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <button type="button" class="icon-btn" id="howto-back" data-i18n-aria="backToMenu" aria-label="Back to menu" title="Back to menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
           </div>
           <div class="tut">
             <div class="mini" id="tut-mini"></div>
@@ -369,34 +403,35 @@ body {
           </div>
           <div class="dots" id="tut-dots"></div>
           <div class="row">
-            <button type="button" class="btn" id="tut-prev">Back</button>
+            <button type="button" class="btn" id="tut-prev" data-i18n="back">Back</button>
             <button type="button" class="btn primary" id="tut-next">Next</button>
           </div>
         </div>
 
         <div class="view subview" id="screen-scores" hidden>
           <div class="subhead">
-            <button type="button" class="icon-btn" id="scores-back" aria-label="Back to menu" title="Back to menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <button type="button" class="icon-btn" id="scores-back" data-i18n-aria="backToMenu" aria-label="Back to menu" title="Back to menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
           </div>
           <p class="scores-msg" id="scores-msg" hidden></p>
           <ol class="scores" id="scores-list"></ol>
-          <p class="empty" id="scores-empty" hidden>No finished games yet. Your score is added here when a game ends.</p>
-          <button type="button" class="btn primary" id="scores-again" hidden>Play again</button>
+          <p class="empty" id="scores-empty" data-i18n="scoresEmpty" hidden>No finished games yet. Your score is added here when a game ends.</p>
+          <button type="button" class="btn primary" id="scores-again" data-i18n="playAgain" hidden>Play again</button>
         </div>
 
         <div class="view" id="screen-game" hidden>
           <div class="topbar">
-            <button type="button" class="icon-btn" id="back" aria-label="Main menu" title="Main menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 3.8l8.5 7.2"/><path d="M5.8 9.6V19a1.2 1.2 0 0 0 1.2 1.2h3.4v-5.4h3.2v5.4H17a1.2 1.2 0 0 0 1.2-1.2V9.6"/></svg></button>
+            <button type="button" class="icon-btn" id="back" data-i18n-aria="mainMenu" aria-label="Main menu" title="Main menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 3.8l8.5 7.2"/><path d="M5.8 9.6V19a1.2 1.2 0 0 0 1.2 1.2h3.4v-5.4h3.2v5.4H17a1.2 1.2 0 0 0 1.2-1.2V9.6"/></svg></button>
+            <button type="button" class="icon-btn gear" id="settings-game" data-i18n-aria="settings" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
           </div>
         <div class="content">
           <div class="hud">
             <div class="score">
-              <span class="label">Score</span>
+              <span class="label" data-i18n="score">Score</span>
               <span class="num" id="score">0</span>
               <span class="gain" id="gain"></span>
             </div>
             <div class="next">
-              <span class="label">Next</span>
+              <span class="label" data-i18n="next">Next</span>
               <div class="next-balls" id="next"></div>
             </div>
           </div>
@@ -413,11 +448,11 @@ body {
           <div class="actions">
             <button type="button" class="btn" id="undo" disabled>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
-              Undo
+              <span data-i18n="undo">Undo</span>
             </button>
             <button type="button" class="btn" id="reset">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
-              Reset
+              <span data-i18n="reset">Reset</span>
             </button>
           </div>
         </div>
@@ -425,24 +460,38 @@ body {
 
         <div class="modal" id="confirm" hidden>
           <div class="card" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-            <h2 id="confirm-title">Start a new game?</h2>
-            <p>Your current game will be lost.</p>
+            <h2 id="confirm-title" data-i18n="confirmTitle">Start a new game?</h2>
+            <p data-i18n="confirmText">Your current game will be lost.</p>
             <div class="row">
-              <button type="button" class="btn" id="cancel">Cancel</button>
-              <button type="button" class="btn primary" id="yes">Yes</button>
+              <button type="button" class="btn" id="cancel" data-i18n="cancel">Cancel</button>
+              <button type="button" class="btn primary" id="yes" data-i18n="yes">Yes</button>
             </div>
+          </div>
+        </div>
+
+        <div class="modal" id="settings" hidden>
+          <div class="card settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+            <button type="button" class="icon-btn gear close" id="settings-close" data-i18n-aria="close" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+            <h2 id="settings-title" data-i18n="settings">Settings</h2>
+            <div class="set-rows">
+              <div class="set-row"><svg class="set-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span class="set-name" id="set-music-name" data-i18n="music">Music</span><button type="button" class="switch" role="switch" data-key="music" aria-labelledby="set-music-name"><span></span></button></div>
+              <div class="set-row"><svg class="set-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg><span class="set-name" id="set-sounds-name" data-i18n="sounds">Sounds</span><button type="button" class="switch" role="switch" data-key="sounds" aria-labelledby="set-sounds-name"><span></span></button></div>
+              <div class="set-row"><svg class="set-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M3 9v6M21 9v6"/></svg><span class="set-name" id="set-vibration-name" data-i18n="vibration">Vibration</span><button type="button" class="switch" role="switch" data-key="vibration" aria-labelledby="set-vibration-name"><span></span></button></div>
+              <div class="set-row"><svg class="set-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19"/><path d="M12 2.5c2.6 2.6 3.9 5.8 3.9 9.5s-1.3 6.9-3.9 9.5c-2.6-2.6-3.9-5.8-3.9-9.5s1.3-6.9 3.9-9.5z"/></svg><span class="set-name" id="set-language-name" data-i18n="language">Language</span><div class="langs" role="radiogroup" aria-labelledby="set-language-name"><button type="button" role="radio" data-lang="en">English</button><button type="button" role="radio" data-lang="ru">Русский</button></div></div>
+            </div>
+            <button type="button" class="btn" id="settings-howto" data-i18n="howToPlay">How to play</button>
           </div>
         </div>
 
         <div class="modal" id="over" hidden>
           <div class="card" role="dialog" aria-modal="true" aria-labelledby="over-title">
-            <h2 id="over-title">Game over</h2>
+            <h2 id="over-title" data-i18n="gameOver">Game over</h2>
             <p><span id="over-note">Final score</span> <span class="final" id="final">0</span></p>
             <form class="name-form" id="over-form">
-              <label for="player-name">Your name for the leaderboard</label>
+              <label for="player-name" data-i18n="nameLabel">Your name for the leaderboard</label>
               <div class="name-row">
                 <input id="player-name" type="text" maxlength="16" autocomplete="nickname" placeholder="Player" enterkeyhint="done">
-                <button type="submit" class="btn primary" id="save-score">Save</button>
+                <button type="submit" class="btn primary" id="save-score" data-i18n="save">Save</button>
               </div>
             </form>
           </div>
@@ -728,7 +777,7 @@ body {
   function blocked() {
     const s = slotOf(selected);
     if (s) { s.classList.remove("shake"); void s.offsetWidth; s.classList.add("shake"); }
-    toast("No path");
+    toast(t("noPath"));
   }
   async function move(target) {
     const path = findPath(S.board, selected, target);
@@ -793,12 +842,12 @@ body {
   let scoresMessage = "", cameFromGameOver = false;
   function readStore(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
   function writeStore(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
-  const nextPlaceholder = () => "Player" + ((parseInt(readStore(PLACEHOLDER_KEY), 10) || 0) + 1);
+  const nextPlaceholder = () => t("player") + ((parseInt(readStore(PLACEHOLDER_KEY), 10) || 0) + 1);
   const defaultName = () => readStore(NAME_KEY) || nextPlaceholder();
 
   function showOver() {
     $("#final").textContent = S.score;
-    $("#over-note").textContent = "Final score";
+    $("#over-note").textContent = t("finalScore");
     S.pendingScore = S.score; save();
     $("#player-name").value = defaultName();
     $("#over").hidden = false;
@@ -816,9 +865,9 @@ body {
     const score = S.pendingScore;
     const rank = recordScore(score, name);
     S.pendingScore = null; save();
-    scoresMessage = rank === 0 ? "New best score, " + name + "!"
-      : rank > 0 ? "You're #" + (rank + 1) + ", " + name + "!"
-      : score + " points didn't make the top 10";
+    scoresMessage = rank === 0 ? t("newBest", name)
+      : rank > 0 ? t("yourRank", rank + 1, name)
+      : t("notInTop", score);
     cameFromGameOver = true;
     $("#over").hidden = true;
     showScreen("scores");
@@ -837,6 +886,69 @@ body {
   // ---- Screens: menu, game, how to play, leaderboard ----
   const SCORES_KEY = "lines-prototype-scores";
   let latestScoreTime = 0, tutStep = 0;
+  let howtoReturn = "menu"; // How to play goes back to where it was opened from (menu or game)
+
+  // ---- Settings: music, sounds, vibration (remembered on this device). No sounds exist yet. ----
+  const SETTINGS_KEY = "lines-prototype-settings";
+  const settings = Object.assign({ music: true, sounds: true, vibration: true,
+      lang: (navigator.language || "").toLowerCase().startsWith("ru") ? "ru" : "en" },
+    (() => { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch (e) { return {}; } })());
+  function renderSettings() {
+    document.querySelectorAll("#settings .switch").forEach((sw) => sw.setAttribute("aria-checked", String(!!settings[sw.dataset.key])));
+    document.querySelectorAll("#settings .langs button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.lang === settings.lang)));
+  }
+  function saveSettings() { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {} }
+  // ---- Languages: English and Russian. Every text the player sees comes from these tables. ----
+  const I18N = {
+    en: {
+      tagline: "Line up five of a kind", continue: "Continue", scoreShort: "score", newGame: "New game",
+      howToPlay: "How to play", leaderboard: "Leaderboard", score: "Score", next: "Next", undo: "Undo", reset: "Reset",
+      noPath: "No path", confirmTitle: "Start a new game?", confirmText: "Your current game will be lost.",
+      cancel: "Cancel", yes: "Yes", gameOver: "Game over", finalScore: "Final score",
+      nameLabel: "Your name for the leaderboard", save: "Save", player: "Player",
+      back: "Back", nextButton: "Next", gotIt: "Got it",
+      howto1Title: "Move a piece", howto1Text: "Tap a piece, then an empty cell. It moves only if there is a free path up, down, left or right.",
+      howto2Title: "Make lines of five", howto2Text: "Five or more of the same kind in a row, column or diagonal disappear and score points. Longer lines score more.",
+      howto3Title: "Watch what's coming", howto3Text: "If your move makes no line, 3 new pieces arrive where the faded mushrooms show. The game ends when the board is full. Undo takes back one move.",
+      scoresEmpty: "No finished games yet. Your score is added here when a game ends.", playAgain: "Play again",
+      newBest: (name) => "New best score, " + name + "!", yourRank: (rank, name) => "You're #" + rank + ", " + name + "!",
+      notInTop: (score) => score + " points didn't make the top 10",
+      settings: "Settings", music: "Music", sounds: "Sounds", vibration: "Vibration", language: "Language",
+      close: "Close", mainMenu: "Main menu", backToMenu: "Back to menu",
+    },
+    ru: {
+      tagline: "Собери пять в ряд", continue: "Продолжить", scoreShort: "счёт", newGame: "Новая игра",
+      howToPlay: "Как играть", leaderboard: "Рекорды", score: "Счёт", next: "Следующие", undo: "Отменить", reset: "Заново",
+      noPath: "Нет пути", confirmTitle: "Начать новую игру?", confirmText: "Текущая игра будет потеряна.",
+      cancel: "Отмена", yes: "Да", gameOver: "Игра окончена", finalScore: "Итоговый счёт",
+      nameLabel: "Твоё имя для таблицы рекордов", save: "Сохранить", player: "Игрок",
+      back: "Назад", nextButton: "Далее", gotIt: "Понятно",
+      howto1Title: "Передвинь гриб", howto1Text: "Нажми на гриб, затем на пустую клетку. Он переместится, только если есть свободный путь вверх, вниз, влево или вправо.",
+      howto2Title: "Собирай линии из пяти", howto2Text: "Пять и больше одинаковых грибов в ряд, столбец или по диагонали исчезают и приносят очки. Чем длиннее линия, тем больше очков.",
+      howto3Title: "Следи, что дальше", howto3Text: "Если ход не собрал линию, появятся 3 новых гриба — там, где видны бледные грибы. Игра заканчивается, когда поле заполнено. «Отменить» возвращает один ход.",
+      scoresEmpty: "Пока нет законченных игр. Твой счёт появится здесь, когда игра закончится.", playAgain: "Сыграть ещё",
+      newBest: (name) => "Новый рекорд, " + name + "!", yourRank: (rank, name) => "Ты на " + rank + "-м месте, " + name + "!",
+      notInTop: (score) => "Счёт " + score + " не попал в топ-10",
+      settings: "Настройки", music: "Музыка", sounds: "Звуки", vibration: "Вибрация", language: "Язык",
+      close: "Закрыть", mainMenu: "Главное меню", backToMenu: "В меню",
+    },
+  };
+  const LANGS = Object.keys(I18N);
+  const t = (key, ...args) => { const v = (I18N[settings.lang] || I18N.en)[key] ?? I18N.en[key]; return typeof v === "function" ? v(...args) : v; };
+
+  // Puts every marked text on the page into the chosen language, and redraws the screen that is showing.
+  function applyLanguage() {
+    document.querySelector(".screen").lang = settings.lang;
+    document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
+    document.querySelectorAll("[data-i18n-aria]").forEach((el) => { el.setAttribute("aria-label", t(el.dataset.i18nAria)); el.title = t(el.dataset.i18nAria); });
+    $("#player-name").placeholder = t("player");
+    document.querySelectorAll("#settings .langs button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.lang === settings.lang)));
+    const now = currentScreen();
+    if (now === "menu") renderMenu();
+    if (now === "howto") renderHowto();
+  }
+  function openSettings() { renderSettings(); $("#settings").hidden = false; $("#settings-close").focus(); }
+  function closeSettings() { $("#settings").hidden = true; }
 
   function showScreen(name, alreadyDrawn) {
     ["menu", "game", "howto", "scores"].forEach((n) => { $("#screen-" + n).hidden = n !== name; });
@@ -853,7 +965,7 @@ body {
   function renderMenu() {
     const can = hasSavedGame();
     $("#continue").disabled = !can;
-    $("#continue-sub").textContent = can ? "· score " + S.score : "";
+    $("#continue-sub").textContent = can ? "· " + t("scoreShort") + " " + S.score : "";
     const deco = $("#deco"); deco.textContent = "";
     for (let i = 0; i < 5; i++) {
       const b = ballEl(i); b.style.animationDelay = (i * 0.17) + "s"; deco.appendChild(b);
@@ -861,9 +973,9 @@ body {
   }
 
   const HOWTO = [
-    { mini: "0****o", title: "Move a piece", text: "Tap a piece, then an empty cell. It moves only if there is a free path up, down, left or right." },
-    { mini: ".22222", title: "Make lines of five", text: "Five or more of the same kind in a row, column or diagonal disappear and score points. Longer lines score more." },
-    { mini: "a.4.bc", title: "Watch what's coming", text: "If your move makes no line, 3 new pieces arrive where the faded mushrooms show. The game ends when the board is full. Undo takes back one move." },
+    { mini: "0****o", get title() { return t("howto1Title"); }, get text() { return t("howto1Text"); } },
+    { mini: ".22222", get title() { return t("howto2Title"); }, get text() { return t("howto2Text"); } },
+    { mini: "a.4.bc", get title() { return t("howto3Title"); }, get text() { return t("howto3Text"); } },
   ];
   function renderHowto() {
     const card = HOWTO[tutStep], mini = $("#tut-mini");
@@ -889,7 +1001,7 @@ body {
     text.textContent = card.text;
     $("#tut-dots").innerHTML = HOWTO.map((_, k) => '<span class="' + (k === tutStep ? "on" : "") + '"></span>').join("");
     $("#tut-prev").disabled = tutStep === 0;
-    $("#tut-next").textContent = tutStep === HOWTO.length - 1 ? "Got it" : "Next";
+    $("#tut-next").textContent = tutStep === HOWTO.length - 1 ? t("gotIt") : t("nextButton");
   }
 
   function loadScores() {
@@ -919,10 +1031,10 @@ body {
     list.forEach((e, k) => {
       const li = document.createElement("li");
       if (e.time === latestScoreTime) li.className = "latest";
-      const when = new Date(e.time).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+      const when = new Date(e.time).toLocaleDateString(settings.lang, { day: "numeric", month: "short" });
       const rank = document.createElement("span"); rank.className = "rank"; rank.textContent = k + 1;
       const who = document.createElement("span"); who.className = "who";
-      const name = document.createElement("span"); name.className = "name"; name.textContent = e.name || "Player";
+      const name = document.createElement("span"); name.className = "name"; name.textContent = e.name || t("player");
       const date = document.createElement("span"); date.className = "when"; date.textContent = when;
       who.append(name, date);
       const pts = document.createElement("span"); pts.className = "pts"; pts.textContent = e.score;
@@ -965,14 +1077,30 @@ body {
     $("#back").addEventListener("click", () => { if (busy) return; selected = -1; save(); showScreen("menu"); });
     $("#continue").addEventListener("click", () => { if (hasSavedGame()) showScreen("game"); });
     $("#new").addEventListener("click", () => { if (hasSavedGame()) $("#confirm").hidden = false; else startNew(); });
-    $("#howto").addEventListener("click", () => { tutStep = 0; showScreen("howto"); });
+    $("#howto").addEventListener("click", () => { tutStep = 0; howtoReturn = "menu"; showScreen("howto"); });
+    $("#settings-menu").addEventListener("click", openSettings);
+    $("#settings-game").addEventListener("click", () => { if (!busy) openSettings(); });
+    $("#settings-close").addEventListener("click", closeSettings);
+    $("#settings").addEventListener("click", (e) => { if (e.target === $("#settings")) closeSettings(); }); // tap outside the card
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#settings").hidden) closeSettings(); });
+    document.querySelectorAll("#settings .switch").forEach((sw) => sw.addEventListener("click", () => {
+      settings[sw.dataset.key] = !settings[sw.dataset.key];
+      saveSettings(); renderSettings();
+    }));
+    document.querySelectorAll("#settings .langs button").forEach((b) => b.addEventListener("click", () => {
+      settings.lang = b.dataset.lang; saveSettings(); applyLanguage();
+    }));
+    $("#settings-howto").addEventListener("click", () => {
+      howtoReturn = currentScreen() === "game" ? "game" : "menu";
+      closeSettings(); tutStep = 0; showScreen("howto");
+    });
     $("#scores").addEventListener("click", () => showScreen("scores"));
-    $("#howto-back").addEventListener("click", () => showScreen("menu"));
+    $("#howto-back").addEventListener("click", () => showScreen(howtoReturn));
     $("#scores-back").addEventListener("click", () => showScreen("menu"));
     $("#scores-again").addEventListener("click", startNew);
     $("#tut-prev").addEventListener("click", () => { if (tutStep > 0) { tutStep--; renderHowto(); } });
     $("#tut-next").addEventListener("click", () => {
-      if (tutStep < HOWTO.length - 1) { tutStep++; renderHowto(); } else showScreen("menu");
+      if (tutStep < HOWTO.length - 1) { tutStep++; renderHowto(); } else showScreen(howtoReturn);
     });
 
     const phone = $("#phone");
@@ -993,6 +1121,7 @@ body {
       S = restored;
       if (!Array.isArray(S.creatures) || S.creatures.length !== 7) S.creatures = pickCreatures();
     }
+    applyLanguage();
     showScreen("menu");
     window.claude?.hot?.snapshot?.(() => ({ S }));
   }

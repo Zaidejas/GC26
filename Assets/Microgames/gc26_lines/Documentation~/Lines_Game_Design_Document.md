@@ -128,10 +128,10 @@ These are planned for after the MVP and are not scheduled in the 8 weeks unless 
 | Feature | Notes |
 | :---- | :---- |
 | Preview modes | "Colors only" and "No preview" (see above), chosen when starting a new game |
-| More menu entries | Modes and Settings on the main menu (the MVP menu has Continue, New game, How to play, Leaderboard) |
+| More menu entries | Modes on the main menu |
 | Pause menu | Not needed: nothing happens until the player acts |
 | Best score during play | The best score shown on the game screen next to the current score |
-| Settings screen | Sound, music, vibration, theme |
+| More settings | A theme choice (Settings itself is now in the MVP) |
 | How to play on first launch | Open the How to play cards automatically the first time the app starts |
 | Audio | See the sound list below |
 | Vibration | Light vibration on a line clear |
@@ -157,15 +157,16 @@ A calm background music loop, with each sound switchable in Settings.
 
 ## Screens and UI (MVP)
 
-The MVP has four screens and two pop-ups. The app opens on the main menu.
+The MVP has four screens and three pop-ups. The app opens on the main menu.
 
 | Screen | Contents | Opens from |
 | :---- | :---- | :---- |
-| Main menu | Game title, Continue (with the saved game's score), New game, How to play, Leaderboard | App launch; back buttons |
-| Game | House button (main menu), score, preview of the next 3 balls, board, Undo, Reset | Continue or New game |
+| Main menu | Game title, Continue (with the saved game's score), New game, How to play, Leaderboard; a gear icon (Settings) in the top-right corner | App launch; back buttons |
+| Game | House button (main menu) top-left and gear (Settings) top-right, score, preview of the next 3 balls, board, Undo, Reset | Continue or New game |
 | How to play | Back button, then 3 short cards with a small board picture each: move a ball along a free path; make lines of five; the next balls, game over and Undo. Back / Next, and "Got it" on the last card. The picture and title stay in the same place on every card | Main menu |
 | Leaderboard | Back button, then the local top 10 finished games, each with rank, name, date and score; the game just finished is highlighted, with a result line above the list and a Play again button below it. Shows a short explanation while it's empty | Main menu; Save on the game-over pop-up |
 | New game confirmation | "Start a new game?" with Yes and Cancel; the current game is lost | Reset button, or New game on the menu while a game is unfinished |
+| Settings | A pop-up card with on/off switches for Music, Sounds and Vibration, the Language (English / Русский), and a How to play button. Closes with ✕ or a tap outside the card | The gear on the main menu or the game screen |
 | Game over | Final score and a name field with Save, nothing else. Save adds the score to the leaderboard and opens the Leaderboard screen | Game, when the board is full |
 
 **Main menu**
@@ -174,6 +175,14 @@ The MVP has four screens and two pop-ups. The app opens on the main menu.
 - **New game** starts right away when there's no unfinished game; otherwise it asks for confirmation first.
 - On the game screen, a house icon (just the white icon, no ring or disc behind it) returns to the main menu; How to play and Leaderboard have the back button (an arrow in a round glass button, no text) instead. Both return to the menu. Leaving the game saves it, so Continue picks it up exactly where it was (Undo included).
 - How to play and Leaderboard have no title at the top, only the back button.
+
+**Settings** (teacher's feedback, pulled forward from the later features)
+
+- The gear is a plain white icon like the house (no ring or disc). The pop-up is the same dark card as the other pop-ups; the game stays visible behind it.
+- **Music, Sounds, Vibration:** on/off switches (gold when on), all on by default, remembered on the device. The game has no sounds, music or vibration yet, so for now the switches only remember the choice (see Later features → Audio, Vibration).
+- **Language:** English or Русский. Everything changes at once (menu, game screen, pop-ups, How to play, leaderboard messages and dates); the game's name "Lines" stays the same. The first time, the game uses Russian on a phone set to Russian, English otherwise; the choice is remembered.
+- **How to play** closes Settings and opens the How to play cards; their back button and "Got it" return to where Settings was opened (the game or the menu). How to play also stays on the main menu.
+- Later, in the shared GC26 app, this pop-up can also be the game's pause, with a "Back to games" button.
 
 **Player name on game over**
 
@@ -228,7 +237,7 @@ The look is a dark, magical mushroom forest at night: glowing mushrooms on a dar
   - **Game, How to play and Leaderboard:** the same forest without mushrooms, and with nothing glowing near the bottom, so nothing sits behind the board, the buttons or the page dots.
 - **Board:** dark purple glass with a soft violet-and-turquoise glow around the edge; each cell glows faintly from inside.
 - **Buttons and pop-ups:** dark glass with a warm outline; main buttons (Continue, Yes, Save, Play again) are glowing gold. Text is light cream; the "Lines" title is a glowing gold gradient.
-- **Fonts:** Mystery Quest (playful, witchy) for the title, numbers, labels, buttons and headings; Nunito for longer text (How to play explanations, pop-up messages, leaderboard names). Both are free Google Fonts under the SIL Open Font License, so they can be included in the game.
+- **Fonts:** Mystery Quest (playful, witchy) for the title, numbers, labels, buttons and headings; it has only Latin letters, so Russian text in those places uses Kurale (a fairy-tale serif with Cyrillic letters, also a free Google Font); Nunito for longer text (How to play explanations, pop-up messages, leaderboard names). Both are free Google Fonts under the SIL Open Font License, so they can be included in the game.
 - **App icon:** the red spotted mushroom, large and glowing, on the dark forest with a few fireflies. On Android 8+ it is made of two layers (the forest and the mushroom), so each phone can cut it into its own shape.
 - **Splash screen:** while the game loads: the same glowing mushroom and the gold "Lines" title over the plain forest background, for about 2 seconds, with no Unity logo. Before that, iOS shows a plain screen in the game's dark colour.
 - One theme (the dark magic forest) in the MVP.
