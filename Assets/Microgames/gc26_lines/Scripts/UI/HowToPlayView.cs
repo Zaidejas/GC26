@@ -17,20 +17,20 @@ namespace GC26.Lines.UI
     public sealed class HowToPlayView : MonoBehaviour
     {
         /// <summary>A card: its mini board ("0"–"6" piece, "a"–"g" preview dot, "*" path step, "o" target, "." empty).</summary>
+        /// Its title and text come from <see cref="Texts"/> in the current language.
         public readonly struct Card
         {
-            public readonly string Mini, Title, Text;
-            public Card(string mini, string title, string text) { Mini = mini; Title = title; Text = text; }
+            public readonly string Mini, TitleKey, TextKey;
+            public Card(string mini, string titleKey, string textKey) { Mini = mini; TitleKey = titleKey; TextKey = textKey; }
+            public string Title => Texts.Get(TitleKey);
+            public string Text => Texts.Get(TextKey);
         }
 
         public static readonly Card[] Cards =
         {
-            new Card("0****o", "Move a piece",
-                "Tap a piece, then an empty cell. It moves only if there is a free path up, down, left or right."),
-            new Card(".22222", "Make lines of five",
-                "Five or more of the same kind in a row, column or diagonal disappear and score points. Longer lines score more."),
-            new Card("a.4.bc", "Watch what's coming",
-                "If your move makes no line, 3 new pieces arrive where the faded mushrooms show. The game ends when the board is full. Undo takes back one move."),
+            new Card("0****o", "howto1Title", "howto1Text"),
+            new Card(".22222", "howto2Title", "howto2Text"),
+            new Card("a.4.bc", "howto3Title", "howto3Text"),
         };
 
         // Prototype sizes (cqw).
@@ -115,8 +115,8 @@ namespace GC26.Lines.UI
                 pageDots.Add(dot);
             }
 
-            previous = PillButton.Create(root, "Back");
-            next = PillButton.Create(root, "Next", primary: true);
+            previous = PillButton.Create(root, Texts.Get("back"));
+            next = PillButton.Create(root, Texts.Get("nextButton"), primary: true);
             previous.Clicked += () => GoTo(Step - 1);
             next.Clicked += () =>
             {
@@ -144,6 +144,14 @@ namespace GC26.Lines.UI
 
         public void Hide() => gameObject.SetActive(false);
 
+        /// <summary>Puts the buttons and the open card in the current language.</summary>
+        public void RefreshTexts()
+        {
+            previous.SetText(Texts.Get("back"));
+            next.SetText(Texts.Get(Step == Cards.Length - 1 ? "gotIt" : "nextButton"));
+            if (IsShowing && layout.Unit > 0f) Draw();
+        }
+
         public void GoTo(int step)
         {
             Step = Mathf.Clamp(step, 0, Cards.Length - 1);
@@ -168,7 +176,7 @@ namespace GC26.Lines.UI
             previous.Place(new Rect(left, buttonsY, half, ButtonHeight * u), u);
             next.Place(new Rect(left + half + ButtonGap * u, buttonsY, half, ButtonHeight * u), u);
             previous.Interactable = Step > 0;
-            next.SetText(Step == Cards.Length - 1 ? "Got it" : "Next");
+            next.SetText(Texts.Get(Step == Cards.Length - 1 ? "gotIt" : "nextButton"));
 
             float dotsY = buttonsY + (ButtonHeight + Gap) * u;
             float dotsWidth = Cards.Length * DotSize * u + (Cards.Length - 1) * DotGap * u;

@@ -58,7 +58,9 @@ python3 tools/check_names.py gc26_lines
 - Never hand-edit `.unity`, `.prefab` or `.asset` files as text. If the scene must change, change `Scripts/Editor/ProjectSetup.cs` and run it. ProjectSetup changes nothing outside the game folder.
 - Project-wide phone-app settings (name "Lines", app id `com.gc26.lines`, portrait only, icon, splash) are **not** committed: `Scripts/Editor/PhoneAppSettings.cs` applies them during a build, and `Tools~/build.sh` puts `ProjectSettings`, `Assets/Settings`, `Packages/packages-lock.json` and `GC26.slnx` back exactly as they were afterwards.
 - No third-party packages from the Asset Store. Animations use our own small helper (no DOTween).
-- MVP art: the dark magic-forest look from the prototype (GDD → Art), exported from it as PNGs: 7 glowing mushrooms (`Resources/gc26_lines/Mushrooms/mushroom_0…6.png`, the same in every game; `PieceSet.Mushrooms()`, with generated glossy balls as a fallback), two forest backgrounds (`Resources/gc26_lines/Backgrounds/`; `ForestBackground`: the menu's has tall mushrooms), the Mystery Quest font (`Resources/gc26_lines/Fonts/`) and the app icon and splash logo (`Art/AppIcon/`). Colours live in `Palette`.
+- MVP art: the dark magic-forest look from the prototype (GDD → Art), exported from it as PNGs: 7 glowing mushrooms (`Resources/gc26_lines/Mushrooms/mushroom_0…6.png`, the same in every game; `PieceSet.Mushrooms()`, with generated glossy balls as a fallback), two forest backgrounds (`Resources/gc26_lines/Backgrounds/`; `ForestBackground`: the menu's has tall mushrooms), the fonts (`Resources/gc26_lines/Fonts/`: Mystery Quest, which has only Latin letters, so Russian titles fall back to Kurale; Nunito Regular/ExtraBold with Cyrillic, from Google Fonts) and the app icon and splash logo (`Art/AppIcon/`). Colours live in `Palette`.
+- Every text the player sees is in `UI/Texts.cs` (English and Russian tables, same keys; a test checks both). Screens never hard-code words: they read `Texts.Get(key)` and refresh in `RefreshTexts()` when `Texts.Changed` fires. The language and the Music/Sounds/Vibration switches are `GameSettings`, saved by `SettingsService` in `settings.json`; the game has no sound yet, so the switches are only remembered. Play-mode tests start in English (`PlayModeTestBase`); edit-mode tests that switch language set English back.
+- Game screen life (teacher's feedback): `Fireflies` (behind the board), the sway (`BoardView.AdvanceSway`; each ball's picture hangs on a foot hinge, so sway never touches the ball's position or scale), the magic dust and landing pulse (`BoardPresenter.PlayMove`), and the entrance (`BoardView.PlayEntrance`, on every `ShowGame`).
 
 ## Code layout (inside the game folder)
 
@@ -67,8 +69,8 @@ GC26.Lines.asmdef          GC26.Lines            code package for everything bel
 Scripts/Core/              GC26.Lines.Core       pure C# game rules, no UnityEngine (unit-tested)
 Scripts/Game/              GC26.Lines            GameBootstrap, LinesGameController, input, LinesMicrogame (link to the shared menu)
 Scripts/View/              GC26.Lines            board/ball views, sprite generation, animation helper
-Scripts/UI/                GC26.Lines            screens (menu, game HUD, how to play, leaderboard), pop-ups (uGUI + TextMeshPro, built from code)
-Scripts/Services/          GC26.Lines            saving (game in progress, leaderboard)
+Scripts/UI/                GC26.Lines            screens (menu, game HUD, how to play, leaderboard), pop-ups incl. Settings, texts in both languages (uGUI + TextMeshPro, built from code)
+Scripts/Services/          GC26.Lines            saving (game in progress, leaderboard, settings)
 Scripts/Editor/            GC26.Lines.Editor     project setup, phone-app settings, build scripts, layout screenshots
 Tests/EditMode/            GC26.Lines.Tests.EditMode   (Core rules, Tween driven by Tween.Tick)
 Tests/PlayMode/            GC26.Lines.Tests.PlayMode   (things that need real frames)

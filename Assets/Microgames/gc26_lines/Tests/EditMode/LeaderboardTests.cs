@@ -88,9 +88,9 @@ namespace GC26.Lines.Tests
         [Test]
         public void ResultMessages_MatchTheGdd()
         {
-            Assert.AreEqual("New best score, Anna!", Leaderboard.ResultMessage(0, 300, "Anna"));
-            Assert.AreEqual("You're #3, Anna!", Leaderboard.ResultMessage(2, 120, "Anna"));
-            Assert.AreEqual("120 points didn't make the top 10", Leaderboard.ResultMessage(-1, 120, "Anna"));
+            Assert.AreEqual("New best score, Anna!", GC26.Lines.UI.Texts.ResultMessage(0, 300, "Anna"));
+            Assert.AreEqual("You're #3, Anna!", GC26.Lines.UI.Texts.ResultMessage(2, 120, "Anna"));
+            Assert.AreEqual("120 points didn't make the top 10", GC26.Lines.UI.Texts.ResultMessage(-1, 120, "Anna"));
         }
 
         [Test]

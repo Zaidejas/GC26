@@ -203,6 +203,16 @@ namespace GC26.Lines.UI
             Tween.Scale(rect, Vector3.one, ReleaseSeconds, Ease.OutBack);
         }
 
+        /// <summary>
+        /// How wide the button must be for its word at <paramref name="unit"/> pixels per unit, with
+        /// <paramref name="padding"/> units each side (the prototype's buttons that fit their text, like Save).
+        /// </summary>
+        public float WidthForText(float unit, float padding)
+        {
+            label.fontSize = FontSize * unit;
+            return label.GetPreferredValues(label.text).x + 2f * padding * unit;
+        }
+
         public void SetText(string text)
         {
             label.text = text;

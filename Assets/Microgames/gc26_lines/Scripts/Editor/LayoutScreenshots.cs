@@ -18,8 +18,8 @@ namespace GC26.Lines.EditorTools
     {
         struct Shot
         {
-            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog, Menu, GameOver; public int HowTo, Scores;
-            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false, bool menu = false, int howTo = 0, bool gameOver = false, int scores = 0) { HowTo = howTo; GameOver = gameOver; Scores = scores; Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; Menu = menu; }
+            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog, Menu, GameOver, Settings, Russian; public int HowTo, Scores;
+            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false, bool menu = false, int howTo = 0, bool gameOver = false, int scores = 0, bool settings = false, bool russian = false) { HowTo = howTo; GameOver = gameOver; Scores = scores; Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; Menu = menu; Settings = settings; Russian = russian; }
         }
 
         static readonly Shot[] Shots =
@@ -43,6 +43,17 @@ namespace GC26.Lines.EditorTools
             new Shot("leaderboard-after-game_1080x1920", 1080, 1920, 0, 0, scores: 2),
             new Shot("leaderboard-after-game_1080x2400_notch", 1080, 2400, 132, 63, scores: 2),
             new Shot("leaderboard-from-menu_1080x2400_notch", 1080, 2400, 132, 63, scores: 3),
+            // Settings (sounds switched off, to show both switch states) and the Russian screens.
+            new Shot("settings_1080x1920", 1080, 1920, 0, 0, settings: true),
+            new Shot("settings-ru_1080x1920", 1080, 1920, 0, 0, settings: true, russian: true),
+            new Shot("settings_iphone-se_750x1334", 750, 1334, 0, 0, settings: true),
+            new Shot("menu-ru_1080x2400_notch", 1080, 2400, 132, 63, menu: true, russian: true),
+            new Shot("16x9-ru_1080x1920", 1080, 1920, 0, 0, russian: true),
+            new Shot("alert-no-path-ru_1080x2400", 1080, 2400, 132, 63, "Нет пути", russian: true),
+            new Shot("dialog-reset-ru_1080x1920", 1080, 1920, 0, 0, resetDialog: true, russian: true),
+            new Shot("howto-3-ru_1080x1920", 1080, 1920, 0, 0, howTo: 3, russian: true),
+            new Shot("gameover-ru_1080x1920", 1080, 1920, 0, 0, gameOver: true, russian: true),
+            new Shot("leaderboard-after-game-ru_1080x1920", 1080, 1920, 0, 0, scores: 2, russian: true),
         };
 
         [MenuItem("Lines/Render Layout Screenshots")]
@@ -53,9 +64,11 @@ namespace GC26.Lines.EditorTools
             foreach (var shot in Shots)
             {
                 var path = Path.Combine(folder, shot.Name + ".png");
+                GC26.Lines.UI.Texts.Set(shot.Russian ? GC26.Lines.UI.Language.Russian : GC26.Lines.UI.Language.English);
                 Render(shot, path);
                 Debug.Log("Lines: wrote " + path);
             }
+            GC26.Lines.UI.Texts.Set(GC26.Lines.UI.Language.English);
         }
 
         static void Render(Shot shot, string path)
@@ -86,7 +99,7 @@ namespace GC26.Lines.EditorTools
                     for (int i = 0; i < names.Length - 1; i++) scores.Add(points[i], names[i], start + i * day);
                     long latest = start + 16 * day;
                     int place = scores.Add(244, "Anna", latest);
-                    if (shot.Scores == 2) screen.Show(scores, latest, Leaderboard.ResultMessage(place, 244, "Anna"), showPlayAgain: true);
+                    if (shot.Scores == 2) screen.Show(scores, latest, GC26.Lines.UI.Texts.ResultMessage(place, 244, "Anna"), showPlayAgain: true);
                     else screen.Show(scores);
                 }
                 Canvas.ForceUpdateCanvases();
@@ -129,9 +142,11 @@ namespace GC26.Lines.EditorTools
             hud.SetScore(120);
             hud.SetPreview(game.Preview.Colors, view.Pieces);
             if (shot.GameOver)
-                hud.GameOver.Show(1284, "Player3");
+                hud.GameOver.Show(1284, GC26.Lines.UI.Texts.Get("player") + "3");
             if (shot.ResetDialog)
-                hud.Dialog.Show(GC26.Lines.Game.GameBootstrap.ResetTitle, GC26.Lines.Game.GameBootstrap.ResetMessage, "Yes", null);
+                hud.Dialog.Show(GC26.Lines.Game.GameBootstrap.ResetTitle, GC26.Lines.Game.GameBootstrap.ResetMessage, GC26.Lines.UI.Texts.Get("yes"), null);
+            if (shot.Settings)
+                hud.Settings.Show(new GameSettings { sounds = false });
             if (shot.Alert != null) hud.ShowAlert(shot.Alert);
             Tween.Tick(1f); // pop-ups and messages fully faded in
             Canvas.ForceUpdateCanvases();

@@ -48,22 +48,32 @@ namespace GC26.Lines.Game
         public InputHandler Taps { get; private set; }
 
         /// <summary>True when board taps must be ignored: a pop-up is open, or the menu is showing.</summary>
-        public bool InputBlocked => !GameScreenShowing || (hud != null && (hud.Dialog.IsOpen || hud.GameOver.IsOpen));
+        public bool InputBlocked => !GameScreenShowing || (hud != null && (hud.Dialog.IsOpen || hud.GameOver.IsOpen || hud.Settings.IsOpen));
 
         BoardPresenter presenter;
         SaveService saves;
         LeaderboardService scoreFile;
+        SettingsService settingsFile;
+        bool howToPlayFromGame; // How to play was opened from Settings during a game: it returns there
+
+        /// <summary>The player's Settings choices (music, sounds, vibration, language), saved on the device.</summary>
+        public GameSettings Settings { get; private set; }
 
         /// <summary>Where the game in progress is kept.</summary>
         public SaveService Saves => saves;
 
-        public const string ResetTitle = "Start a new game?";
-        public const string ResetMessage = "Your current game will be lost.";
+        public static string ResetTitle => Texts.Get("confirmTitle");
+        public static string ResetMessage => Texts.Get("confirmText");
 
         void Awake()
         {
             Application.targetFrameRate = 60;
             mainCamera = Camera.main;
+            // The language first, so every screen is built with the right texts.
+            settingsFile = new SettingsService();
+            Settings = settingsFile.Load();
+            Texts.Set(Texts.FromCode(Settings.language) ?? Texts.FromSystem(Application.systemLanguage));
+            Texts.Changed += OnLanguageChanged;
             boardView = BoardView.Create();
             hud = HudView.Create(mainCamera);
             forest = ForestBackground.Create(mainCamera);
@@ -74,6 +84,7 @@ namespace GC26.Lines.Game
             saves = new SaveService();
             scoreFile = new LeaderboardService();
             Scores = scoreFile.Load();
+            Scores.placeholderPrefix = Texts.Get("player");
             RecordLeftoverScore();
             presenter.GameOver += OnGameOver;
             hud.GameOver.Saved += SaveScore;
@@ -94,7 +105,11 @@ namespace GC26.Lines.Game
             menu.ContinueClicked += Continue;
             menu.NewGameClicked += AskForNewGame;
             menu.HowToPlayClicked += ShowHowToPlay;
-            howToPlay.Closed += ShowMenu;
+            howToPlay.Closed += CloseHowToPlay;
+            menu.SettingsClicked += OpenSettings;
+            hud.SettingsClicked += OpenSettings;
+            hud.Settings.Changed += OnSettingsChanged;
+            hud.Settings.HowToPlayClicked += () => ShowHowToPlay(fromGame: GameScreenShowing);
             menu.LeaderboardClicked += () => ShowLeaderboard();
             leaderboardView.Closed += ShowMenu;
             leaderboardView.PlayAgainClicked += () => { StartNewGame(); ShowGame(); };
@@ -127,12 +142,66 @@ namespace GC26.Lines.Game
         }
 
         /// <summary>Menu → How to play: opens on the first card; the back arrow or "Got it" returns.</summary>
-        public void ShowHowToPlay()
+        public void ShowHowToPlay() => ShowHowToPlay(fromGame: false);
+
+        /// <summary>
+        /// How to play from the menu, or from Settings during a game (<paramref name="fromGame"/>): then the back
+        /// arrow and "Got it" return to the game instead of the menu.
+        /// </summary>
+        public void ShowHowToPlay(bool fromGame)
         {
+            howToPlayFromGame = fromGame;
+            if (fromGame)
+            {
+                Controller?.ClearSelection();
+                SaveGame();
+            }
             forest.Show(menu: false);
+            GameScreenShowing = false;
+            boardView.gameObject.SetActive(false);
+            hud.SetVisible(false);
             menu.Hide();
+            leaderboardView.Hide();
             howToPlay.Show(boardView.Pieces);
         }
+
+        void CloseHowToPlay()
+        {
+            if (howToPlayFromGame && HasUnfinishedGame) ShowGame();
+            else ShowMenu();
+            howToPlayFromGame = false;
+        }
+
+        // ---- Settings ----
+
+        /// <summary>The gear on the menu or the game screen (not while a move is still animating).</summary>
+        public void OpenSettings()
+        {
+            if (hud.Dialog.IsOpen || hud.GameOver.IsOpen || hud.Settings.IsOpen) return;
+            if (GameScreenShowing && Controller != null && !Controller.AcceptsInput && Controller.State != TurnState.GameOver) return;
+            hud.Settings.Show(Settings);
+        }
+
+        /// <summary>A switch or the language changed in Settings: remember it, and switch the language at once.</summary>
+        void OnSettingsChanged(GameSettings changed)
+        {
+            Settings = changed;
+            settingsFile.Save(Settings);
+            var language = Texts.FromCode(Settings.language);
+            if (language.HasValue) Texts.Set(language.Value);
+        }
+
+        /// <summary>Every screen puts its texts in the new language, and the layout follows the new text sizes.</summary>
+        void OnLanguageChanged()
+        {
+            if (Scores != null) Scores.placeholderPrefix = Texts.Get("player");
+            menu.RefreshTexts();
+            hud.RefreshTexts();
+            howToPlay.RefreshTexts();
+            Relayout();
+        }
+
+        void OnDestroy() => Texts.Changed -= OnLanguageChanged;
 
         /// <summary>
         /// The Leaderboard screen. Right after a game it shows <paramref name="result"/> and Play again;
@@ -158,6 +227,7 @@ namespace GC26.Lines.Game
             boardView.gameObject.SetActive(true);
             hud.SetVisible(true);
             GameScreenShowing = true;
+            boardView.PlayEntrance(); // the board fades in, the mushrooms pop up one by one
         }
 
         /// <summary>Menu → Continue: back to the saved game, exactly where it was.</summary>
@@ -171,13 +241,13 @@ namespace GC26.Lines.Game
         {
             if (hud.Dialog.IsOpen) return;
             if (!HasUnfinishedGame) { StartNewGame(); ShowGame(); return; }
-            hud.Dialog.Show(ResetTitle, ResetMessage, "Yes", () => { StartNewGame(); ShowGame(); });
+            hud.Dialog.Show(ResetTitle, ResetMessage, Texts.Get("yes"), () => { StartNewGame(); ShowGame(); });
         }
 
         /// <summary>The back arrow: saves the game and returns to the menu (not while an animation plays).</summary>
         public void BackToMenu()
         {
-            if (!GameScreenShowing || hud.Dialog.IsOpen) return;
+            if (!GameScreenShowing || hud.Dialog.IsOpen || hud.Settings.IsOpen) return;
             if (Controller != null && !Controller.AcceptsInput && Controller.State != TurnState.GameOver) return;
             Controller?.ClearSelection();
             SaveGame();
@@ -230,7 +300,7 @@ namespace GC26.Lines.Game
             ScorePending = false;
             SaveGame();
             hud.GameOver.Close();
-            ShowLeaderboard(Leaderboard.ResultMessage(place, score, name), afterGame: true);
+            ShowLeaderboard(Texts.ResultMessage(place, score, name), afterGame: true);
         }
 
         int RecordScore(int score, string name)
@@ -264,7 +334,7 @@ namespace GC26.Lines.Game
         {
             if (InputBlocked) return;
             if (!Controller.AcceptsInput && Controller.State != TurnState.GameOver) return;
-            hud.Dialog.Show(ResetTitle, ResetMessage, "Yes", StartNewGame);
+            hud.Dialog.Show(ResetTitle, ResetMessage, Texts.Get("yes"), () => { StartNewGame(); boardView.PlayEntrance(); });
         }
 
         void Update()

@@ -37,6 +37,8 @@ namespace GC26.Lines.View
         public Rect Board { get; }
         public Rect Actions { get; }
         public Rect BackButton { get; }
+        /// <summary>The gear (Settings) in the top-right corner: the house button's mirror image across the board.</summary>
+        public Rect SettingsButton => new Rect(Board.xMax - BackButton.width, BackButton.y, BackButton.width, BackButton.height);
         /// <summary>Distance between neighbouring cell centres, in pixels.</summary>
         public float CellPitch { get; }
 

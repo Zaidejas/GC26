@@ -37,6 +37,9 @@ namespace GC26.Lines.Tests
             SaveFolder = Path.Combine(Path.GetTempPath(), "LinesTests_" + System.Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(SaveFolder);
             SaveService.FolderOverride = SaveFolder;
+            // English, whatever language this computer uses (tests check English texts).
+            new SettingsService(SaveFolder).Save(new GC26.Lines.Core.GameSettings { language = "en" });
+            GC26.Lines.UI.Texts.Set(GC26.Lines.UI.Language.English);
         }
 
         [TearDown]

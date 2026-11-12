@@ -11,7 +11,8 @@ namespace GC26.Lines.UI
     /// <summary>
     /// The start screen (GDD → Main menu; prototype's menu): 5 gently bobbing pieces, the "Lines" title,
     /// "Line up five of a kind", and the buttons Continue (with the saved game's score), New game,
-    /// How to play and Leaderboard. Sizes follow the prototype, in units of 1 % of the content width.
+    /// How to play and Leaderboard, and a gear (Settings) in the top-right corner. Texts come from
+    /// <see cref="Texts"/>. Sizes follow the prototype, in units of 1 % of the content width.
     /// </summary>
     public sealed class MenuView : MonoBehaviour
     {
@@ -20,23 +21,25 @@ namespace GC26.Lines.UI
         const float LogoSize = 21f, TagSize = 4.2f, TagMargin = 2.5f;
         const float ButtonHeight = 13.5f, ButtonGap = 3f, BrandToButtons = 12f, SidePadding = 10f;
         const float FloatHeight = 0.14f, FloatHalfPeriod = 1.4f, FloatStagger = 0.17f;
-        public const string Tagline = "Line up five of a kind";
 
         Canvas canvas;
         RectTransform root;
         readonly List<Image> deco = new List<Image>();
         TextMeshProUGUI logo, tagline;
         Image logoGlow;
-        PillButton continueButton, newGame, howTo, leaderboard;
+        PillButton continueButton, newGame, howTo, leaderboard, settings;
+        int? savedScore;
         BoardLayout layout;
         PieceSet pieces = PieceSet.Balls();
 
-        public event Action ContinueClicked, NewGameClicked, HowToPlayClicked, LeaderboardClicked;
+        public event Action ContinueClicked, NewGameClicked, HowToPlayClicked, LeaderboardClicked, SettingsClicked;
 
         public PillButton ContinueButton => continueButton;
         public PillButton NewGameButton => newGame;
         public PillButton HowToPlayButton => howTo;
         public PillButton LeaderboardButton => leaderboard;
+        public PillButton SettingsButton => settings;
+        public string Tagline => tagline.text;
         public bool IsShowing => gameObject.activeSelf;
 
         public static MenuView Create(Camera camera)
@@ -66,7 +69,7 @@ namespace GC26.Lines.UI
                 deco.Add(img);
             }
             logo = NewText("Title", "Lines", Palette.Text);
-            tagline = NewText("Tagline", Tagline, Palette.SoftText);
+            tagline = NewText("Tagline", "", Palette.SoftText);
             UiFonts.UseDisplay(logo);
             UiFonts.UseDisplay(tagline);
             logo.color = Color.white;
@@ -79,10 +82,14 @@ namespace GC26.Lines.UI
             logoGlow.raycastTarget = false;
             logoGlow.transform.SetSiblingIndex(logo.transform.GetSiblingIndex());
 
-            continueButton = PillButton.Create(root, "Continue", primary: true);
-            newGame = PillButton.Create(root, "New game");
-            howTo = PillButton.Create(root, "How to play");
-            leaderboard = PillButton.Create(root, "Leaderboard");
+            continueButton = PillButton.Create(root, "", primary: true);
+            newGame = PillButton.Create(root, "");
+            howTo = PillButton.Create(root, "");
+            leaderboard = PillButton.Create(root, "");
+            settings = PillButton.CreateIcon(root, SpriteFactory.GearIcon(), "Settings");
+            settings.MakePlain(); // just the white gear, like the house on the game screen
+            settings.Clicked += () => SettingsClicked?.Invoke();
+            RefreshTexts();
             continueButton.Clicked += () => ContinueClicked?.Invoke();
             newGame.Clicked += () => NewGameClicked?.Invoke();
             howTo.Clicked += () => HowToPlayClicked?.Invoke();
@@ -129,7 +136,20 @@ namespace GC26.Lines.UI
                 b.Place(new Rect(left, y, width, ButtonHeight * u), u);
                 y -= ButtonGap * u;
             }
+            settings.Place(screen.SettingsButton, u);
             if (IsShowing) AdvanceFloating(0f);
+        }
+
+        /// <summary>Puts every text in the current language (<see cref="Texts"/>).</summary>
+        public void RefreshTexts()
+        {
+            tagline.text = Texts.Get("tagline");
+            newGame.SetText(Texts.Get("newGame"));
+            howTo.SetText(Texts.Get("howToPlay"));
+            leaderboard.SetText(Texts.Get("leaderboard"));
+            continueButton.SetText(savedScore.HasValue
+                ? $"{Texts.Get("continue")} <size=78%><alpha=#BF>· {Texts.Get("scoreShort")} {savedScore.Value}<alpha=#FF></size>"
+                : Texts.Get("continue"));
         }
 
         /// <summary>
@@ -139,10 +159,9 @@ namespace GC26.Lines.UI
         public void Show(int? savedScore, PieceSet pieceSet)
         {
             pieces = pieceSet ?? PieceSet.Balls();
+            this.savedScore = savedScore;
             continueButton.Interactable = savedScore.HasValue;
-            continueButton.SetText(savedScore.HasValue
-                ? $"Continue <size=78%><alpha=#BF>· score {savedScore.Value}<alpha=#FF></size>"
-                : "Continue");
+            RefreshTexts();
             var colors = BallColors.All;
             for (int i = 0; i < deco.Count; i++) deco[i].sprite = pieces.SpriteFor(colors[i]);
             gameObject.SetActive(true);

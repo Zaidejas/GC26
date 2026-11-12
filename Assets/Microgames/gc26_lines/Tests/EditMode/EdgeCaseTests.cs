@@ -68,7 +68,7 @@ namespace GC26.Lines.Tests
                 Assert.AreEqual(color, ball.Color, $"{when}: {cell} color");
                 Assert.AreEqual(BoardView.CellToLocal(cell), ball.transform.localPosition, $"{when}: {cell} position");
                 Assert.AreEqual(ball.FullScale, ball.transform.localScale, $"{when}: {cell} size");
-                Assert.AreEqual(1f, ball.GetComponent<SpriteRenderer>().color.a, $"{when}: {cell} fully visible");
+                Assert.AreEqual(1f, ball.Renderer.color.a, $"{when}: {cell} fully visible");
             }
             Assert.AreEqual(81 - game.Board.EmptyCount, view.BallCount, $"{when}: no extra pieces on screen");
             Assert.AreEqual(game.Score.ToString(), hud.ScoreText, $"{when}: score");

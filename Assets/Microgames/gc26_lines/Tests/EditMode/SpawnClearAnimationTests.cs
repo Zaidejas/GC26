@@ -139,7 +139,7 @@ namespace GC26.Lines.Tests
             Run(0.3f);
             var ball = view.BallAt(new Cell(8, 8));
             Assert.AreEqual(ball.FullScale, ball.transform.localScale);
-            Assert.AreEqual(1f, ball.GetComponent<SpriteRenderer>().color.a);
+            Assert.AreEqual(1f, ball.Renderer.color.a);
         }
     }
 }

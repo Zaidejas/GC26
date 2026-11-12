@@ -19,8 +19,6 @@ namespace GC26.Lines.UI
         const float TitleSize = 7f, NoteSize = 4.4f, FinalSize = 13f, LabelSize = 3.4f;
         const float FieldHeight = 12f, FieldRadius = 3f, FieldBorder = 0.4f, FieldPad = 3.4f, FieldFont = 4.6f;
         const float RowGap = 2f, LabelGap = 1.6f, SaveWidth = 22f; // "Save" plus 5u padding each side
-        public const string Title = "Game over";
-        public const string Label = "Your name for the leaderboard";
         const float GlowSize = 8f; // the prototype's soft violet glow around the card
         static readonly Color FieldFill = Palette.Hex(0x15142A);
 
@@ -73,10 +71,10 @@ namespace GC26.Lines.UI
             cardImage.color = Palette.Card;
             cardImage.raycastTarget = false;
 
-            title = NewText("Title", Title, Palette.Text, true, TextAlignmentOptions.Center);
-            note = NewText("Note", "Final score", Palette.SoftText, false, TextAlignmentOptions.Center);
+            title = NewText("Title", "", Palette.Text, true, TextAlignmentOptions.Center);
+            note = NewText("Note", "", Palette.SoftText, false, TextAlignmentOptions.Center);
             final = NewText("Final", "0", Palette.Text, true, TextAlignmentOptions.Center);
-            label = NewText("Label", Label, Palette.SoftText, true, TextAlignmentOptions.Left);
+            label = NewText("Label", "", Palette.SoftText, true, TextAlignmentOptions.Left);
             label.characterSpacing = 3f;
             UiFonts.UseDisplay(title);
             UiFonts.UseDisplay(final);
@@ -98,7 +96,7 @@ namespace GC26.Lines.UI
             var text = NewText("Text", "", Palette.Text, true, TextAlignmentOptions.Left, area);
             text.textWrappingMode = TextWrappingModes.NoWrap;
             Stretch(text.rectTransform);
-            placeholder = NewText("Placeholder", "Player", Palette.SoftText, true, TextAlignmentOptions.Left, area);
+            placeholder = NewText("Placeholder", "", Palette.SoftText, true, TextAlignmentOptions.Left, area);
             Stretch(placeholder.rectTransform);
             input = field.gameObject.AddComponent<TMP_InputField>();
             input.targetGraphic = fieldBorder;
@@ -116,8 +114,9 @@ namespace GC26.Lines.UI
             field.gameObject.SetActive(true);
 
             motion = new PopupMotion(gameObject, card);
-            save = PillButton.Create(card, "Save", primary: true);
+            save = PillButton.Create(card, "", primary: true);
             save.Clicked += Submit;
+            RefreshTexts();
         }
 
         /// <summary>Lays the card out for a screen where 1 unit is <paramref name="unitPixels"/> pixels.</summary>
@@ -157,8 +156,8 @@ namespace GC26.Lines.UI
             y -= (6f - 2f) * u + labelH;
             Place(label.rectTransform, PadSide * u, y, inner, labelH);
 
-            // The field takes what Save leaves (Save is as wide as its word plus padding).
-            float saveW = SaveWidth * u;
+            // The field takes what Save leaves (Save is as wide as its word plus 5 units each side, e.g. "Сохранить").
+            float saveW = Mathf.Max(SaveWidth * u, save.WidthForText(u, 5f));
             float fieldW = inner - RowGap * u - saveW;
             Place(field, PadSide * u, PadBottom * u, fieldW, fieldH);
             UiShapes.MakeRounded(fieldBorder, FieldRadius * u);
@@ -178,11 +177,24 @@ namespace GC26.Lines.UI
             Score = score;
             final.text = score.ToString();
             input.text = defaultName ?? "";
-            placeholder.text = defaultName ?? "Player";
+            placeholder.text = defaultName ?? Texts.Get("player");
             transform.SetAsLastSibling();
             LayoutCard();
             motion.Open();
         }
+
+        /// <summary>Puts the pop-up's texts in the current language.</summary>
+        public void RefreshTexts()
+        {
+            title.text = Texts.Get("gameOver");
+            note.text = Texts.Get("finalScore");
+            label.text = Texts.Get("nameLabel");
+            save.SetText(Texts.Get("save"));
+            if (string.IsNullOrEmpty(input.text)) placeholder.text = Texts.Get("player");
+        }
+
+        public string TitleText => title.text;
+        public string LabelText => label.text;
 
         public void Close()
         {

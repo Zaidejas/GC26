@@ -22,7 +22,8 @@ namespace GC26.Lines.UI
         const float MessageSize = 5.2f, EmptySize = 4.4f, PlayAgainHeight = 13f;
         const float RowHeight = 15f, RowGap = 2f, RowRadius = 3f, RowBorder = 0.5f, RowPadX = 4f;
         const float RankWidth = 8f, ColumnGap = 3f, RankSize = 5f, NameSize = 4.4f, DateSize = 3.6f, PointsSize = 6f;
-        public const string EmptyText = "No finished games yet. Your score is added here when a game ends.";
+        /// <summary>The text shown while there are no finished games, in the current language.</summary>
+        public static string EmptyText => Texts.Get("scoresEmpty");
         static readonly Color Focus = Palette.Focus;
 
         sealed class Row
@@ -125,7 +126,7 @@ namespace GC26.Lines.UI
                 rows.Add(row);
             }
 
-            playAgain = PillButton.Create(root, "Play again", primary: true);
+            playAgain = PillButton.Create(root, Texts.Get("playAgain"), primary: true);
             playAgain.Clicked += () => PlayAgainClicked?.Invoke();
         }
 
@@ -144,6 +145,8 @@ namespace GC26.Lines.UI
         {
             board = scores ?? new Leaderboard();
             highlightTime = latestTime;
+            empty.text = EmptyText; // texts in the language chosen now
+            playAgain.SetText(Texts.Get("playAgain"));
             message.text = result ?? "";
             message.gameObject.SetActive(!string.IsNullOrEmpty(result));
             playAgain.gameObject.SetActive(showPlayAgain);
@@ -262,7 +265,7 @@ namespace GC26.Lines.UI
 
         /// <summary>The date under a name, like the prototype's: "6 Nov".</summary>
         public static string DateText(long time) =>
-            DateTimeOffset.FromUnixTimeMilliseconds(time).ToLocalTime().ToString("d MMM", CultureInfo.InvariantCulture);
+            Texts.Date(time);
 
         static RectTransform NewRect(string name, RectTransform parent)
         {

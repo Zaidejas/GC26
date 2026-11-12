@@ -66,8 +66,8 @@ namespace GC26.Lines.UI
             title = NewText("Title", Palette.Text, true);
             message = NewText("Message", Palette.SoftText, false);
             motion = new PopupMotion(gameObject, card);
-            cancel = PillButton.Create(card, "Cancel");
-            confirm = PillButton.Create(card, "Yes", primary: true);
+            cancel = PillButton.Create(card, Texts.Get("cancel"));
+            confirm = PillButton.Create(card, Texts.Get("yes"), primary: true);
             cancel.Clicked += Close;
             confirm.Clicked += () =>
             {
@@ -128,6 +128,13 @@ namespace GC26.Lines.UI
             LayoutCard();
             root.SetAsLastSibling();
             motion.Open();
+        }
+
+        /// <summary>Cancel in the current language (the title, message and main button come with <see cref="Show"/>).</summary>
+        public void RefreshTexts()
+        {
+            cancel.SetText(Texts.Get("cancel"));
+            if (IsOpen) LayoutCard();
         }
 
         public void Close()

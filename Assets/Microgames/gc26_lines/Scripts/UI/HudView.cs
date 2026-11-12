@@ -36,7 +36,13 @@ namespace GC26.Lines.UI
         /// <summary>The player pressed the house button (top-left): back to the main menu.</summary>
         public event System.Action BackClicked;
         public PillButton BackButton => back;
-        PillButton back;
+        PillButton back, settingsButton;
+        SettingsDialog settings;
+        /// <summary>The player pressed the gear (top-right): opens Settings.</summary>
+        public event System.Action SettingsClicked;
+        public PillButton SettingsButton => settingsButton;
+        /// <summary>The Settings pop-up (opened from the game screen or the main menu).</summary>
+        public SettingsDialog Settings => settings;
         GameObject popups; // own canvas on top, so dialogs also work while the HUD is hidden (main menu)
         /// <summary>The "Start a new game?" question (and later pop-ups).</summary>
         public ConfirmDialog Dialog => dialog;
@@ -70,24 +76,27 @@ namespace GC26.Lines.UI
             gameObject.AddComponent<GraphicRaycaster>();
 
             area = NewRect("Area", (RectTransform)transform);
-            scoreLabel = NewText("Score label", "SCORE", Palette.SoftText, TextAlignmentOptions.BottomLeft, bold: true);
+            scoreLabel = NewText("Score label", "", Palette.SoftText, TextAlignmentOptions.BottomLeft, bold: true);
             scoreText = NewText("Score", "0", Palette.Text, TextAlignmentOptions.BottomLeft, bold: true);
             gainText = NewText("Gain", "", GainColor, TextAlignmentOptions.BottomLeft, bold: true);
             gainText.alpha = 0f;
             UiFonts.UseDisplay(scoreText);
             UiFonts.UseDisplay(gainText);
-            nextLabel = NewText("Next label", "NEXT", Palette.SoftText, TextAlignmentOptions.BottomRight, bold: true);
+            nextLabel = NewText("Next label", "", Palette.SoftText, TextAlignmentOptions.BottomRight, bold: true);
             alert = AlertToast.Create((RectTransform)transform);
-            undo = PillButton.Create((RectTransform)transform, "Undo");
+            undo = PillButton.Create((RectTransform)transform, "");
             undo.SetLeadingIcon(SpriteFactory.UndoIcon());
             undo.Interactable = false; // nothing to undo at the start
             undo.Clicked += () => UndoClicked?.Invoke();
-            reset = PillButton.Create((RectTransform)transform, "Reset");
+            reset = PillButton.Create((RectTransform)transform, "");
             reset.SetLeadingIcon(SpriteFactory.ResetIcon());
             reset.Clicked += () => ResetClicked?.Invoke();
             back = PillButton.CreateIcon((RectTransform)transform, SpriteFactory.HomeIcon(), "Home");
             back.MakePlain(); // just the house, no ring or disc (teacher's feedback, prototype)
             back.Clicked += () => BackClicked?.Invoke();
+            settingsButton = PillButton.CreateIcon((RectTransform)transform, SpriteFactory.GearIcon(), "Settings");
+            settingsButton.MakePlain(); // just the white gear, opposite the house
+            settingsButton.Clicked += () => SettingsClicked?.Invoke();
 
             popups = new GameObject("Popups");
             var popupCanvas = popups.AddComponent<Canvas>();
@@ -99,12 +108,27 @@ namespace GC26.Lines.UI
             popups.AddComponent<GraphicRaycaster>();
             gameOver = GameOverDialog.Create((RectTransform)popups.transform);
             dialog = ConfirmDialog.Create((RectTransform)popups.transform);
+            settings = SettingsDialog.Create((RectTransform)popups.transform);
             for (int i = 0; i < next.Length; i++)
             {
                 next[i] = NewRect("Next " + i, area).gameObject.AddComponent<Image>();
                 next[i].preserveAspect = true;
                 next[i].raycastTarget = false;
             }
+            RefreshTexts();
+        }
+
+        /// <summary>Puts the HUD's texts and its pop-ups' texts in the current language (<see cref="Texts"/>).</summary>
+        public void RefreshTexts()
+        {
+            scoreLabel.text = Texts.Get("score");
+            nextLabel.text = Texts.Get("next");
+            undo.SetText(Texts.Get("undo"));
+            reset.SetText(Texts.Get("reset"));
+            dialog.RefreshTexts();
+            gameOver.RefreshTexts();
+            settings.RefreshTexts();
+            if (unit > 0f && area != null && area.sizeDelta.x > 0f) AlignScore();
         }
 
         /// <summary>Places the HUD in <see cref="BoardLayout.Hud"/> (screen pixels, origin bottom-left).</summary>
@@ -134,6 +158,7 @@ namespace GC26.Lines.UI
 
             alert.ApplyLayout(layout.Board.center, u); // messages appear over the middle of the board
             back.Place(layout.BackButton, u);
+            settingsButton.Place(layout.SettingsButton, u);
 
             // Buttons under the board: Undo on the left half, Reset on the right, 4 units apart.
             var actions = layout.Actions;
@@ -142,6 +167,7 @@ namespace GC26.Lines.UI
             reset.Place(new Rect(actions.x + half + 4f * u, actions.y, half, actions.height), u);
             dialog.ApplyLayout(u);
             gameOver.ApplyLayout(u);
+            settings.ApplyLayout(u);
         }
 
         /// <summary>Shows or hides the game's HUD (score, next, buttons). Dialogs are not affected.</summary>

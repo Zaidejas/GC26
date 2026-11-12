@@ -34,10 +34,16 @@ namespace GC26.Lines.Core
         /// <summary>How many PlayerN names have been used so far.</summary>
         public int placeholdersUsed;
 
+        /// <summary>
+        /// The word before the number in placeholder names, in the player's language ("Player", "Игрок").
+        /// Not saved: the game sets it from the current language.
+        /// </summary>
+        [NonSerialized] public string placeholderPrefix = PlaceholderPrefix;
+
         public int Count => entries.Count;
 
         /// <summary>The placeholder the next unnamed score gets: Player1, Player2, …</summary>
-        public string NextPlaceholder => PlaceholderPrefix + (placeholdersUsed + 1);
+        public string NextPlaceholder => (string.IsNullOrEmpty(placeholderPrefix) ? PlaceholderPrefix : placeholderPrefix) + (placeholdersUsed + 1);
 
         /// <summary>What the game-over name field starts with: the last typed name, or the next PlayerN.</summary>
         public string DefaultName => string.IsNullOrEmpty(lastName) ? NextPlaceholder : lastName;
@@ -75,14 +81,6 @@ namespace GC26.Lines.Core
             entries.Insert(place, new ScoreEntry(score, name, time));
             if (entries.Count > MaxEntries) entries.RemoveRange(MaxEntries, entries.Count - MaxEntries);
             return place;
-        }
-
-        /// <summary>The line above the list after saving (GDD → Scoring → Leaderboard).</summary>
-        public static string ResultMessage(int place, int score, string name)
-        {
-            if (place == 0) return "New best score, " + name + "!";
-            if (place > 0) return "You're #" + (place + 1) + ", " + name + "!";
-            return score + " points didn't make the top 10";
         }
 
         /// <summary>

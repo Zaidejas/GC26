@@ -209,6 +209,60 @@ namespace GC26.Lines.View
                 Arc(new Vector2(17f, 19f), 1.2f, 90f, 0f),
                 new[] { new Vector2(18.2f, 9.6f) })));
 
+        static Sprite gearIcon, closeIcon, musicIcon, soundIcon, vibrationIcon, globeIcon;
+
+        /// <summary>The Settings gear: 8 rounded teeth around a ring with a small hole (stroke 2.2).</summary>
+        public static Sprite GearIcon()
+        {
+            if (gearIcon != null) return gearIcon;
+            var c = new Vector2(12f, 12f);
+            var outline = new List<Vector2>();
+            for (int k = 0; k < 8; k++)
+            {
+                float a = k * 45f;
+                outline.AddRange(Arc(c, 7.2f, a - 29f, a - 15f));            // the gap between teeth
+                outline.AddRange(Arc(c, 9.6f, a - 8.5f, a + 8.5f));          // the tooth's top
+            }
+            outline.Add(outline[0]);
+            return gearIcon = StrokeIcon("Gear", 2.2f, outline.ToArray(), Arc(c, 3f, 0f, 360f));
+        }
+
+        /// <summary>A "✕" for closing a pop-up (stroke 2.6).</summary>
+        public static Sprite CloseIcon() => closeIcon != null ? closeIcon : (closeIcon = StrokeIcon("Close", 2.6f,
+            new[] { new Vector2(6, 6), new Vector2(18, 18) }, new[] { new Vector2(18, 6), new Vector2(6, 18) }));
+
+        /// <summary>Settings → Music: two notes on a beam.</summary>
+        public static Sprite MusicIcon() => musicIcon != null ? musicIcon : (musicIcon = StrokeIcon("Music", 2.2f,
+            new[] { new Vector2(9, 18), new Vector2(9, 5), new Vector2(21, 3), new Vector2(21, 16) },
+            Arc(new Vector2(6, 18), 3f, 0f, 360f), Arc(new Vector2(18, 16), 3f, 0f, 360f)));
+
+        /// <summary>Settings → Sounds: a speaker with two sound waves.</summary>
+        public static Sprite SoundIcon() => soundIcon != null ? soundIcon : (soundIcon = StrokeIcon("Sound", 2.2f,
+            new[] { new Vector2(11, 5), new Vector2(6, 9), new Vector2(2, 9), new Vector2(2, 15), new Vector2(6, 15), new Vector2(11, 19), new Vector2(11, 5) },
+            Arc(new Vector2(12, 12), 4.95f, -45f, 45f), Arc(new Vector2(12, 12), 9.9f, -45f, 45f)));
+
+        /// <summary>Settings → Vibration: a phone with a buzz line on each side.</summary>
+        public static Sprite VibrationIcon() => vibrationIcon != null ? vibrationIcon : (vibrationIcon = StrokeIcon("Vibration", 2.2f,
+            Join(new[] { new Vector2(9, 3), new Vector2(15, 3) }, Arc(new Vector2(15, 5), 2f, -90f, 0f),
+                new[] { new Vector2(17, 19) }, Arc(new Vector2(15, 19), 2f, 0f, 90f),
+                new[] { new Vector2(9, 21) }, Arc(new Vector2(9, 19), 2f, 90f, 180f),
+                new[] { new Vector2(7, 5) }, Arc(new Vector2(9, 5), 2f, 180f, 270f)),
+            new[] { new Vector2(3, 9), new Vector2(3, 15) }, new[] { new Vector2(21, 9), new Vector2(21, 15) }));
+
+        /// <summary>Settings → Language: a globe (circle, equator and one meridian).</summary>
+        public static Sprite GlobeIcon()
+        {
+            if (globeIcon != null) return globeIcon;
+            var meridian = new Vector2[61];
+            for (int i = 0; i <= 60; i++)
+            {
+                float a = i * 6f * Mathf.Deg2Rad;
+                meridian[i] = new Vector2(12f + 3.9f * Mathf.Cos(a), 12f + 9.5f * Mathf.Sin(a));
+            }
+            return globeIcon = StrokeIcon("Globe", 2.2f, Arc(new Vector2(12, 12), 9.5f, 0f, 360f),
+                new[] { new Vector2(2.5f, 12f), new Vector2(21.5f, 12f) }, meridian);
+        }
+
         // Points along a circle (SVG coordinates: y points down, angles in degrees).
         static Vector2[] Arc(Vector2 centre, float radius, float fromDeg, float toDeg)
         {

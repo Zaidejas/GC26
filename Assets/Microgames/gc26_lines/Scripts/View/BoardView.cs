@@ -1,24 +1,48 @@
 using System.Collections.Generic;
+using System.Linq;
 using GC26.Lines.Core;
 using UnityEngine;
 
 namespace GC26.Lines.View
 {
-    /// <summary>One ball on the board (a mushroom or a glossy ball): a sprite that can be changed and reused.</summary>
+    /// <summary>
+    /// One ball on the board (a mushroom or a glossy ball): a sprite that can be changed and reused.
+    /// The ball's own transform is moved and scaled by the animations; the picture hangs on a hinge at its
+    /// foot, so it can sway on the spot without disturbing them (GDD → Art → game screen life).
+    /// </summary>
     public sealed class BallView : MonoBehaviour
     {
+        // The mushrooms stand on a foot about 38 % of their height below the middle (prototype: transform-origin 50% 85–88%).
+        const float FootBelowCentre = 0.38f;
+
         SpriteRenderer spriteRenderer;
+        Transform hinge;
         public BallColor Color { get; private set; }
+
+        /// <summary>The picture (a child of the ball, on its foot hinge).</summary>
+        public SpriteRenderer Renderer => spriteRenderer;
+
+        /// <summary>False while the ball is selected or moving: then it doesn't sway.</summary>
+        public bool Swaying { get; set; } = true;
+
+        /// <summary>The current sway, in degrees (positive leans left).</summary>
+        public float SwayAngle => hinge.localEulerAngles.z > 180f ? hinge.localEulerAngles.z - 360f : hinge.localEulerAngles.z;
 
         public static BallView Create(Transform parent)
         {
             var go = new GameObject("Ball");
             go.transform.SetParent(parent, false);
             var view = go.AddComponent<BallView>();
-            view.spriteRenderer = go.AddComponent<SpriteRenderer>();
+            view.hinge = new GameObject("Hinge").transform;
+            view.hinge.SetParent(go.transform, false);
+            view.spriteRenderer = new GameObject("Picture").AddComponent<SpriteRenderer>();
+            view.spriteRenderer.transform.SetParent(view.hinge, false);
             view.spriteRenderer.sortingOrder = BoardView.BallOrder;
             return view;
         }
+
+        /// <summary>Leans the picture by <paramref name="degrees"/> around its foot.</summary>
+        public void SetSway(float degrees) => hinge.localRotation = Quaternion.Euler(0f, 0f, degrees);
 
         /// <summary>Shows <paramref name="color"/> using <paramref name="pieces"/> and sizes it to fit a cell.</summary>
         public void SetColor(BallColor color, PieceSet pieces)
@@ -28,6 +52,10 @@ namespace GC26.Lines.View
             spriteRenderer.sprite = sprite;
             spriteRenderer.color = UnityEngine.Color.white;
             var size = sprite.bounds.size;
+            float foot = FootBelowCentre * size.y; // in the ball's own units (its scale applies on top)
+            hinge.localPosition = new Vector3(0f, -foot, 0f);
+            spriteRenderer.transform.localPosition = new Vector3(0f, foot, 0f);
+            SetSway(0f);
             transform.localScale = Vector3.one * (pieces.SizeInCell / Mathf.Max(size.x, size.y));
             FullScale = transform.localScale;
         }
@@ -54,6 +82,35 @@ namespace GC26.Lines.View
         readonly SpriteRenderer[] cells = new SpriteRenderer[GameConfig.BoardSize * GameConfig.BoardSize];
         readonly SpriteRenderer[] cellLights = new SpriteRenderer[GameConfig.BoardSize * GameConfig.BoardSize];
         readonly Dictionary<Cell, BallView> balls = new Dictionary<Cell, BallView>();
+
+        // ---- Sway: every ball rocks gently on its foot, each at its own rhythm (teacher's feedback, prototype) ----
+        public const float SwayDegrees = 3f, SwayHalfPeriod = 3f, SwayStagger = 0.37f;
+
+        /// <summary>The selected ball (it bounces instead of swaying), or null.</summary>
+        public Cell? Held { get; set; }
+
+        float swayClock;
+
+        void Update()
+        {
+            if (Application.isPlaying) AdvanceSway(Time.deltaTime);
+        }
+
+        /// <summary>
+        /// Moves the sway on by <paramref name="seconds"/> (every frame; tests call it directly). The phase comes
+        /// from one clock and the ball's cell, so redrawing the board never makes a ball jump.
+        /// </summary>
+        public void AdvanceSway(float seconds)
+        {
+            swayClock += seconds;
+            foreach (var pair in balls)
+            {
+                var ball = pair.Value;
+                if (!ball.Swaying || Held == pair.Key) { ball.SetSway(0f); continue; }
+                float phase = (swayClock + (pair.Key.Row * 9 + pair.Key.Column) * SwayStagger) % (2f * SwayHalfPeriod) / SwayHalfPeriod;
+                ball.SetSway(-SwayDegrees * Mathf.Cos(Mathf.PI * phase)); // eases in and out at each end, like the prototype
+            }
+        }
         readonly Stack<BallView> pool = new Stack<BallView>();
         Transform ballRoot, poolRoot;
         PieceSet pieces = PieceSet.Balls();
@@ -99,6 +156,13 @@ namespace GC26.Lines.View
                 light.sortingOrder = CellLightOrder;
                 cellLights[row * GameConfig.BoardSize + column] = light;
             }
+            // The board's own parts (not balls or previews), with their colours, for the entrance fade.
+            frame.Add((glow, glow.color));
+            frame.Add((rim, rim.color));
+            frame.Add((background, background.color));
+            foreach (var sr in cells) frame.Add((sr, sr.color));
+            foreach (var light in cellLights) frame.Add((light, light.color));
+            fireflies = Fireflies.Create(transform);
             ballRoot = new GameObject("Balls").transform;
             ballRoot.SetParent(transform, false);
             poolRoot = new GameObject("Pool").transform;
@@ -124,6 +188,63 @@ namespace GC26.Lines.View
             }
             foreach (var light in cellLights)
                 light.transform.localScale = Vector3.one * (layout.CellSizeWorld * CellLightSize);
+            fireflies.ApplyLayout(layout);
+        }
+
+        // ---- Fireflies and the entrance (teacher's feedback, prototype) ----
+        readonly List<(SpriteRenderer sr, Color color)> frame = new List<(SpriteRenderer, Color)>();
+        Fireflies fireflies;
+
+        /// <summary>The fireflies drifting behind the board.</summary>
+        public Fireflies Fireflies => fireflies;
+
+        public const float EntranceBoardSeconds = 0.35f, EntranceStartScale = 0.94f, EntrancePopSeconds = 0.3f;
+        public const float EntranceFirstPop = 0.22f, EntranceMaxGap = 0.055f, EntranceSpread = 0.6f, EntranceDotsAfter = 0.08f;
+
+        /// <summary>
+        /// When the game screen opens: the board fades in and grows from 94 % into place (0.35 s), then the balls
+        /// pop up one after another from top-left to bottom-right, the previews last (about 0.6–1 s in all).
+        /// </summary>
+        public void PlayEntrance()
+        {
+            Tween.Kill(this);
+            Tween.To(this, EntranceBoardSeconds, p =>
+            {
+                transform.localScale = Vector3.one * Mathf.Lerp(EntranceStartScale, 1f, p);
+                foreach (var (sr, color) in frame) sr.color = new Color(color.r, color.g, color.b, color.a * p);
+            }, Ease.OutQuad);
+
+            var ordered = balls.OrderBy(b => b.Key.Row * GameConfig.BoardSize + b.Key.Column).Select(b => b.Value).ToList();
+            float gap = Mathf.Min(EntranceMaxGap, EntranceSpread / Mathf.Max(1, ordered.Count));
+            for (int k = 0; k < ordered.Count; k++)
+            {
+                var ball = ordered[k];
+                Tween.Kill(ball.transform); // replaces a new game's grow-in, so nothing pops twice
+                Tween.Kill(ball);
+                var full = ball.FullScale;
+                ball.transform.localScale = Vector3.zero;
+                float delay = EntranceFirstPop + k * gap;
+                var t = ball.transform;
+                Tween.To(ball, delay + EntrancePopSeconds, p =>
+                {
+                    float q = Mathf.Clamp01((p * (delay + EntrancePopSeconds) - delay) / EntrancePopSeconds);
+                    t.localScale = full * Easing.Evaluate(Ease.OutBack, q);
+                }).OnComplete(() => { if (t != null) t.localScale = full; });
+            }
+
+            float dotsDelay = EntranceFirstPop + ordered.Count * gap + EntranceDotsAfter;
+            foreach (var dot in dots)
+            {
+                if (!dot.gameObject.activeSelf) continue;
+                var ghost = PieceSet.GhostColor;
+                dot.color = new Color(ghost.r, ghost.g, ghost.b, 0f);
+                Tween.Kill(dot);
+                Tween.To(dot, dotsDelay + EntrancePopSeconds, p =>
+                {
+                    float q = Mathf.Clamp01((p * (dotsDelay + EntrancePopSeconds) - dotsDelay) / EntrancePopSeconds);
+                    dot.color = new Color(ghost.r, ghost.g, ghost.b, ghost.a * q);
+                }).OnComplete(() => { if (dot != null) dot.color = ghost; });
+            }
         }
 
         /// <summary>Position of a cell's centre inside the board (row 0 is the top row).</summary>

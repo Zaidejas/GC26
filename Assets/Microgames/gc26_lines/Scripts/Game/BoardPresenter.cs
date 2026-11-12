@@ -21,7 +21,8 @@ namespace GC26.Lines.Game
         // Prototype: a blocked move shakes the ball left and right (up to 14 % of a cell) for 0.32 s.
         public const float ShakeStrength = 0.14f;
         public const float ShakeSeconds = 0.32f;
-        public const string NoPathText = "No path";
+        /// <summary>The "No path" message, in the current language.</summary>
+        public static string NoPathText => UI.Texts.Get("noPath");
 
         readonly BoardView board;
         readonly HudView hud; // optional (tests can leave it out)
@@ -43,6 +44,7 @@ namespace GC26.Lines.Game
             StopShake();
             StopBounce();
             selected = null;
+            board.Held = null;
             board.ShowBoard(game.Board);
             board.ShowPreviewDots(game.Preview, game.Board);
             if (hud != null)
@@ -59,6 +61,7 @@ namespace GC26.Lines.Game
             StopShake();
             StopBounce();
             selected = cell;
+            board.Held = cell; // the selected ball bounces instead of swaying
             StartBounce();
         }
 
@@ -108,13 +111,91 @@ namespace GC26.Lines.Game
 
             var points = new Vector3[path.Count - 1];
             for (int i = 1; i < path.Count; i++) points[i - 1] = BoardView.CellToLocal(path[i]);
+            ball.Swaying = false;
+            board.Held = null;
+            // Magic dust: as the ball leaves each cell, a few sparkles in its colour stay behind.
+            var dust = board.Pieces.ParticleColor(ball.Color);
+            for (int i = 0; i < path.Count - 1; i++)
+            {
+                var left = path[i];
+                Tween.Delay(i * SecondsPerCell, () => Dust(left, dust));
+            }
             Tween.MovePath(ball.transform, points, SecondsPerCell).OnComplete(() =>
             {
                 board.MoveBall(from, to);
                 board.HideDotAt(to); // the ball now covers that dot; its ball will appear elsewhere
+                Land(ball);
                 done();
             });
         }
+
+        // ---- The moving ball's magic dust and its landing pulse (teacher's feedback, prototype) ----
+        public const int DustPerCell = 3;
+        public const float DustSeconds = 0.6f, DustStagger = 0.04f;
+        public const float LandSeconds = 0.38f, LandSmallest = 0.82f, LandLargest = 1.12f;
+
+        /// <summary>3 sparkles in the ball's colour on <paramref name="cell"/>: they drift down a little and fade.</summary>
+        void Dust(Cell cell, Color color)
+        {
+            if (board == null) return;
+            var centre = BoardView.CellToLocal(cell);
+            for (int k = 0; k < DustPerCell; k++)
+            {
+                // Prototype: 1.2–2.1 % of the width (about 0.12–0.2 of a cell), within ±3 % of the cell centre,
+                // drifting up to ±1.5 % sideways and 1–3.5 % down.
+                float size = 0.12f + UnityEngine.Random.value * 0.09f;
+                var start = centre + new Vector3((UnityEngine.Random.value - 0.5f) * 0.55f, (UnityEngine.Random.value - 0.5f) * 0.55f, 0f);
+                var drift = new Vector3((UnityEngine.Random.value - 0.5f) * 0.3f, -(0.1f + UnityEngine.Random.value * 0.24f), 0f);
+                var glow = new GameObject("Dust").AddComponent<SpriteRenderer>();
+                glow.sprite = SpriteFactory.SoftDisc();
+                glow.color = color;
+                glow.sortingOrder = BoardView.BallOrder + 1;
+                var t = glow.transform;
+                t.SetParent(board.transform, false);
+                t.localPosition = start;
+                t.localScale = Vector3.one * size;
+                var core = new GameObject("Core").AddComponent<SpriteRenderer>(); // the white centre of the sparkle
+                core.sprite = SpriteFactory.Disc();
+                core.sortingOrder = BoardView.BallOrder + 2;
+                core.transform.SetParent(t, false);
+                core.transform.localScale = Vector3.one * 0.35f;
+                glow.enabled = core.enabled = false; // each sparkle starts a little after the last one
+                float delay = k * DustStagger;
+                Tween.To(t, DustSeconds + delay, p =>
+                {
+                    float q = Mathf.Clamp01((p * (DustSeconds + delay) - delay) / DustSeconds);
+                    glow.enabled = core.enabled = true;
+                    float eased = Easing.Evaluate(Ease.OutQuad, q);
+                    t.localPosition = start + drift * eased;
+                    t.localScale = Vector3.one * (size * Mathf.Lerp(1f, 0.3f, eased));
+                    float alpha = 1f - eased;
+                    glow.color = new Color(color.r, color.g, color.b, alpha);
+                    core.color = new Color(1f, 1f, 1f, alpha);
+                }).OnComplete(() => DestroyObject(t.gameObject));
+            }
+        }
+
+        /// <summary>The ball has arrived: it contracts to 82 %, expands to 112 % and settles, in 0.38 s, then sways again.</summary>
+        static void Land(BallView ball)
+        {
+            var t = ball.transform;
+            var full = ball.FullScale;
+            Tween.To(ball, LandSeconds, p =>
+            {
+                float size = p < 0.3f ? Mathf.Lerp(1f, LandSmallest, Smooth(p / 0.3f))
+                    : p < 0.65f ? Mathf.Lerp(LandSmallest, LandLargest, Smooth((p - 0.3f) / 0.35f))
+                    : Mathf.Lerp(LandLargest, 1f, Smooth((p - 0.65f) / 0.35f));
+                t.localScale = full * size;
+            }).OnComplete(() =>
+            {
+                if (ball == null) return;
+                t.localScale = full;
+                ball.Swaying = true;
+            });
+            ball.Swaying = true; // it may sway while it pulses, like the prototype
+        }
+
+        static float Smooth(float x) => x * x * (3f - 2f * x);
 
         // Prototype timings (docs/prototype/lines-prototype.html).
         public const float GrowSeconds = 0.22f;      // new pieces grow in
@@ -161,6 +242,7 @@ namespace GC26.Lines.Game
 
         static void Pop(BallView ball)
         {
+            Tween.Kill(ball); // a landing pulse gives way to the clear
             var t = ball.transform;
             var full = ball.FullScale;
             Tween.To(t, PopSeconds, p =>
