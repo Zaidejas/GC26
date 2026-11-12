@@ -273,8 +273,8 @@ body {
   font: 800 3.8cqw var(--font-body); color: var(--text); cursor: pointer; flex: none;
 }
 .icon-btn svg { width: 5.4cqw; height: 5.4cqw; }
-#back { padding: 0; } /* the house is symmetric, so no nudge like the back arrows */
-.phone.forest #back, .phone.forest .icon-btn.gear { /* house and gear: just the icon, no ring or disc behind it */
+.icon-btn.home { padding: 0; } /* the house is symmetric, so no nudge */
+.phone.forest .icon-btn.home, .phone.forest .icon-btn.gear { /* house and gear: just the icon, no ring or disc behind it */
   background: none; border-color: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
 }
 .icon-btn:focus-visible { outline: 0.7cqw solid var(--focus); outline-offset: 0.6cqw; }
@@ -442,7 +442,7 @@ body {
 
         <div class="view subview" id="screen-howto" hidden>
           <div class="subhead">
-            <button type="button" class="icon-btn" id="howto-back" data-i18n-aria="backToMenu" aria-label="Back to menu" title="Back to menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <button type="button" class="icon-btn home" id="howto-back" data-i18n-aria="backToMenu" aria-label="Back to menu" title="Back to menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 3.8l8.5 7.2"/><path d="M5.8 9.6V19a1.2 1.2 0 0 0 1.2 1.2h3.4v-5.4h3.2v5.4H17a1.2 1.2 0 0 0 1.2-1.2V9.6"/></svg></button>
           </div>
           <div class="tut">
             <div class="mini" id="tut-mini"></div>
@@ -458,7 +458,7 @@ body {
 
         <div class="view subview" id="screen-scores" hidden>
           <div class="subhead">
-            <button type="button" class="icon-btn" id="scores-back" data-i18n-aria="backToMenu" aria-label="Back to menu" title="Back to menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <button type="button" class="icon-btn home" id="scores-back" data-i18n-aria="backToMenu" aria-label="Back to menu" title="Back to menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 3.8l8.5 7.2"/><path d="M5.8 9.6V19a1.2 1.2 0 0 0 1.2 1.2h3.4v-5.4h3.2v5.4H17a1.2 1.2 0 0 0 1.2-1.2V9.6"/></svg></button>
           </div>
           <p class="scores-msg" id="scores-msg" hidden></p>
           <ol class="scores" id="scores-list"></ol>
@@ -469,7 +469,7 @@ body {
         <div class="view" id="screen-game" hidden>
           <div class="flies" id="flies" aria-hidden="true"></div>
           <div class="topbar">
-            <button type="button" class="icon-btn" id="back" data-i18n-aria="mainMenu" aria-label="Main menu" title="Main menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 3.8l8.5 7.2"/><path d="M5.8 9.6V19a1.2 1.2 0 0 0 1.2 1.2h3.4v-5.4h3.2v5.4H17a1.2 1.2 0 0 0 1.2-1.2V9.6"/></svg></button>
+            <button type="button" class="icon-btn home" id="back" data-i18n-aria="mainMenu" aria-label="Main menu" title="Main menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 3.8l8.5 7.2"/><path d="M5.8 9.6V19a1.2 1.2 0 0 0 1.2 1.2h3.4v-5.4h3.2v5.4H17a1.2 1.2 0 0 0 1.2-1.2V9.6"/></svg></button>
             <button type="button" class="icon-btn gear" id="settings-game" data-i18n-aria="settings" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
           </div>
         <div class="content">

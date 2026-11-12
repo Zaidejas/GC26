@@ -257,14 +257,22 @@ namespace GC26.Lines.View
         /// <summary>Shows exactly the balls on <paramref name="board"/>, reusing ball objects.</summary>
         public void ShowBoard(Board board)
         {
-            foreach (var ball in balls.Values) Release(ball);
+            // A ball already in the right cell with the right colour stays as it is, so an animation still
+            // playing on it (the landing pulse) finishes there. The others go back to the pool.
+            var kept = new Dictionary<Cell, BallView>();
+            foreach (var pair in balls)
+            {
+                if (board.Get(pair.Key) == pair.Value.Color) kept[pair.Key] = pair.Value;
+                else Release(pair.Value);
+            }
             balls.Clear();
             for (int row = 0; row < board.Size; row++)
             for (int column = 0; column < board.Size; column++)
             {
                 var cell = new Cell(column, row);
                 var color = board.Get(cell);
-                if (color != BallColor.None) balls[cell] = Take(cell, color);
+                if (color == BallColor.None) continue;
+                balls[cell] = kept.TryGetValue(cell, out var ball) ? ball : Take(cell, color);
             }
         }
 
@@ -361,6 +369,8 @@ namespace GC26.Lines.View
         void Release(BallView ball)
         {
             Tween.Kill(ball.transform);
+            Tween.Kill(ball); // a landing pulse must not follow the ball into its next cell
+            ball.Swaying = true;
             ball.transform.SetParent(poolRoot, false);
             pool.Push(ball);
         }

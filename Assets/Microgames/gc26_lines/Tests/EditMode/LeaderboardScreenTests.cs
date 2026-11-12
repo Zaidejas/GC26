@@ -73,6 +73,8 @@ namespace GC26.Lines.Tests
             view.PlayAgainButton.Click();
             view.BackButton.Click();
             Assert.AreEqual((1, 1), (again, back));
+            Assert.AreEqual("Home", view.BackButton.IconSprite.name, "A plain house, like the game screen");
+            Assert.IsTrue(view.BackButton.IsPlain);
         }
 
         [Test]

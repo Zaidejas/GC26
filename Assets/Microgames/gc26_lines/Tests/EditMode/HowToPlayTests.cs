@@ -53,13 +53,15 @@ namespace GC26.Lines.Tests
         }
 
         [Test]
-        public void GotIt_AndBackArrow_Close()
+        public void GotIt_AndTheHouse_Close()
         {
             int closed = 0;
             view.Closed += () => closed++;
             view.GoTo(2);
             view.NextButton.Click();
             Assert.AreEqual(1, closed);
+            Assert.AreEqual("Home", view.BackButton.IconSprite.name, "The same plain house as on the game screen");
+            Assert.IsTrue(view.BackButton.IsPlain);
             view.BackButton.Click();
             Assert.AreEqual(2, closed);
         }

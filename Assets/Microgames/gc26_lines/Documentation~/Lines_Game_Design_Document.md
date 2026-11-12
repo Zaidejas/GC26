@@ -173,7 +173,7 @@ The MVP has four screens and three pop-ups. The app opens on the main menu.
 
 - **Continue** resumes the saved game and shows its score. It is disabled when there's no unfinished game.
 - **New game** starts right away when there's no unfinished game; otherwise it asks for confirmation first.
-- On the game screen, a house icon (just the white icon, no ring or disc behind it) returns to the main menu; How to play and Leaderboard have the back button (an arrow in a round glass button, no text) instead. Both return to the menu. Leaving the game saves it, so Continue picks it up exactly where it was (Undo included).
+- The game screen, How to play and Leaderboard all have the same house icon in the top-left corner (just the white icon, no ring or disc behind it). It returns to the main menu, except How to play opened from Settings during a game, which returns to the game. Leaving the game saves it, so Continue picks it up exactly where it was (Undo included).
 - How to play and Leaderboard have no title at the top, only the back button.
 
 **Settings** (teacher's feedback, pulled forward from the later features)

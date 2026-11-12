@@ -87,7 +87,8 @@ namespace GC26.Lines.UI
             gameObject.AddComponent<GraphicRaycaster>();
             root = (RectTransform)transform;
 
-            back = PillButton.CreateIcon(root, SpriteFactory.BackArrow(), "Back");
+            back = PillButton.CreateIcon(root, SpriteFactory.HomeIcon(), "Home");
+            back.MakePlain(); // the same plain house as on the game screen (teacher's feedback)
             back.Clicked += () => Closed?.Invoke();
 
             mini = NewRect("Mini board", root);

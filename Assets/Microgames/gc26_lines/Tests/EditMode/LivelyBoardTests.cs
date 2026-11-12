@@ -112,6 +112,37 @@ namespace GC26.Lines.Tests
             Assert.IsTrue(ball.Swaying, "Sways again after landing");
         }
 
+        [Test]
+        public void TurnEndingDuringThePulse_PulsesOnlyTheMovedMushroom()
+        {
+            var path = new[] { new Cell(0, 0), new Cell(0, 1) };
+            var moved = view.BallAt(new Cell(0, 0));
+            presenter.PlayMove(path, () => { });
+            Run(0.06f); // arrived, pulsing
+            // The turn ends (after the spawn) while the pulse still plays: the whole board is redrawn.
+            var after = TestBoards.FromRows(
+                ".........",
+                "R...G....",
+                ".........",
+                ".........",
+                "....B....",
+                ".........",
+                ".........",
+                ".........",
+                "........R");
+            presenter.ShowState(new GameState(after, new Preview(new[] { BallColor.Red }, new[] { new Cell(7, 7) }), 0, new Spawner(1)));
+            Assert.AreSame(moved, view.BallAt(new Cell(0, 1)), "The moved mushroom keeps its own picture");
+
+            var others = new[] { new Cell(4, 1), new Cell(4, 4), new Cell(8, 8) }.Select(view.BallAt).ToArray();
+            for (int i = 0; i < 40; i++)
+            {
+                Tween.Tick(0.01f);
+                foreach (var other in others)
+                    Assert.AreEqual(other.FullScale.x, other.transform.localScale.x, 1e-4f, "No other mushroom pulses");
+            }
+            Assert.AreEqual(moved.FullScale.x, moved.transform.localScale.x, 1e-4f, "The pulse finished on the moved one");
+        }
+
         // ---- Fireflies ----
 
         [Test]
