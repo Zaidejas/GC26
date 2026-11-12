@@ -16,8 +16,8 @@ namespace GC26.Timetraveler
         public class Tuning
         {
             [Header("Size (units)")]
-            public Vector2 standSize = new Vector2(2f, 3f);
-            public Vector2 slideSize = new Vector2(2.6f, 1.2f);
+            public Vector2 standSize = new Vector2(2f, 3.5f);   // matches the sprite (about 3.7 units with the hair)
+            public Vector2 slideSize = new Vector2(2.6f, 2.4f);  // the slide sprite is a low crouch, about 2.9 units
             [Tooltip("The hitbox is narrower than the sprite, so near misses count as misses")]
             public float hitboxWidthScale = 0.65f;
 

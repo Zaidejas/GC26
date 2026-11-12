@@ -20,11 +20,11 @@ namespace GC26.Timetraveler
         const int SlideHold = 2, SlideOut = 3;
 
         [Tooltip("Run frames played per unit travelled (8 frames = one full stride)")]
-        public float runFramesPerUnit = 2f;
+        public float runFramesPerUnit = 0.9f;
         [Tooltip("Seconds per frame of the short one-shot bits (take-off, landing, slide in/out)")]
-        public float quickFrame = 0.06f;
+        public float quickFrame = 0.1f;
         [Tooltip("Seconds per frame of the death animation")]
-        public float deathFrame = 0.1f;
+        public float deathFrame = 0.14f;
 
         TravelerController _traveler;
         SpriteRenderer _body;

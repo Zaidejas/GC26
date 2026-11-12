@@ -22,6 +22,9 @@ namespace GC26.Timetraveler
         /// <summary>Hazard hitboxes are this much smaller than their drawing on every side,
         /// so touching the very edge of a red block does not kill.</summary>
         const float HazardInset = 0.2f;
+        // Bottom of everything you slide under (logs, flyer, lowest blade / crusher): above the sliding traveler
+        // (2.4 high, sprite about 2.9), below the standing one (3.5).
+        const float LowBottom = 2.9f;
 
         // Distances (units from the start) where obstacle groups unlock.
         const float UnlockMedium = 40f / MetersPerUnit;
@@ -292,7 +295,7 @@ namespace GC26.Timetraveler
             // Overhead log: standing (3 units) hits it, sliding (1.2 units) passes under.
             Flat(4f);
             Teach("log", "SLIDE under the log  (swipe down / hold S)");
-            Hazard("TrackLog", _cursorX, _groundY + 2.0f, 2.5f, 14f, TimetravelerArt.Log);
+            Hazard("TrackLog", _cursorX, _groundY + LowBottom, 2.5f, 14f, TimetravelerArt.Log);
             CoinRow(_cursorX - 1f, _groundY + 0.6f, 4, 1.2f);   // low coins reward the slide
             Flat(6f);
         }
@@ -331,7 +334,7 @@ namespace GC26.Timetraveler
             Teach("rocklog", "Jump the rock, then SLIDE (hold S / swipe down already in the air)");
             Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
             Flat(ComboGap);
-            Hazard("TrackLog", _cursorX, _groundY + 2.0f, 2.5f, 14f, TimetravelerArt.Log);
+            Hazard("TrackLog", _cursorX, _groundY + LowBottom, 2.5f, 14f, TimetravelerArt.Log);
             CoinRow(_cursorX - 1f, _groundY + 0.6f, 4, 1.2f);
             Flat(6f);
         }
@@ -341,7 +344,7 @@ namespace GC26.Timetraveler
             // Slide under, stand up, jump: jumping is allowed as soon as nothing is overhead.
             Flat(4f);
             Teach("logrock", "Slide under the log, then JUMP the rock");
-            Hazard("TrackLog", _cursorX, _groundY + 2.0f, 2.5f, 14f, TimetravelerArt.Log);
+            Hazard("TrackLog", _cursorX, _groundY + LowBottom, 2.5f, 14f, TimetravelerArt.Log);
             CoinRow(_cursorX - 1f, _groundY + 0.6f, 4, 1.2f);
             Flat(ComboGap + 2.5f);
             Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
@@ -356,7 +359,7 @@ namespace GC26.Timetraveler
             Teach("rocklogrock", "Jump, SLIDE, jump!");
             Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
             Flat(ComboGap);
-            Hazard("TrackLog", _cursorX, _groundY + 2.0f, 2.5f, 14f, TimetravelerArt.Log);
+            Hazard("TrackLog", _cursorX, _groundY + LowBottom, 2.5f, 14f, TimetravelerArt.Log);
             CoinRow(_cursorX - 1f, _groundY + 0.6f, 4, 1.2f);
             Flat(ComboGap + 2.5f);
             Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
@@ -512,7 +515,7 @@ namespace GC26.Timetraveler
             Flat(9f);
             Teach("worldsplit", $"Wall in the {Name(wallWorld)}, log in the {Name(logWorld)}.\nSwitch to the {Name(logWorld)} and SLIDE");
             WorldHazard("TrackSplitWall", wallWorld, _cursorX, _groundY, 1.5f, 16f);
-            WorldHazard("TrackSplitLog", logWorld, _cursorX - 0.5f, _groundY + 2.0f, 2.5f, 14f);
+            WorldHazard("TrackSplitLog", logWorld, _cursorX - 0.5f, _groundY + LowBottom, 2.5f, 14f);
             Flat(9f);
         }
 
@@ -524,8 +527,8 @@ namespace GC26.Timetraveler
             // traveler, so SLIDE always works; standing works only while it is up.
             Flat(8f);
             Teach("blade", "Moving blade: SLIDE under it  (or run while it is UP)");
-            var blade = Hazard("TrackBlade", _cursorX, _groundY + 2f, 1.5f, 1.5f, TimetravelerArt.Blade);
-            AddMover(blade, RunnerMover.Mode.Bob, low: _groundY + 2.6f, high: _groundY + 10f, period: 2.4f);
+            var blade = Hazard("TrackBlade", _cursorX, _groundY + LowBottom, 1.5f, 1.5f, TimetravelerArt.Blade);
+            AddMover(blade, RunnerMover.Mode.Bob, low: _groundY + LowBottom + 0.75f, high: _groundY + 11f, period: 2.4f);
             Flat(10f);
         }
 
@@ -534,7 +537,7 @@ namespace GC26.Timetraveler
             // Flies at head height toward the traveler: slide under it (or jump over early).
             Flat(20f);
             Teach("flyer", "Flyer at head height: SLIDE under it  (or slow time: E / Shift)");
-            var flyer = Hazard("TrackFlyer", _cursorX, _groundY + 2.1f, 2.2f, 1.2f, TimetravelerArt.Flyer);
+            var flyer = Hazard("TrackFlyer", _cursorX, _groundY + LowBottom, 2.2f, 1.2f, TimetravelerArt.Flyer);
             var mover = AddMover(flyer, RunnerMover.Mode.Fly, 0f, 0f, 1f);
             mover.speed = 5f;
             mover.triggerDistance = 22f;
@@ -564,8 +567,8 @@ namespace GC26.Timetraveler
             // running upright works only while it is up.
             Flat(8f);
             Teach("crusher", "Crusher: SLIDE under it  (or run while it is UP)");
-            var crusher = Hazard("TrackCrusher", _cursorX, _groundY + 2f, 3f, 8f, TimetravelerArt.Crusher);
-            AddMover(crusher, RunnerMover.Mode.Crush, low: _groundY + 5.8f, high: _groundY + 13f, period: 2.4f,
+            var crusher = Hazard("TrackCrusher", _cursorX, _groundY + LowBottom, 3f, 8f, TimetravelerArt.Crusher);
+            AddMover(crusher, RunnerMover.Mode.Crush, low: _groundY + LowBottom + 4f, high: _groundY + 14f, period: 2.4f,
                 phase: (float)_rng.NextDouble());
             Flat(10f);
         }

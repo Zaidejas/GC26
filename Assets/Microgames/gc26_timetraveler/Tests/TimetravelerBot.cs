@@ -106,8 +106,8 @@ namespace GC26.Timetraveler.Tests
                     if (d < 3.2f) needSlide = true;
                     continue;
                 }
-                if (bottom >= 3.05f) continue;                      // above the head
-                if (bottom >= 1.25f)                                // head height: slide under
+                if (bottom >= T.tuning.standSize.y + 0.05f) continue;   // above the head
+                if (bottom >= T.tuning.slideSize.y + 0.05f)            // head height: slide under
                 {
                     if (d < 3.2f) needSlide = true;
                     continue;
