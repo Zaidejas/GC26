@@ -48,8 +48,9 @@ namespace GC26.Spinv
 
             var lines = new List<Line>
             {
-                new Line { text = titleTop, value = "GAME", charTime = titleCharTime },
-                new Line { text = titleBottom, value = "OVER", charTime = titleCharTime },
+                // Строй дошёл до низа - сверху причина: жизни ещё были, но планету захватили
+                new Line { text = titleTop, value = gm.Invaded ? "INVADED" : "GAME", charTime = titleCharTime },
+                new Line { text = titleBottom, value = gm.Invaded ? "GAME OVER" : "OVER", charTime = titleCharTime },
                 new Line { text = scoreLabel, value = "SCORE" },
                 new Line { text = scoreValue, value = gm.Score.ToString("00000") },
                 new Line { text = waveLabel, value = "WAVE" },

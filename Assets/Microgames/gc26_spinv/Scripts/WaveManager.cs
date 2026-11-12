@@ -504,7 +504,7 @@ namespace GC26.Spinv
 
         void OnReachedBottom()
         {
-            SpinvGameManager.Instance.GameOver();
+            SpinvGameManager.Instance.InvadedGameOver();
         }
     }
 }

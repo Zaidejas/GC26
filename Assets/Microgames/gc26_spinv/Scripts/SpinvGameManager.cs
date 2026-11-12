@@ -150,6 +150,15 @@ namespace GC26.Spinv
         }
 
         public void GameOver() => EndGame(false);
+
+        // Строй дошёл до низа: как в классике, конец игры сразу, сколько бы ни было жизней
+        public bool Invaded { get; private set; }
+        public void InvadedGameOver()
+        {
+            if (IsGameOver) return;
+            Invaded = true;
+            EndGame(false);
+        }
         public void Victory() => EndGame(true);
 
         void EndGame(bool victory)
