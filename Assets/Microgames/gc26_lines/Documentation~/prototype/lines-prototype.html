@@ -146,6 +146,15 @@ body {
 @keyframes bounce { from { transform: translateY(5%) scale(1.02, 0.97); } to { transform: translateY(-14%); } }
 .grow { animation: grow 0.22s ease-out; }
 @keyframes grow { from { transform: scale(0); } to { transform: scale(1); } }
+/* Landing (teacher's feedback): the moved mushroom contracts, then expands a little past its size,
+   then settles: an even pulse from its centre. */
+.land { animation: land 0.38s ease-in-out; }
+@keyframes land {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.82); }
+  65% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
 .pop { animation: pop 0.24s ease-in forwards; }
 @keyframes pop { 40% { transform: scale(1.18); } to { transform: scale(0); opacity: 0; } }
 .slot.shake { animation: shake 0.32s ease-in-out; }
@@ -367,7 +376,7 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .selected { animation: none; transform: translateY(-8%); }
-  .grow, .pop, .slot.shake, .p, .gain.show { animation-duration: 0.01s; }
+  .grow, .pop, .slot.shake, .p, .gain.show, .land { animation-duration: 0.01s; }
   .deco .ball { animation: none; }
   .dust { display: none; }
   .phone { transition: none; }
@@ -741,6 +750,8 @@ body {
   function ballEl(color, extra) { const d = document.createElement("div"); d.className = "ball " + kindClass(color) + (extra ? " " + extra : ""); return d; }
   function slotOf(i) { return layer.querySelector('.slot[data-i="' + i + '"]'); }
 
+  const LAND_MS = 380;               // the landing bounce (.land) after a move
+  let landing = { i: -1, at: -1e9 };  // which mushroom is landing, and since when
   function render(spawned) {
     const grown = new Set(spawned || []);
     layer.textContent = "";
@@ -752,7 +763,11 @@ body {
     for (let i = 0; i < CELLS; i++) {
       if (S.board[i] < 0) continue;
       const s = document.createElement("div"); s.className = "slot"; s.dataset.i = i; place(s, i);
-      s.appendChild(ballEl(S.board[i], (i === selected ? "selected" : "") + (grown.has(i) ? " grow" : "")));
+      const b = ballEl(S.board[i], (i === selected ? "selected" : "") + (grown.has(i) ? " grow" : ""));
+      // A mushroom still landing keeps bouncing from where it was when the board is redrawn (new ones arriving).
+      const since = performance.now() - landing.at;
+      if (i === landing.i && since < LAND_MS) { b.classList.add("land"); b.style.animationDelay = -since + "ms"; }
+      s.appendChild(b);
       layer.appendChild(s);
     }
     $("#score").textContent = S.score;
@@ -820,6 +835,7 @@ body {
     for (let k = 1; k < path.length; k++) { place(s, path[k]); trail(path[k - 1], moving); await wait(STEP_MS); }
 
     S.board[target] = S.board[selected]; S.board[selected] = -1; selected = -1;
+    landing = { i: target, at: performance.now() };
     render();
     const lines = linesThrough(S.board, target);
     if (lines.length) await clearLines(lines, true);
