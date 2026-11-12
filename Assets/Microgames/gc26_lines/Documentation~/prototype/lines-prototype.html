@@ -217,7 +217,7 @@ body {
 .switch:focus-visible { outline: 0.7cqw solid var(--focus); outline-offset: 0.5cqw; }
 #settings-howto { width: 100%; }
 /* The language row: the label on top, the choice on its own full-width line below, so it fits in any language. */
-.set-row.lang { grid-template-columns: 7cqw 1fr; padding-bottom: 3cqw; }
+.set-row.lang { grid-template-columns: 7cqw 1fr; grid-template-rows: 13cqw auto; padding-bottom: 3cqw; } /* label line as tall as the other rows */
 .langs { grid-column: 1 / -1; display: flex; border: 0.4cqw solid var(--line); border-radius: 999px; padding: 0.6cqw; gap: 0.6cqw; }
 .langs button { flex: 1; }
 .langs button {
