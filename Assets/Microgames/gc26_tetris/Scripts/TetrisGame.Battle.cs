@@ -64,6 +64,11 @@ namespace GC26.Tetris
             }
             if (hit.AttackStopped)
                 Track(AchievementStat.AttacksBlocked, 1);
+            CountStat(PlayStat.Coins, hit.Coins);
+            if (hit.Defeated)
+                CountStat(PlayStat.Bots, 1);
+            if (hit.AttackStopped)
+                CountStat(PlayStat.AttacksBlocked, 1);
             if (hit.AttackStopped)
             {
                 Debug.Log("[BlockDrop] Attack stopped, blocked=" + hit.Blocked + " defeated=" + hit.Defeated);
@@ -159,6 +164,7 @@ namespace GC26.Tetris
                 {
                     Debug.Log("[BlockDrop] Bot attack landed, rows=" + attack.Rows + " hole=" + attack.Hole);
                     game.AddGarbage(attack.Rows, attack.Hole);
+                    CountStat(PlayStat.GarbageRows, attack.Rows);
                     gameAudio.Play("bomb", 0.8f, 0.7f);
                     view.Effects.Shake(0.75f);
                     AddPopup(PopupSlot.Attack, "+" + attack.Rows + " " + RowsWord(attack.Rows), -6.2f, 0.95f, 1.4f, 0.6f, new Color(1f, 0.45f, 0.4f));

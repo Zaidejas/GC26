@@ -333,6 +333,7 @@ namespace GC26.Tetris
                 case MenuItem.Battle: return T("линии бьют бота, комбо сильнее, падают монетки", "lines hit the bot, combos hit harder, coins drop");
                 case MenuItem.Shop: return T("бусты для боя и скины блоков за монеты", "battle boosters and block skins for coins");
                 case MenuItem.Achievements: return T("цели с наградой в монетах", "goals that pay coins");
+                case MenuItem.Stats: return T("сколько сыграно, линий, ботов и времени", "games, lines, bots and time, all counted");
                 default: return null;
             }
         }

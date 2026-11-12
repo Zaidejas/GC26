@@ -49,6 +49,7 @@ namespace GC26.Tetris
             foreach (Achievement achievement in reached)
             {
                 coinsTotal += achievement.Reward;
+                CountStat(PlayStat.Coins, achievement.Reward);
                 toasts.Add(achievement);
                 Debug.Log("[BlockDrop] Achievement " + achievement.Key + " +" + achievement.Reward + " coins, total=" + coinsTotal);
             }

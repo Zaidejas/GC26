@@ -182,6 +182,8 @@ namespace GC26.Tetris.EditorTools
                 { "Totals add up and unlock once", AchievementTotals },
                 { "Bests keep the highest value", AchievementBests },
                 { "Achievements survive saving, damaged saves don't break them", AchievementsRoundTrip },
+                { "Statistics add up, bests keep the highest", StatsCount },
+                { "Statistics survive saving, damaged saves don't break them", StatsRoundTrip },
             };
 
             int failures = 0;
@@ -1150,6 +1152,42 @@ namespace GC26.Tetris.EditorTools
             Check(both.Count == 2, "a long combo unlocks both combo goals: " + both.Count);
             Check(ach.Report(AchievementStat.Score, 75876).Count == 2, "an old record counts for both score goals");
             Check(ach.Report(AchievementStat.Score, -5).Count == 0 && ach.Value(AchievementStat.Score) == 75876, "nonsense ignored");
+        }
+
+        static void StatsCount()
+        {
+            var stats = new PlayStats();
+            stats.Add(PlayStat.Lines, 3);
+            stats.Add(PlayStat.Lines, 4);
+            stats.Add(PlayStat.Lines, -9);
+            Check(stats.Get(PlayStat.Lines) == 7, "lines add up: " + stats.Get(PlayStat.Lines));
+            stats.Add(PlayStat.BestCombo, 6);
+            stats.Add(PlayStat.BestCombo, 2);
+            Check(stats.Get(PlayStat.BestCombo) == 6, "best combo kept");
+            stats.Raise(PlayStat.Lines, 5);
+            Check(stats.Get(PlayStat.Lines) == 7, "raise never lowers");
+            stats.Raise(PlayStat.Bots, 4);
+            Check(stats.Get(PlayStat.Bots) == 4, "raise carries older numbers over");
+            var keys = new HashSet<string>();
+            for (int i = 0; i < PlayStats.Count; i++)
+            {
+                string key = PlayStats.KeyOf((PlayStat)i);
+                Check(keys.Add(key) && !key.Contains(";") && !key.Contains("="), "bad or duplicate key " + key);
+            }
+        }
+
+        static void StatsRoundTrip()
+        {
+            var stats = new PlayStats();
+            stats.Add(PlayStat.Seconds, 3725);
+            stats.Add(PlayStat.Coins, 410);
+            stats.Add(PlayStat.BestLevel, 12);
+            PlayStats copy = PlayStats.Parse(stats.Serialize());
+            Check(copy.Serialize() == stats.Serialize(), "round trip: " + copy.Serialize());
+            PlayStats broken = PlayStats.Parse("lines=12;bots=x;=4;coins=-3;future=9;;combo=5");
+            Check(broken.Get(PlayStat.Lines) == 12 && broken.Get(PlayStat.Bots) == 0 && broken.Get(PlayStat.Coins) == 0 &&
+                  broken.Get(PlayStat.BestCombo) == 5, "garbage skipped: " + broken.Serialize());
+            Check(PlayStats.Parse(null).Get(PlayStat.Pieces) == 0, "nothing saved yet");
         }
 
         static void AchievementsRoundTrip()
