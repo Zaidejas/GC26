@@ -148,6 +148,23 @@ namespace GC26.Spinv
             GameObject menuRoot = GatherNewRoots(scene, before, "Menu");
 
             var flow = new GameObject("gc26_spinv").AddComponent<SpinvMicrogame>();
+            // Фоновый звук и щелчок кнопок - дети корневого объекта: его не выключают,
+            // поэтому они работают и в меню, и в игре
+            if (ambienceClip != null)
+            {
+                var ambience = new GameObject("Ambience", typeof(AudioSource));
+                ambience.transform.SetParent(flow.transform, false);
+                var ambienceSource = ambience.GetComponent<AudioSource>();
+                ambienceSource.clip = ambienceClip;
+                ambienceSource.playOnAwake = false;
+                ambience.AddComponent<SpinvAmbience>();
+            }
+            var uiSound = new GameObject("UiSound", typeof(AudioSource));
+            uiSound.transform.SetParent(flow.transform, false);
+            var ui = uiSound.AddComponent<SpinvUiSound>();
+            ui.click = LoadAudio("157871__orginaljun__arcade-button-1-click-sound.mp3");
+            ui.achievement = LoadAudio("driken5482-retro-powerup-1-236686.mp3"); // получение достижения, 70%
+            ui.typing = LoadAudio("494921__evretro__text-scroll-d-3-3-225.wav"); // на 20% медленнее и 70% громкости - в SpinvUiSound
             flow.menuRoot = menuRoot;
             flow.gameTemplate = gameTemplate;
             menuRoot.GetComponentInChildren<SpinvMainMenu>(true).flow = flow;
@@ -290,6 +307,24 @@ namespace GC26.Spinv
             explosionClip = MakeSound("Explosion", 0.3f, 200f, 60f, 0.8f);
             coinClip = MakeSound("Coin", 0.18f, 900f, 1800f, 0f);
             hitClip = MakeSound("PlayerHit", 0.5f, 300f, 40f, 0.5f);
+
+            // Звуки, подобранные автором (mp3 в папке Audio). Нет файла - остаётся сгенерированный
+            AudioClip coin = LoadAudio("krnbeatz-8-bit-retro-coin-584191.mp3");
+            if (coin != null) coinClip = coin;
+            healClip = LoadAudio("chisper-8-bit-bonus-pickup-634754.mp3");
+            invaderDeathClip = LoadAudio("chisper-8-bit-hurt-634753.mp3");
+            bombClip = LoadAudio("u_b32baquv5u-8-bit-explosion-11-340459.mp3");
+            laserClip = LoadAudio("lumora_studios-pixel-explosion-319166.mp3");
+            ambienceClip = LoadAudio("freesound_community-weird-ambience-28151.mp3");
+        }
+
+        static AudioClip healClip, invaderDeathClip, bombClip, laserClip, ambienceClip;
+
+        static AudioClip LoadAudio(string file)
+        {
+            var clip = AssetDatabase.LoadAssetAtPath<AudioClip>($"{AudioDir}/{file}");
+            if (clip == null) Debug.LogWarning("Space Invaders: sound not found: " + file);
+            return clip;
         }
 
         static void CreateWaves()
@@ -578,6 +613,11 @@ namespace GC26.Spinv
             sound.explosion = explosionClip;
             sound.coin = coinClip;
             sound.playerHit = hitClip;
+            sound.heal = healClip;
+            sound.invaderDeath = invaderDeathClip;
+            sound.bombExplosion = bombClip;
+            sound.laser = laserClip;
+            sound.ability = LoadAudio("ew_loud.wav"); // нажатие способности: ew.mp3, поднятый до нормальной громкости (в исходнике пик 0.09), + 20% (abilityVolume)
 
             // Спрайт из дизайна, если он есть: коллайдер только по видимой части корабля
             var heroSprite = AssetDatabase.LoadAssetAtPath<Sprite>(GameArtDir + "/hero.png");

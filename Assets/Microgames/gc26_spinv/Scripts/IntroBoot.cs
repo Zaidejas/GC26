@@ -46,6 +46,16 @@ namespace GC26.Spinv
             ShowLines(0, false);
         }
 
+        // Фон нарастает с тихой до обычной громкости, пока автомат включается (помехи и самопроверка).
+        // В Start: фоновый звук к этому времени уже включился (его OnEnable идёт раньше любого Start)
+        void Start()
+        {
+            SpinvAmbience.FadeIn(ambienceFadeIn);
+        }
+
+        [Tooltip("За сколько секунд фон нарастает с тихого до обычного при включении (сама загрузка ~3.8 с)")]
+        public float ambienceFadeIn = 8f;
+
         void OnDestroy()
         {
             if (noiseTexture != null) Destroy(noiseTexture);
@@ -78,6 +88,7 @@ namespace GC26.Spinv
                 // Касание во время загрузки досматривает её до конца, касание на TAP TO START - запускает меню
                 if (stage == Stage.WaitTap)
                 {
+                    SpinvUiSound.Click(); // TAP TO START щёлкает, как кнопка
                     // Надписи пропадают сразу, плавно уходит только тёмный экран
                     ShowLines(0, false);
                     stage = Stage.Fade;

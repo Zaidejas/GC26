@@ -76,6 +76,7 @@ namespace GC26.Spinv
                 tapHint.text = Mathf.Repeat(Time.unscaledTime, 0.7f) < 0.35f ? "TAP" : "";
                 yield return null;
             }
+            SpinvUiSound.Click(); // TAP - щелчок, как у кнопки
             tapHint.text = "";
 
             // Второе долгое моргание: за закрытыми веками сценка исчезает и начинается бой
@@ -97,6 +98,8 @@ namespace GC26.Spinv
             gameObject.SetActive(true);
             if (player != null) player.canShoot = false;
             group.alpha = 0f;
+            // Касаний здесь не ждём: затемнение не должно перехватывать палец, которым ведут корабль
+            group.blocksRaycasts = false;
             bigClock.gameObject.SetActive(true);
             dialog.SetActive(false);
             line.text = "";
@@ -113,6 +116,7 @@ namespace GC26.Spinv
             yield return Fade(1f, 0f);
 
             gameObject.SetActive(false);
+            group.blocksRaycasts = true; // ночной сценке касание нужно (TAP)
             if (player != null) player.canShoot = true;
         }
 
@@ -156,12 +160,14 @@ namespace GC26.Spinv
             for (int k = 1; k <= speaker.Length; k++)
             {
                 line.text = open + speaker.Substring(0, k) + "</color>";
+                SpinvUiSound.TypeTick(speaker[k - 1]);
                 yield return new WaitForSeconds(speakerCharTime);
             }
             yield return new WaitForSeconds(0.35f);
             for (int k = 1; k <= message.Length; k++)
             {
                 line.text = open + speaker + close + message.Substring(0, k) + (k < message.Length ? "_" : "");
+                SpinvUiSound.TypeTick(message[k - 1]);
                 yield return new WaitForSeconds(messageCharTime);
             }
         }

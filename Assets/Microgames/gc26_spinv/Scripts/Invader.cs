@@ -100,7 +100,7 @@ namespace GC26.Spinv
             dead = true;
 
             SpinvGameManager.Instance.AddScore(points);
-            SpinvSoundManager.Play(Sfx.Explosion);
+            SpinvSoundManager.Play(Sfx.InvaderDeath);
 
             if (explosionPrefab != null)
                 Instantiate(explosionPrefab, transform.position, Quaternion.identity);

@@ -58,7 +58,7 @@ namespace GC26.Spinv
             firing = true;
             SetWidth(fireWidth);
             spriteRenderer.color = fireColor;
-            SpinvSoundManager.Play(Sfx.Explosion);
+            SpinvSoundManager.Play(Sfx.Laser);
 
             Vector2 boxSize = new Vector2(fireWidth, height);
             foreach (Collider2D hit in Physics2D.OverlapBoxAll(transform.position, boxSize, 0f))

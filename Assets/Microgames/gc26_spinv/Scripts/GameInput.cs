@@ -22,6 +22,25 @@ namespace GC26.Spinv
     #endif
         }
 
+        // Касание, неподвижное дольше этого, считаем залипшим (см. PointerHeld)
+        const double StaleTouchSeconds = 1.0;
+
+        // EnhancedTouch включается на время жизни корабля и выключается обратно (счётчик внутри Input System),
+        // глобально ничего не остаётся
+        public static void EnableTouch()
+        {
+    #if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
+            UnityEngine.InputSystem.EnhancedTouch.EnhancedTouchSupport.Enable();
+    #endif
+        }
+
+        public static void DisableTouch()
+        {
+    #if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
+            UnityEngine.InputSystem.EnhancedTouch.EnhancedTouchSupport.Disable();
+    #endif
+        }
+
         // Палец на экране или зажатая мышь в редакторе: где находится в пикселях экрана
         public static bool PointerHeld(out Vector2 screenPosition)
         {
@@ -34,11 +53,31 @@ namespace GC26.Spinv
             screenPosition = Input.mousePosition;
             return Input.GetMouseButton(0);
     #elif ENABLE_INPUT_SYSTEM
-            var touchscreen = UnityEngine.InputSystem.Touchscreen.current;
-            if (touchscreen != null && touchscreen.primaryTouch.press.isPressed)
+            // При частых касаниях (точно в Device Simulator) касание залипало «нажатым» в точке
+            // прошлого клика: корабль тянуло туда, ни палец, ни клавиатура не помогали.
+            // Поэтому касания берём из EnhancedTouch (он сам собирает начало и конец касания
+            // из событий, даже если они пришли в одном кадре) и не верим касанию, которое
+            // давно не обновлялось и стоит на месте: настоящий палец к этому времени корабль уже довёл
+            if (UnityEngine.InputSystem.EnhancedTouch.EnhancedTouchSupport.enabled)
             {
-                screenPosition = touchscreen.primaryTouch.position.ReadValue();
-                return true;
+                double now = UnityEngine.InputSystem.LowLevel.InputState.currentTime;
+                foreach (var touch in UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches)
+                {
+                    if (!touch.isInProgress) continue;
+                    bool stale = touch.phase == UnityEngine.InputSystem.TouchPhase.Stationary && now - touch.time > StaleTouchSeconds;
+                    if (stale) continue;
+                    screenPosition = touch.screenPosition;
+                    return true;
+                }
+            }
+            else if (UnityEngine.InputSystem.Touchscreen.current != null)
+            {
+                foreach (var touch in UnityEngine.InputSystem.Touchscreen.current.touches)
+                {
+                    if (!touch.isInProgress || !touch.press.isPressed) continue;
+                    screenPosition = touch.position.ReadValue();
+                    return true;
+                }
             }
             var mouse = UnityEngine.InputSystem.Mouse.current;
             if (mouse != null && mouse.leftButton.isPressed)

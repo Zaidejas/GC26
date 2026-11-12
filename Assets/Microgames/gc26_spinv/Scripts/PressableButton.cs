@@ -63,6 +63,7 @@ namespace GC26.Spinv
             if (!interactable || firing) return;
             held = true;
             SetLit(true);
+            SpinvUiSound.Click();
         }
 
         public void OnPointerExit(PointerEventData eventData)

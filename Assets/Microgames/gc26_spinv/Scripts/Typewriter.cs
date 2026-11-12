@@ -9,7 +9,8 @@ namespace GC26.Spinv
     // чтобы теги не ломались на середине
     public static class Typewriter
     {
-        public static IEnumerator Type(TMP_Text text, string value, float charTime)
+        // continuousSound: звук печати не прерывается на пробелах (быстрые подсказки обучения)
+        public static IEnumerator Type(TMP_Text text, string value, float charTime, bool continuousSound = false)
         {
             if (value.IndexOf('<') >= 0)
             {
@@ -19,6 +20,7 @@ namespace GC26.Spinv
                 for (int k = 0; k <= count; k++)
                 {
                     text.maxVisibleCharacters = k;
+                    SpinvUiSound.TypeTick(k > 0 ? text.textInfo.characterInfo[k - 1].character : ' ', continuousSound);
                     yield return new WaitForSecondsRealtime(charTime);
                 }
                 text.maxVisibleCharacters = 99999;
@@ -29,6 +31,7 @@ namespace GC26.Spinv
             for (int k = 1; k <= value.Length; k++)
             {
                 text.text = value.Substring(0, k) + "_";
+                SpinvUiSound.TypeTick(value[k - 1], continuousSound);
                 yield return new WaitForSecondsRealtime(charTime);
             }
             text.text = value;

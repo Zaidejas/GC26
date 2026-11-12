@@ -109,6 +109,7 @@ namespace GC26.Spinv
                 for (int k = 1; k <= line.value.Length; k++)
                 {
                     line.text.text = line.value.Substring(0, k) + "_";
+                    SpinvUiSound.TypeTick(line.value[k - 1]);
                     yield return new WaitForSecondsRealtime(speed);
                 }
                 line.text.text = line.value;

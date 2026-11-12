@@ -63,8 +63,13 @@ namespace GC26.Spinv
             }
         }
 
+        // Обучение пускает только к способности, которую сейчас показывает:
+        // -1 - все доступны, -2 - ни одна, 0..2 - только эта
+        [HideInInspector] public int onlyAllowed = -1;
+
         public bool CanUse(int index)
         {
+            if (onlyAllowed != -1 && onlyAllowed != index) return false;
             Ability ability = abilities[index];
             return !ability.IsOnCooldown && SpinvGameManager.Instance.Coins >= ability.cost;
         }
@@ -79,7 +84,7 @@ namespace GC26.Spinv
             ability.cooldownLeft = ability.cooldown;
             ability.activeLeft = ability.duration;
             SetEffect(ability.type, true);
-            SpinvSoundManager.Play(Sfx.Coin);
+            SpinvSoundManager.Play(Sfx.Ability);
             TrackForAchievement(index);
             Used?.Invoke(index);
             return true;

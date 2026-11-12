@@ -75,6 +75,8 @@ namespace GC26.Spinv
             waveText.text = "-";
             slots = FindObjectsByType<AbilityButton>().OrderBy(s => s.index).ToArray();
             abilities.Used += OnUsed;
+            // Способности доступны только на своём шаге: иначе можно потратить монеты не на ту и застрять
+            abilities.onlyAllowed = -2;
             ring.gameObject.SetActive(false);
             dragHint.gameObject.SetActive(false);
             StartCoroutine(waves.IsArcadeTutorial ? RunArcade() : Run());
@@ -345,9 +347,11 @@ namespace GC26.Spinv
             int cost = abilities.abilities[index].cost;
             if (game.Coins < cost) game.AddCoins(cost - game.Coins);
             lastUsed = -1;
+            abilities.onlyAllowed = index;
             PointAtUI((RectTransform)slots[index].transform, 270f);
             Say(tip);
             while (lastUsed != index) yield return null;
+            abilities.onlyAllowed = -2;
             ClearPointer();
         }
 
@@ -410,7 +414,11 @@ namespace GC26.Spinv
             while (true)
             {
                 bool pressed = GameInput.PointerHeld(out _);
-                if (pressed && !wasPressed) yield break;
+                if (pressed && !wasPressed)
+                {
+                    SpinvUiSound.Click(); // TAP TO CONTINUE / tap to return - щелчок, как у кнопки
+                    yield break;
+                }
                 wasPressed = pressed;
                 yield return null;
             }
@@ -422,7 +430,7 @@ namespace GC26.Spinv
             if (hiding != null) StopCoroutine(hiding);
             tipText.transform.parent.gameObject.SetActive(true);
             if (typing != null) StopCoroutine(typing);
-            typing = StartCoroutine(Typewriter.Type(tipText, text, charTime));
+            typing = StartCoroutine(Typewriter.Type(tipText, text, charTime, true)); // быстрая печать: звук без разрывов на пробелах
         }
 
         // Убрать табличку через seconds, если за это время не появилась новая подсказка

@@ -25,7 +25,7 @@ namespace GC26.Spinv
 
             collected = true;
             SpinvGameManager.Instance.AddLives(lives);
-            SpinvSoundManager.Play(Sfx.Coin);
+            SpinvSoundManager.Play(Sfx.Heal);
             Destroy(gameObject);
         }
     }

@@ -39,12 +39,13 @@ namespace GC26.Spinv
                 string title = queue.Dequeue();
                 titleText.text = "";
                 panel.gameObject.SetActive(true);
-                SpinvSoundManager.Play(Sfx.Coin);
+                SpinvUiSound.Achievement();
 
                 yield return Slide(hiddenY, shownY);
                 for (int k = 1; k <= title.Length; k++)
                 {
                     titleText.text = title.Substring(0, k) + (k < title.Length ? "_" : "");
+                    SpinvUiSound.TypeTick(title[k - 1]);
                     yield return new WaitForSecondsRealtime(charTime);
                 }
                 yield return new WaitForSecondsRealtime(holdTime);

@@ -50,6 +50,8 @@ namespace GC26.Spinv
             onFinished = finished;
             playing = true;
             time = 0f;
+            // Фон затихает с обычной громкости до тихой за всё выключение
+            SpinvAmbience.FadeOut((MessageEnd + CollapseTime + LineTime + DotTime) / Mathf.Max(0.01f, speed));
         }
 
         void Update()

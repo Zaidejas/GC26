@@ -29,6 +29,7 @@ namespace GC26.Spinv
                 bomblet.gravity = bombletGravity;
                 bomblet.Throw(dir * bombletSpeed);
             }
+            SpinvSoundManager.Play(Sfx.BombExplosion);
             if (burstEffect != null)
             {
                 GameObject burst = Instantiate(burstEffect, transform.position, Quaternion.identity);

@@ -98,7 +98,7 @@ namespace GC26.Spinv
 
         void Explode()
         {
-            SpinvSoundManager.Play(Sfx.Explosion);
+            SpinvSoundManager.Play(Sfx.BombExplosion);
             if (explosionPrefab != null)
             {
                 GameObject boom = Instantiate(explosionPrefab, transform.position, Quaternion.identity);

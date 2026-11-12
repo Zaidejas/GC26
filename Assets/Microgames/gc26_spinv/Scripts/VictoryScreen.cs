@@ -277,6 +277,7 @@ namespace GC26.Spinv
                 for (int k = 1; k <= ImpostorName.Length; k++)
                 {
                     row.text = $"<color={ImpostorColor}>{ImpostorName.Substring(0, k)}</color>" + (k < ImpostorName.Length ? "_" : "");
+                    SpinvUiSound.TypeTick(ImpostorName[k - 1]);
                     const float letterTime = 0.5f, thumpTime = 0.12f;
                     for (float t = 0f; t < thumpTime; t += Time.unscaledDeltaTime)
                     {
@@ -298,6 +299,7 @@ namespace GC26.Spinv
             for (int k = 1; k <= impostorCaptionText.Length; k++)
             {
                 impostorCaption.text = impostorCaptionText.Substring(0, k) + (k < impostorCaptionText.Length ? "_" : "");
+                SpinvUiSound.TypeTick(impostorCaptionText[k - 1]);
                 yield return new WaitForSecondsRealtime(0.07f);
             }
             yield return new WaitForSecondsRealtime(0.6f);
@@ -314,12 +316,14 @@ namespace GC26.Spinv
             for (int k = 1; k <= 4; k++)
             {
                 impostorLine.text = "<color=#48D46C>" + "???:".Substring(0, k) + "</color>";
+                SpinvUiSound.TypeTick("???:"[k - 1]);
                 yield return new WaitForSecondsRealtime(0.11f);
             }
             yield return new WaitForSecondsRealtime(0.35f);
             for (int k = 1; k <= message.Length; k++)
             {
                 impostorLine.text = speaker + message.Substring(0, k) + (k < message.Length ? "_" : "");
+                SpinvUiSound.TypeTick(message[k - 1]);
                 yield return new WaitForSecondsRealtime(0.095f);
             }
         }
@@ -344,6 +348,7 @@ namespace GC26.Spinv
                     dialogTapHint.text = Mathf.Repeat(Time.unscaledTime, 0.7f) < 0.35f ? "TAP" : "";
                 yield return null;
             }
+            SpinvUiSound.Click(); // TAP - щелчок, как у кнопки
             if (dialogTapHint != null) dialogTapHint.text = "";
             impostorDialog.SetActive(false);
         }

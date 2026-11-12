@@ -80,6 +80,7 @@ namespace GC26.Spinv
             for (int k = 1; k <= text.Length; k++)
             {
                 dialogDescription.text = text.Substring(0, k) + (k < text.Length ? "_" : "");
+                SpinvUiSound.TypeTick(text[k - 1]);
                 yield return new WaitForSecondsRealtime(charTime);
             }
         }

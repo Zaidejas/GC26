@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -58,6 +59,9 @@ namespace GC26.Spinv
             maxX = cam.ViewportToWorldPoint(new Vector3(1f, 0f, 0f)).x - edgePadding;
         }
 
+        void OnEnable() => GameInput.EnableTouch();
+        void OnDisable() => GameInput.DisableTouch();
+
         void Update()
         {
             if (SpinvGameManager.Instance != null && SpinvGameManager.Instance.IsGameOver) return;
@@ -75,7 +79,7 @@ namespace GC26.Spinv
             // Нажатие, начатое на кнопке, корабль не двигает
             bool pressed = GameInput.PointerHeld(out Vector2 screenPosition);
             if (pressed && !wasPressed)
-                dragging = !IsOverUI();
+                dragging = !IsOverUI(screenPosition);
             wasPressed = pressed;
 
             if (pressed && dragging)
@@ -88,10 +92,19 @@ namespace GC26.Spinv
             transform.position = pos;
         }
 
-        // Нажатие на кнопку интерфейса не должно двигать корабль
-        static bool IsOverUI()
+        // Нажатие на кнопку интерфейса не должно двигать корабль.
+        // Проверяем лучом ровно в точке касания: IsPointerOverGameObject() в первый кадр касания
+        // отвечает по прошлому касанию (UI ещё не обработал новое) - после нажатия кнопки
+        // следующее касание по полю считалось «по кнопке», и корабль вставал до следующего касания
+        static readonly List<RaycastResult> uiHits = new List<RaycastResult>();
+
+        static bool IsOverUI(Vector2 screenPosition)
         {
-            return EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            EventSystem events = EventSystem.current;
+            if (events == null) return false;
+            uiHits.Clear();
+            events.RaycastAll(new PointerEventData(events) { position = screenPosition }, uiHits);
+            return uiHits.Count > 0;
         }
 
         void AutoFire()
@@ -103,7 +116,6 @@ namespace GC26.Spinv
             if (fireTimer > 0f) return;
 
             Instantiate(laserPrefab, transform.position + Vector3.up * 1f, Quaternion.identity);
-            SpinvSoundManager.Play(Sfx.Shoot);
             fireTimer = fireCooldown / fireRateMultiplier;
         }
 
