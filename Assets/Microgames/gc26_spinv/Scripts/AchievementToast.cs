@@ -40,6 +40,7 @@ namespace GC26.Spinv
                 titleText.text = "";
                 panel.gameObject.SetActive(true);
                 SpinvUiSound.Achievement();
+                SpinvHaptics.Light();
 
                 yield return Slide(hiddenY, shownY);
                 for (int k = 1; k <= title.Length; k++)

@@ -64,6 +64,45 @@ namespace GC26.Spinv
         void OnDisable()
         {
             CrtBoost.Set(0f);
+            SetNoiseSound(false);
+        }
+
+        [Tooltip("Щелчок лампочки на появление каждой строки самопроверки")]
+        public AudioClip lineClick;
+        [Range(0f, 1f)] public float lineClickVolume = 0.05f;
+        AudioSource clickSource;
+        int shownLines;
+
+        void PlayLineClick()
+        {
+            if (lineClick == null) return;
+            if (clickSource == null)
+            {
+                clickSource = gameObject.AddComponent<AudioSource>();
+                clickSource.playOnAwake = false;
+            }
+            clickSource.PlayOneShot(lineClick, lineClickVolume * SpinvAudioSettings.SfxVolume);
+        }
+
+        [Tooltip("Шипение на время помех при включении")]
+        public AudioClip noiseSound;
+        [Range(0f, 1f)] public float noiseVolume = 0.3f;
+        AudioSource noiseSource;
+
+        void SetNoiseSound(bool on)
+        {
+            if (noiseSound == null) return;
+            if (noiseSource == null)
+            {
+                if (!on) return;
+                noiseSource = gameObject.AddComponent<AudioSource>();
+                noiseSource.clip = noiseSound;
+                noiseSource.loop = true;
+                noiseSource.playOnAwake = false;
+            }
+            noiseSource.volume = noiseVolume * SpinvAudioSettings.SfxVolume;
+            if (on && !noiseSource.isPlaying) noiseSource.Play();
+            else if (!on && noiseSource.isPlaying) noiseSource.Stop();
         }
 
         void Update()
@@ -97,6 +136,9 @@ namespace GC26.Spinv
                 stage = Stage.WaitTap;
                 time = BootEnd;
             }
+
+            // Шипение звучит ровно пока на экране помехи
+            SetNoiseSound(stage == Stage.Static && time >= StaticStart && time < BootStart);
 
             if (time < StaticStart) DrawBlack();
             else if (time < BootStart && stage == Stage.Static) DrawStatic((time - StaticStart) / (BootStart - StaticStart));
@@ -168,6 +210,13 @@ namespace GC26.Spinv
         // Последняя строка (TAP TO START) мигает
         void ShowLines(int count, bool promptVisible)
         {
+            // Новая строка самопроверки появилась - щёлкает «лампочка»
+            count = Mathf.Min(count, lines.Length);
+            if (count > shownLines)
+            {
+                PlayLineClick();
+                shownLines = count;
+            }
             for (int i = 0; i < lines.Length; i++)
             {
                 bool isPrompt = i == lines.Length - 1;

@@ -98,6 +98,7 @@ namespace GC26.Spinv
             {
                 fireTimer = fireInterval;
                 Vector3 muzzle = transform.position + Vector3.down * sprite.bounds.extents.y;
+                SpinvSoundManager.Play(Sfx.EnemyShot); // двойник стреляет со звуком, как сам Phantom
                 Projectile missile = Instantiate(missilePrefab, muzzle, Quaternion.identity);
                 missile.speed = missileSpeed;
                 missile.SetDirection(player.transform.position - muzzle);

@@ -392,8 +392,12 @@ namespace GC26.Spinv
 
         float Wait(float seconds) => Raging ? seconds / rageFireRate : seconds;
 
+        [Tooltip("Выстрелы босса со звуком (Босс 1, Босс 2): залп - один звук, очередь - звук на каждую пулю")]
+        public bool shotSound = false;
+
         void SpawnMissile(Vector3 position, Vector2 shotDirection, float speed)
         {
+            if (shotSound) SpinvSoundManager.Play(Sfx.EnemyShot);
             Projectile missile = Instantiate(missilePrefab, position, Quaternion.identity);
             missile.speed = speed;
             missile.SetDirection(shotDirection);
@@ -553,6 +557,7 @@ namespace GC26.Spinv
                     int bombs = Random.Range(bombsPerStop.x, bombsPerStop.y + 1);
                     for (int i = 0; i < bombs; i++)
                     {
+                        SpinvSoundManager.Play(Sfx.EnemyShot); // бросок бомбы - звук как у пуль
                         Projectile bomb = Instantiate(bombPrefab, Muzzle + Vector3.right * Random.Range(-halfWidth, halfWidth) * 0.6f, Quaternion.identity);
                         bomb.gravity = bombGravity * rage;
                         bomb.Throw(new Vector2(Random.Range(-0.6f, 0.6f), -bombSpeed * rage));
@@ -569,6 +574,7 @@ namespace GC26.Spinv
             for (float t = 0f; t < bombRainTime; )
             {
                 Vector3 drop = Muzzle + Vector3.right * Random.Range(-halfWidth, halfWidth);
+                SpinvSoundManager.Play(Sfx.EnemyShot);
                 Projectile bomb = Instantiate(bombPrefab, drop, Quaternion.identity);
                 float sideways = movementHolds == 0 ? direction * moveSpeed * bombInherit : 0f;
                 bomb.gravity = bombGravity * rage;
@@ -595,6 +601,7 @@ namespace GC26.Spinv
                 if (jerkyMovement)
                     while (!HopTowards(x)) yield return null;
 
+                SpinvSoundManager.Play(Sfx.EnemyShot);
                 Projectile cluster = Instantiate(clusterPrefab, Muzzle, Quaternion.identity);
                 cluster.gravity = bombGravity * rage;
                 cluster.Throw(new Vector2(0f, -bombSpeed * rage));
@@ -616,6 +623,9 @@ namespace GC26.Spinv
         IEnumerator Vanish()
         {
             movementHolds++;
+            // Звук лага начинается заранее: босс замер, а через glitchLeadVanish начинает растворяться
+            GlitchSound(true);
+            if (glitchLeadVanish > 0f) yield return new WaitForSeconds(glitchLeadVanish);
             if (Hitbox != null) Hitbox.enabled = false;
             for (float t = 0f; t < vanishTime; )
             {
@@ -625,12 +635,16 @@ namespace GC26.Spinv
                 t += step;
             }
             Visual.SetActive(false);
+            GlitchSound(false); // растворился - звук закончился (с хвостом glitchTail)
             yield return new WaitForSeconds(hiddenTime);
         }
 
         // Мерцающий силуэт на новом месте, затем проявляется целиком и снова уязвим
         IEnumerator Appear(Vector3 position)
         {
+            // Звук лага слышен ещё до того, как силуэт замерцал на новом месте
+            GlitchSound(true);
+            if (glitchLeadAppear > 0f) yield return new WaitForSeconds(glitchLeadAppear);
             transform.position = position;
             for (float t = 0f; t < warnTime; t += 0.07f)
             {
@@ -638,8 +652,37 @@ namespace GC26.Spinv
                 yield return new WaitForSeconds(0.07f);
             }
             Visual.SetActive(true);
+            GlitchSound(false); // появился - звук закончился (с хвостом glitchTail)
             if (Hitbox != null) Hitbox.enabled = true;
             movementHolds--;
+        }
+
+        [Tooltip("Phantom: звук «лага», пока он растворяется и пока проявляется")]
+        public AudioClip glitchSound;
+        [Range(0f, 1f)] public float glitchVolume = 1f;
+        [Tooltip("Сколько секунд звук лага ещё звучит после конца мерцания")]
+        public float glitchTail = 0.3f;
+        [Tooltip("За сколько секунд до начала растворения начинается звук лага")]
+        public float glitchLeadVanish = 0.5f;
+        [Tooltip("За сколько секунд до появления начинается звук лага")]
+        public float glitchLeadAppear = 0.3f;
+        AudioSource glitchSource;
+
+        void GlitchSound(bool on, bool immediate = false)
+        {
+            if (glitchSound == null) return;
+            if (glitchSource == null)
+            {
+                if (!on) return;
+                glitchSource = gameObject.AddComponent<AudioSource>();
+                glitchSource.playOnAwake = false;
+                glitchSource.loop = true;
+                glitchSource.clip = glitchSound;
+            }
+            glitchSource.volume = glitchVolume * SpinvAudioSettings.SfxVolume;
+            if (on) glitchSource.Play();
+            else if (immediate || glitchTail <= 0f) glitchSource.Stop();
+            else if (glitchSource.isPlaying) glitchSource.SetScheduledEndTime(AudioSettings.dspTime + glitchTail);
         }
 
         Vector3 RandomTeleportPoint() =>
@@ -811,12 +854,21 @@ namespace GC26.Spinv
         }
 
         // Вызывается пулей игрока
+        // Только для проверки в редакторе (F3): босс сразу погибает, как от последнего попадания
+        public void DebugKill()
+        {
+            if (dead) return;
+            health = 0;
+            Die();
+        }
+
         public void Hit()
         {
             if (dead) return;
 
             health--;
             hits++;
+            SpinvSoundManager.Play(Sfx.BossHit);
             flashTimer = flashTime;
 
             if (coinPrefab != null && hits % coinEveryHits == 0)
@@ -830,6 +882,7 @@ namespace GC26.Spinv
         {
             dead = true;
             StopAllCoroutines();
+            GlitchSound(false, true);
             SpinvGameManager.Instance.AddScore(points);
 
             if (grantsAchievement) Achievements.Award(achievement);
@@ -854,6 +907,10 @@ namespace GC26.Spinv
 
             if (dramaticDeath)
             {
+                // Финальный босс классики убит - впереди окно победы со своей музыкой: фон смолкает
+                var waves = Object.FindAnyObjectByType<WaveManager>();
+                if (waves != null && !waves.ArcadeStyle && waves.CurrentWave >= waves.TotalWaves)
+                    SpinvAmbience.Stop();
                 StartCoroutine(DramaticDeath());
                 return;
             }

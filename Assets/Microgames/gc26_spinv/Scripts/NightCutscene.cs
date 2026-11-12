@@ -138,6 +138,7 @@ namespace GC26.Spinv
             for (int i = 0; i < count; i++)
             {
                 float from = bigClock.Angle, to = from + step;
+                SpinvSoundManager.Play(Sfx.ClockTick); // щелчок на каждый рывок
                 const float tickTime = 0.15f;
                 for (float t = 0f; t < tickTime; t += Time.deltaTime)
                 {

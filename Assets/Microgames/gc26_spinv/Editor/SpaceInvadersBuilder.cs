@@ -163,6 +163,9 @@ namespace GC26.Spinv
             uiSound.transform.SetParent(flow.transform, false);
             var ui = uiSound.AddComponent<SpinvUiSound>();
             ui.click = LoadAudio("157871__orginaljun__arcade-button-1-click-sound.mp3");
+            ui.glitchNoise = LoadAudio("soundreality-white-noise-171891.mp3"); // самозванец: шум на тряску
+            ui.shipDust = LoadAudio("soundreality-explosion-8-bit-4-314690.mp3"); // самозванец: корабль в пыль
+            ui.victoryMusic = LoadAudio("freesound_community-8bit-mix-56351.mp3"); // музыка экрана победы
             ui.achievement = LoadAudio("driken5482-retro-powerup-1-236686.mp3"); // получение достижения, 70%
             ui.typing = LoadAudio("494921__evretro__text-scroll-d-3-3-225.wav"); // на 20% медленнее и 70% громкости - в SpinvUiSound
             flow.menuRoot = menuRoot;
@@ -441,6 +444,9 @@ namespace GC26.Spinv
             waves[4].bossPrefab = MakeBossPrefab("Boss_2", boss2Sprite, boss2AngrySprite, 4f, 200, 1000, 3.5f, 10f,
                 new[] { BossAttack.Wall, BossAttack.Spiral, BossAttack.Laser, BossAttack.Summon }, true, invaderPrefabs[1]);
             waves[4].bossPrefab.playerBlinks = true;
+            waves[2].bossPrefab.shotSound = true; // выстрелы Боссов 1 и 2 со звуком
+            waves[4].bossPrefab.shotSound = true;
+            EditorUtility.SetDirty(waves[2].bossPrefab);
             waves[4].bossPrefab.dramaticDeath = true; // анимация смерти ~5 с перед победой
             EditorUtility.SetDirty(waves[4].bossPrefab);
             EditorUtility.SetDirty(waves[2]);
@@ -521,6 +527,7 @@ namespace GC26.Spinv
 
             bomberBossPrefab = MakeBossPrefab("Boss_Bomber", bomberSprite, bomberAngrySprite, 3.2f, 150, 800, 2.2f, 9f,
                 new[] { BossAttack.Mines, BossAttack.Carpet, BossAttack.Burst, BossAttack.Cluster }, true, null);
+            bomberBossPrefab.shotSound = true; // пули - тот же звук, что у Боссов 1 и 2
             bomberBossPrefab.jerkyMovement = true; // резко перелетает с места на место, сбрасывая бомбы
             bomberBossPrefab.grantsAchievement = true;
             bomberBossPrefab.achievement = AchievementId.BombSquad;
@@ -531,6 +538,8 @@ namespace GC26.Spinv
 
             phantomBossPrefab = MakeBossPrefab("Boss_Phantom", phantomSprite, phantomAngrySprite, 3.4f, 100, 800, 3f, 9f,
                 new[] { BossAttack.Teleport, BossAttack.Decoys, BossAttack.Fan, BossAttack.Wisps, BossAttack.Grab, BossAttack.Drain }, true, null);
+            phantomBossPrefab.shotSound = true;
+            phantomBossPrefab.glitchSound = LoadAudio("freesound_community-glitched-atmosphere-28167.mp3"); // лаг при растворении и появлении
             phantomBossPrefab.ghostShotsInRage = true;
             phantomBossPrefab.grantsAchievement = true;
             phantomBossPrefab.achievement = AchievementId.Exorcist;
@@ -584,6 +593,7 @@ namespace GC26.Spinv
             anger.visual = visual.transform;
             anger.body = visual.GetComponent<SpriteRenderer>();
             anger.angry = angry.GetComponent<SpriteRenderer>();
+            anger.fitSound = LoadAudio("freesound_community-3-lo-fi-fade-out-radio-31020.mp3"); // звук приступа, 30% -> 0 к концу
 
             boss.maxHealth = health;
             boss.points = points;
@@ -617,6 +627,10 @@ namespace GC26.Spinv
             sound.invaderDeath = invaderDeathClip;
             sound.bombExplosion = bombClip;
             sound.laser = laserClip;
+            sound.mineBeep = LoadAudio("mine_beep.wav"); // один писк из 519d17ecbfdba43.mp3 на огонёк мины
+            sound.bossHit = LoadAudio("driken5482-retro-hurt-1-236672.mp3"); // попадание по боссу, 25%
+            sound.enemyShot = LoadAudio("53439420-retro-hurt-sound-03-474780.mp3"); // выстрел пришельцев и Боссов 1, 2
+            sound.clockTick = LoadAudio("dragon-studio-light-switch-on-382714.mp3"); // щелчок часов в сценках
             sound.ability = LoadAudio("ew_loud.wav"); // нажатие способности: ew.mp3, поднятый до нормальной громкости (в исходнике пик 0.09), + 20% (abilityVolume)
 
             // Спрайт из дизайна, если он есть: коллайдер только по видимой части корабля
@@ -934,6 +948,9 @@ namespace GC26.Spinv
             pause.resumeButton = MakeArcadeButton(pausePanel.transform, "ResumeButton", "RESUME", true, mid, new Vector2(0f, 80f), menuSize);
             pause.restartButton = MakeArcadeButton(pausePanel.transform, "RestartButton", "RESTART", false, mid, new Vector2(0f, -100f), menuSize);
             pause.menuButton = MakeArcadeButton(pausePanel.transform, "MenuButton", "MAIN MENU", false, mid, new Vector2(0f, -280f), menuSize);
+            // Ползунки громкости под кнопками паузы, под ними - переключатель вибрации
+            MakeVolumeSliders(pausePanel.transform, -440f);
+            MakeVibrationButton(pausePanel.transform, mid, new Vector2(0f, -800f), 150f);
             pausePanel.SetActive(false);
         }
 
@@ -1162,6 +1179,8 @@ namespace GC26.Spinv
             menu.trophyCount = MakeText(canvas, "TrophyCount", "0 / 0", 46, TextAlignmentOptions.Center, bottomLeft, new Vector2(30f, 110f), new Vector2(200f, 70f));
             menu.trophyCount.color = TextColor;
             menu.starMap = BuildStarMap(canvas);
+            // Шестерёнка в правом верхнем углу: окно настроек (громкость и вибрация)
+            BuildSettingsScreen(canvas);
 
             menu.quitEffect = BuildQuitOverlay();
             BuildAchievementToast(); // плашки, отложенные до меню (IMPOSTOR)
@@ -1185,6 +1204,8 @@ namespace GC26.Spinv
             scaler.matchWidthOrHeight = 0f;
 
             var intro = go.AddComponent<IntroBoot>();
+            intro.lineClick = LoadAudio("sound_05991_lamp.wav"); // щелчок лампочки на каждую строку, 5%
+            intro.noiseSound = LoadAudio("soundreality-white-noise-171891.mp3"); // шипение на время помех, 30%
             intro.group = go.GetComponent<CanvasGroup>();
 
             // Не "Background": под этим именем фон звёзд ищет SpaceInvadersBackground
@@ -1889,6 +1910,121 @@ namespace GC26.Spinv
             button.label = MakeText(go.transform, "Label", label, size.y * 0.37f, TextAlignmentOptions.Center,
                 new Vector2(0.5f, 0.5f), Vector2.zero, size);
             button.label.color = button.normalLabelColor;
+            return button;
+        }
+
+        // Окно настроек из меню: шестерёнка открывает, BACK закрывает
+        static void BuildSettingsScreen(Transform canvas)
+        {
+            var center = new Vector2(0.5f, 0.5f);
+            var top = new Vector2(0.5f, 1f);
+            var gear = MakeRoundButton(canvas, "SettingsButton", new Vector2(1f, 1f), new Vector2(-110f, -110f), 150f, "icon_gear", 0.58f, 0.58f);
+
+            var panel = MakeChildImage(canvas, "SettingsPanel", null, ScreenDark);
+            panel.raycastTarget = true; // перекрывает кнопки меню
+            Stretch(panel.rectTransform);
+            Transform root = panel.transform;
+            MakeText(root, "Title", "SETTINGS", 90, TextAlignmentOptions.Center, top, new Vector2(0f, -360f), new Vector2(1000f, 130f)).color = TextColor;
+
+            MakeVolumeSliders(root, 260f);
+            MakeText(root, "VibrationLabel", "VIBRATION", 44, TextAlignmentOptions.Center, center, new Vector2(0f, -150f), new Vector2(700f, 70f)).color = PhosphorMid;
+            MakeVibrationButton(root, center, new Vector2(0f, -280f), 170f);
+            var back = MakeArcadeButton(root, "BackButton", "BACK", false, center, new Vector2(0f, -560f), new Vector2(520f, 140f));
+
+            var screen = canvas.gameObject.AddComponent<SpinvSettingsScreen>();
+            screen.root = panel.gameObject;
+            screen.openButton = gear;
+            screen.closeButton = back;
+        }
+
+        // Два ползунка громкости (SpinvVolumeSliders): подпись слева, проценты справа, полоса под ними.
+        // topY - верх блока относительно центра родителя
+        static void MakeVolumeSliders(Transform parent, float topY)
+        {
+            var center = new Vector2(0.5f, 0.5f);
+            var go = new GameObject("VolumeSliders", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            Stretch((RectTransform)go.transform);
+            var sliders = go.AddComponent<SpinvVolumeSliders>();
+            string[] names = { "SOUND", "SFX" };
+            for (int i = 0; i < 2; i++)
+            {
+                float y = topY - i * 150f;
+                MakeText(go.transform, names[i] + "Label", names[i], 46, TextAlignmentOptions.Left, center, new Vector2(-40f, y), new Vector2(560f, 70f)).color = TextColor;
+                var value = MakeText(go.transform, names[i] + "Value", "100%", 46, TextAlignmentOptions.Right, center, new Vector2(40f, y), new Vector2(560f, 70f));
+                value.color = PhosphorBright;
+                var slider = MakeSlider(go.transform, names[i] + "Slider", new Vector2(0f, y - 62f), new Vector2(640f, 44f));
+                if (i == 0) { sliders.soundSlider = slider; sliders.soundValue = value; }
+                else { sliders.sfxSlider = slider; sliders.sfxValue = value; }
+            }
+        }
+
+        // Ползунок 0..1: тёмная полоса, яркая заливка слева, круглая ручка
+        static Slider MakeSlider(Transform parent, string name, Vector2 position, Vector2 size)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Slider));
+            go.transform.SetParent(parent, false);
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = position;
+            rect.sizeDelta = size;
+
+            var background = MakeChildImage(go.transform, "Background", uiSquareSprite, PhosphorLine);
+            background.raycastTarget = true;
+            var bgRect = background.rectTransform;
+            bgRect.anchorMin = new Vector2(0f, 0.3f);
+            bgRect.anchorMax = new Vector2(1f, 0.7f);
+            bgRect.offsetMin = bgRect.offsetMax = Vector2.zero;
+
+            var fillArea = new GameObject("Fill Area", typeof(RectTransform));
+            fillArea.transform.SetParent(go.transform, false);
+            var fillAreaRect = (RectTransform)fillArea.transform;
+            fillAreaRect.anchorMin = new Vector2(0f, 0.3f);
+            fillAreaRect.anchorMax = new Vector2(1f, 0.7f);
+            fillAreaRect.offsetMin = fillAreaRect.offsetMax = Vector2.zero;
+            var fill = MakeChildImage(fillArea.transform, "Fill", uiSquareSprite, PhosphorBright);
+            var fillRect = fill.rectTransform;
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = new Vector2(0f, 1f);
+            fillRect.offsetMin = fillRect.offsetMax = Vector2.zero;
+
+            var handleArea = new GameObject("Handle Slide Area", typeof(RectTransform));
+            handleArea.transform.SetParent(go.transform, false);
+            var handleAreaRect = (RectTransform)handleArea.transform;
+            handleAreaRect.anchorMin = Vector2.zero;
+            handleAreaRect.anchorMax = Vector2.one;
+            handleAreaRect.offsetMin = handleAreaRect.offsetMax = Vector2.zero;
+            var handle = MakeChildImage(handleArea.transform, "Handle", Art("round_fill", 100f, uiSquareSprite), TextColor);
+            handle.raycastTarget = true;
+            handle.preserveAspect = true;
+            var handleRect = handle.rectTransform;
+            handleRect.anchorMin = handleRect.anchorMax = new Vector2(0f, 0.5f);
+            handleRect.sizeDelta = new Vector2(size.y * 1.6f, size.y * 1.6f);
+
+            var slider = go.GetComponent<Slider>();
+            slider.fillRect = fillRect;
+            slider.handleRect = handleRect;
+            slider.targetGraphic = handle;
+            slider.direction = Slider.Direction.LeftToRight;
+            slider.minValue = 0f;
+            slider.maxValue = 1f;
+            slider.value = 1f;
+            slider.transition = Selectable.Transition.None;
+            return slider;
+        }
+
+        // Круглая кнопка вибрации (SpinvVibrationToggle): телефон с волнами / без волн и красная черта
+        static PressableButton MakeVibrationButton(Transform parent, Vector2 anchor, Vector2 position, float size)
+        {
+            var button = MakeRoundButton(parent, "VibrationButton", anchor, position, size, "icon_vibrate", 0.5f, 0.5f);
+            var slash = MakeChildImage(button.transform, "Slash", uiSquareSprite, new Color(1f, 0.29f, 0.24f));
+            slash.rectTransform.sizeDelta = new Vector2(size * 0.62f, size * 0.07f);
+            slash.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            var toggle = button.gameObject.AddComponent<SpinvVibrationToggle>();
+            toggle.icon = button.icon as Image;
+            toggle.onSprite = Art("icon_vibrate", 100f, null);
+            toggle.offSprite = Art("icon_vibrate_off", 100f, null);
+            toggle.slash = slash.gameObject;
             return button;
         }
 

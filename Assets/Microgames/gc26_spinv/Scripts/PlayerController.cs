@@ -133,6 +133,7 @@ namespace GC26.Spinv
 
             SpinvSoundManager.Play(Sfx.PlayerHit);
             SpinvGameManager.Instance.LoseLife();
+            SpinvHaptics.Medium(); // урон - средняя вибрация
 
             if (!SpinvGameManager.Instance.IsGameOver)
                 StartCoroutine(BlinkRoutine());

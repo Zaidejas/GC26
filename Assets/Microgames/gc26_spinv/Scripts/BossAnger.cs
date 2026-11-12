@@ -40,6 +40,37 @@ namespace GC26.Spinv
         [Range(0f, 1f)] public float hitRedness = 0.4f;
         public float hitFlashTime = 0.25f;
 
+        [Header("Звук приступа")]
+        [Tooltip("Играет на время приступа и затухает к его концу")]
+        public AudioClip fitSound;
+        [Range(0f, 1f)] public float fitSoundVolume = 0.3f;
+        AudioSource fitSource;
+
+        void StartFitSound()
+        {
+            if (fitSound == null) return;
+            if (fitSource == null)
+            {
+                fitSource = gameObject.AddComponent<AudioSource>();
+                fitSource.playOnAwake = false;
+            }
+            fitSource.clip = fitSound;
+            fitSource.volume = fitSoundVolume * SpinvAudioSettings.SfxVolume;
+            fitSource.Play();
+        }
+
+        // Звук приступа: с fitSoundVolume плавно до тишины ровно к концу приступа
+        void UpdateFitSound()
+        {
+            if (fitSource == null || !fitSource.isPlaying) return;
+            if (fitTime < 0f || fitTime >= fitDuration)
+            {
+                fitSource.Stop();
+                return;
+            }
+            fitSource.volume = fitSoundVolume * SpinvAudioSettings.SfxVolume * (1f - fitTime / fitDuration);
+        }
+
         // Анимация смерти (Boss.DramaticDeath): >= 0 - босс полностью красный и трясётся с этой силой
         [HideInInspector] public float dyingShake = -1f;
 
@@ -80,7 +111,11 @@ namespace GC26.Spinv
             if (fitTime < 0f)
             {
                 untilFit -= dt;
-                if (untilFit <= 0f) fitTime = 0f;
+                if (untilFit <= 0f)
+                {
+                    fitTime = 0f;
+                    StartFitSound();
+                }
             }
 
             float fit = 0f;   // 0..1 сила красного от приступа
@@ -122,6 +157,7 @@ namespace GC26.Spinv
                 side = -side;
             }
 
+            UpdateFitSound();
             Apply(red, shake);
         }
 

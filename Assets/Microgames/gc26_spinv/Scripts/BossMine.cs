@@ -29,6 +29,7 @@ namespace GC26.Spinv
         float fuse, fuseLeft;
         bool landed;
         bool onBunker;
+        bool lampWasOn;
 
         // Бросок в точку landing: без начальной скорости по вертикали, вбок - ровно столько,
         // чтобы долететь до точки за время свободного падения
@@ -87,6 +88,9 @@ namespace GC26.Spinv
             float rate = Mathf.Lerp(4f, 16f, k);
             bool on = Mathf.Repeat(Time.time * rate, 1f) < 0.5f;
             if (lamp != null) lamp.enabled = on;
+            // Огонёк загорелся - писк
+            if (on && !lampWasOn) SpinvSoundManager.Play(Sfx.MineBeep);
+            lampWasOn = on;
             if (ring != null)
             {
                 ring.enabled = true;

@@ -103,8 +103,12 @@ namespace GC26.Spinv
         {
             Time.timeScale = 1f;
             AudioListener.pause = false;
+            AudioListener.volume = 1f; // моргание глушит звук
             CrtBoost.Set(0f);
             CrtBoost.SetBlur(0f);
+            // Партия закончилась не выключением (выход в меню, рестарт): музыки победы нет, фон играет
+            SpinvUiSound.StopMusic();
+            SpinvAmbience.Resume();
         }
     }
 }

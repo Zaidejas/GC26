@@ -106,6 +106,9 @@ namespace GC26.Spinv
         {
             gm = manager;
             gameObject.SetActive(true);
+            // Окно победы: вместо фона играет музыка победы (фон уже смолк при смерти босса; F9 - на всякий случай)
+            SpinvAmbience.Stop();
+            SpinvUiSound.PlayVictoryMusic();
 
             foreach (TMP_Text text in AllTexts())
             {
@@ -254,13 +257,22 @@ namespace GC26.Spinv
             if (gm.TableIndex >= 0 && gm.TableIndex < nameTexts.Length)
                 nameTexts[gm.TableIndex].text = typed;
             var root = (RectTransform)transform;
+            SpinvUiSound.GlitchNoise(true); // жёсткое шипение на всю тряску
+            float nextBuzz = 0f;
             for (float t = 0f; t < glitchTime; t += Time.unscaledDeltaTime)
             {
+                // Тряска экрана - средние толчки вибрации
+                if (t >= nextBuzz)
+                {
+                    SpinvHaptics.Medium();
+                    nextBuzz = t + 0.15f;
+                }
                 CrtBoost.Set(Random.value < 0.3f ? Random.Range(3f, 7f) : Random.Range(0.5f, 2f));
                 root.anchoredPosition = new Vector2(Random.Range(-30f, 30f), Random.Range(-12f, 12f));
                 yield return null;
             }
             root.anchoredPosition = Vector2.zero;
+            SpinvUiSound.GlitchNoise(false);
             CrtBoost.Set(1.5f); // так и остаётся «поплывшим» до конца
 
             // 3. «???: You are not Gekata.»
@@ -277,7 +289,8 @@ namespace GC26.Spinv
                 for (int k = 1; k <= ImpostorName.Length; k++)
                 {
                     row.text = $"<color={ImpostorColor}>{ImpostorName.Substring(0, k)}</color>" + (k < ImpostorName.Length ? "_" : "");
-                    SpinvUiSound.TypeTick(ImpostorName[k - 1]);
+                    SpinvSoundManager.Play(Sfx.EnemyShot); // буква IMPOSTOR - звук выстрела пришельцев, а не печати
+                    SpinvHaptics.Medium();
                     const float letterTime = 0.5f, thumpTime = 0.12f;
                     for (float t = 0f; t < thumpTime; t += Time.unscaledDeltaTime)
                     {
@@ -387,6 +400,8 @@ namespace GC26.Spinv
             }
             shipRect.anchoredPosition = home;
 
+            SpinvUiSound.ShipDust(); // корабль сдувает
+
             // Сетка кусочков с той же картинкой: каждый показывает свой участок текстуры
             Sprite sprite = ship.sprite;
             Texture tex = sprite.texture;
@@ -469,7 +484,8 @@ namespace GC26.Spinv
             if (typed.Length == 0) return; // пустое имя не принимаем (и Enter тоже)
             if (HighScoreTable.IsReservedName(typed))
             {
-                // Попытка выдать себя за автора
+                // Попытка выдать себя за автора: музыка обрывается
+                SpinvUiSound.StopMusic();
                 finished = true;
                 StartCoroutine(Impostor(typed));
                 return;
@@ -485,6 +501,17 @@ namespace GC26.Spinv
             table = HighScoreTable.Load();
             RefreshTable();
 
+            // Музыка смолкает, 2 секунды тишины - и только потом выключение автомата
+            SpinvUiSound.StopMusic();
+            StartCoroutine(QuitAfterSilence());
+        }
+
+        [Tooltip("Пауза тишины между OK и выключением автомата, секунд")]
+        public float silenceBeforePowerOff = 2f;
+
+        IEnumerator QuitAfterSilence()
+        {
+            yield return new WaitForSecondsRealtime(silenceBeforePowerOff);
             if (quitEffect != null) quitEffect.Play(QuitGame);
             else QuitGame();
         }

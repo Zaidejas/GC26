@@ -293,6 +293,12 @@ MonoBehaviour:
   hitColor: {r: 0.3, g: 0.45, b: 0.3, a: 1}
   flashTime: 0.1
   spriteRenderer: {fileID: 1710538599751378}
+  shotSound: 1
+  glitchSound: {fileID: 0}
+  glitchVolume: 1
+  glitchTail: 0.3
+  glitchLeadVanish: 0.5
+  glitchLeadAppear: 0.3
 --- !u!114 &2684007124696770909
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -320,6 +326,8 @@ MonoBehaviour:
   shakeJitter: 0.25
   hitRedness: 0.4
   hitFlashTime: 0.25
+  fitSound: {fileID: 8300000, guid: 8fcc4b3195c5ddd4082ace94621a2951, type: 3}
+  fitSoundVolume: 0.3
   dyingShake: -1
 --- !u!1 &8943462285475077278
 GameObject:

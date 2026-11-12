@@ -50,6 +50,9 @@ namespace GC26.Spinv
             onFinished = finished;
             playing = true;
             time = 0f;
+            // После победы: музыка смолкает, снова играет фон
+            SpinvUiSound.StopMusic();
+            SpinvAmbience.Resume();
             // Фон затихает с обычной громкости до тихой за всё выключение
             SpinvAmbience.FadeOut((MessageEnd + CollapseTime + LineTime + DotTime) / Mathf.Max(0.01f, speed));
         }

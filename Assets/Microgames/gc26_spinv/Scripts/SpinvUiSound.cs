@@ -25,8 +25,23 @@ namespace GC26.Spinv
         [Tooltip("Если новых букв нет дольше этого (секунд) - звук печати смолкает")]
         public float typingTimeout = 0.2f;
 
+        [Header("Музыка победы")]
+        [Tooltip("Играет по кругу на экране победы вместо фона, до выключения автомата")]
+        public AudioClip victoryMusic;
+        [Range(0f, 1f)] public float musicVolume = 0.6f;
+
+        [Header("Сцена самозванца")]
+        [Tooltip("Шипение на время жёсткой тряски экрана (тот же шум, что на включении)")]
+        public AudioClip glitchNoise;
+        [Range(0f, 1f)] public float glitchNoiseVolume = 0.6f;
+        [Tooltip("Корабль рассыпается в пыль")]
+        public AudioClip shipDust;
+        [Range(0f, 1f)] public float shipDustVolume = 0.6f;
+
         AudioSource source;
         AudioSource typingSource;
+        AudioSource musicSource;
+        AudioSource noiseSource;
         float lastTypeTick = -1f;
 
         void Awake()
@@ -41,6 +56,44 @@ namespace GC26.Spinv
             typingSource.clip = typing;
             typingSource.volume = typingVolume;
             typingSource.pitch = typingPitch;
+
+            musicSource = gameObject.AddComponent<AudioSource>();
+            musicSource.playOnAwake = false;
+            musicSource.loop = true;
+            musicSource.ignoreListenerPause = true;
+            musicSource.clip = victoryMusic;
+            musicSource.volume = musicVolume;
+
+            noiseSource = gameObject.AddComponent<AudioSource>();
+            noiseSource.playOnAwake = false;
+            noiseSource.loop = true;
+            noiseSource.ignoreListenerPause = true;
+            noiseSource.clip = glitchNoise;
+            noiseSource.volume = glitchNoiseVolume;
+        }
+
+        public static void GlitchNoise(bool on)
+        {
+            if (instance == null || instance.glitchNoise == null) return;
+            if (on && !instance.noiseSource.isPlaying) instance.noiseSource.Play();
+            else if (!on) instance.noiseSource.Stop();
+        }
+
+        public static void ShipDust()
+        {
+            if (instance != null && instance.shipDust != null)
+                instance.source.PlayOneShot(instance.shipDust, instance.shipDustVolume * SpinvAudioSettings.SfxVolume);
+        }
+
+        public static void PlayVictoryMusic()
+        {
+            if (instance == null || instance.victoryMusic == null) return;
+            if (!instance.musicSource.isPlaying) instance.musicSource.Play();
+        }
+
+        public static void StopMusic()
+        {
+            if (instance != null) instance.musicSource.Stop();
         }
 
         void OnEnable() => instance = this;
@@ -49,10 +102,18 @@ namespace GC26.Spinv
         {
             if (instance == this) instance = null;
             if (typingSource != null) typingSource.Stop();
+            if (musicSource != null) musicSource.Stop();
+            if (noiseSource != null) noiseSource.Stop();
         }
 
         void Update()
         {
+            // Длинные звуки идут на ползунок SFX
+            float sfx = SpinvAudioSettings.SfxVolume;
+            typingSource.volume = typingVolume * sfx;
+            musicSource.volume = musicVolume * sfx;
+            noiseSource.volume = glitchNoiseVolume * sfx;
+
             // Печать оборвалась (текст допечатан, окно закрыли, корутину остановили) - звук смолкает сам
             if (typingSource.isPlaying && Time.unscaledTime - lastTypeTick > typingTimeout)
                 typingSource.Stop();
@@ -61,13 +122,13 @@ namespace GC26.Spinv
         public static void Achievement()
         {
             if (instance != null && instance.achievement != null)
-                instance.source.PlayOneShot(instance.achievement, instance.achievementVolume);
+                instance.source.PlayOneShot(instance.achievement, instance.achievementVolume * SpinvAudioSettings.SfxVolume);
         }
 
         public static void Click()
         {
             if (instance != null && instance.click != null)
-                instance.source.PlayOneShot(instance.click, instance.volume);
+                instance.source.PlayOneShot(instance.click, instance.volume * SpinvAudioSettings.SfxVolume);
         }
 
         // Вызывается на каждую напечатанную букву: держит звук печати включённым.

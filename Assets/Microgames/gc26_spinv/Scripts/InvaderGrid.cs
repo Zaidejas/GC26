@@ -207,6 +207,7 @@ namespace GC26.Spinv
                 if (pick <= 0f) break;
             }
 
+            SpinvSoundManager.Play(Sfx.EnemyShot);
             Projectile missile = Instantiate(missilePrefab, shooter.transform.position + Vector3.down * 0.55f, Quaternion.identity);
             if (player != null && Random.value < shooter.aimedShotChance)
                 missile.SetDirection(player.transform.position - missile.transform.position);

@@ -224,6 +224,16 @@ namespace GC26.Spinv
             bottomLid.sizeDelta = new Vector2(0f, cover);
             topCurve.sizeDelta = new Vector2(0f, curveHeight * k);
             bottomCurve.sizeDelta = new Vector2(0f, curveHeight * k);
+            // Весь звук игры глохнет вместе с веками: при закрытых глазах - closedVolume, открылись - снова как был
+            AudioListener.volume = Mathf.Lerp(1f, closedVolume, k);
+        }
+
+        [Tooltip("Громкость всего звука, когда глаза закрыты")]
+        [Range(0f, 1f)] public float closedVolume = 0.1f;
+
+        void OnDisable()
+        {
+            AudioListener.volume = 1f; // глобальная громкость - вернуть, как была
         }
     }
 }

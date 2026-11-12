@@ -170,6 +170,22 @@ namespace GC26.Spinv
                 Boss boss = SpawnBoss(testBosses[test]);
                 if (healPrefab != null) healRoutine = StartCoroutine(DropBossHeals(boss));
             }
+            else if (keyboard.f4Key.wasPressedThisFrame && bossWaves.Count > 0 && !IsTutorial)
+            {
+                // F4 - сразу бой с Боссом 1 (первый босс классики)
+                ClearForDebug();
+                Modifiers = WaveModifier.None;
+                Boss boss = SpawnBoss(bossWaves[0].bossPrefab);
+                if (healPrefab != null) healRoutine = StartCoroutine(DropBossHeals(boss));
+            }
+            else if (keyboard.f3Key.wasPressedThisFrame && !IsArcade && !IsTutorial)
+            {
+                // ClearForDebug останавливает все корутины - поэтому до запуска нашей, а не внутри неё
+                Boss current = FindAnyObjectByType<Boss>();
+                bool fighting = CurrentWave >= TotalWaves && current != null;
+                if (!fighting) ClearForDebug();
+                StartCoroutine(DebugKillFinalBoss(!fighting));
+            }
             else if (keyboard.f7Key.wasPressedThisFrame)
             {
                 ClearForDebug();
@@ -182,6 +198,19 @@ namespace GC26.Spinv
                 WaveStarted?.Invoke(CurrentWave, TotalWaves);
                 StartCoroutine(CutsceneThenWave(CurrentWave));
             }
+        }
+
+        // F3 (только редактор): смерть Босса 2 - анимация смерти, тишина вместо фона и окно победы с музыкой.
+        // Если сейчас не бой с ним - сразу запускается последняя волна (без сценки ночи), и босс тут же умирает
+        IEnumerator DebugKillFinalBoss(bool startFinalWave)
+        {
+            if (startFinalWave)
+            {
+                yield return RunWave(TotalWaves - 1, true);
+                yield return null; // босс появился - даём ему кадр на Start
+            }
+            Boss boss = FindAnyObjectByType<Boss>();
+            if (boss != null) boss.DebugKill();
         }
 
         void ClearForDebug()

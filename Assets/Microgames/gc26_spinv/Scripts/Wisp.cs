@@ -69,6 +69,7 @@ namespace GC26.Spinv
         // Вызывается пулей игрока
         public void Hit()
         {
+            SpinvSoundManager.Play(Sfx.InvaderDeath); // сбитый огонёк звучит, как сбитый пришелец
             if (explosionPrefab != null)
             {
                 GameObject boom = Instantiate(explosionPrefab, transform.position, Quaternion.identity);
