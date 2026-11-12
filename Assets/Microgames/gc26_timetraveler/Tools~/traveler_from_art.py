@@ -150,10 +150,90 @@ def frames(src):
     # fall: legs hanging down, a little apart
     out["fall"] = pose(0, (0, -2), leg((26, 50), (27.5, 54), (28.5, 58), flat_near, FB_ANCHOR),
                        leg((20, 50), (19, 54), (18.5, 58), flat_far, FB_ANCHOR))
-    # slide: legs straight down, then the whole figure turned onto its back (90 deg keeps every pixel)
-    straight = compose(leg((20, 50), (21, 54), (23, 57), flat_far, FB_ANCHOR), body, arm,
-                       leg((26, 50), (27, 54), (28, 57), flat_near, FB_ANCHOR))
-    out["slide"] = {(y, w - 1 - x): c for (x, y), c in straight.items()}
+    out["slide"] = slide(body, arm, flat_near, flat_far)
+    return out
+
+
+SLIDE_LEAN = 72          # degrees the upper body leans back
+SLIDE_HEAD_TURN = 30     # the head leans back less, face looking ahead
+SLIDE_NECK = (26.0, 28.0)
+SLIDE_HIP = (23.0, 50.0)  # pivot of the lean in her drawing (seat of the shorts)
+
+
+def slide(body, arm, flat_near, flat_far):
+    """Feet-first slide: upper body leaning far back (RotSprite-style turn keeps her pixels clean),
+    near leg straight along the ground, far knee up, back hand on the ground behind."""
+    hx, hy = SLIDE_HIP
+    # the head turns less than the body, so her face still looks ahead
+    is_head = lambda x, y: y <= 27 or (y <= 29 and x <= 19)
+    head = {k: c for k, c in body.items() if is_head(*k)}
+    torso = {k: c for k, c in body.items() if not is_head(*k)}
+    torso = rotsprite(compose(torso, arm), SLIDE_LEAN, SLIDE_HIP)
+    a = math.radians(SLIDE_LEAN)
+    nx, ny = SLIDE_NECK[0] - hx, SLIDE_NECK[1] - hy
+    neck = (hx + nx * math.cos(a) + ny * math.sin(a), hy - nx * math.sin(a) + ny * math.cos(a))
+    head = shift(rotsprite(head, SLIDE_HEAD_TURN, SLIDE_NECK),
+                 round(neck[0] - SLIDE_NECK[0]), round(neck[1] - SLIDE_NECK[1]))
+    upper = compose(torso, head)
+    out = compose(
+        leg((hx + 2, hy + 1), (hx + 7, hy - 1), (hx + 11, hy + 2.5), flat_far, FB_ANCHOR),   # far knee up
+        upper,
+        leg((hx + 3, hy + 3), (hx + 8, hy + 3.5), (hx + 13, hy + 3.5), flat_near, FB_ANCHOR),  # near leg out
+    )
+    return out
+
+
+def scale2x(grid, w, h):
+    """EPX / Scale2x: doubles pixel art without blurring and keeps diagonals smooth."""
+    out = [[None] * (w * 2) for _ in range(h * 2)]
+    g = lambda x, y: grid[y][x] if 0 <= x < w and 0 <= y < h else None
+    for y in range(h):
+        for x in range(w):
+            p, a, b, c, d = g(x, y), g(x, y - 1), g(x + 1, y), g(x - 1, y), g(x, y + 1)
+            e0 = e1 = e2 = e3 = p
+            if c == a and c != d and a != b: e0 = a
+            if a == b and a != c and b != d: e1 = b
+            if d == c and d != b and c != a: e2 = c
+            if b == d and b != a and d != c: e3 = d
+            out[2 * y][2 * x], out[2 * y][2 * x + 1], out[2 * y + 1][2 * x], out[2 * y + 1][2 * x + 1] = e0, e1, e2, e3
+    return out
+
+
+def rotsprite(px, angle, pivot, steps=3):
+    """Turn pixel art by any angle: Scale2x x8, rotate nearest-neighbour, then take each 8x8 block's main colour."""
+    minx = min(x for x, _ in px) - 2; miny = min(y for _, y in px) - 2
+    maxx = max(x for x, _ in px) + 2; maxy = max(y for _, y in px) + 2
+    w, h = maxx - minx + 1, maxy - miny + 1
+    grid = [[px.get((x + minx, y + miny)) for x in range(w)] for y in range(h)]
+    for _ in range(steps):
+        grid = scale2x(grid, w, h)
+        w, h = w * 2, h * 2
+    s = 2 ** steps
+    a = math.radians(angle)
+    ca, sa = math.cos(a), math.sin(a)
+    px0, py0 = (pivot[0] - minx + 0.5) * s, (pivot[1] - miny + 0.5) * s
+    out = {}
+    # every target pixel looks at the 8x8 block of rotated big pixels that falls inside it
+    R = int(math.hypot(w, h) / s) + 2
+    for ty in range(int(pivot[1]) - R, int(pivot[1]) + R):
+        for tx in range(int(pivot[0]) - R, int(pivot[0]) + R):
+            votes = {}
+            empty = 0
+            for sy in range(s):
+                for sx in range(s):
+                    X = (tx - pivot[0] + (sx + 0.5) / s) * s
+                    Y = (ty - pivot[1] + (sy + 0.5) / s) * s
+                    # inverse rotation (counter-clockwise on screen = top goes back for a right-facing figure)
+                    bx = ca * X - sa * Y + px0
+                    by = sa * X + ca * Y + py0
+                    ix, iy = int(bx), int(by)
+                    c = grid[iy][ix] if 0 <= ix < w and 0 <= iy < h else None
+                    if c is None:
+                        empty += 1
+                    else:
+                        votes[c] = votes.get(c, 0) + 1
+            if votes and sum(votes.values()) > empty:
+                out[(tx, ty)] = max(votes, key=votes.get)
     return out
 
 
@@ -195,7 +275,7 @@ def main():
     fs = frames(src)
     imgs = {}
     for name, px in fs.items():
-        img = place(px, 64, 32, True) if name == "slide" else place(px, 48, 64, False)
+        img = place(px, 72, 44, True) if name == "slide" else place(px, 48, 64, False)
         imgs[name] = img
         img.save(os.path.join(out_dir, f"gc26_timetraveler_traveler_{name}.png"))
         aura(img).save(os.path.join(out_dir, f"gc26_timetraveler_traveler_{name}_aura.png"))
