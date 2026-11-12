@@ -242,7 +242,7 @@ The look is a dark, magical mushroom forest at night: glowing mushrooms on a dar
 - **Splash screen:** while the game loads: the same glowing mushroom and the gold "Lines" title over the plain forest background, for about 2 seconds, with no Unity logo. Before that, iOS shows a plain screen in the game's dark colour.
 - One theme (the dark magic forest) in the MVP.
 - Preview dots: "ghost" versions of the next mushrooms in their target cells: about half the size of a real one, see-through and a little paler, with no glow, so they read as "a mushroom will grow here", not as real pieces (teacher's feedback; glowing coloured dots, a breathing animation and a magic circle were tried and dropped).
-- Animations: the selected ball bounces, balls grow in when they spawn, cleared balls shrink and burst into particles, and a blocked move shakes the ball.
+- Animations: a moving ball leaves a trail of magic dust (3 tiny sparkles in its colour on each cell it leaves, drifting down and fading in about half a second; teacher's feedback, a glowing comet tail was tried and dropped); the selected ball bounces, balls grow in when they spawn, cleared balls shrink and burst into particles, and a blocked move shakes the ball.
 - No audio in the MVP (see Later features).
 
 ## Technical summary

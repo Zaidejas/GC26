@@ -156,6 +156,15 @@ body {
 }
 @keyframes fly { to { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; } }
 
+/* Move trail (teacher's feedback): magic dust, tiny sparkles in the mushroom's colour that fall off behind
+   it on each cell it leaves, drift down a little and fade. */
+.dust {
+  position: absolute; width: var(--s); height: var(--s); margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2); border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0 22%, var(--c) 45%, transparent 72%);
+  animation: dust 0.6s ease-out forwards; pointer-events: none;
+}
+@keyframes dust { from { opacity: 1; transform: translate(0, 0) scale(1); } to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.3); } }
+
 .toast {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.9);
   background: rgba(40, 34, 28, 0.9); color: #ffffff; padding: 2.2cqw 5cqw; border-radius: 999px;
@@ -360,6 +369,7 @@ body {
   .selected { animation: none; transform: translateY(-8%); }
   .grow, .pop, .slot.shake, .p, .gain.show { animation-duration: 0.01s; }
   .deco .ball { animation: none; }
+  .dust { display: none; }
   .phone { transition: none; }
 }
 </style>
@@ -750,6 +760,19 @@ body {
     S.preview.colors.forEach((c) => next.appendChild(ballEl(c)));
     $("#undo").disabled = !S.undo || S.over;
   }
+  // Magic dust behind a moving mushroom: 3 small sparkles in its colour on each cell it leaves.
+  function trail(i, color) {
+    const cx = (col(i) + 0.5) * 100 / N, cy = (row(i) + 0.5) * 100 / N;
+    for (let k = 0; k < 3; k++) {
+      const d = document.createElement("div"); d.className = "dust mu-" + color;
+      d.style.left = (cx + (Math.random() - 0.5) * 6) + "%"; d.style.top = (cy + (Math.random() - 0.5) * 6) + "%";
+      d.style.setProperty("--s", (1.2 + Math.random() * 0.9) + "cqw");
+      d.style.setProperty("--dx", ((Math.random() - 0.5) * 3) + "cqw");
+      d.style.setProperty("--dy", (1 + Math.random() * 2.5) + "cqw");
+      d.style.animationDelay = (k * 40) + "ms";
+      fx.appendChild(d); setTimeout(() => d.remove(), 750);
+    }
+  }
   function burst(i, color) {
     const cx = (col(i) + 0.5) * 100 / N, cy = (row(i) + 0.5) * 100 / N;
     for (let k = 0; k < 7; k++) {
@@ -793,7 +816,8 @@ body {
     const s = slotOf(selected);
     s.firstChild.classList.remove("selected");
     s.classList.add("moving");
-    for (let k = 1; k < path.length; k++) { place(s, path[k]); await wait(STEP_MS); }
+    const moving = S.board[selected];
+    for (let k = 1; k < path.length; k++) { place(s, path[k]); trail(path[k - 1], moving); await wait(STEP_MS); }
 
     S.board[target] = S.board[selected]; S.board[selected] = -1; selected = -1;
     render();
