@@ -163,6 +163,13 @@ namespace GC26.Tanki.Game
                         shake = Mathf.Max(shake, 0.3f);
                         Vibrate();
                         break;
+                    case GameEventKind.BaseHit:
+                        Sound.BigBlast();
+                        world.Burst(item.X, item.Y, WorldView.Hex("6FF2E0"), 20, 3.4f);
+                        shake = Mathf.Max(shake, 0.35f);
+                        Vibrate();
+                        ShowToast("Реактор повреждён: осталось " + Sim.BaseHp);
+                        break;
                     case GameEventKind.BaseDestroyed:
                         Sound.BigBlast();
                         world.Burst(item.X, item.Y, WorldView.Hex("6FF2E0"), 40, 5f);

@@ -57,6 +57,7 @@ static class Program
         Test("breaking the enemy reactor wins the assault", CoreWinsAssault);
         Test("stars count the win, no tank lost and the par time", StarsAreEarned);
         Test("bot assaults with every tank keep every invariant", AssaultBotRuns);
+        Test("in survival the reactor takes three hits and the arena has side gates", SurvivalReactorLasts);
 
         Console.WriteLine(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         return failures == 0 ? 0 : 1;
@@ -1124,6 +1125,28 @@ static class Program
             }
         }
         Console.WriteLine("      bot assaults won: " + won + " of " + 4 * Levels.Assault.Length);
+    }
+    static void SurvivalReactorLasts()
+    {
+        var sim = new GameSim(4);
+        sim.StartSurvival(new PlayerStats());
+        Check(sim.BaseHp == Tuning.SurvivalBaseHp, "three hits in survival");
+        int gates = 0;
+        foreach (string r in Levels.Survival.Rows) foreach (char c in r) if (c == 'E') gates++;
+        Check(gates >= 7, "gates on the sides too, got " + gates);
+        int x = sim.BaseX, y = sim.BaseY;
+        for (int hit = 1; hit <= Tuning.SurvivalBaseHp; hit++)
+        {
+            sim.Bullets.Clear();
+            sim.Bullets.Add(new Bullet { OwnerId = -3, X = x + 0.5f, Y = y + 0.02f, Dir = Dir.Down, Speed = 1f });
+            sim.Tick(Dt, default);
+            if (hit < Tuning.SurvivalBaseHp)
+                Check(sim.Phase == GamePhase.Playing && sim.Tiles[x, y] == Tile.Base && sim.BaseHp == Tuning.SurvivalBaseHp - hit, "still standing after hit " + hit);
+        }
+        Check(sim.Phase == GamePhase.GameOver && sim.BaseHp == 0, "the third hit ends the run");
+
+        var campaign = Sim("");
+        Check(campaign.BaseHp == 1, "one hit in the campaign");
     }
 }
 }

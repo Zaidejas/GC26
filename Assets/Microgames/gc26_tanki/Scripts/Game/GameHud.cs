@@ -79,7 +79,7 @@ namespace GC26.Tanki.Game
                 case RunUpgrade.Gun: return "Быстрее снаряды, потом больше урона";
                 case RunUpgrade.FireRate: return "Перезарядка короче, больше снарядов";
                 case RunUpgrade.Speed: return "Танк ездит быстрее";
-                case RunUpgrade.Repair: return "Полное здоровье и +1 жизнь";
+                case RunUpgrade.Repair: return "Танк и реактор как новые, +1 жизнь";
                 case RunUpgrade.SuperCharge: return "Удару нужно на 1 убийство меньше";
                 default: return "Реактор под бетоном 30 секунд";
             }
@@ -227,6 +227,11 @@ namespace GC26.Tanki.Game
             {
                 caption = "ВРАЖЕСКИЙ РЕАКТОР " + sim.CoreHp + "/" + sim.CoreMax;
                 share = Mathf.Clamp01(sim.CoreHp / (float)sim.CoreMax);
+            }
+            else if (sim.Mode == GameMode.Survival)
+            {
+                caption = "РЕАКТОР " + sim.BaseHp + "/" + sim.BaseMax;
+                share = Mathf.Clamp01(sim.BaseHp / (float)sim.BaseMax);
             }
             else return;
             Rect safe = SafeRect();

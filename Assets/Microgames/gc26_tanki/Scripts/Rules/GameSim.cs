@@ -76,6 +76,9 @@ namespace GC26.Tanki.Rules
             : Mode == GameMode.Assault ? "Штурм " + (LevelIndex + 1) + ". " + Levels.Assault[LevelIndex].Name
             : (LevelIndex + 1) + ". " + Levels.All[LevelIndex].Name;
         public int MapCount => Mode == GameMode.Assault ? Levels.Assault.Length : Levels.All.Length;
+        /// <summary>Hits our reactor can still take: 3 in survival, 1 elsewhere.</summary>
+        public int BaseHp { get; private set; } = 1;
+        public int BaseMax => Mode == GameMode.Survival ? Tuning.SurvivalBaseHp : 1;
         public int BaseX { get; private set; }
         public int BaseY { get; private set; }
         public float FreezeTimer { get; private set; }
@@ -172,6 +175,7 @@ namespace GC26.Tanki.Rules
             Smartness = SurvivalSmartness(Wave);
             LoadMap(Levels.Survival.Rows, SurvivalWave(Wave));
             SuperNeed = NeedFor(Tuning.SurvivalSuperNeed);
+            BaseHp = BaseMax;
         }
 
         int NeedFor(int need) => Math.Max(2, need + TankInfo.ChargeNeed);
@@ -234,6 +238,7 @@ namespace GC26.Tanki.Rules
                 case RunUpgrade.Repair:
                     Lives++;
                     if (Player.Alive) Player.Hp = Player.MaxHp;
+                    BaseHp = BaseMax;
                     break;
                 case RunUpgrade.SuperCharge:
                     superNeedCut = Math.Min(superNeedCut + 1, Tuning.SurvivalSuperNeed - 3);
@@ -309,6 +314,7 @@ namespace GC26.Tanki.Rules
             Turrets.Clear();
             Bonus = null;
             CloakTimer = 0f;
+            BaseHp = BaseMax;
             Time = 0f;
             LivesLost = 0;
             StarsWon = 0;
@@ -783,9 +789,11 @@ namespace GC26.Tanki.Rules
             // The boss waits for the field to clear a little, and always comes from the middle gate.
             if (kind == EnemyKind.Boss && Enemies.Count > 1) return;
 
+            // In survival the gate is picked at random, so waiting by one gate does not work.
+            int start = Mode == GameMode.Survival && kind != EnemyKind.Boss ? rng.Next(enemySpawns.Count) : spawnerIndex;
             for (int i = 0; i < enemySpawns.Count; i++)
             {
-                int index = kind == EnemyKind.Boss ? (enemySpawns.Count / 2 + i) % enemySpawns.Count : (spawnerIndex + i) % enemySpawns.Count;
+                int index = kind == EnemyKind.Boss ? (enemySpawns.Count / 2 + i) % enemySpawns.Count : (start + i) % enemySpawns.Count;
                 var spawn = enemySpawns[index];
                 float x = spawn.x + 0.5f;
                 float y = spawn.y + 0.5f;
@@ -793,7 +801,7 @@ namespace GC26.Tanki.Rules
 
                 SpawnEnemy(kind, x, y);
                 waveCursor++;
-                spawnerIndex = (spawnerIndex + i + 1) % enemySpawns.Count;
+                spawnerIndex = (start + i + 1) % enemySpawns.Count;
                 spawnTimer = Settings.SpawnDelay * (Mode == GameMode.Assault ? Tuning.AssaultSpawnDelay : 1f);
                 return;
             }
@@ -1142,6 +1150,13 @@ namespace GC26.Tanki.Rules
 
         void DestroyBase(int x, int y)
         {
+            if (BaseHp > 1)
+            {
+                BaseHp--;
+                Events.Add(new GameEvent(GameEventKind.BaseHit, x + 0.5f, y + 0.5f));
+                return;
+            }
+            BaseHp = 0;
             Tiles[x, y] = Tile.Empty;
             Phase = GamePhase.GameOver;
             Events.Add(new GameEvent(GameEventKind.TileChanged, x, y));

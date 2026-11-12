@@ -103,6 +103,7 @@ namespace GC26.Tanki.Rules
         SuperStrike,
         SuperReady,
         BossSpawned,
+        BaseHit,
         Volley,
         Dome,
         Dash,
@@ -316,6 +317,8 @@ namespace GC26.Tanki.Rules
         public const float ClearDelay = 1.2f;
 
         public const int CrateHp = 2;
+        /// <summary>In survival the reactor takes this many hits; elsewhere one hit ends the game.</summary>
+        public const int SurvivalBaseHp = 3;
         public const int BonusScore = 500;
 
         // New enemies: the miner leaves mines, the fixer mends the tanks around it, the rammer blows itself up.

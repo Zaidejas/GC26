@@ -407,19 +407,19 @@ namespace GC26.Tanki.Rules
                 "....#B#...."),
         };
 
-        /// <summary>The survival arena; its waves are made as the game goes.</summary>
+        /// <summary>The survival arena; its waves are made as the game goes. Gates on the sides too, so no corner is safe.</summary>
         public static readonly LevelDef Survival = new LevelDef("Арена", "",
             "E....E....E",
             "...........",
             ".@.#...#.@.",
             "...#.@.#...",
             ".##.....##.",
-            ".....%.....",
+            "E....%....E",
             ".@.%%%%%.@.",
             "...%.@.%...",
             ".#.%%%%%.#.",
             ".#...%...#.",
-            "...........",
+            "E.........E",
             ".@@.#.#.@@.",
             ".....#.....",
             ".#.......#.",
