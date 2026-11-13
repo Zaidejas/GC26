@@ -802,6 +802,7 @@ body {
       layer.appendChild(s);
     }
     $("#score").textContent = S.score;
+    alignScore();
     const next = $("#next"); next.textContent = "";
     S.preview.colors.forEach((c) => next.appendChild(ballEl(c)));
     $("#undo").disabled = !S.undo || S.over;
@@ -1147,6 +1148,23 @@ body {
     screen.addEventListener("pointercancel", end);
   }
 
+  // The score number stands on the same line as the 3 next mushrooms: the middle of its digits (their ink,
+  // not the text box, which has empty room above the digits) lines up with the middle of the mushrooms.
+  function alignScore() {
+    const num = $("#score"), next = $("#next");
+    if (!num || !next || !num.offsetParent) return;
+    num.style.transform = "";
+    const cs = getComputedStyle(num), size = parseFloat(cs.fontSize);
+    const g = (alignScore.ctx ||= document.createElement("canvas").getContext("2d"));
+    g.font = `${cs.fontWeight} ${size}px ${cs.fontFamily}`;
+    const m = g.measureText(num.textContent || "0");
+    const baseline = (size + m.fontBoundingBoxAscent - m.fontBoundingBoxDescent) / 2; // from the box top (line-height 1)
+    const box = num.getBoundingClientRect(), balls = next.getBoundingClientRect();
+    const inkMiddle = box.top + baseline + (m.actualBoundingBoxDescent - m.actualBoundingBoxAscent) / 2;
+    const shift = (balls.top + balls.bottom) / 2 - inkMiddle;
+    num.style.transform = `translateY(${shift / size}em)`; // in em, so it scales with the screen
+  }
+
   function renderHowto() {
     const card = HOWTO[tutStep], mini = $("#tut-mini");
     mini.textContent = "";
@@ -1394,6 +1412,9 @@ body {
     window.addEventListener("resize", () => { if (currentScreen() === "howto") renderHowto(); });
 
     phone.classList.add("forest"); // the one look: a dark, magical mushroom forest
+    // The score number follows the mushrooms when the screen size changes or the fonts arrive.
+    new ResizeObserver(() => alignScore()).observe($(".hud"));
+    document.fonts.ready.then(alignScore);
     // The first tap wakes the audio up (browsers allow sound only after one). Every button in the phone
     // ticks softly, except the board's cells, which have their own sounds.
     document.addEventListener("pointerdown", Sound.wake, true);
