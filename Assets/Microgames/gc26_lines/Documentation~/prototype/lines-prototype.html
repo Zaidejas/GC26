@@ -298,6 +298,7 @@ body {
 /* Centered; the title and text get the height of the tallest card (set in renderHowto),
    so the picture and the title sit on the same line on every card. */
 .tut { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 4.5cqw; text-align: center; }
+#screen-howto { touch-action: pan-y; user-select: none; -webkit-user-select: none; } /* horizontal swipes change the card */
 .tut h3 { font-family: var(--font-display); font-weight: 600; font-size: 7cqw; margin: 2cqw 0 0; }
 .tut p { margin: 0 auto; font-size: 4.5cqw; line-height: 1.5; max-width: 76cqw; }
 .mini { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.8cqw; background: var(--board); padding: 1.2cqw; border-radius: 2.6cqw; width: 78cqw; align-self: center; }
@@ -1090,6 +1091,62 @@ body {
     { mini: ".22222", get title() { return t("howto2Title"); }, get text() { return t("howto2Text"); } },
     { mini: "a.4.bc", get title() { return t("howto3Title"); }, get text() { return t("howto3Text"); } },
   ];
+  // Changing cards: the card slides out to one side and the next one slides in from the other (dir +1: next).
+  // A swipe on the screen does the same (left: next, right: previous); the card follows the finger, springs back
+  // when the swipe is too short, and stretches only a little at the first and last card. Swiping never closes.
+  const SLIDE_OUT_MS = 150, SLIDE_IN_MS = 220;
+  let howtoSliding = false;
+  function goHowto(dir) {
+    const next = tutStep + dir;
+    if (howtoSliding || next < 0 || next >= HOWTO.length) return;
+    const tut = $(".tut");
+    if (reduced) { tutStep = next; renderHowto(); tut.style.transform = tut.style.opacity = ""; return; }
+    howtoSliding = true;
+    tut.style.transition = `transform ${SLIDE_OUT_MS}ms ease-in, opacity ${SLIDE_OUT_MS}ms ease-in`;
+    tut.style.transform = `translateX(${-dir * 45}%)`; tut.style.opacity = "0";
+    setTimeout(() => {
+      tutStep = next; renderHowto();
+      tut.style.transition = "none"; tut.style.transform = `translateX(${dir * 45}%)`;
+      void tut.offsetWidth;
+      tut.style.transition = `transform ${SLIDE_IN_MS}ms ease-out, opacity ${SLIDE_IN_MS}ms ease-out`;
+      tut.style.transform = ""; tut.style.opacity = "";
+      setTimeout(() => { howtoSliding = false; }, SLIDE_IN_MS);
+    }, SLIDE_OUT_MS);
+  }
+  function swipeHowto() {
+    const screen = $("#screen-howto"), tut = $(".tut");
+    let start = null;
+    screen.addEventListener("pointerdown", (e) => {
+      if (howtoSliding || e.target.closest("button")) return;
+      start = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId, dragging: false };
+    });
+    screen.addEventListener("pointermove", (e) => {
+      if (!start || e.pointerId !== start.id) return;
+      const dx = e.clientX - start.x, dy = e.clientY - start.y;
+      if (!start.dragging) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        if (Math.abs(dy) > Math.abs(dx)) { start = null; return; } // a vertical move is not a swipe
+        start.dragging = true; try { screen.setPointerCapture(e.pointerId); } catch (err) {}
+        tut.style.transition = "none";
+      }
+      const edge = (dx > 0 && tutStep === 0) || (dx < 0 && tutStep === HOWTO.length - 1);
+      const shift = edge ? dx * 0.25 : dx; // nothing beyond the first and last card: it only stretches a little
+      tut.style.transform = `translateX(${shift}px)`;
+      if (!edge) tut.style.opacity = String(1 - Math.min(0.6, Math.abs(dx) / screen.offsetWidth));
+    });
+    const end = (e) => {
+      if (!start || e.pointerId !== start.id) return;
+      const was = start; start = null;
+      if (!was.dragging) return;
+      const dx = e.clientX - was.x, speed = Math.abs(dx) / Math.max(1, performance.now() - was.t);
+      const dir = dx < 0 ? 1 : -1, next = tutStep + dir;
+      if ((Math.abs(dx) > screen.offsetWidth * 0.18 || speed > 0.5) && next >= 0 && next < HOWTO.length) goHowto(dir);
+      else { tut.style.transition = "transform 0.2s ease-out, opacity 0.2s ease-out"; tut.style.transform = ""; tut.style.opacity = ""; }
+    };
+    screen.addEventListener("pointerup", end);
+    screen.addEventListener("pointercancel", end);
+  }
+
   function renderHowto() {
     const card = HOWTO[tutStep], mini = $("#tut-mini");
     mini.textContent = "";
@@ -1322,10 +1379,11 @@ body {
     $("#howto-back").addEventListener("click", () => showScreen(howtoReturn));
     $("#scores-back").addEventListener("click", () => showScreen("menu"));
     $("#scores-again").addEventListener("click", startNew);
-    $("#tut-prev").addEventListener("click", () => { if (tutStep > 0) { tutStep--; renderHowto(); } });
+    $("#tut-prev").addEventListener("click", () => goHowto(-1));
     $("#tut-next").addEventListener("click", () => {
-      if (tutStep < HOWTO.length - 1) { tutStep++; renderHowto(); } else showScreen(howtoReturn);
+      if (tutStep < HOWTO.length - 1) goHowto(1); else showScreen(howtoReturn);
     });
+    swipeHowto();
 
     const phone = $("#phone");
     document.querySelectorAll("#ratio button").forEach((btn) => btn.addEventListener("click", () => {

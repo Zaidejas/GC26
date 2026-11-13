@@ -12,7 +12,9 @@ namespace GC26.Lines.UI
     /// How to play (GDD → Screens; prototype's tutorial): a back arrow, then 3 cards, each with a small
     /// board picture, a title and a short text; dots show which card is open; Back / Next, and "Got it"
     /// on the last card. Every card reserves the height of the tallest title and text, so the picture
-    /// and the title stay in the same place when switching cards.
+    /// and the title stay in the same place when switching cards. A swipe left or right also changes the card:
+    /// the card follows the finger, slides out and the next one slides in (Back / Next slide the same way);
+    /// a short swipe springs back; the first and last card only stretch a little; a swipe never closes.
     /// </summary>
     public sealed class HowToPlayView : MonoBehaviour
     {
@@ -42,8 +44,17 @@ namespace GC26.Lines.UI
         static readonly Color MiniCell = Palette.MiniCell;
         const int MiniCells = 6;
 
+        // Prototype's slide: out in 0.15 s, the next card in from the other side in 0.22 s, 45 % of the width.
+        public const float SlideOutSeconds = 0.15f, SlideInSeconds = 0.22f, SlideShare = 0.45f, SpringSeconds = 0.2f;
+        // A swipe changes the card if it moved 18 % of the width, or was quick (1.2 widths per second).
+        public const float SwipeShare = 0.18f, FlickWidthsPerSecond = 1.2f, EdgeStretch = 0.25f;
+
         Canvas canvas;
         RectTransform root, mini;
+        RectTransform card;        // the mini board, title and text: the part that slides
+        CanvasGroup cardFade;
+        SwipeArea swipe;
+        bool sliding;
         Image miniBackground;
         readonly List<Image> cellImages = new List<Image>();
         readonly List<Image> cellInner = new List<Image>();
@@ -65,6 +76,11 @@ namespace GC26.Lines.UI
         public PillButton PreviousButton => previous;
         public PillButton NextButton => next;
         public RectTransform MiniBoard => mini;
+        /// <summary>How far the card is shifted sideways now (pixels), and how visible it is (tests).</summary>
+        public float CardOffset => card.anchoredPosition.x;
+        public float CardAlpha => cardFade.alpha;
+        /// <summary>A card change is sliding (buttons and swipes wait for it).</summary>
+        public bool Sliding => sliding;
         public RectTransform TitleRect => title.rectTransform;
 
         public static HowToPlayView Create(Camera camera)
@@ -91,7 +107,10 @@ namespace GC26.Lines.UI
             back.MakePlain(); // the same plain house as on the game screen (teacher's feedback)
             back.Clicked += () => Closed?.Invoke();
 
-            mini = NewRect("Mini board", root);
+            card = NewRect("Card", root);
+            cardFade = card.gameObject.AddComponent<CanvasGroup>();
+            cardFade.blocksRaycasts = false;
+            mini = NewRect("Mini board", card);
             miniBackground = mini.gameObject.AddComponent<Image>();
             miniBackground.color = Palette.Board;
             for (int i = 0; i < MiniCells; i++)
@@ -109,6 +128,8 @@ namespace GC26.Lines.UI
 
             title = NewText("Title", Palette.Text, true);
             text = NewText("Text", Palette.Text, false);
+            title.rectTransform.SetParent(card, false);
+            text.rectTransform.SetParent(card, false);
             for (int i = 0; i < Cards.Length; i++)
             {
                 var dot = NewRect("Page " + i, root).gameObject.AddComponent<Image>();
@@ -118,14 +139,18 @@ namespace GC26.Lines.UI
 
             previous = PillButton.Create(root, Texts.Get("back"));
             next = PillButton.Create(root, Texts.Get("nextButton"), primary: true);
-            previous.Clicked += () => GoTo(Step - 1);
+            previous.Clicked += () => Slide(-1);
             next.Clicked += () =>
             {
-                if (Step < Cards.Length - 1) GoTo(Step + 1);
-                else Closed?.Invoke();
+                if (Step < Cards.Length - 1) Slide(1);
+                else if (!sliding) Closed?.Invoke();
             };
+            swipe = SwipeArea.Create(root);
+            swipe.Moved += Drag;
+            swipe.Released += Release;
             foreach (var g in GetComponentsInChildren<Graphic>()) g.raycastTarget = false;
             foreach (var b in new[] { back, previous, next }) b.GetComponent<Image>().raycastTarget = true;
+            swipe.Target.raycastTarget = true;
         }
 
         public void ApplyLayout(BoardLayout screen)
@@ -139,11 +164,16 @@ namespace GC26.Lines.UI
         {
             pieces = pieceSet ?? PieceSet.Balls();
             Step = 0;
+            ResetCard();
             gameObject.SetActive(true);
             Draw();
         }
 
-        public void Hide() => gameObject.SetActive(false);
+        public void Hide()
+        {
+            ResetCard();
+            gameObject.SetActive(false);
+        }
 
         /// <summary>Puts the buttons and the open card in the current language.</summary>
         public void RefreshTexts()
@@ -153,10 +183,81 @@ namespace GC26.Lines.UI
             if (IsShowing && layout.Unit > 0f) Draw();
         }
 
+        /// <summary>Opens card <paramref name="step"/> at once (no slide).</summary>
         public void GoTo(int step)
         {
+            ResetCard();
             Step = Mathf.Clamp(step, 0, Cards.Length - 1);
             Draw();
+        }
+
+        // ---- Sliding and swiping ----
+
+        float Width => layout.ScreenSize.x > 0f ? layout.ScreenSize.x : 1000f;
+
+        void SetCard(float offset, float alpha)
+        {
+            card.anchoredPosition = new Vector2(offset, 0f);
+            cardFade.alpha = alpha;
+        }
+
+        void ResetCard()
+        {
+            Tween.Kill(card);
+            sliding = false;
+            SetCard(0f, 1f);
+        }
+
+        /// <summary>
+        /// Changes to the next (<paramref name="direction"/> 1) or previous (-1) card: the card slides out to the
+        /// other side and the new one slides in. Nothing happens past the first or last card, or during a slide.
+        /// </summary>
+        public void Slide(int direction)
+        {
+            int target = Step + direction;
+            if (sliding || target < 0 || target >= Cards.Length) return;
+            sliding = true;
+            Tween.Kill(card);
+            float fromX = CardOffset, fromAlpha = CardAlpha, outX = -direction * SlideShare * Width;
+            Tween.To(card, SlideOutSeconds, p => SetCard(Mathf.Lerp(fromX, outX, p), Mathf.Lerp(fromAlpha, 0f, p)), Ease.InQuad)
+                .OnComplete(() =>
+                {
+                    Step = target;
+                    Draw();
+                    float inX = direction * SlideShare * Width;
+                    SetCard(inX, 0f);
+                    Tween.To(card, SlideInSeconds, p => SetCard(Mathf.Lerp(inX, 0f, p), p), Ease.OutQuad)
+                        .OnComplete(() => { sliding = false; SetCard(0f, 1f); });
+                });
+        }
+
+        // The card follows the finger; at the first and last card it only stretches a little.
+        void Drag(float dx)
+        {
+            if (sliding) return;
+            Tween.Kill(card);
+            bool edge = (dx > 0f && Step == 0) || (dx < 0f && Step == Cards.Length - 1);
+            SetCard(edge ? dx * EdgeStretch : dx, edge ? 1f : 1f - Mathf.Min(0.6f, Mathf.Abs(dx) / Width));
+        }
+
+        void Release(float dx, float seconds)
+        {
+            if (sliding) return;
+            int direction = dx < 0f ? 1 : -1;
+            int target = Step + direction;
+            bool far = Mathf.Abs(dx) > SwipeShare * Width;
+            bool quick = Mathf.Abs(dx) / Mathf.Max(0.01f, seconds) > FlickWidthsPerSecond * Width;
+            if ((far || quick) && target >= 0 && target < Cards.Length) { Slide(direction); return; }
+            // Too short, or past the first or last card: spring back.
+            float fromX = CardOffset, fromAlpha = CardAlpha;
+            Tween.To(card, SpringSeconds, p => SetCard(Mathf.Lerp(fromX, 0f, p), Mathf.Lerp(fromAlpha, 1f, p)), Ease.OutQuad);
+        }
+
+        /// <summary>A swipe as if by a finger: it moves <paramref name="dx"/> pixels in <paramref name="seconds"/> (tests).</summary>
+        public void Swipe(float dx, float seconds)
+        {
+            Drag(dx);
+            Release(dx, seconds);
         }
 
         void Draw()
