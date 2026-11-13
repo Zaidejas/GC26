@@ -19,11 +19,11 @@ namespace GC26.Lines.UI
         public const string CyrillicDisplayFile = "Kurale-Regular";
 
         static TMP_FontAsset body, bold, display, cyrillicDisplay;
-        static Material displayMaterial;
 
-        // Mystery Quest comes in one thin weight; Unity draws it thinner than a browser, so its letters are
-        // thickened a little (the prototype's look) through the text material.
-        const float DisplayThickening = 0.22f;
+        // Each letter is drawn once at this size into a 2048×2048 letter image, then scaled to any text size.
+        // 180 keeps Mystery Quest's fine brush edges and curls crisp even in the big title (at 90 they were
+        // rounded off); the padding around each letter is a tenth of it.
+        public const int SamplingSize = 180, AtlasSize = 2048;
 
         /// <summary>Nunito; text with the Bold style is drawn with Nunito ExtraBold.</summary>
         public static TMP_FontAsset Body { get { Load(); return body; } }
@@ -59,7 +59,7 @@ namespace GC26.Lines.UI
         {
             var font = Resources.Load<Font>("gc26_lines/Fonts/" + file);
             if (font == null) return null;
-            var asset = TMP_FontAsset.CreateFontAsset(font, 90, 9, GlyphRenderMode.SDFAA, 1024, 1024, AtlasPopulationMode.Dynamic, true);
+            var asset = TMP_FontAsset.CreateFontAsset(font, SamplingSize, SamplingSize / 10, GlyphRenderMode.SDFAA, AtlasSize, AtlasSize, AtlasPopulationMode.Dynamic, true);
             if (asset != null) asset.name = file;
             return asset;
         }
@@ -70,18 +70,15 @@ namespace GC26.Lines.UI
             if (Body != null) text.font = Body;
         }
 
-        /// <summary>Title, numbers, labels, buttons and headings: Mystery Quest (one weight, so no fake bold on top).</summary>
+        /// <summary>
+        /// Title, numbers, labels, buttons and headings: Mystery Quest, drawn as designed (thin, like the
+        /// prototype; thickening it filled in its curls and softened its brush edges). One weight, so no fake bold.
+        /// </summary>
         public static void UseDisplay(TMP_Text text)
         {
             if (Display == null) return;
             text.font = Display;
             text.fontStyle &= ~FontStyles.Bold;
-            if (displayMaterial == null || displayMaterial.mainTexture != Display.material.mainTexture)
-            {
-                displayMaterial = new Material(Display.material) { name = "Mystery Quest (bolder)" };
-                displayMaterial.SetFloat(ShaderUtilities.ID_FaceDilate, DisplayThickening);
-            }
-            text.fontSharedMaterial = displayMaterial;
         }
 
     }
