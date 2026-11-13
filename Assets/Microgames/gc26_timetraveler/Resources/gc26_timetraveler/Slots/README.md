@@ -33,6 +33,7 @@ Put a PNG here with the **exact name from the table** and the game shows it inst
 | `runner_layer_far.png` | дальний слой фона (горы), едет медленно | любая ширина × до 480 | плитка вбок |
 | `runner_layer_mid.png` | средний слой (холмы, деревья) | любая ширина × до 300 | плитка вбок |
 | `runner_layer_near.png` | ближний слой (кусты) | любая ширина × до 120 | плитка вбок |
+| `<любой из пяти выше>_era2.png`, `_era3.png` | свой вариант для «Эпохи открытий» / «Ренессанса», например `runner_layer_far_era2.png` (нет — берётся обычный) | как у обычного | |
 | `checkpoint.png` | флаг контрольной точки | 10×80 | растянуть |
 
 ## World map / Карта

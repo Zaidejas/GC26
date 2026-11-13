@@ -51,6 +51,13 @@ namespace GC26.Timetraveler
         /// <summary>The slot's sprite, or null if the artist has not added it yet.</summary>
         public static Sprite Sprite(string slot) => Resources.Load<Sprite>(Folder + slot);
 
+        /// <summary>
+        /// A per-timeline variant of a runner slot: "runner_bg_past_era2" for the Age of Exploration
+        /// (era index 1 -> "_era2"), falling back to the plain slot. Timeline 1 always uses the plain slot.
+        /// </summary>
+        public static Sprite EraSprite(string slot, int era) =>
+            (era > 0 ? Sprite(slot + "_era" + (era + 1)) : null) ?? Sprite(slot);
+
         /// <summary>The slot's whole texture (for screen-space UI), or null.</summary>
         public static Texture2D Texture(string slot)
         {

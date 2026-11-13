@@ -63,6 +63,18 @@ Score sent to the GC26 menu: best endless distance in metres.
 | 1-3 | 280 m | 8 -> 11.5 | world switch (bridges, walls, split) |
 | 1-4 | 340 m | 8.5 -> 12.5 | moving traps (blade, flyer, boulders, crusher) |
 | 1-5 | 420 m | 9 -> 13 | everything, denser, triple and mixed combos |
+| **The Age of Exploration** | | | opens after 1-5 |
+| 2-1 | 300 m | 8 -> 11 | islands, ship deck; more gaps, bridges, ledges |
+| 2-2 | 340 m | 8.5 -> 11.5 | |
+| 2-3 | 380 m | 8.5 -> 12 | + triple and mixed combos |
+| 2-4 | 420 m | 9 -> 12.5 | |
+| 2-5 | 480 m | 9.5 -> 13 | |
+| **Renaissance** | | | opens after 2-5 |
+| 3-1 | 340 m | 8.5 -> 11.5 | gear machine (two blades), printing press; more blades, crushers, flyers |
+| 3-2 | 380 m | 9 -> 12 | + triple and mixed combos |
+| 3-3 | 420 m | 9 -> 12.5 | |
+| 3-4 | 480 m | 9.5 -> 13 | |
+| 3-5 | 550 m | 10 -> 13.5 | |
 
 Each level features its newest obstacle group. Every level has a **checkpoint** half way (shown on the
 progress bar): after it, a death restarts there. Every 6th pattern is a calm stretch with a coin wave, so the

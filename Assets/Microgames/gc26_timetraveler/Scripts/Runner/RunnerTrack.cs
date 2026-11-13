@@ -60,6 +60,7 @@ namespace GC26.Timetraveler
         int _tier = -1;                 // levels: obstacle groups 0..tier; endless (-1): unlocked by distance
         float _density = 1f;            // levels: < 1 = less ground between patterns
         bool _hard;                     // levels: triple and mixed combos
+        int _era;                       // timeline: 0 dinosaurs, 1 exploration (islands, gaps), 2 renaissance (machines)
         int _patternCount;              // every few patterns a calm "breather" with a coin wave
         float _plannedCheckpointX = float.PositiveInfinity;
         bool _checkpointBuilt;
@@ -83,8 +84,9 @@ namespace GC26.Timetraveler
         /// -1 = endless: groups unlock with distance.</param>
         /// <param name="finishMeters">Levels: distance of the finish line; 0 = endless.</param>
         public void Build(RunnerShapes shapes, RunnerWorldState worlds, Transform target, int seed,
-            int tier = -1, float finishMeters = 0f, float density = 1f, bool hard = false)
+            int tier = -1, float finishMeters = 0f, float density = 1f, bool hard = false, int era = 0)
         {
+            _era = era;
             _shapes = shapes;
             _worlds = worlds;
             _target = target;
@@ -243,10 +245,24 @@ namespace GC26.Timetraveler
                 options.Add(("crusher", Crusher, 1.1f));
             }
 
-            if (_tier >= 1)
-                for (var i = 0; i < options.Count; i++)
-                    if (GroupOf(options[i].name) == _tier)
-                        options[i] = (options[i].name, options[i].build, options[i].weight * 1.6f);
+            // Each later timeline has its own flavour: new patterns and its own favourites.
+            if (_era == 1 && _tier >= 1)
+            {
+                options.Add(("islands", Islands, 1.6f));
+                options.Add(("shipdeck", ShipDeck, 1.2f));
+            }
+            if (_era == 2 && _tier >= 3)
+            {
+                options.Add(("gears", Gears, 1.4f));
+                options.Add(("press", PressRow, 1.1f));
+            }
+
+            for (var i = 0; i < options.Count; i++)
+            {
+                var weight = options[i].weight * EraWeight(options[i].name);
+                if (_era == 0 && _tier >= 1 && GroupOf(options[i].name) == _tier) weight *= 1.6f;
+                options[i] = (options[i].name, options[i].build, weight);
+            }
 
             float total = 0f;
             foreach (var o in options) if (o.name != _lastPattern) total += o.weight;
@@ -350,6 +366,87 @@ namespace GC26.Timetraveler
             Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
             CoinArc(_cursorX + 0.75f, _groundY);
             Flat(6f);
+        }
+
+        float EraWeight(string pattern)
+        {
+            if (_era == 1)
+                switch (pattern)
+                {
+                    case "gap": case "gaprock": return 2f;
+                    case "worldbridge": case "ledge": return 1.6f;
+                    case "stairs": case "stepup": case "stepdown": return 1.3f;
+                    case "log": case "crusher": case "boulders": return 0.6f;
+                }
+            if (_era == 2)
+                switch (pattern)
+                {
+                    case "blade": case "crusher": return 1.8f;
+                    case "flyer": case "worldwall": case "rocklogrock": return 1.4f;
+                    case "gap": case "islands": return 0.7f;
+                }
+            return 1f;
+        }
+
+        // ---------- timeline patterns ----------
+
+        /// <summary>Exploration: three short islands over the sea, a coin on each.</summary>
+        void Islands()
+        {
+            Flat(5f);
+            Teach("islands", "Islands: JUMP from one to the next");
+            for (var i = 0; i < 3; i++)
+            {
+                var gap = Range(3f, 4f);
+                CoinArc(_cursorX + gap / 2f, _groundY);
+                _cursorX += gap;
+                _openGround = null;
+                Flat(i < 2 ? Range(6f, 7.5f) : 7f);
+            }
+        }
+
+        /// <summary>Exploration: up onto a ship's deck (one step), a rock on deck, then back down.</summary>
+        void ShipDeck()
+        {
+            if (_groundY + StepHeight > MaxGroundY) { StepDown(); return; }
+            Flat(5f);
+            Teach("shipdeck", "Ship deck: JUMP up, over the crate, and down again");
+            _groundY += StepHeight;
+            _openGround = null;
+            Flat(7f);
+            Hazard("TrackRock", _cursorX, _groundY, 1.5f, 1.5f, TimetravelerArt.Rock);
+            CoinArc(_cursorX + 0.75f, _groundY);
+            Flat(9f);
+            _groundY -= StepHeight;
+            _openGround = null;
+            Flat(7f);
+        }
+
+        /// <summary>Renaissance: two blades of a gear machine, out of step with each other.</summary>
+        void Gears()
+        {
+            Flat(8f);
+            Teach("gears", "Gear machine: SLIDE through both blades");
+            for (var i = 0; i < 2; i++)
+            {
+                var blade = Hazard("TrackBlade", _cursorX, _groundY + LowBottom, 1.5f, 1.5f, TimetravelerArt.Blade);
+                AddMover(blade, RunnerMover.Mode.Bob, low: _groundY + LowBottom + 0.75f, high: _groundY + 11f, period: 2.4f,
+                    phase: i * 0.5f);
+                CoinRow(_cursorX - 0.5f, _groundY + 0.8f, 3, 1.2f);
+                Flat(i == 0 ? 6f : 10f);
+            }
+        }
+
+        /// <summary>Renaissance: a printing press, a long block slamming down: SLIDE all the way.</summary>
+        void PressRow()
+        {
+            Flat(8f);
+            Teach("press", "Printing press: hold SLIDE under it");
+            var press = Hazard("TrackCrusher", _cursorX, _groundY + LowBottom, 6f, 8f, TimetravelerArt.Crusher);
+            AddMover(press, RunnerMover.Mode.Crush, low: _groundY + LowBottom + 4f, high: _groundY + 14f, period: 2.6f,
+                phase: (float)_rng.NextDouble());
+            CoinRow(_cursorX + 0.5f, _groundY + 0.8f, 4, 1.4f);
+            Flat(12f);
         }
 
         void RockLogRock()
@@ -556,7 +653,8 @@ namespace GC26.Timetraveler
                 var mover = AddMover(boulder, RunnerMover.Mode.Drop, low: _groundY + 0.9f, high: 0f, period: 1f);
                 // Falls early enough to be on the ground well before the traveler gets there.
                 mover.triggerDistance = 22f;
-                Flat(9f);
+                // 12 apart: a jump at top speed (13.5) lands before the next boulder, not on it.
+                Flat(ComboGap);
             }
             Flat(4f);
         }

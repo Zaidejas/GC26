@@ -27,16 +27,20 @@ namespace GC26.Timetraveler
         RunnerShapes _shapes;
         System.Random _rng;
 
-        public void Init(Camera cam, RunnerShapes shapes, int seed)
+        int _era;
+
+        /// <param name="hills">The far layer's colour in the PAST world for this timeline (nearer layers are darker).</param>
+        public void Init(Camera cam, RunnerShapes shapes, int seed, Color hills, int era)
         {
             _camera = cam;
             _shapes = shapes;
+            _era = era;
             _rng = new System.Random(seed);
-            Add(TimetravelerArt.RunnerLayerFar, 0.1f, 6f, new Color(0.30f, 0.22f, 0.18f), new Color(0.12f, 0.18f, 0.30f),
+            Add(TimetravelerArt.RunnerLayerFar, 0.1f, 6f, hills, new Color(0.12f, 0.18f, 0.30f),
                 height: 9f, bumps: 5, bumpWidth: 7f, order: -90);
-            Add(TimetravelerArt.RunnerLayerMid, 0.3f, 3f, new Color(0.24f, 0.18f, 0.14f), new Color(0.09f, 0.15f, 0.25f),
+            Add(TimetravelerArt.RunnerLayerMid, 0.3f, 3f, hills * 0.8f, new Color(0.09f, 0.15f, 0.25f),
                 height: 6f, bumps: 8, bumpWidth: 4f, order: -80);
-            Add(TimetravelerArt.RunnerLayerNear, 0.6f, 0.5f, new Color(0.19f, 0.15f, 0.12f), new Color(0.07f, 0.12f, 0.2f),
+            Add(TimetravelerArt.RunnerLayerNear, 0.6f, 0.5f, hills * 0.63f, new Color(0.07f, 0.12f, 0.2f),
                 height: 3f, bumps: 12, bumpWidth: 2f, order: -70);
         }
 
@@ -47,7 +51,7 @@ namespace GC26.Timetraveler
             layer.Root = new GameObject("Parallax_" + slot).transform;
             layer.Root.SetParent(transform, false);
 
-            var art = TimetravelerArt.Sprite(slot);
+            var art = TimetravelerArt.EraSprite(slot, _era);
             if (art != null)
             {
                 // Artist's strip: tiled sideways, bottom at BaseY.
@@ -101,7 +105,7 @@ namespace GC26.Timetraveler
             {
                 var c = world == RunnerWorld.Future ? layer.Future : layer.Past;
                 // Artist art keeps its own colours, only lightly tinted.
-                if (TimetravelerArt.Sprite(layer.Slot) != null) c = Color.Lerp(Color.white, c, 0.25f);
+                if (TimetravelerArt.EraSprite(layer.Slot, _era) != null) c = Color.Lerp(Color.white, c, 0.25f);
                 foreach (var sr in layer.Renderers) sr.color = c;
             }
         }

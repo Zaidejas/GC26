@@ -24,7 +24,7 @@ namespace GC26.Timetraveler.Tests
             yield return "coins";
             yield return "runner_best";
             yield return "levels_done";
-            foreach (var level in TimetravelerLevels.Era1) yield return "level_coins_" + level.Key;
+            foreach (var level in TimetravelerLevels.All) yield return "level_coins_" + level.Key;
         }
 
         static string Key(string k) => GC26.Core.MicrogameSave.Key(TimetravelerGame.Id, k);
@@ -70,14 +70,15 @@ namespace GC26.Timetraveler.Tests
         [Test]
         public void Levels_HaveUniqueKeysAndOrderedProgression()
         {
-            var levels = TimetravelerLevels.Era1;
+            var levels = TimetravelerLevels.All;
             Assert.That(levels.Select(l => l.Key).Distinct().Count(), Is.EqualTo(levels.Length), "duplicate level keys");
             Assert.That(levels.Select(l => l.Title).Distinct().Count(), Is.EqualTo(levels.Length), "duplicate level titles");
             for (var i = 0; i < levels.Length; i++)
             {
                 Assert.That(levels[i].Order, Is.EqualTo(i), $"{levels[i].Title}: Order must match its position");
                 Assert.That(levels[i].LengthMeters, Is.GreaterThan(50), $"{levels[i].Title} is too short");
-                if (i > 0)
+                Assert.That(TimetravelerLevels.Eras[levels[i].Era].Levels, Does.Contain(levels[i]), $"{levels[i].Title} is listed in another timeline");
+                if (i > 0 && levels[i].Era == levels[i - 1].Era)   // each timeline starts easier again, then grows
                 {
                     Assert.That(levels[i].Tier, Is.GreaterThanOrEqualTo(levels[i - 1].Tier), $"{levels[i].Title} is easier than the level before");
                     Assert.That(levels[i].LengthMeters, Is.GreaterThanOrEqualTo(levels[i - 1].LengthMeters), $"{levels[i].Title} is shorter than the level before");
@@ -88,14 +89,21 @@ namespace GC26.Timetraveler.Tests
         [Test]
         public void MapSpots_AreInsideTheMapAndApart()
         {
-            var spots = TimetravelerLevels.Era1.Select(l => (l.Title, l.MapPosition))
+            var spots = TimetravelerLevels.All.Select(l => (l.Title, l.MapPosition))
                 .Concat(new[] { ("endless", TimetravelerLevels.EndlessMapPosition) })
                 .Concat(TimetravelerLevels.Places.Select(p => (p.Name, p.MapPosition))).ToList();
             var edge = TimetravelerLevels.MapHalfWidth - 1.2f;
             foreach (var (name, p) in spots)
             {
                 Assert.That(Mathf.Abs(p.x), Is.LessThanOrEqualTo(edge), $"{name} is outside the walkable map width");
-                Assert.That(p.y, Is.InRange(-4f, TimetravelerLevels.EraHeight - 2.5f), $"{name} is outside the first timeline");
+                Assert.That(p.y, Is.InRange(-4f, TimetravelerLevels.EraHeight * TimetravelerLevels.Eras.Length - 2.5f),
+                    $"{name} is outside the map");
+            }
+            foreach (var level in TimetravelerLevels.All)
+            {
+                var bottom = TimetravelerLevels.Eras[level.Era].MapBottom;
+                Assert.That(level.MapPosition.y, Is.InRange(bottom + 1f, bottom + TimetravelerLevels.EraHeight - 2.5f),
+                    $"{level.Title} is not inside its timeline on the map (or behind its gate)");
             }
             for (var i = 0; i < spots.Count; i++)
             for (var j = i + 1; j < spots.Count; j++)
@@ -121,15 +129,29 @@ namespace GC26.Timetraveler.Tests
             Assert.AreEqual(5, new TimetravelerSave().Coins);
         }
 
+        [Test]
+        public void Save_FinishingATimelineOpensTheNext()
+        {
+            var save = new TimetravelerSave();
+            var eras = TimetravelerLevels.Eras;
+            Assert.IsTrue(eras[0].IsOpen(save));
+            Assert.IsFalse(eras[1].IsOpen(save));
+            foreach (var level in TimetravelerLevels.Era1) save.CompleteLevel(level, 0);
+            Assert.IsTrue(eras[1].IsOpen(save), "finishing 1-5 must open the Age of Exploration");
+            Assert.IsFalse(eras[2].IsOpen(save));
+            foreach (var level in TimetravelerLevels.Era2) save.CompleteLevel(level, 0);
+            Assert.IsTrue(eras[2].IsOpen(save), "finishing 2-5 must open the Renaissance");
+        }
+
         // ---------- track structure ----------
 
-        static IEnumerable<int> TrackCases() => Enumerable.Range(0, TimetravelerLevels.Era1.Length).Concat(new[] { -1, -2, -3 });
+        static IEnumerable<int> TrackCases() => Enumerable.Range(0, TimetravelerLevels.All.Length).Concat(new[] { -1, -2, -3 });
 
-        /// <summary>Levels (0..4) and endless runs (-1..-3): builds the whole track and checks it is sane.</summary>
+        /// <summary>Levels (0..14) and endless runs (-1..-3): builds the whole track and checks it is sane.</summary>
         [UnityTest]
         public IEnumerator Track_IsWellFormed([ValueSource(nameof(TrackCases))] int levelIndex)
         {
-            var level = levelIndex >= 0 ? TimetravelerLevels.Era1[levelIndex] : null;
+            var level = levelIndex >= 0 ? TimetravelerLevels.All[levelIndex] : null;
             var session = NewSession(level);
             session.Traveler.Died += _ => { };
             session.enabled = false;                   // build only, no running
@@ -236,13 +258,13 @@ namespace GC26.Timetraveler.Tests
 
         // ---------- playthroughs ----------
 
-        static IEnumerable<int> LevelCases() => Enumerable.Range(0, TimetravelerLevels.Era1.Length);
+        static IEnumerable<int> LevelCases() => Enumerable.Range(0, TimetravelerLevels.All.Length);
 
         /// <summary>The autopilot must be able to finish every level: proves each level can be completed.</summary>
         [UnityTest, Timeout(180000)]
         public IEnumerator Level_CanBeFinishedByTheBot([ValueSource(nameof(LevelCases))] int levelIndex)
         {
-            var level = TimetravelerLevels.Era1[levelIndex];
+            var level = TimetravelerLevels.All[levelIndex];
             yield return Play(level, level.LengthMeters + 80);   // the finish line may sit a bit past the nominal length
         }
 

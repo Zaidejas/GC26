@@ -28,8 +28,9 @@ namespace GC26.Timetraveler
         /// <summary>1 unit = 16 px; the 3-unit tall traveler is about 1.8 m, so 1 unit is about 0.6 m.</summary>
         public const float MetersPerUnit = 0.6f;
 
-        static readonly Color PastBackground = new Color(0.16f, 0.13f, 0.1f);
         static readonly Color FutureBackground = new Color(0.07f, 0.12f, 0.2f);
+        TimetravelerEra Era => TimetravelerLevels.Eras[_level != null ? _level.Era : 0];
+        Color PastBackground => Era.Sky;
 
         RunnerShapes _shapes;
         TravelerInput _input;
@@ -116,7 +117,7 @@ namespace GC26.Timetraveler
 
             _parallax = new GameObject("RunnerParallax").AddComponent<RunnerParallax>();
             _parallax.transform.SetParent(transform, false);
-            _parallax.Init(cam, _shapes, level != null ? level.Seed : 7);
+            _parallax.Init(cam, _shapes, level != null ? level.Seed : 7, Era.Hills, level != null ? level.Era : 0);
 
             _track = new GameObject("TimetravelerTrack").AddComponent<RunnerTrack>();
             _track.transform.SetParent(transform, false);
@@ -172,7 +173,7 @@ namespace GC26.Timetraveler
             _worlds.Reset();
             if (IsEndless) _track.Build(_shapes, _worlds, _traveler.transform, _seed);
             else _track.Build(_shapes, _worlds, _traveler.transform, _seed, _level.Tier, _level.LengthMeters,
-                _level.Density, _level.Hard);
+                _level.Density, _level.Hard, _level.Era);
             if (fromCheckpoint)
             {
                 _track.Extend(_level.LengthMeters * 0.5f / MetersPerUnit + 60f);
@@ -375,7 +376,8 @@ namespace GC26.Timetraveler
             if (_backgroundSlot != slot)
             {
                 _backgroundSlot = slot;
-                _background.sprite = TimetravelerArt.Sprite(slot) ?? TimetravelerArt.Sprite(TimetravelerArt.RunnerBackgroundPast);
+                var era = _level != null ? _level.Era : 0;
+                _background.sprite = TimetravelerArt.EraSprite(slot, era) ?? TimetravelerArt.EraSprite(TimetravelerArt.RunnerBackgroundPast, era);
             }
             // A 270x480 px picture at 16 px per unit fills the view exactly; it follows the camera.
             var p = _camera.transform.position;

@@ -87,7 +87,7 @@ namespace GC26.Timetraveler
             {
                 var bottom = era.MapBottom == 0f ? MapBottom : era.MapBottom;   // a bit of land below the first node
                 var height = era.MapBottom + TimetravelerLevels.EraHeight - bottom;
-                if (era.Playable)
+                if (era.IsOpen(_save))
                 {
                     _shapes.Box(transform, "MapGround", -w, bottom, w * 2f, height, GroundPlayable, sortingOrder: -10,
                         slot: TimetravelerArt.MapGround, tile: true);
@@ -121,18 +121,19 @@ namespace GC26.Timetraveler
 
         void BuildLevels()
         {
-            var levels = TimetravelerLevels.Era1;
+            var levels = TimetravelerLevels.All;
             var previous = new Vector2(levels[0].MapPosition.x, -4f);
             foreach (var level in levels)
             {
                 Path(previous, level.MapPosition);
                 previous = level.MapPosition;
+                if (level == TimetravelerLevels.Era1[TimetravelerLevels.Era1.Length - 1])
+                    Path(level.MapPosition, TimetravelerLevels.EndlessMapPosition);   // endless branches off after 1-5
                 var state = _save.IsDone(level) ? NodeDone : _save.IsOpen(level) ? NodeOpen : NodeLocked;
                 var slot = _save.IsDone(level) ? TimetravelerArt.MapNodeDone
                     : _save.IsOpen(level) ? TimetravelerArt.MapNode : TimetravelerArt.MapNodeLocked;
                 Node("MapNode_" + level.Title, level.MapPosition, state, slot);
             }
-            Path(previous, TimetravelerLevels.EndlessMapPosition);
             Node("MapNode_Endless", TimetravelerLevels.EndlessMapPosition, _save.EndlessOpen ? NodeEndless : NodeLocked,
                 _save.EndlessOpen ? TimetravelerArt.MapNode : TimetravelerArt.MapNodeLocked);
         }
@@ -183,7 +184,7 @@ namespace GC26.Timetraveler
 
         Vector2 DefaultStart()
         {
-            foreach (var level in TimetravelerLevels.Era1)
+            foreach (var level in TimetravelerLevels.All)
                 if (!_save.IsDone(level)) return level.MapPosition;
             return TimetravelerLevels.EndlessMapPosition;
         }
@@ -276,7 +277,7 @@ namespace GC26.Timetraveler
             _nearLevel = null;
             _nearEndless = false;
             _nearPlace = null;
-            foreach (var level in TimetravelerLevels.Era1)
+            foreach (var level in TimetravelerLevels.All)
                 if (Vector2.Distance(pos, level.MapPosition) < NodeReach) _nearLevel = level;
             if (_nearLevel == null && Vector2.Distance(pos, TimetravelerLevels.EndlessMapPosition) < NodeReach) _nearEndless = true;
             if (_nearLevel == null && !_nearEndless)
@@ -308,13 +309,13 @@ namespace GC26.Timetraveler
             _button.fontSize = Mathf.RoundToInt(unit * 0.9f);
 
             // Node and region labels, placed over the world.
-            foreach (var level in TimetravelerLevels.Era1) WorldLabel(level.MapPosition, level.Title, unit);
+            foreach (var level in TimetravelerLevels.All) WorldLabel(level.MapPosition, level.Title, unit);
             WorldLabel(TimetravelerLevels.EndlessMapPosition, "∞", unit);
             foreach (var place in TimetravelerLevels.Places)
                 WorldLabel(place.MapPosition + new Vector2(0f, 1.6f), place.Name, unit, _label);
             foreach (var era in TimetravelerLevels.Eras)
                 WorldLabel(new Vector2(0f, era.MapBottom + TimetravelerLevels.EraHeight - 3f),
-                    era.Playable ? era.Name : era.Name + "  (locked)", unit, _title);
+                    era.IsOpen(_save) ? era.Name : era.Name + "  (locked)", unit, _title);
 
             var safe = Screen.safeArea;
             var top = Screen.height - safe.yMax;
