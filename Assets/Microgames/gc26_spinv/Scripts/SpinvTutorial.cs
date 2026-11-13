@@ -94,7 +94,10 @@ namespace GC26.Spinv
         {
             yield return null;
 
-            // 1. Управление: пока игрок сам не проведёт кораблём, знак показывает «зажми и веди»
+            // Пояснения ждут касания (TAP TO CONTINUE); подсказки про способности - нажатия способности
+
+            // 1. Управление: прочитал - тап, дальше пока игрок сам не проведёт кораблём, знак показывает «зажми и веди»
+            yield return Next("<color=#39FF6A>HOLD</color> and drag your finger to move the ship");
             Say("<color=#39FF6A>HOLD</color> and drag your finger to move the ship");
             showDrag = true;
             float startX = player.transform.position.x;
@@ -103,9 +106,9 @@ namespace GC26.Spinv
             yield return new WaitForSeconds(0.6f);
 
             // 2. Стрельба сама, сверху медленный строй, который не стреляет
+            yield return Next("Shooting is <color=#39FF6A>AUTOMATIC</color>. Destroy the invaders!");
             SpawnInvaders();
-            Say("Shooting is <color=#39FF6A>AUTOMATIC</color>. Destroy the invaders!");
-            HideTipAfter(4f); // табличка не мешает целиться
+            HideTip(); // табличка не мешает целиться
             while (FindAnyObjectByType<Coin>() == null)
             {
                 if (NoInvaders()) SpawnInvaders();
@@ -113,7 +116,10 @@ namespace GC26.Spinv
             }
 
             // 3. Монетка: подсвечиваем падающую, ждём, пока поймают
-            Say("This is a <color=#FFD45A>COIN</color>. Invaders drop them - catch it with the ship!");
+            Coin firstCoin = FindAnyObjectByType<Coin>();
+            PointAt(firstCoin != null ? firstCoin.transform : null, 200f);
+            yield return Next("This is a <color=#FFD45A>COIN</color>. Invaders drop them - catch it with the ship!");
+            Say("Catch the <color=#FFD45A>COIN</color>!");
             while (game.Coins < 1)
             {
                 Coin coin = FindAnyObjectByType<Coin>();
@@ -122,8 +128,7 @@ namespace GC26.Spinv
                 yield return null;
             }
             PointAtUI(coinCounter, 230f);
-            Say("Your <color=#FFD45A>COINS</color> are counted here");
-            yield return new WaitForSeconds(2.5f);
+            yield return Next("Your <color=#FFD45A>COINS</color> are counted here");
 
             // 4. Способности покупаются за монеты: щит
             yield return BuyAbility(0, "Abilities cost <color=#FFD45A>COINS</color> - the price is on the coin. Tap the <color=#39FF6A>SHIELD</color>!");
@@ -132,14 +137,14 @@ namespace GC26.Spinv
 
             // 5. Монетный дождь полосками и две оставшиеся способности
             ClearPointer();
-            Say("Here are more coins - catch them!");
+            yield return Next("Here are more coins - catch them!");
+            Say("Catch the <color=#FFD45A>COINS</color>!");
             CoinRain();
             yield return new WaitForSeconds(0.5f);
             while (FindAnyObjectByType<Coin>() != null) yield return null;
             // Бункеры сначала повреждены: игрок видит, что именно чинит ремонт
             DamageBunkers();
-            Say("The <color=#39FF6A>BUNKERS</color> got damaged!");
-            yield return new WaitForSeconds(2f);
+            yield return Next("The <color=#39FF6A>BUNKERS</color> got damaged!");
             yield return BuyAbility(1, "Tap <color=#39FF6A>REPAIR</color> - it rebuilds the bunkers");
             yield return new WaitForSeconds(0.5f);
             yield return BuyAbility(2, "Tap <color=#39FF6A>RAPID FIRE</color> - you shoot twice as fast");
@@ -149,10 +154,10 @@ namespace GC26.Spinv
             // 6. Сердечко - только когда кончились щит и ускоренная стрельба
             Say("Rapid fire is on - wait until it ends");
             while (abilities.abilities[0].IsActive || abilities.abilities[2].IsActive) yield return null;
-            Say("Ouch! You lost a life...");
             player.Hit();
-            yield return new WaitForSeconds(1.6f);
-            Say("A <color=#FF5A6E>HEART</color> restores a life. Catch it!");
+            yield return Next("Ouch! You lost a life...");
+            yield return Next("A <color=#FF5A6E>HEART</color> restores a life. Catch it!");
+            Say("Catch the <color=#FF5A6E>HEART</color>!");
             while (game.Lives < game.startLives)
             {
                 HealthPickup heart = FindAnyObjectByType<HealthPickup>();
