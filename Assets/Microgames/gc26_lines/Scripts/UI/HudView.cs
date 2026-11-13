@@ -198,21 +198,17 @@ namespace GC26.Lines.UI
             PlaceGain();
         }
 
-        // The mushrooms' stems end this far above the bottom of their pictures.
-        const float StemBottomInPicture = 0.05f;
-
-        // Puts the bottom of the score's digits level with the bottom of the Next mushrooms (the prototype
-        // lines them up along one baseline), whatever empty space the font leaves under its digits.
+        // The score number stands on the same line as the 3 Next mushrooms: the middle of its digits (their ink,
+        // not the text box, which has empty room above and below the digits) is level with the middle of the
+        // mushrooms' pictures, whatever the score and the screen.
         void AlignScore()
         {
             if (unit <= 0f) return;
             var rt = scoreText.rectTransform;
             rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, 0f);
             scoreText.ForceMeshUpdate();
-            var info = scoreText.textInfo;
-            if (info.characterCount == 0) return;
-            float inkBottom = info.characterInfo[0].baseLine; // the digits stand on the baseline (pivot at the bottom)
-            rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, StemBottomInPicture * PieceSize * unit - inkBottom);
+            if (!DigitInk(out float inkBottom, out float inkTop)) return;
+            rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, PieceSize * unit / 2f - (inkBottom + inkTop) / 2f);
             // The SCORE label stays right above the number, and NEXT right above the pieces; both share one line
             // (the higher of the two), so neither comes closer to what is under it.
             float labelsY = Mathf.Max(rt.anchoredPosition.y + ScoreSize * 1.1f * unit, (PieceSize + 1.4f) * unit);
@@ -221,6 +217,25 @@ namespace GC26.Lines.UI
             var nextRect = nextLabel.rectTransform;
             nextRect.anchoredPosition = new Vector2(nextRect.anchoredPosition.x, labelsY);
         }
+
+        // The top and bottom of the drawn digits, in the score text's own pixels (pivot at its bottom-left).
+        bool DigitInk(out float bottom, out float top)
+        {
+            bottom = float.MaxValue; top = float.MinValue;
+            var info = scoreText.textInfo;
+            for (int i = 0; i < info.characterCount; i++)
+            {
+                var c = info.characterInfo[i];
+                if (!c.isVisible) continue;
+                bottom = Mathf.Min(bottom, c.bottomLeft.y);
+                top = Mathf.Max(top, c.topRight.y);
+            }
+            return top > bottom;
+        }
+
+        /// <summary>The middle of the score's digits and of the Next mushrooms, in the HUD's pixels (tests).</summary>
+        public float ScoreMiddleY => DigitInk(out float bottom, out float top) ? scoreText.rectTransform.anchoredPosition.y + (bottom + top) / 2f : 0f;
+        public float NextMiddleY => next[0].rectTransform.anchoredPosition.y + next[0].rectTransform.sizeDelta.y / 2f;
 
         /// <summary>Where the SCORE and NEXT labels sit (their bottom edge, in the HUD's pixels; tests).</summary>
         public float ScoreLabelY => scoreLabel.rectTransform.anchoredPosition.y;

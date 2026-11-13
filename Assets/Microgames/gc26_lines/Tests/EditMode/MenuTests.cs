@@ -93,7 +93,7 @@ namespace GC26.Lines.Tests
         }
 
         [Test]
-        public void Hud_ScoreAndNextLabels_ShareOneLine()
+        public void Hud_ScoreAndNext_LabelsShareOneLine_NumberLevelWithMushrooms()
         {
             hud = HudView.Create(camera);
             foreach (var size in new[] { new Vector2(1080, 1920), new Vector2(1080, 2400), new Vector2(750, 1334) })
@@ -103,6 +103,7 @@ namespace GC26.Lines.Tests
                 {
                     hud.SetScore(score);
                     Assert.AreEqual(hud.ScoreLabelY, hud.NextLabelY, 0.01f, "SCORE and NEXT on one line (" + size + ", score " + score + ")");
+                    Assert.AreEqual(hud.NextMiddleY, hud.ScoreMiddleY, 0.5f, "The number on the same line as the mushrooms (" + size + ", score " + score + ")");
                 }
             }
         }
