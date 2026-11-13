@@ -66,7 +66,7 @@ case "${1:-}" in
     unity iOS IosDevice unity-ios-device
     echo "Xcode project ready: Builds/iOS-Device/Unity-iPhone.xcodeproj"
     # With a team ID and an iPhone on the cable: sign, install and start the game on it.
-    PHONE="${LINES_IPHONE:-$(xcrun devicectl list devices 2>/dev/null | awk '/connected/ && /physical/ && /iPhone/ { for (i = 1; i <= NF; i++) if ($i ~ /^[0-9A-F]{8}-[0-9A-F]{16}$/) print $i }' | head -1)}"
+    PHONE="${LINES_IPHONE:-$(xcrun devicectl list devices 2>/dev/null | awk '(/connected/ || /available/) && /physical/ && /iPhone/ { for (i = 1; i <= NF; i++) if ($i ~ /^[0-9A-F]{8}-[0-9A-F]{16}$/) print $i }' | head -1)}"
     if [ -n "${LINES_APPLE_TEAM:-}" ] && [ -n "$PHONE" ]; then
       echo "Xcode: signing and compiling for the iPhone ($PHONE)… log: $LOGS/xcode-ios-device.log"
       xcodebuild -project Builds/iOS-Device/Unity-iPhone.xcodeproj -scheme Unity-iPhone -configuration Release \
