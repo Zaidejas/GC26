@@ -122,11 +122,12 @@ Builds (Unity closed; output in `Builds/` at the project root, which is excluded
 ```bash
 B="Assets/Microgames/gc26_lines/Tools~/build.sh"
 "$B" ios-sim      # Unity → Xcode → installs and starts the game in the iOS Simulator (~2 min)
-"$B" ios-device   # Xcode project for a real iPhone: Builds/iOS-Device/Unity-iPhone.xcodeproj
+"$B" ios-device   # Xcode project for a real iPhone; with LINES_APPLE_TEAM and the iPhone on the cable: signs, installs, starts (~4 min)
 "$B" android      # Builds/Android/Lines.apk; installs and starts it on every running emulator (~3 min)
 ```
 
-- `LINES_SIM=<name or UDID>` picks the simulated iPhone (default: the running one, else "iPhone 18 Pro"); `LINES_APPLE_TEAM=<team id>` signs the iPhone build with the user's free Apple account.
+- `LINES_SIM=<name or UDID>` picks the simulated iPhone (default: the running one, else "iPhone 18 Pro"); `LINES_APPLE_TEAM=<team id>` signs the iPhone build with the user's free Apple account (its Personal Team in Xcode → Settings → Accounts; `defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier` shows the ID); `LINES_IPHONE=<UDID>` picks the phone if several are connected.
+- A real iPhone (task 33): the user's iPhone 14 Pro, with Developer Mode on and their developer profile trusted (Settings → General → VPN & Device Management). With a free account the app stops opening after 7 days: run `ios-device` again to reinstall. `xcrun devicectl device capture screenshot --device <UDID> --destination shot.png` takes a screenshot from the phone.
 - This Xcode has no separate Simulator app window; watch the game with `mcp__Claude_Code_iOS_Simulator__control` (attach, screenshot).
 - The app id is `com.gc26.lines` (set in `PhoneAppSettings`, only during builds). Builds switch Unity back to the Mac platform at the end.
 - Saves on a phone are in the app's data folder under `gc26_lines/` (`game.json`, `leaderboard.json`). In the iOS Simulator: `$(xcrun simctl get_app_container booted com.gc26.lines data)/Documents/gc26_lines/`.

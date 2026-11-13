@@ -2,12 +2,14 @@
 # Builds Lines on its own, as a phone app, from the command line. Unity must be closed.
 # Run it from anywhere in the project, e.g. from the project root:
 #   Assets/Microgames/gc26_lines/Tools~/build.sh ios-sim      build for the iOS Simulator, install it and start it
-#   Assets/Microgames/gc26_lines/Tools~/build.sh ios-device   Xcode project for a real iPhone (Builds/iOS-Device)
+#   Assets/Microgames/gc26_lines/Tools~/build.sh ios-device   Xcode project for a real iPhone (Builds/iOS-Device);
+#                                 with LINES_APPLE_TEAM set and an iPhone on the cable, also signs, installs and starts it
 #   Assets/Microgames/gc26_lines/Tools~/build.sh android      Android APK (Builds/Android/Lines.apk); installs
 #                                 and starts it on every running Android emulator or connected phone
 # Options (environment variables):
 #   LINES_SIM=<name or UDID>  which simulated iPhone to use (default: the running one, else "iPhone 18 Pro")
 #   LINES_APPLE_TEAM=<id>     your Apple team ID for signing the iPhone build
+#   LINES_IPHONE=<UDID>       which connected iPhone (default: the first one on the cable)
 set -euo pipefail
 cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 UNITY="${UNITY:-/Applications/Unity/Hub/Editor/6000.5.6f1/Unity.app/Contents/MacOS/Unity}"
@@ -63,6 +65,22 @@ case "${1:-}" in
   ios-device)
     unity iOS IosDevice unity-ios-device
     echo "Xcode project ready: Builds/iOS-Device/Unity-iPhone.xcodeproj"
+    # With a team ID and an iPhone on the cable: sign, install and start the game on it.
+    PHONE="${LINES_IPHONE:-$(xcrun devicectl list devices 2>/dev/null | awk '/connected/ && /physical/ && /iPhone/ { for (i = 1; i <= NF; i++) if ($i ~ /^[0-9A-F]{8}-[0-9A-F]{16}$/) print $i }' | head -1)}"
+    if [ -n "${LINES_APPLE_TEAM:-}" ] && [ -n "$PHONE" ]; then
+      echo "Xcode: signing and compiling for the iPhone ($PHONE)… log: $LOGS/xcode-ios-device.log"
+      xcodebuild -project Builds/iOS-Device/Unity-iPhone.xcodeproj -scheme Unity-iPhone -configuration Release \
+        -destination "id=$PHONE" -allowProvisioningUpdates -derivedDataPath Builds/iOS-Device/DerivedData build \
+        > "$LOGS/xcode-ios-device.log" 2>&1 || { echo "Xcode build failed; see $LOGS/xcode-ios-device.log" >&2; grep -m5 "error:" "$LOGS/xcode-ios-device.log" >&2 || true; exit 1; }
+      APP=$(find Builds/iOS-Device/DerivedData/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -1)
+      BUNDLE=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$APP/Info.plist")
+      xcrun devicectl device install app --device "$PHONE" "$APP" >/dev/null
+      xcrun devicectl device process launch --device "$PHONE" "$BUNDLE" >/dev/null \
+        && echo "Running $BUNDLE on the iPhone." \
+        || echo "Installed. If it doesn't open: Settings → General → VPN & Device Management → trust your Apple ID."
+    else
+      echo "To install on an iPhone: connect it and set LINES_APPLE_TEAM=<your team ID> (see CLAUDE.md)."
+    fi
     ;;
   android)
     unity Android Android unity-android
