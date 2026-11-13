@@ -875,13 +875,14 @@ body {
   // ---- Turn flow ----
   function onCell(i) {
     if (busy || S.over) return;
-    if (S.board[i] >= 0) { if (i !== selected) { selected = i; render(); } return; }
+    if (S.board[i] >= 0) { if (i !== selected) { selected = i; Sound.play("select"); render(); } return; }
     if (selected >= 0) move(i);
   }
   function blocked() {
     const s = slotOf(selected);
     if (s) { s.classList.remove("shake"); void s.offsetWidth; s.classList.add("shake"); }
     toast(t("noPath"));
+    Sound.play("blocked");
   }
   async function move(target) {
     const path = findPath(S.board, selected, target);
@@ -893,10 +894,11 @@ body {
     s.firstChild.classList.remove("selected");
     s.classList.add("moving"); s.classList.remove("idle"); s.style.rotate = "0deg";
     const moving = S.board[selected];
-    for (let k = 1; k < path.length; k++) { place(s, path[k]); trail(path[k - 1], moving); await wait(STEP_MS); }
+    for (let k = 1; k < path.length; k++) { place(s, path[k]); trail(path[k - 1], moving); Sound.play("step", k - 1); await wait(STEP_MS); }
 
     S.board[target] = S.board[selected]; S.board[selected] = -1; selected = -1;
     landing = { i: target, at: performance.now() };
+    Sound.play("land");
     render();
     const lines = linesThrough(S.board, target);
     if (lines.length) await clearLines(lines, true);
@@ -911,6 +913,7 @@ body {
     let pts = lines.reduce((sum, l) => sum + pointsFor(l.length), 0);
     if (fromMove) pts *= lines.length;
     cells.forEach((i) => { const s = slotOf(i); if (s) { s.firstChild.classList.add("pop"); burst(i, S.board[i]); } });
+    Sound.play("clear", Math.max(...lines.map((l) => l.length)));
     await wait(260);
     cells.forEach((i) => { S.board[i] = -1; });
     S.score += pts; bump(pts); render();
@@ -926,6 +929,7 @@ body {
       S.board[i] = color; placed.push(i);
     });
     render(placed);
+    if (placed.length) Sound.play("spawn");
     await wait(240);
     const lines = uniqueLines(placed.flatMap((i) => linesThrough(S.board, i)));
     if (lines.length) await clearLines(lines, false);
@@ -957,6 +961,7 @@ body {
     S.pendingScore = S.score; save();
     $("#player-name").value = defaultName();
     $("#over").hidden = false;
+    Sound.play("gameOver");
     setTimeout(() => { const f = $("#player-name"); f.focus(); f.select(); }, 50);
   }
   // Adds a pending score under `name`; a PlayerN name moves the counter on, a typed name is remembered.
@@ -975,6 +980,7 @@ body {
       : rank > 0 ? t("yourRank", rank + 1, name)
       : t("notInTop", score);
     cameFromGameOver = true;
+    if (rank >= 0) Sound.play("record");
     $("#over").hidden = true;
     showScreen("scores");
   }
@@ -994,7 +1000,7 @@ body {
   let latestScoreTime = 0, tutStep = 0;
   let howtoReturn = "menu"; // How to play goes back to where it was opened from (menu or game)
 
-  // ---- Settings: music, sounds, vibration (remembered on this device). No sounds exist yet. ----
+  // ---- Settings: music, sounds, vibration (remembered on this device). Vibration isn't used yet. ----
   const SETTINGS_KEY = "lines-prototype-settings";
   const settings = Object.assign({ music: true, sounds: true, vibration: true,
       lang: (navigator.language || "").toLowerCase().startsWith("ru") ? "ru" : "en" },
@@ -1159,6 +1165,116 @@ body {
     return null;
   }
 
+  // ---- Sound and music (picked on the Forest Sounds page). Everything is made from code with Web Audio. ----
+  // The browser allows sound only after the first tap, so the audio starts then. Music: "Firefly dance".
+  const Sound = (() => {
+    let ctx = null, sfx, musicOut, verb, noiseBuf = null, timer = 0, beat = 0, next = 0;
+    const midi = (m) => 440 * Math.pow(2, (m - 69) / 12);
+    const PENT = [74, 76, 78, 81, 83, 86, 88, 90, 93, 95, 98]; // D major pentatonic from D5
+    const CHORDS = [[50, 54, 57, 61], [47, 50, 54, 57], [43, 47, 50, 54], [45, 50, 52, 57]]; // Dmaj7 Bm7 Gmaj7 Asus4
+    const BEAT = 0.36;
+
+    function init() {
+      if (ctx) { if (ctx.state === "suspended") ctx.resume(); return true; }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      ctx = new AC();
+      const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4; comp.connect(ctx.destination);
+      const master = ctx.createGain(); master.gain.value = 0.9; master.connect(comp);
+      verb = ctx.createConvolver();
+      const n = Math.floor(ctx.sampleRate * 3), buf = ctx.createBuffer(2, n, ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2.6); }
+      verb.buffer = buf;
+      const wet = ctx.createGain(); wet.gain.value = 0.32; verb.connect(wet).connect(master);
+      const bus = (level, send) => { const g = ctx.createGain(); g.gain.value = level; g.connect(master); const s = ctx.createGain(); s.gain.value = send; g.connect(s).connect(verb); return g; };
+      sfx = bus(0.8, 0.45);
+      musicOut = bus(0.0001, 0.9); // faded in by startMusic
+      return true;
+    }
+    function tone({ type = "sine", freq, t, dur, g = 0.2, a = 0.005, dest = sfx, filter }) {
+      const o = ctx.createOscillator(), e = ctx.createGain();
+      o.type = type;
+      if (Array.isArray(freq)) { o.frequency.setValueAtTime(freq[0][1], t); for (let i = 1; i < freq.length; i++) o.frequency.exponentialRampToValueAtTime(freq[i][1], t + freq[i][0]); }
+      else o.frequency.setValueAtTime(freq, t);
+      e.gain.setValueAtTime(0.0001, t); e.gain.linearRampToValueAtTime(g, t + a); e.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      let head = o;
+      if (filter) { const f = ctx.createBiquadFilter(); f.type = filter.type; f.frequency.value = filter.f; f.Q.value = filter.q || 0.7; o.connect(f); head = f; }
+      head.connect(e).connect(dest); o.start(t); o.stop(t + dur + 0.05);
+    }
+    function bell(f, t, dur, g, dest = sfx) {
+      [[1, 1, 1], [2.01, 0.45, 0.7], [3.0, 0.25, 0.5], [4.17, 0.15, 0.35], [5.43, 0.08, 0.25]].forEach(([r, gr, dr]) =>
+        tone({ freq: f * r, t, dur: dur * dr, g: g * gr, a: 0.002, dest }));
+    }
+    function noise({ t, dur, g = 0.2, a = 0.005, dest = sfx, filter }) {
+      if (!noiseBuf) { noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+      const s = ctx.createBufferSource(), e = ctx.createGain(), f = ctx.createBiquadFilter();
+      s.buffer = noiseBuf; s.loop = true; f.type = filter.type; f.frequency.value = filter.f; f.Q.value = filter.q || 0.7;
+      e.gain.setValueAtTime(0.0001, t); e.gain.linearRampToValueAtTime(g, t + a); e.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      s.connect(f).connect(e).connect(dest); s.start(t, Math.random()); s.stop(t + dur + 0.05);
+    }
+    // A plucked string (kalimba, harp).
+    function pluck(f, t, g, dest = sfx, dur = 0.7) {
+      tone({ freq: f, t, dur, g, a: 0.002, dest });
+      tone({ type: "triangle", freq: f * 2, t, dur: dur * 0.25, g: g * 0.35, a: 0.002, dest });
+      noise({ t, dur: 0.015, g: g * 0.3, dest, filter: { type: "bandpass", f: f * 3, q: 2 } });
+    }
+    function pad(notes, t, dur, g, dest, cutoff) {
+      notes.forEach((m) => [-7, 7].forEach((cents) => {
+        const o = ctx.createOscillator(), f = ctx.createBiquadFilter(), e = ctx.createGain();
+        o.type = "sawtooth"; o.frequency.value = midi(m); o.detune.value = cents;
+        f.type = "lowpass"; f.frequency.value = cutoff;
+        const att = Math.min(1.5, dur * 0.35);
+        e.gain.setValueAtTime(0.0001, t); e.gain.linearRampToValueAtTime(g / notes.length, t + att);
+        e.gain.setValueAtTime(g / notes.length, t + dur - att); e.gain.linearRampToValueAtTime(0.0001, t + dur);
+        o.connect(f).connect(e).connect(dest); o.start(t); o.stop(t + dur + 0.05);
+      }));
+    }
+
+    // The picked sounds. Each plays only when Sounds is on.
+    const SOUNDS = {
+      tap: (t) => { noise({ t, dur: 0.025, g: 0.2, a: 0.001, filter: { type: "bandpass", f: 2500, q: 3 } }); tone({ freq: 900, t, dur: 0.03, g: 0.07, a: 0.001 }); },
+      select: (t) => { tone({ freq: [[0, 1568], [0.06, 2093]], t, dur: 0.12, g: 0.22 }); bell(3136, t + 0.02, 0.25, 0.04); },
+      step: (t, k) => bell(midi(PENT[3 + (k % 6)]), t, 0.25, 0.07),             // Sparkle run: one note per cell
+      land: (t) => { tone({ freq: [[0, 700], [0.07, 1500]], t, dur: 0.08, g: 0.28 }); bell(1760, t + 0.06, 0.4, 0.05); }, // Dew drop
+      clear: (t, n) => { const up = Math.min(n, 9) - 5; for (let i = 0; i < Math.min(n, 9); i++) pluck(midi(PENT[i + Math.max(0, up)]), t + i * 0.055, 0.2); }, // Harp
+      spawn: (t) => [0, 0.05, 0.1].forEach((d, i) => tone({ freq: [[0, 260 + i * 60], [0.06, 820 + i * 140]], t: t + d, dur: 0.07, g: 0.2, a: 0.002 })), // Bubbles
+      blocked: (t) => [0, 0.14].forEach((d) => tone({ type: "sawtooth", freq: 110, t: t + d, dur: 0.1, g: 0.16, a: 0.01, filter: { type: "lowpass", f: 600 } })), // Low buzz
+      gameOver: (t) => [86, 83, 81, 78, 76, 74].forEach((m, i) => bell(midi(m), t + i * 0.22, i === 5 ? 1.6 : 0.6, 0.12)), // Music box
+      record: (t) => { pad([62, 66, 69, 74], t, 1.9, 0.22, sfx, 1800); [86, 90, 93].forEach((m, i) => bell(midi(m), t + 0.5 + i * 0.1, 1.2, 0.06)); }, // Warm swell
+    };
+    function play(name, arg) {
+      if (!settings.sounds || !ctx || ctx.state !== "running") return;
+      SOUNDS[name](ctx.currentTime + 0.01, arg);
+    }
+
+    // Firefly dance: soft chords, a low note at each chord change, and a kalimba pattern on top.
+    function musicStep(t, i) {
+      const chord = CHORDS[Math.floor(i / 16) % 4], k = i % 16;
+      if (k === 0) { pad(chord, t, 5.8, 0.12, musicOut, 650); pluck(midi(chord[0] - 12), t, 0.16, musicOut, 1.4); }
+      const pattern = [0, 2, 1, 3, 2, 1, 3, 2];
+      if (k % 2 === 0 || Math.random() < 0.3) pluck(midi(chord[pattern[k % 8]] + 24), t, k % 4 === 0 ? 0.09 : 0.06, musicOut, 0.9);
+    }
+    function startMusic() {
+      if (timer || !ctx) return;
+      const t = ctx.currentTime;
+      musicOut.gain.cancelScheduledValues(t); musicOut.gain.setValueAtTime(Math.max(0.0001, musicOut.gain.value), t); musicOut.gain.linearRampToValueAtTime(0.45, t + 1.5);
+      beat = 0; next = t + 0.1;
+      timer = setInterval(() => { while (next < ctx.currentTime + 0.4) { musicStep(next, beat); next += BEAT; beat++; } }, 60);
+    }
+    function stopMusic() {
+      if (!timer) return;
+      clearInterval(timer); timer = 0;
+      const t = ctx.currentTime;
+      musicOut.gain.cancelScheduledValues(t); musicOut.gain.setValueAtTime(musicOut.gain.value, t); musicOut.gain.linearRampToValueAtTime(0.0001, t + 0.8);
+    }
+    // Follows the Music switch (and the first tap that wakes the audio up).
+    function syncMusic() { if (!ctx) return; if (settings.music) startMusic(); else stopMusic(); }
+    function wake() { if (init()) syncMusic(); }
+    // The browser pauses audio in a hidden tab; the scheduler then waits for it.
+    document.addEventListener("visibilitychange", () => { if (!ctx) return; if (document.hidden) ctx.suspend(); else ctx.resume(); });
+    return { play, wake, syncMusic };
+  })();
+
   // ---- Wiring ----
   function start(data) {
     const grid = $("#grid");
@@ -1193,6 +1309,7 @@ body {
     document.querySelectorAll("#settings .switch").forEach((sw) => sw.addEventListener("click", () => {
       settings[sw.dataset.key] = !settings[sw.dataset.key];
       saveSettings(); renderSettings();
+      if (sw.dataset.key === "music") Sound.syncMusic();
     }));
     document.querySelectorAll("#settings .langs button").forEach((b) => b.addEventListener("click", () => {
       settings.lang = b.dataset.lang; saveSettings(); applyLanguage();
@@ -1219,6 +1336,14 @@ body {
     window.addEventListener("resize", () => { if (currentScreen() === "howto") renderHowto(); });
 
     phone.classList.add("forest"); // the one look: a dark, magical mushroom forest
+    // The first tap wakes the audio up (browsers allow sound only after one). Every button in the phone
+    // ticks softly, except the board's cells, which have their own sounds.
+    document.addEventListener("pointerdown", Sound.wake, true);
+    document.addEventListener("keydown", Sound.wake, true);
+    phone.addEventListener("click", (e) => {
+      const b = e.target.closest("button");
+      if (b && !b.closest("#grid") && !b.disabled) Sound.play("tap");
+    });
 
 
 

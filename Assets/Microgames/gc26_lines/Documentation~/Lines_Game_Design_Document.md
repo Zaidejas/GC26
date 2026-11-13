@@ -133,7 +133,7 @@ These are planned for after the MVP and are not scheduled in the 8 weeks unless 
 | Best score during play | The best score shown on the game screen next to the current score |
 | More settings | A theme choice (Settings itself is now in the MVP) |
 | How to play on first launch | Open the How to play cards automatically the first time the app starts |
-| Audio | See the sound list below |
+| Audio | The sounds and music below: in the prototype now, in Unity next (board task L03) |
 | Vibration | Light vibration on a line clear |
 | More themes | The MVP has one theme: the dark magic forest |
 | Custom art packs | Replace the MVP mushrooms (and board) with other art |
@@ -142,18 +142,21 @@ These are planned for after the MVP and are not scheduled in the 8 weeks unless 
 | Unlockable themes | Ball and board themes unlocked by reaching score milestones |
 | Web version | A browser build of the same game |
 
-**Planned sounds (later)**
+**Sounds and music** (picked on the Forest Sounds listening page, `prototype/forest-sounds.html`; all made from code, no recordings, so nothing to license). They use the D major pentatonic scale, so every note fits with the music and with each other.
 
 | Event | Sound |
 | :---- | :---- |
-| Select a ball | Soft click |
-| Move | Short rolling sound |
-| Line cleared | Bright chime, higher pitch for longer lines |
-| Balls spawn | Quiet pop |
-| Blocked move | Low buzz, together with the "No path" alert |
-| Game over | Short descending melody |
+| Select a mushroom | Fairy tick: a short rising "tick" with a tiny bell on top |
+| Move | Sparkle run: one soft bell note per cell, rising, so a longer path is a longer run |
+| Landing | Dew drop: a quick "plip" rising in pitch, with a tiny bell, together with the landing pulse |
+| Line cleared | Harp: one plucked note per mushroom in the line, rising; a longer line starts higher |
+| New mushrooms appear | Bubbles: three quick rising bubbles |
+| No path | Low buzz: two short, soft, low buzzes, together with the "No path" alert |
+| Game over | Music box: six bell notes falling, the last one long |
+| New record (the score makes the top 10) | Warm swell: a soft warm chord with three bells on top |
+| Button tap | Soft click (every button except the board's cells, which have their own sounds) |
 
-A calm background music loop, with each sound switchable in Settings.
+**Music:** "Firefly dance", a calm endless loop: soft warm chords (D, Bm, G, A, about 6 s each), a low note at each chord change and a gentle kalimba pattern on top, slightly varied each time. It plays on every screen while Music is on, and fades in and out when switched. Music and Sounds each have an on/off switch in Settings. In a browser, sound can start only after the first tap.
 
 ## Screens and UI (MVP)
 
@@ -179,7 +182,7 @@ The MVP has four screens and three pop-ups. The app opens on the main menu.
 **Settings** (teacher's feedback, pulled forward from the later features)
 
 - The gear is a plain white icon like the house (no ring or disc). The pop-up is the same dark card as the other pop-ups; the game stays visible behind it.
-- **Music, Sounds, Vibration:** on/off switches (gold when on), all on by default, remembered on the device. The game has no sounds, music or vibration yet, so for now the switches only remember the choice (see Later features → Audio, Vibration).
+- **Music, Sounds, Vibration:** on/off switches (gold when on), all on by default, remembered on the device. Music and Sounds work in the prototype (see Later features → Sounds and music); Unity doesn't play them yet, and there is no vibration yet, so there those switches only remember the choice.
 - **Language:** English or Русский. Everything changes at once (menu, game screen, pop-ups, How to play, leaderboard messages and dates); the game's name "Lines" stays the same. The first time, the game uses Russian on a phone set to Russian, English otherwise; the choice is remembered.
 - **How to play** closes Settings and opens the How to play cards; their back button and "Got it" return to where Settings was opened (the game or the menu). How to play also stays on the main menu.
 - Later, in the shared GC26 app, this pop-up can also be the game's pause, with a "Back to games" button.
@@ -244,7 +247,7 @@ The look is a dark, magical mushroom forest at night: glowing mushrooms on a dar
 - Preview dots: "ghost" versions of the next mushrooms in their target cells: about half the size of a real one, see-through and a little paler, with no glow, so they read as "a mushroom will grow here", not as real pieces (teacher's feedback; glowing coloured dots, a breathing animation and a magic circle were tried and dropped).
 - Game screen life (teacher's feedback, so the board isn't still before the first move): about 12 fireflies (warm gold and soft turquoise) drift slowly behind the board and pulse brighter and dimmer; every mushroom on the board sways gently on its foot (about 3° each way, 3 s per sway, each at its own rhythm, steady across moves; not while selected or moving; previews don't sway). When the game screen opens (New game, Continue, Reset) the board fades in and grows slightly into place, then the mushrooms pop up one after another from top-left to bottom-right, the previews last (about 0.6–1 s in all). All of these are off when the device asks for reduced motion.
 - Animations: a moving ball leaves a trail of magic dust (3 tiny sparkles in its colour on each cell it leaves, drifting down and fading in about half a second; teacher's feedback, a glowing comet tail was tried and dropped); when it arrives it pulses once: contracts to about 80%, expands to about 110% and settles, in about 0.4 s (teacher's feedback); the selected ball bounces, balls grow in when they spawn, cleared balls shrink and burst into particles, and a blocked move shakes the ball.
-- No audio in the MVP (see Later features).
+- Sounds and music: in the prototype; in Unity they come with board task L03 (see Later features → Sounds and music).
 
 ## Technical summary
 
