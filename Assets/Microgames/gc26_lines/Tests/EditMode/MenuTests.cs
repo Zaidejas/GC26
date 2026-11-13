@@ -93,6 +93,21 @@ namespace GC26.Lines.Tests
         }
 
         [Test]
+        public void Hud_ScoreAndNextLabels_ShareOneLine()
+        {
+            hud = HudView.Create(camera);
+            foreach (var size in new[] { new Vector2(1080, 1920), new Vector2(1080, 2400), new Vector2(750, 1334) })
+            {
+                hud.ApplyLayout(BoardLayout.Compute(size, new Rect(0, 0, size.x, size.y)));
+                foreach (int score in new[] { 0, 7, 1234 })
+                {
+                    hud.SetScore(score);
+                    Assert.AreEqual(hud.ScoreLabelY, hud.NextLabelY, 0.01f, "SCORE and NEXT on one line (" + size + ", score " + score + ")");
+                }
+            }
+        }
+
+        [Test]
         public void Hud_HasAPlainHouseButton()
         {
             hud = HudView.Create(camera);

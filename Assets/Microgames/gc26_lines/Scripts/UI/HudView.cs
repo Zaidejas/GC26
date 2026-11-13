@@ -155,6 +155,7 @@ namespace GC26.Lines.UI
             }
             Place(nextLabel.rectTransform, right - 40 * u, (PieceSize + 1.4f) * u, 40 * u, LabelSize * 1.4f * u);
             nextLabel.fontSize = LabelSize * u;
+            AlignScore(); // puts NEXT on the same line as SCORE
 
             alert.ApplyLayout(layout.Board.center, u); // messages appear over the middle of the board
             back.Place(layout.BackButton, u);
@@ -212,10 +213,18 @@ namespace GC26.Lines.UI
             if (info.characterCount == 0) return;
             float inkBottom = info.characterInfo[0].baseLine; // the digits stand on the baseline (pivot at the bottom)
             rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, StemBottomInPicture * PieceSize * unit - inkBottom);
-            // The SCORE label stays right above the number.
+            // The SCORE label stays right above the number, and NEXT right above the pieces; both share one line
+            // (the higher of the two), so neither comes closer to what is under it.
+            float labelsY = Mathf.Max(rt.anchoredPosition.y + ScoreSize * 1.1f * unit, (PieceSize + 1.4f) * unit);
             var label = scoreLabel.rectTransform;
-            label.anchoredPosition = new Vector2(label.anchoredPosition.x, rt.anchoredPosition.y + ScoreSize * 1.1f * unit);
+            label.anchoredPosition = new Vector2(label.anchoredPosition.x, labelsY);
+            var nextRect = nextLabel.rectTransform;
+            nextRect.anchoredPosition = new Vector2(nextRect.anchoredPosition.x, labelsY);
         }
+
+        /// <summary>Where the SCORE and NEXT labels sit (their bottom edge, in the HUD's pixels; tests).</summary>
+        public float ScoreLabelY => scoreLabel.rectTransform.anchoredPosition.y;
+        public float NextLabelY => nextLabel.rectTransform.anchoredPosition.y;
 
         /// <summary>Adds <paramref name="points"/> and floats "+points" up next to the score (prototype: 0.9 s).</summary>
         public void AddScore(int points)
