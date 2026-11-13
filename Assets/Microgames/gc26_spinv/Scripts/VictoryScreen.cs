@@ -344,6 +344,8 @@ namespace GC26.Spinv
         // В начале печати таблицы: открывается аркада, «???: Arcade mode unlocked.», по тапу печать продолжается
         IEnumerator ArcadeUnlockedDialog()
         {
+            // Аркада уже открыта (повторное прохождение) - окно не показываем
+            if (ArcadeMode.IsUnlocked) yield break;
             ArcadeMode.Unlock();
             yield return new WaitForSecondsRealtime(0.3f);
 

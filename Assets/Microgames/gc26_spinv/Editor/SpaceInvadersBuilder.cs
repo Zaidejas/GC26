@@ -1969,7 +1969,7 @@ namespace GC26.Spinv
             rect.anchoredPosition = position;
             rect.sizeDelta = size;
 
-            var background = MakeChildImage(go.transform, "Background", uiSquareSprite, PhosphorLine);
+            var background = MakeChildImage(go.transform, "Track", uiSquareSprite, PhosphorLine); // не "Background": под этим именем ищется фон звёзд
             background.raycastTarget = true;
             var bgRect = background.rectTransform;
             bgRect.anchorMin = new Vector2(0f, 0.3f);

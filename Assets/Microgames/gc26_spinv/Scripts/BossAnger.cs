@@ -108,7 +108,13 @@ namespace GC26.Spinv
             hitFlash = Mathf.Max(0f, hitFlash - dt / hitFlashTime);
 
             float damage = 1f - Mathf.Clamp01(health);
-            if (fitTime < 0f)
+            // Босс убит: новых приступов нет, звук приступа обрывается
+            if (boss.IsDead)
+            {
+                fitTime = -1f;
+                if (fitSource != null && fitSource.isPlaying) fitSource.Stop();
+            }
+            else if (fitTime < 0f)
             {
                 untilFit -= dt;
                 if (untilFit <= 0f)
