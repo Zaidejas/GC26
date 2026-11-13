@@ -1368,6 +1368,8 @@ function buildLevel(sim) {
   debris = [];
   for (const b of beams) worldRoot.remove(b.m);
   glints = [];
+  for (const t of tracks) worldRoot.remove(t.m);
+  tracks = [];
   beams = [];
   if (bonusView) worldRoot.remove(bonusView);
   bonusView = null; reactorCore = null;
@@ -1486,6 +1488,33 @@ function angleTo(from, to, maxStep) {
   if (diff < -Math.PI) diff += Math.PI * 2;
   return from + Math.max(-maxStep, Math.min(maxStep, diff));
 }
+// Track marks: two dark prints behind every moving tank, fading out over a few seconds.
+const TRACK_LIFE = 3.5, TRACK_MAX = 260, TRACK_SHADES = 6;
+const trackMats = [];
+for (let i = 0; i < TRACK_SHADES; i++) trackMats.push(new THREE.MeshBasicMaterial({ color: 0x3A2A1E, transparent: true, opacity: .32 * (1 - i / TRACK_SHADES), depthWrite: false }));
+let tracks = [];
+function dropTracks(v, tank) {
+  const x = v.root.position.x, z = v.root.position.z;
+  if (v.lastTrack && Math.hypot(x - v.lastTrack.x, z - v.lastTrack.z) < .2) return;
+  v.lastTrack = { x, z };
+  const sideways = tank.dir === Left || tank.dir === Right;
+  const spread = .3 * (tank.isPlayer ? 1 : (KINDS[tank.kind].scale || 1));
+  for (const side of [-spread, spread]) {
+    const m = tracks.length >= TRACK_MAX ? tracks.shift().m : new THREE.Mesh(unitBox, trackMats[0]);
+    if (!m.parent) worldRoot.add(m);
+    m.material = trackMats[0];
+    m.position.set(x + (sideways ? 0 : side), .012, z + (sideways ? side : 0));
+    m.scale.set(sideways ? .16 : .11, .004, sideways ? .11 : .16);
+    tracks.push({ m, age: 0 });
+  }
+}
+function syncTracks(dt) {
+  while (tracks.length && tracks[0].age >= TRACK_LIFE) worldRoot.remove(tracks.shift().m);
+  for (const t of tracks) {
+    t.age += dt;
+    t.m.material = trackMats[Math.min(TRACK_SHADES - 1, Math.floor(t.age / TRACK_LIFE * TRACK_SHADES))];
+  }
+}
 function syncTank(tank, dt) {
   let v = tankViews.get(tank), first = false;
   if (!v) { v = buildTank(tank); tankViews.set(tank, v); first = true; }
@@ -1497,6 +1526,7 @@ function syncTank(tank, dt) {
     v.root.rotation.y = angleTo(v.root.rotation.y, yaw(tank.dir), 15 * dt);
   }
   v.model.position.y = tank.moving ? Math.sin(clock * 30) * .012 : 0;
+  if (tank.moving && !first && tank.spawn <= 0) dropTracks(v, tank);
   v.model.visible = tank.spawn <= 0 || ((clock * 12) % 1) < .5;
   const flashing = tank.carrier && ((clock * 3) % 1) < .5;
   const look = tank.isPlayer && sim.cloak > 0 ? v.ghost : tank.stun > 0 ? v.stun : flashing ? v.flash : v.normal;
@@ -1608,6 +1638,7 @@ function syncWorld(sim, dt) {
     d.m.rotation.x += 7 * dt; d.m.rotation.y += 5 * dt;
   }
   syncWater();
+  syncTracks(dt);
   if (reactorCore) {
     // The enemy reactor beats faster as it weakens.
     const rate = sim.mode === "assault" && sim.coreMax ? 3 + 9 * (1 - sim.coreHp / sim.coreMax) : 3;

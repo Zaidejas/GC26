@@ -49,6 +49,20 @@ namespace GC26.Tanki.Game
         Material glintMaterial;
         readonly List<Glint> glints = new List<Glint>();
 
+        // Track marks: two dark prints behind every moving tank, fading out over a few seconds.
+        const float TrackLife = 3.5f;
+        const int TrackMax = 260;
+        const int TrackShades = 6;
+        Material[] trackMaterials;
+        readonly Queue<TrackMark> tracks = new Queue<TrackMark>();
+
+        sealed class TrackMark
+        {
+            public Transform Item;
+            public Renderer Renderer;
+            public float Age;
+        }
+
         /// <summary>A light streak drifting across a water cell.</summary>
         sealed class Glint
         {
@@ -76,6 +90,7 @@ namespace GC26.Tanki.Game
             public Material Flash;
             public Material Ghost;
             public Material Stunned;
+            public Vector3 LastTrack = new Vector3(-99f, 0f, -99f);
             public Transform Shield;
             public Transform MarkerRing;
             public Transform HealthBar;
@@ -156,6 +171,8 @@ namespace GC26.Tanki.Game
             mineViews.Clear();
             turretHeads.Clear();
             glints.Clear();
+            foreach (TrackMark mark in tracks) Kill(mark.Item.gameObject);
+            tracks.Clear();
             foreach (RingEffect ring in rings) { Kill(ring.Item.gameObject); Kill(ring.Material); }
             rings.Clear();
             System.Array.Clear(tiles, 0, tiles.Length);
@@ -269,6 +286,51 @@ namespace GC26.Tanki.Game
             }
         }
 
+        void DropTracks(TankView view, Tank tank)
+        {
+            Vector3 at = view.Root.position;
+            if ((at - view.LastTrack).sqrMagnitude < 0.04f) return;
+            view.LastTrack = at;
+            if (trackMaterials == null)
+            {
+                trackMaterials = new Material[TrackShades];
+                for (int i = 0; i < TrackShades; i++)
+                {
+                    trackMaterials[i] = new Material(ghostMaterial) { color = new Color(0.23f, 0.16f, 0.12f, 0.32f * (1f - i / (float)TrackShades)) };
+                    trackMaterials[i].SetColor("_EmissionColor", Color.black);
+                }
+            }
+            bool sideways = tank.Dir == Dir.Left || tank.Dir == Dir.Right;
+            float spread = 0.3f * SpriteScale(tank);
+            foreach (float side in new[] { -spread, spread })
+            {
+                TrackMark mark;
+                if (tracks.Count >= TrackMax) mark = tracks.Dequeue();
+                else
+                {
+                    GameObject item = Box(root, Vector3.zero, Vector3.one, Color.black);
+                    var renderer = item.GetComponent<Renderer>();
+                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    mark = new TrackMark { Item = item.transform, Renderer = renderer };
+                }
+                mark.Age = 0f;
+                mark.Renderer.sharedMaterial = trackMaterials[0];
+                mark.Item.position = at + (sideways ? new Vector3(0f, 0.012f, side) : new Vector3(side, 0.012f, 0f));
+                mark.Item.localScale = sideways ? new Vector3(0.16f, 0.004f, 0.11f) : new Vector3(0.11f, 0.004f, 0.16f);
+                tracks.Enqueue(mark);
+            }
+        }
+
+        void SyncTracks(float dt)
+        {
+            while (tracks.Count > 0 && tracks.Peek().Age >= TrackLife) Kill(tracks.Dequeue().Item.gameObject);
+            foreach (TrackMark mark in tracks)
+            {
+                mark.Age += dt;
+                mark.Renderer.sharedMaterial = trackMaterials[Mathf.Min(TrackShades - 1, (int)(mark.Age / TrackLife * TrackShades))];
+            }
+        }
+
         void SyncWater()
         {
             if (waterMaterial == null) return;
@@ -337,6 +399,7 @@ namespace GC26.Tanki.Game
             UpdateBeams(dt);
             UpdateRings(dt);
             SyncWater();
+            SyncTracks(dt);
 
             if (reactorCore != null)
             {
@@ -368,6 +431,8 @@ namespace GC26.Tanki.Game
                 view.Root.position = Vector3.Lerp(view.Root.position, target, 1f - Mathf.Exp(-30f * dt));
                 view.Root.rotation = Quaternion.RotateTowards(view.Root.rotation, facing, 900f * dt);
             }
+
+            if (tank.Moving && !snap && !tank.Spawning) DropTracks(view, tank);
 
             float bob = tank.Moving ? Mathf.Sin(clock * 30f) * 0.012f : 0f;
             view.Model.localPosition = new Vector3(0f, bob, 0f);
