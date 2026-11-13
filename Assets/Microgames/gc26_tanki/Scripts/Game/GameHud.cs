@@ -110,6 +110,7 @@ namespace GC26.Tanki.Game
 
             DrawTopBar();
             DrawBossBar();
+            DrawTutorialHint();
             if (game.Sim.Phase == GamePhase.Playing && !game.Paused)
             {
                 DrawControls();
@@ -228,7 +229,7 @@ namespace GC26.Tanki.Game
                 caption = "ВРАЖЕСКИЙ РЕАКТОР " + sim.CoreHp + "/" + sim.CoreMax;
                 share = Mathf.Clamp01(sim.CoreHp / (float)sim.CoreMax);
             }
-            else if (sim.Mode == GameMode.Survival)
+            else if (sim.Mode == GameMode.Survival || sim.Mode == GameMode.Campaign)
             {
                 caption = "РЕАКТОР " + sim.BaseHp + "/" + sim.BaseMax;
                 share = Mathf.Clamp01(sim.BaseHp / (float)sim.BaseMax);
@@ -243,6 +244,23 @@ namespace GC26.Tanki.Game
             float barY = top + 20f * unit;
             Fill(new Rect(left, barY, width, height), new Color(0.08f, 0.06f, 0.11f, 0.9f));
             Fill(new Rect(left + 2f * unit, barY + 2f * unit, (width - 4f * unit) * share, height - 4f * unit), new Color(1f, 0.33f, 0.28f));
+        }
+
+        // The current tutorial step, on a plate under the top bar.
+        void DrawTutorialHint()
+        {
+            string text = game.TutorialText;
+            if (text == null || game.Sim.Phase != GamePhase.Playing || game.Paused) return;
+            Rect safe = SafeRect();
+            float width = Screen.width * 0.86f;
+            float textWidth = width - 24f * unit;
+            float height = TextHeight(text, plateText, textWidth) + 30f * unit;
+            var box = new Rect((Screen.width - width) / 2f, safe.y + 4f * unit + 26f * unit * 2f + 12f * unit, width, height);
+            GUI.Box(box, GUIContent.none, choice);
+            captionText.normal.textColor = Mark;
+            GUI.Label(new Rect(box.x, box.y + 6f * unit, box.width, 14f * unit), "ОБУЧЕНИЕ · ШАГ " + (game.TutorialStep + 1) + " ИЗ " + GameRunner.TutorialSteps, captionText);
+            captionText.normal.textColor = Muted;
+            GUI.Label(new Rect(box.x + 12f * unit, box.y + 22f * unit, textWidth, height - 26f * unit), text, plateText);
         }
 
         void DrawSuperButton(Controls controls)
@@ -580,7 +598,7 @@ namespace GC26.Tanki.Game
         {
             DrawArt(Art.Menu);
             float logo = 20f * unit + 56f * unit * 2f + 22f * unit;
-            float buttons = ColumnHeight(5, ButtonHeight, 10f * unit);
+            float buttons = ColumnHeight(6, ButtonHeight, 10f * unit);
             float total = logo + 14f * unit + 28f * unit + 16f * unit + buttons + Pad * 2f;
             float y = Mathf.Max(SafeRect().y + 12f * unit, (Screen.height - total) / 2f - 20f * unit);
 
@@ -600,7 +618,7 @@ namespace GC26.Tanki.Game
             float half = (width - gap) / 2f;
             float rowY = inner.y;
             if (GUI.Button(new Rect(x, rowY, width, ButtonHeight), "КАМПАНИЯ", primary)) game.Open(Page.LevelSelect);
-            string[] pairs = { "ШТУРМ", "ВЫЖИВАНИЕ", "ГАРАЖ", "МАСТЕРСКАЯ", "НАГРАДЫ", "НАСТРОЙКИ" };
+            string[] pairs = { "ШТУРМ", "ВЫЖИВАНИЕ", "ГАРАЖ", "МАСТЕРСКАЯ", "НАГРАДЫ", "НАСТРОЙКИ", "ОБУЧЕНИЕ", "ВЫХОД" };
             int font = quiet.fontSize;
             quiet.fontSize = Mathf.RoundToInt(15 * unit);
             for (int i = 0; i < pairs.Length; i++)
@@ -615,10 +633,11 @@ namespace GC26.Tanki.Game
                     case 3: game.Open(Page.Workshop); break;
                     case 4: awardsPage = 0; game.Open(Page.Awards); break;
                     case 5: game.Open(Page.Settings); break;
+                    case 6: game.StartTutorial(); break;
+                    case 7: game.Quit(); break;
                 }
             }
             quiet.fontSize = font;
-            if (GUI.Button(new Rect(x, rowY + (ButtonHeight + gap) * 4f, width, ButtonHeight), "ВЫХОД", quiet)) game.Quit();
         }
 
         static string StarLine(int stars) => new string('★', stars) + new string('☆', 3 - stars);
@@ -974,6 +993,17 @@ namespace GC26.Tanki.Game
                         case 1: game.ToMenu(); break;
                     }
                     break;
+                case GamePhase.Victory when sim.Mode == GameMode.Tutorial:
+                    string note = game.TutorialFirstWin ? "+10 деталей за первое прохождение" : "Ты всё помнишь. Удачи на рубеже!";
+                    switch (DrawResult(Art.Victory, "Обучение пройдено", note, new Color(1f, 0.9f, 0.66f), "КАМПАНИЯ", "В МЕНЮ"))
+                    {
+                        case 0:
+                            game.ToMenu();
+                            game.Open(Page.LevelSelect);
+                            break;
+                        case 1: game.ToMenu(); break;
+                    }
+                    break;
                 case GamePhase.Victory:
                     string done = assault ? "Все крепости взяты!" : "Рубеж удержан!";
                     string where = assault ? "Вражеские реакторы погашены" : "Все 20 уровней пройдены";
@@ -1032,7 +1062,7 @@ namespace GC26.Tanki.Game
             DrawArt(picture);
             float tiles = 62f * unit;
             float buttonsHeight = buttons.Length > 2 ? ColumnHeight(buttons.Length, ButtonHeight, 10f * unit) : ButtonHeight;
-            bool won = game.Sim.Phase == GamePhase.LevelCleared || game.Sim.Phase == GamePhase.Victory;
+            bool won = (game.Sim.Phase == GamePhase.LevelCleared || game.Sim.Phase == GamePhase.Victory) && game.Sim.Mode != GameMode.Tutorial;
             float starsHeight = won ? 62f * unit : 0f;
             float inner = 22f * unit + 10f * unit + starsHeight + tiles + 14f * unit + buttonsHeight;
             float headlineHeight = 90f * unit;

@@ -30,6 +30,7 @@ namespace GC26.Tanki.Game
         public int AssaultUnlocked;
         public int[] AssaultStars = new int[Levels.Assault.Length];
         public List<string> Awards = new List<string>();
+        public bool TutorialDone;
 
         // Counters for the awards.
         public int Kills;

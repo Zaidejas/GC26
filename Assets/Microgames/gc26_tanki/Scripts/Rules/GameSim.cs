@@ -73,12 +73,13 @@ namespace GC26.Tanki.Rules
         public bool IsBossLevel => Mode == GameMode.Survival ? Wave % Tuning.BossEvery == 0 : waves.IndexOf('X') >= 0;
         public Tank Boss => Enemies.Find(e => e.Kind == EnemyKind.Boss);
         public string LevelName => Mode == GameMode.Survival ? "Выживание, волна " + Wave
+            : Mode == GameMode.Tutorial ? "Обучение"
             : Mode == GameMode.Assault ? "Штурм " + (LevelIndex + 1) + ". " + Levels.Assault[LevelIndex].Name
             : (LevelIndex + 1) + ". " + Levels.All[LevelIndex].Name;
         public int MapCount => Mode == GameMode.Assault ? Levels.Assault.Length : Levels.All.Length;
-        /// <summary>Hits our reactor can still take: 3 in survival, 1 elsewhere.</summary>
+        /// <summary>Hits our reactor can still take: 3 in the campaign and survival.</summary>
         public int BaseHp { get; private set; } = 1;
-        public int BaseMax => Mode == GameMode.Survival ? Tuning.SurvivalBaseHp : 1;
+        public int BaseMax => Mode == GameMode.Campaign || Mode == GameMode.Survival ? Tuning.ReactorHp : 1;
         public int BaseX { get; private set; }
         public int BaseY { get; private set; }
         public float FreezeTimer { get; private set; }
@@ -143,9 +144,12 @@ namespace GC26.Tanki.Rules
             LoadLevel(levelIndex);
         }
 
+        /// <summary>The next map starts fresh: full hearts, whatever was lost on the last one.</summary>
         public void NextLevel()
         {
-            if (LevelIndex + 1 < MapCount) LoadLevel(LevelIndex + 1);
+            if (LevelIndex + 1 >= MapCount) return;
+            Lives = Tuning.StartLives;
+            LoadLevel(LevelIndex + 1);
         }
 
         /// <summary>Assault: no reactor of our own, the enemy's one to break past its turrets.</summary>
@@ -158,6 +162,41 @@ namespace GC26.Tanki.Rules
             Lives = Tuning.StartLives;
             PartsEarned = 0;
             LoadLevel(levelIndex);
+        }
+
+        /// <summary>
+        /// The tutorial: a calm map where nothing is lost. Enemies come only when the game calls SpawnNow
+        /// and never fire, the reactor cannot be hit, lost tanks cost no lives, and the map never ends by itself.
+        /// </summary>
+        public void StartTutorial(PlayerStats stats, PlayerTank tank = PlayerTank.Guard)
+        {
+            Mode = GameMode.Tutorial;
+            TankType = tank;
+            Stats = stats.Copy();
+            Score = 0;
+            Lives = Tuning.StartLives;
+            PartsEarned = 0;
+            LevelIndex = 0;
+            Smartness = 0f;
+            LoadMap(Levels.Tutorial.Rows, "");
+            SuperNeed = NeedFor(Tuning.SuperNeed(0));
+        }
+
+        /// <summary>Brings one enemy in through the first free gate now. For the tutorial.</summary>
+        public void SpawnNow(EnemyKind kind)
+        {
+            foreach (var spawn in enemySpawns)
+            {
+                if (AnyTankAt(spawn.x + 0.5f, spawn.y + 0.5f)) continue;
+                SpawnEnemy(kind, spawn.x + 0.5f, spawn.y + 0.5f);
+                return;
+            }
+        }
+
+        /// <summary>Ends the tutorial as won.</summary>
+        public void FinishTutorial()
+        {
+            if (Mode == GameMode.Tutorial && Phase == GamePhase.Playing) Phase = GamePhase.Victory;
         }
 
         /// <summary>Endless waves on the arena, with a choice of upgrade after each one.</summary>
@@ -468,7 +507,7 @@ namespace GC26.Tanki.Rules
             Player.Alive = false;
             Player.Hp = 0;
             Events.Add(new GameEvent(GameEventKind.PlayerDestroyed, Player.X, Player.Y, true));
-            Lives--;
+            if (Mode != GameMode.Tutorial) Lives--;
             LivesLost++;
             StarLevel = 0;
             StarTimer = 0f;
@@ -944,6 +983,7 @@ namespace GC26.Tanki.Rules
             }
             if (enemy.Kind == EnemyKind.Miner) LayMine(enemy, dt, atCentre);
             if (enemy.Kind == EnemyKind.Fixer) MendAround(enemy, dt);
+            if (Mode == GameMode.Tutorial) return;
 
             bool lined = HasTargetInLine(enemy) || (Smartness > 0f && CrateAhead(enemy));
             enemy.FireTimer -= lined ? dt * 3f : dt;
@@ -1150,6 +1190,7 @@ namespace GC26.Tanki.Rules
 
         void DestroyBase(int x, int y)
         {
+            if (Mode == GameMode.Tutorial) return;
             if (BaseHp > 1)
             {
                 BaseHp--;
@@ -1695,7 +1736,7 @@ namespace GC26.Tanki.Rules
 
         void CheckLevelEnd(float dt)
         {
-            if (Phase != GamePhase.Playing || EnemiesLeft > 0) return;
+            if (Phase != GamePhase.Playing || EnemiesLeft > 0 || Mode == GameMode.Tutorial) return;
             clearTimer += dt;
             if (clearTimer < Tuning.ClearDelay) return;
 

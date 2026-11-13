@@ -113,6 +113,11 @@ button:focus-visible { outline: 3px solid var(--paper); outline-offset: 2px; }
 .result span { font-size: clamp(10px, calc(var(--u) * 3), 12px); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
 #card.win h1 { color: #FFE7A8; }
 #card.lose h1 { color: #FF8A78; }
+/* Tutorial hint: a plate under the status strip with the current step. */
+#tutor { position: fixed; z-index: 2; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + var(--u) * 21); width: calc(var(--frame) * .86); box-sizing: border-box; padding: 9px 12px; text-align: center;
+  background: rgba(18, 13, 24, .88); box-shadow: inset 0 0 0 2px rgba(53, 242, 208, .55); clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  font-size: clamp(13px, calc(var(--u) * 3.8), 16px); line-height: 1.35; pointer-events: none; }
+#tutor small { display: block; margin-bottom: 3px; font: 600 11px/1 var(--body); letter-spacing: .14em; color: var(--mark); }
 #toast { position: fixed; z-index: 2; top: 13vh; text-align: center; font-weight: 600; font-size: clamp(13px, calc(var(--u) * 4), 20px); text-shadow: 0 1px 4px #000; pointer-events: none; opacity: 0; transition: opacity .2s; }
 #toast.on { opacity: 1; }
 /* Menus sit on a painted picture, not on the live map. The picture drifts slowly; the panel keeps text readable. */
@@ -231,6 +236,7 @@ button:focus-visible { outline: 3px solid var(--paper); outline-offset: 2px; }
 <div id="super" hidden><span>УДАР</span></div>
 <div id="bossBar" hidden><span>БОСС</span><div><b></b></div></div>
 <div id="toast" role="status"></div>
+<div id="tutor" role="status" hidden><small></small><span></span></div>
 
 <div id="overlay" hidden><div id="art"></div><div id="card"></div></div>
 
@@ -261,8 +267,8 @@ const TUNE = { half: .42, turnWindow: .3, lives: 3, maxUpgrade: 3, carrierEvery:
   fireBullets: [1, 1, 2, 2, 3, 3], driveSpeed: [3.2, 3.45, 3.7, 3.95, 4.2, 4.45],
   // The star's temporary gun, the reactor strike and the boss.
   starTime: 20, starBoost: 3, survivalSuperNeed: 6, superDamage: 4, superHalf: .8, bossEvery: 5, bossBombDamage: 5,
-  // In survival the reactor takes this many hits; elsewhere one hit ends the game.
-  survivalBaseHp: 3,
+  // Hits our reactor takes in the campaign and survival.
+  reactorHp: 3,
   // New enemies: the miner leaves mines, the fixer mends the tanks around it, the rammer blows itself up.
   mineEvery: 3.5, mineMax: 3, mineArm: .6, fixEvery: 3, fixRange: 2.6, ramBlast: 1.3,
   // Abilities of the player's tanks.
@@ -321,28 +327,29 @@ const BONUS_TEXT = { Star: "Звезда: орудие сильнее на 20 с
 
 // Generated from Scripts/Rules/Levels.cs by Tools~/sync_levels.py.
 const LEVELS = [
-  { name: "Первый рубеж", waves: "RRSRRSRRSRRS", rows: ["E....E....E", ".##%%.%%##.", "...%%@%%...", ".#.......#.", ".###...###.", "....#.#....", "##.#.@.#.##", "...#...#...", ".@@.....@@.", "...##.##...", "##.#...#.##", "...........", ".###.@.###.", "...#...#...", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Канал", waves: "RRSSRGRSGRRSGR", rows: ["E....E....E", ".#.......#.", ".###.#.###.", ".....#.....", "%%.......%%", "%%.@@.@@.%%", "%%.@@.@@.%%", "...........", ".~~~...~~~.", ".~~~.#.~~~.", ".~~~.#.~~~.", "...........", "###.###.###", "...........", ".@.#.P.#.@.", ".@.#####.@.", "....#B#...."] },
-  { name: "Мазутный двор", waves: "SSRGSMGRHSRMSRGH", rows: ["E..#.E.#..E", "##.......##", ".#.##.##.#.", "...........", ".@@..@..@@.", ".@@.###.@@.", "....###....", "##...@...##", "...==.==...", ".##==.==##.", "...==.==...", "%%.==.==.%%", "%%.......%%", "%%.#...#.%%", "...#.P.#...", ".#########.", "....#B#...."] },
-  { name: "Узкие проходы", waves: "GRSHGMSHGRSMHRSGRM", rows: ["E....E....E", ".@@#...#@@.", "...#.@.#...", "##.#...#.##", ".....#.....", "..%%...%%..", "~~%%@@@%%~~", "~~%%@@@%%~~", "..%%...%%..", ".....#.....", "##.#...#.##", "...#.@.#...", ".###.@.###.", "...........", "@@...P...@@", ".##.###.##.", "....#B#...."] },
-  { name: "Последний заслон", waves: "HSGHRMSHRGHMGRHGSMGX", rows: ["E....E....E", ".##.#@#.##.", "...........", "##.%%.%%.##", "...%%.%%...", ".@#%%#%%#@.", "=@.......@=", "=..@@.@@..=", "=..@@.@@..=", "=@.......@=", ".@#%%#%%#@.", "...%%.%%...", "##.%%.%%.##", "...........", ".@~~.P.~~@.", ".@~~###~~@.", "....#B#...."] },
-  { name: "Перекрёсток", waves: "RRSGRMFRRHSMRF", rows: ["E....E....E", ".#.#...#.#.", ".#.#.@.#.#.", "...........", "@@.##.##.@@", "...#...#...", ".#...%...#.", ".#.%%%%%.#.", "...%%@%%...", ".#.%%%%%.#.", ".#...%...#.", "...#...#...", "@@.##.##.@@", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Речной брод", waves: "SRGSRMFRSGRMHF", rows: ["E....E....E", "...#...#...", ".@.#.#.#.@.", ".@.......@.", "...~~.~~...", "#..~~.~~..#", "#.........#", ".~~.###.~~.", ".~~.....~~.", "....#.#....", ".##.#.#.##.", "...........", "~~.@...@.~~", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Скользкий склон", waves: "GSRKSMFSHGKMGFR", rows: ["E....E....E", ".##.....##.", "...=====...", ".@.=.#.=.@.", ".@.=.#.=.@.", "...=====...", "##.......##", "...#.@.#...", ".#.#...#.#.", ".#...=...#.", "...#=@=#...", ".....=.....", ".@##...##@.", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Лабиринт", waves: "HGSKGMFRGSKMGFHG", rows: ["E....E....E", ".@@@.#.@@@.", ".....#.....", ".#.@@@@@.#.", ".#.......#.", ".#.#.@.#.#.", "...#...#...", "@@.#.#.#.@@", ".....#.....", ".@@.....@@.", "...#.@.#...", ".#.#...#.#.", ".#.......#.", "...@@.@@...", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Логово", waves: "GSHKGMFRGSKMGFX", rows: ["E....E....E", "...........", ".@@.....@@.", ".@.......@.", "...#.#.#...", ".%%.....%%.", ".%%.@@@.%%.", ".%%.....%%.", "...#.#.#...", ".~~.....~~.", ".~~.#.#.~~.", "...........", "##.@...@.##", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Сеть", waves: "SSGKRMFHSRKMSFRH", rows: ["E....E....E", "%%%%...%%%%", "%#%%.#.%%#%", "%%%%...%%%%", "...........", ".@.%%%%%.@.", ".@.%#%#%.@.", "...%%%%%...", "##.......##", "...%%.%%...", ".#.%%#%%.#.", "...........", "%%.#...#.%%", "%%.......%%", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Бетонный пояс", waves: "HGHKRMFSGHKMGFSG", rows: ["E....E....E", ".#.......#.", ".#.@@.@@.#.", "...@...@...", "@@...#...@@", ".....#.....", ".@@@...@@@.", "...........", ".#.@@.@@.#.", ".#.......#.", "...#.@.#...", "@@.#...#.@@", ".....@.....", ".##.....##.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Затопленный квартал", waves: "GSGKSMFHSGKMRFHSG", rows: ["E....E....E", ".##.~~~.##.", ".#..~~~..#.", "....~~~....", ".~~.....~~.", ".~~.#.#.~~.", "....#.#....", "##.......##", "...~~.~~...", ".#.~~.~~.#.", ".#.......#.", "...#.@.#...", "~~.#...#.~~", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Мазутный порт", waves: "HSGKSMFHSGKMGFRSG", rows: ["E....E....E", ".==.....==.", ".==.#.#.==.", "....#.#....", ".@.=====.@.", "...=.@.=...", ".#.=...=.#.", ".#.=====.#.", "...........", "##.@=.=@.##", "...=...=...", ".#.=.#.=.#.", ".#.......#.", "...@...@...", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Стальная крепость", waves: "HGSKGMFRGSKMSFGX", rows: ["E....E....E", "...........", ".@@#...#@@.", ".@.......@.", ".@.##@##.@.", "...#...#...", ".....@.....", "@@.#...#.@@", "...#.#.#...", ".%%.....%%.", ".%%.@.@.%%.", "...........", ".@#.....#@.", ".@.......@.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Ущелье", waves: "GHSKHMFHRGKMGFHGH", rows: ["E....E....E", ".@.......@.", ".@@.#.#.@@.", ".@@.....@@.", ".@@.@.@.@@.", "....#.#....", ".@@.....@@.", ".@@.#.#.@@.", "....%.%....", ".@@.%.%.@@.", ".@@.....@@.", "....#.#....", ".@@.....@@.", ".@...@...@.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Острова", waves: "SHGKHMFHGRKMGFHGSK", rows: ["E....E....E", ".~~.....~~.", ".~#.#.#.#~.", "...........", "~~.@@.@@.~~", "~~.......~~", "..#.~~~.#..", "..#.~@~.#..", "..#.~~~.#..", "~~.......~~", "~~.@@.@@.~~", "...........", ".~#.#.#.#~.", ".~~.....~~.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Минное поле", waves: "HHGKHMFHGHKMHFGHGK", rows: ["E....E....E", ".#.#.#.#.#.", "...........", "#.=.#.#.=.#", "..=.....=..", ".#=#.@.#=#.", "...........", "=.#.=.=.#.=", "..#.....#..", ".@..#=#..@.", "....=.=....", ".#.#...#.#.", "...........", "=.#.@.@.#.=", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Последняя линия", waves: "HGHKGMFSHGKMGFSGHKH", rows: ["E....E....E", ".@.#.#.#.@.", ".@.......@.", "...@%%%@...", ".#.%%%%%.#.", ".#.%%@%%.#.", "...%%%%%...", "@@.......@@", "...#~~~#...", ".#.#~~~#.#.", ".#.......#.", "...@#.#@...", ".@.......@.", ".@.#...#.@.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
-  { name: "Сердце реактора", waves: "HGSKGMFGHGKMGFSGHKX", rows: ["E....E....E", "...........", ".@@.@.@.@@.", "...........", ".#%%.#.%%#.", ".#%%...%%#.", "...........", "@@.@#.#@.@@", ".....@.....", ".~~.....~~.", ".~~.#.#.~~.", "...........", ".@.%%.%%.@.", ".@.......@.", ".#...P...#.", ".##.###.##.", "....#B#...."] }
+  { name: "Первый рубеж", waves: "RRSRRSRRSRRS", rows: ["E....E....E", ".##%%.%%##.", "...%%@%%...", ".#.......#.", ".###...###.", "E...#.#...E", "##.#.@.#.##", "...#...#...", ".@@.....@@.", "...##.##...", "##.#...#.##", "...........", ".###.@.###.", "...#...#...", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Канал", waves: "RRSSRGRSGRRSGR", rows: ["E....E....E", ".#.......#.", ".###.#.###.", ".....#.....", "%%.......%%", "%%.@@.@@.%%", "%%.@@.@@.%%", "E.........E", ".~~~...~~~.", ".~~~.#.~~~.", ".~~~.#.~~~.", "...........", "###.###.###", "...........", ".@.#.P.#.@.", ".@.#####.@.", "....#B#...."] },
+  { name: "Мазутный двор", waves: "SSRGSMGRHSRMSRGH", rows: ["E..#.E.#..E", "##.......##", ".#.##.##.#.", "...........", ".@@..@..@@.", "E@@.###.@@E", "....###....", "##...@...##", "...==.==...", ".##==.==##.", "...==.==...", "%%.==.==.%%", "%%.......%%", "%%.#...#.%%", "...#.P.#...", ".#########.", "....#B#...."] },
+  { name: "Узкие проходы", waves: "GRSHGMSHGRSMHRSGRM", rows: ["E....E....E", ".@@#...#@@.", "...#.@.#...", "##.#...#.##", ".....#.....", "E.%%...%%.E", "~~%%@@@%%~~", "~~%%@@@%%~~", "..%%...%%..", ".....#.....", "##.#...#.##", "...#.@.#...", ".###.@.###.", "...........", "@@...P...@@", ".##.###.##.", "....#B#...."] },
+  { name: "Последний заслон", waves: "HSGHRMSHRGHMGRHGSMGX", rows: ["E....E....E", ".##.#@#.##.", "...........", "##.%%.%%.##", "...%%.%%...", "E@#%%#%%#@E", "=@.......@=", "=..@@.@@..=", "=..@@.@@..=", "=@.......@=", ".@#%%#%%#@.", "...%%.%%...", "##.%%.%%.##", "...........", ".@~~.P.~~@.", ".@~~###~~@.", "....#B#...."] },
+  { name: "Перекрёсток", waves: "RRSGRMFRRHSMRF", rows: ["E....E....E", ".#.#...#.#.", ".#.#.@.#.#.", "...........", "@@.##.##.@@", "E..#...#..E", ".#...%...#.", ".#.%%%%%.#.", "...%%@%%...", ".#.%%%%%.#.", ".#...%...#.", "...#...#...", "@@.##.##.@@", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Речной брод", waves: "SRGSRMFRSGRMHF", rows: ["E....E....E", "...#...#...", ".@.#.#.#.@.", ".@.......@.", "E..~~.~~..E", "#..~~.~~..#", "#.........#", ".~~.###.~~.", ".~~.....~~.", "....#.#....", ".##.#.#.##.", "...........", "~~.@...@.~~", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Скользкий склон", waves: "GSRKSMFSHGKMGFR", rows: ["E....E....E", ".##.....##.", "E..=====..E", ".@.=.#.=.@.", ".@.=.#.=.@.", "...=====...", "##.......##", "...#.@.#...", ".#.#...#.#.", ".#...=...#.", "...#=@=#...", ".....=.....", ".@##...##@.", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Лабиринт", waves: "HGSKGMFRGSKMGFHG", rows: ["E....E....E", ".@@@.#.@@@.", ".....#.....", ".#.@@@@@.#.", ".#.......#.", "E#.#.@.#.#E", "...#...#...", "@@.#.#.#.@@", ".....#.....", ".@@.....@@.", "...#.@.#...", ".#.#...#.#.", ".#.......#.", "...@@.@@...", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Логово", waves: "GSHKGMFRGSKMGFX", rows: ["E....E....E", "...........", ".@@.....@@.", ".@.......@.", "...#.#.#...", "E%%.....%%E", ".%%.@@@.%%.", ".%%.....%%.", "...#.#.#...", ".~~.....~~.", ".~~.#.#.~~.", "...........", "##.@...@.##", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Сеть", waves: "SSGKRMFHSRKMSFRH", rows: ["E....E....E", "%%%%...%%%%", "%#%%.#.%%#%", "%%%%...%%%%", "...........", "E@.%%%%%.@E", ".@.%#%#%.@.", "...%%%%%...", "##.......##", "...%%.%%...", ".#.%%#%%.#.", "...........", "%%.#...#.%%", "%%.......%%", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Бетонный пояс", waves: "HGHKRMFSGHKMGFSG", rows: ["E....E....E", ".#.......#.", ".#.@@.@@.#.", "...@...@...", "@@...#...@@", "E....#....E", ".@@@...@@@.", "...........", ".#.@@.@@.#.", ".#.......#.", "...#.@.#...", "@@.#...#.@@", ".....@.....", ".##.....##.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Затопленный квартал", waves: "GSGKSMFHSGKMRFHSG", rows: ["E....E....E", ".##.~~~.##.", ".#..~~~..#.", "....~~~....", ".~~.....~~.", "E~~.#.#.~~E", "....#.#....", "##.......##", "...~~.~~...", ".#.~~.~~.#.", ".#.......#.", "...#.@.#...", "~~.#...#.~~", "...........", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Мазутный порт", waves: "HSGKSMFHSGKMGFRSG", rows: ["E....E....E", ".==.....==.", ".==.#.#.==.", "....#.#....", ".@.=====.@.", "E..=.@.=..E", ".#.=...=.#.", ".#.=====.#.", "...........", "##.@=.=@.##", "...=...=...", ".#.=.#.=.#.", ".#.......#.", "...@...@...", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Стальная крепость", waves: "HGSKGMFRGSKMSFGX", rows: ["E....E....E", "...........", ".@@#...#@@.", ".@.......@.", ".@.##@##.@.", "E..#...#..E", ".....@.....", "@@.#...#.@@", "...#.#.#...", ".%%.....%%.", ".%%.@.@.%%.", "...........", ".@#.....#@.", ".@.......@.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Ущелье", waves: "GHSKHMFHRGKMGFHGH", rows: ["E....E....E", ".@.......@.", ".@@.#.#.@@.", ".@@.....@@.", ".@@.@.@.@@.", "E...#.#...E", ".@@.....@@.", ".@@.#.#.@@.", "....%.%....", ".@@.%.%.@@.", ".@@.....@@.", "....#.#....", ".@@.....@@.", ".@...@...@.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Острова", waves: "SHGKHMFHGRKMGFHGSK", rows: ["E....E....E", ".~~.....~~.", ".~#.#.#.#~.", "...........", "~~.@@.@@.~~", "~~.......~~", "E.#.~~~.#.E", "..#.~@~.#..", "..#.~~~.#..", "~~.......~~", "~~.@@.@@.~~", "...........", ".~#.#.#.#~.", ".~~.....~~.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Минное поле", waves: "HHGKHMFHGHKMHFGHGK", rows: ["E....E....E", ".#.#.#.#.#.", "...........", "#.=.#.#.=.#", "..=.....=..", "E#=#.@.#=#E", "...........", "=.#.=.=.#.=", "..#.....#..", ".@..#=#..@.", "....=.=....", ".#.#...#.#.", "...........", "=.#.@.@.#.=", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Последняя линия", waves: "HGHKGMFSHGKMGFSGHKH", rows: ["E....E....E", ".@.#.#.#.@.", ".@.......@.", "...@%%%@...", ".#.%%%%%.#.", "E#.%%@%%.#E", "...%%%%%...", "@@.......@@", "...#~~~#...", ".#.#~~~#.#.", ".#.......#.", "...@#.#@...", ".@.......@.", ".@.#...#.@.", ".#...P...#.", ".##.###.##.", "....#B#...."] },
+  { name: "Сердце реактора", waves: "HGSKGMFGHGKMGFSGHKX", rows: ["E....E....E", "...........", ".@@.@.@.@@.", "...........", ".#%%.#.%%#.", "E#%%...%%#E", "...........", "@@.@#.#@.@@", ".....@.....", ".~~.....~~.", ".~~.#.#.~~.", "...........", ".@.%%.%%.@.", ".@.......@.", ".#...P...#.", ".##.###.##.", "....#B#...."] }
 ];
 const SURVIVAL = { name: "Арена", waves: "", rows: ["E....E....E", "...........", ".@.#...#.@.", "...#.@.#...", ".##.....##.", "E....%....E", ".@.%%%%%.@.", "...%.@.%...", ".#.%%%%%.#.", ".#...%...#.", "E.........E", ".@@.#.#.@@.", ".....#.....", ".#.......#.", ".#...P...#.", ".##.###.##.", "....#B#...."] };
+const TUTORIAL = { name: "Обучение", waves: "", rows: [".....E.....", "...........", "..#.....#..", "...........", ".....%.....", "....%%%....", "...........", "..~~...~~..", "...........", "....###....", "...........", "..@.....@..", "...........", "....#.#....", ".....P.....", "...........", "....#B#...."] };
 const ASSAULT = [
   { name: "Передовой пост", waves: "RRSRGRSR", rows: ["E.........E", "...#.C.#...", "...#####...", ".T.......T.", "...........", ".##.....##.", "....%%%....", ".@..%%%..@.", "...........", "##.##.##.##", "...........", ".%%.....%%.", ".%%.#.#.%%.", "...........", ".#.......#.", "...........", ".....P....."] },
   { name: "Мостовая застава", waves: "RSGRMSRGRS", rows: ["E....@....E", "..#.#C#.#..", "..#.....#..", "....T.T....", ".@.......@.", "...........", "~~~.~~~.~~~", "~~~.~~~.~~~", "...........", ".#.......#.", ".#.%%.%%.#.", "...%%.%%...", "...........", ".@@.#.#.@@.", "...........", ".#...P...#.", "..........."] },
@@ -380,8 +387,9 @@ function Sim() {
   s.superReady = () => s.charge >= s.need;
   s.boss = () => s.enemies.find(e => e.kind === "X") || null;
   s.isBossLevel = () => s.mode === "survival" ? s.wave % TUNE.bossEvery === 0 : s.waves.includes("X");
-  s.baseMax = () => s.mode === "survival" ? TUNE.survivalBaseHp : 1;
+  s.baseMax = () => s.mode === "campaign" || s.mode === "survival" ? TUNE.reactorHp : 1;
   s.levelName = () => s.mode === "survival" ? "Выживание, волна " + s.wave
+    : s.mode === "tutorial" ? "Обучение"
     : s.mode === "assault" ? "Штурм " + (s.level + 1) + ". " + ASSAULT[s.level].name : (s.level + 1) + ". " + LEVELS[s.level].name;
   s.mapCount = () => s.mode === "assault" ? ASSAULT.length : LEVELS.length;
   s.bulletSpeed = () => TUNE.gunSpeed[s.stats[1]] + (s.star >= 1 ? TUNE.starBoost : 0);
@@ -414,6 +422,20 @@ function Sim() {
     Object.assign(s, { mode: "assault", stats: stats.slice(), tank: tank || "guard", score: 0, lives: TUNE.lives, parts: 0 });
     s.load(index);
   };
+  // The tutorial: a calm map where nothing is lost. Enemies come only through spawnNow and never fire,
+  // the reactor cannot be hit, lost tanks cost no lives, and the map never ends by itself.
+  s.startTutorial = function (stats, tank) {
+    Object.assign(s, { mode: "tutorial", stats: stats.slice(), tank: tank || "guard", score: 0, lives: TUNE.lives, parts: 0, level: 0, smart: 0 });
+    loadMap(TUTORIAL.rows, "");
+    s.need = needFor(superNeed(0));
+  };
+  s.spawnNow = function (kind) {
+    Object.assign(s, { waves: kind, cursor: 0, spawnTimer: 0 });
+    updateSpawner(0);
+    Object.assign(s, { waves: "", cursor: 0 });
+  };
+  s.placeBonus = (kind, x, y) => { s.bonus = { kind, x, y, timer: TUNE.bonusLife * 3 }; };
+  s.finishTutorial = () => { if (s.mode === "tutorial" && s.phase === "playing") s.phase = "victory"; };
   // Endless waves on the arena, with a choice of upgrade after each one.
   s.startSurvival = function (stats, tank) {
     Object.assign(s, { mode: "survival", stats: stats.slice(), tank: tank || "guard", score: 0, lives: TUNE.lives, parts: 0, superCut: 0, wave: 1, level: 0 });
@@ -484,7 +506,8 @@ function Sim() {
     spawnPlayer();
   }
   s.newGame = function () { s.startCampaign(0, s.stats, s.tank); };
-  s.next = function () { if (s.level + 1 < s.mapCount()) s.load(s.level + 1); };
+  // The next map starts fresh: full hearts, whatever was lost on the last one.
+  s.next = function () { if (s.level + 1 < s.mapCount()) { s.lives = TUNE.lives; s.load(s.level + 1); } };
 
   function spawnPlayer() {
     s.player = { id: s.nextId++, isPlayer: true, kind: "P", x: s.spawnX + .5, y: s.spawnY + .5, dir: Up, speed: s.driveSpeed(), hp: s.maxHp(), maxHp: s.maxHp(), hurt: 0, alive: true, moving: false, shield: TUNE.respawnShield, spawn: 0, cool: 0, slide: 0, carrier: false };
@@ -653,7 +676,8 @@ function Sim() {
     p.alive = false;
     p.hp = 0;
     emit("playerDown", p.x, p.y);
-    s.lives--; s.livesLost++; s.star = 0; s.starTimer = 0; s.cloak = 0;
+    if (s.mode !== "tutorial") s.lives--;
+    s.livesLost++; s.star = 0; s.starTimer = 0; s.cloak = 0;
     s.respawnTimer = TUNE.respawn;
     if (s.lives <= 0) { s.phase = "over"; s.reason = "lives"; }
   }
@@ -860,6 +884,7 @@ function Sim() {
     if (e.kind === "K") { ramCheck(e); return; }
     if (e.kind === "M") layMine(e, dt, atCentre);
     if (e.kind === "F") mendAround(e, dt);
+    if (s.mode === "tutorial") return;
     const lined = targetInLine(e) || (s.smart > 0 && crateAhead(e));
     e.fireIn -= lined ? dt * 3 : dt;
     if (e.kind === "X") {
@@ -995,6 +1020,7 @@ function Sim() {
     if (e.hp > 0) emit("tankHit", e.x, e.y); else destroyEnemy(e, charges);
   }
   function destroyBase(x, y) {
+    if (s.mode === "tutorial") return;
     if (s.baseHp > 1) { s.baseHp--; emit("baseHit", x + .5, y + .5); return; }
     s.baseHp = 0;
     s.tiles[x][y] = T.Empty;
@@ -1152,7 +1178,7 @@ function Sim() {
     updateMines(dt);
     updateSpawner(dt);
     updateBonus(dt);
-    if (s.phase === "playing" && s.left() <= 0) {
+    if (s.phase === "playing" && s.left() <= 0 && s.mode !== "tutorial") {
       s.clearTimer += dt;
       if (s.clearTimer >= TUNE.clearDelay) {
         if (s.mode === "survival") {
@@ -1816,7 +1842,7 @@ let state = "title", accumulator = 0, last = performance.now(), toastTimer = 0, 
 const SAVE_KEY = "steel-line-save";
 function loadSave() {
   const data = { unlocked: 0, parts: 0, upgrades: [0, 0, 0, 0], best: 0, bestWave: 0, difficulty: "Normal", sound: true, vibration: true,
-    tank: "guard", owned: ["guard"], stars: [], assaultUnlocked: 0, assaultStars: [], awards: [],
+    tank: "guard", owned: ["guard"], stars: [], assaultUnlocked: 0, assaultStars: [], awards: [], tutorialDone: false,
     counters: { kills: 0, bosses: 0, crates: 0, mines: 0, abilities: 0, turrets: 0, flawless: 0 } };
   let stored = null;
   try { stored = JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); } catch (e) { stored = null; }
@@ -2016,7 +2042,7 @@ function showTitle() {
   chips.appendChild(chip("star", sumStars(save.stars) + sumStars(save.assaultStars), "звёзд"));
   screen("Стальной рубеж", "",
     [["Кампания", showLevels, "play"], ["Штурм", showAssault, "assault"], ["Выживание", startSurvival, "wave"], ["Гараж", showGarage, "tank"],
-     ["Мастерская", showWorkshop, "wrench"], ["Награды", showAwards, "medal"], ["Настройки", () => showSettings(showTitle), "gear"]],
+     ["Мастерская", showWorkshop, "wrench"], ["Награды", showAwards, "medal"], ["Обучение", startTutorial, "star"], ["Настройки", () => showSettings(showTitle), "gear"]],
     null, true, { art: "menu", logo: true, above: chips });
 }
 function showLevels() {
@@ -2192,6 +2218,7 @@ function showSettings(back) {
   ], extra, true, { primary: 2, art: back === showTitle ? "menu" : pauseArt() });
 }
 function toMenu() {
+  endTutor();
   state = "title";
   sim.setDifficulty(save.difficulty);
   sim.startCampaign(save.unlocked, stats(), save.tank);
@@ -2213,12 +2240,14 @@ function beginBattle() {
   last = performance.now();
 }
 function startLevel(index) {
+  endTutor();
   if (index > save.unlocked) return;
   sim.setDifficulty(save.difficulty);
   sim.startCampaign(index, stats(), save.tank);
   beginBattle();
 }
 function startAssault(index) {
+  endTutor();
   if (index > save.assaultUnlocked) return;
   sim.setDifficulty(save.difficulty);
   sim.startAssault(index, stats(), save.tank);
@@ -2226,11 +2255,64 @@ function startAssault(index) {
 }
 function startGame() { startLevel(save.unlocked); }
 function startSurvival() {
+  endTutor();
   sim.setDifficulty(save.difficulty);
   sim.startSurvival(stats(), save.tank);
   beginBattle();
 }
-function retry() { if (sim.mode === "survival") startSurvival(); else if (sim.mode === "assault") startAssault(sim.level); else startLevel(sim.level); }
+// ---- Tutorial: one step at a time, each opened by doing the last one ----
+let tutor = null;
+const TUTOR_STEPS = [
+  () => "Двигайся: джойстик слева или стрелки / WASD. Проедь пару клеток.",
+  () => "Огонь: круглая кнопка справа или пробел. Разбей ящик перед собой, ему нужно два попадания.",
+  () => "Враг! Подбей его. Здесь враги не стреляют, в бою стреляют.",
+  () => "Из подсвеченных танков выпадают бонусы. Подъедь к бонусу, чтобы взять его.",
+  () => "Подбитые враги заряжают способность танка. Она заряжена: нажми «" + ABILITY_LABEL[sim.ability()] + "» внизу или E.",
+  () => "Береги реактор внизу: одно попадание в него, и бой проигран. Обучение пройдено!"
+];
+function startTutorial() {
+  sim.setDifficulty(save.difficulty);
+  sim.startTutorial(stats(), save.tank);
+  beginBattle();
+  tutor = { step: -1, wait: 0 };
+  tutorStep(0);
+}
+function tutorStep(n) {
+  tutor.step = n; tutor.wait = 0;
+  if (n === 2) sim.spawnNow("R");
+  if (n === 3) {
+    // A shield bonus two cells from the player, on a free cell.
+    const px = Math.floor(sim.player.x), py = Math.floor(sim.player.y);
+    for (const [dx, dy] of [[2, 0], [-2, 0], [0, -2], [2, -1], [-2, -1], [1, -2], [-1, -2], [0, 2]]) {
+      const x = px + dx, y = py + dy;
+      if (inBounds(x, y) && sim.tiles[x][y] === T.Empty) { sim.placeBonus("Shield", x, y); break; }
+    }
+  }
+  if (n === 4) sim.fillSuper();
+  $("tutor").hidden = false;
+  $("tutor").querySelector("small").textContent = "ОБУЧЕНИЕ · ШАГ " + (n + 1) + " ИЗ " + TUTOR_STEPS.length;
+  $("tutor").querySelector("span").textContent = TUTOR_STEPS[n]();
+  tone(660, 990, .12, .05, "triangle");
+}
+function tutorEvent(kind) {
+  if (!tutor) return;
+  if (tutor.step === 1 && kind === "crate") tutorStep(2);
+  else if (tutor.step === 2 && kind === "tankDown") tutorStep(3);
+  else if (tutor.step === 3 && kind === "pickup") tutorStep(4);
+  else if (tutor.step === 4 && kind === "super") tutorStep(5);
+}
+function updateTutor(dt) {
+  if (!tutor || sim.mode !== "tutorial") return;
+  tutor.wait += dt;
+  const p = sim.player;
+  if (tutor.step === 0 && p.alive && Math.hypot(p.x - sim.spawnX - .5, p.y - sim.spawnY - .5) > 1.5) tutorStep(1);
+  // The enemy may get lost behind the map; send another one after a while.
+  if (tutor.step === 2 && !sim.enemies.length && tutor.wait > 4) { sim.spawnNow("R"); tutor.wait = 0; }
+  if (tutor.step === 3 && !sim.bonus && tutor.wait > 1) tutorStep(3);
+  if (tutor.step === 5 && tutor.wait > 3.5) sim.finishTutorial();
+}
+function endTutor() { tutor = null; $("tutor").hidden = true; }
+function retry() { if (sim.mode === "tutorial") startTutorial(); else if (sim.mode === "survival") startSurvival(); else if (sim.mode === "assault") startAssault(sim.level); else startLevel(sim.level); }
 function nextLevel() {
   sim.next();
   beginBattle();
@@ -2263,6 +2345,7 @@ function showToast(text) { const t = $("toast"); t.textContent = text; t.classLi
 
 function handleEvents() {
   for (const e of sim.events) {
+    tutorEvent(e.kind);
     if (e.kind === "shot") { if (e.isPlayer) tone(620, 180, .09, .07); else tone(380, 140, .08, .025); }
     else if (e.kind === "tile") { refreshTile(sim, e.x, e.y); if (e.debris) burst(e.x + .5, e.y + .5, 0xA9713C, 5, 2.2); }
     else if (e.kind === "spark") { burst(e.x, e.y, 0xFFE9A8, 3, 1.6); tone(1400, 900, .05, .02); }
@@ -2335,7 +2418,7 @@ function updateHud() {
   } else if (sim.mode === "assault" && sim.coreMax) {
     bar.hidden = false; bar.firstChild.textContent = "ВРАЖЕСКИЙ РЕАКТОР " + sim.coreHp + "/" + sim.coreMax;
     bar.querySelector("b").style.width = Math.max(0, sim.coreHp / sim.coreMax * 100) + "%";
-  } else if (sim.mode === "survival") {
+  } else if (sim.mode === "survival" || sim.mode === "campaign") {
     bar.hidden = false; bar.firstChild.textContent = "РЕАКТОР " + sim.baseHp + "/" + sim.baseMax();
     bar.querySelector("b").style.width = sim.baseHp / sim.baseMax() * 100 + "%";
   } else bar.hidden = true;
@@ -2347,6 +2430,17 @@ function checkPhase() {
   save.parts += lastParts;
   save.best = Math.max(save.best, sim.score);
   const won = sim.phase === "cleared" || sim.phase === "victory";
+  if (sim.mode === "tutorial") {
+    const first = !save.tutorialDone;
+    if (first) { save.tutorialDone = true; save.parts += 10; lastParts += 10; }
+    writeSave();
+    endTutor();
+    setPlayingChrome(false);
+    state = "ended";
+    screen("Обучение пройдено", first ? "+10 деталей за первое прохождение. Удачи на рубеже!" : "Ты всё помнишь. Удачи на рубеже!",
+      [["Кампания", showLevels, "play"], ["В меню", toMenu, "home"]], null, false, { art: "victory", tone: "win" });
+    return;
+  }
   if (sim.mode === "survival") save.bestWave = Math.max(save.bestWave, sim.phase === "choice" ? sim.wave : sim.wave - 1);
   else if (sim.mode === "assault") {
     if (won) {
@@ -2417,6 +2511,7 @@ function frame(now) {
     accumulator += dt;
     while (accumulator >= STEP) { sim.tick(STEP, input); accumulator -= STEP; }
     handleEvents();
+    updateTutor(dt);
     updateHud();
     checkPhase();
   }
@@ -2426,7 +2521,7 @@ function frame(now) {
   renderer.render(scene, camera);
 }
 
-window.__steelLine = { sim, renderer, camera, get state() { return state; }, get save() { return save; }, startGame, startLevel, startSurvival, startAssault, showLevels, showAssault, showGarage, showAwards, showWorkshop, showSettings, writeSave, checkAwards };
+window.__steelLine = { sim, renderer, camera, get state() { return state; }, get save() { return save; }, get tutor() { return tutor; }, startGame, startLevel, startSurvival, startAssault, startTutorial, showLevels, showAssault, showGarage, showAwards, showWorkshop, showSettings, writeSave, checkAwards };
 // ---- Loading screen: the reactor charges while the player's tank circles it ----
 const SPLASH = { radius: 3, turnRate: 1.9, chargeSeconds: 2.4, turnSeconds: .25, shotSeconds: .55, topAngle: Math.PI * 1.5 };
 let splash = null;

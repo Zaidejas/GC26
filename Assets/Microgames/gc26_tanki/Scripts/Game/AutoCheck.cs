@@ -116,6 +116,17 @@ namespace GC26.Tanki.Game
                 yield return new WaitForSeconds(0.2f);
             }
 
+            // The tutorial's first step, with its hint.
+            game.StartTutorial();
+            yield return new WaitForSeconds(1f);
+            Debug.Log("TUTORIAL step=" + game.TutorialStep + " text=" + game.TutorialText);
+            ScreenCapture.CaptureScreenshot(Path.Combine(folder, "tutorial.png"));
+            yield return new WaitForSeconds(0.3f);
+            game.ToMenu();
+            yield return new WaitForSeconds(0.4f);
+            ScreenCapture.CaptureScreenshot(Path.Combine(folder, "menu_tutorial.png"));
+            yield return new WaitForSeconds(0.2f);
+
             // An assault with the Bastion, and its dome.
             game.ChooseTank(Rules.PlayerTank.Bastion);
             game.StartAssault(0);

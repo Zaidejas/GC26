@@ -29,6 +29,30 @@ namespace GC26.Tanki.Game
         public float ToastTimer { get; private set; }
         readonly System.Collections.Generic.Queue<string> toasts = new System.Collections.Generic.Queue<string>();
 
+        // ---- Tutorial: one step at a time, each opened by doing the last one ----
+        public const int TutorialSteps = 6;
+        /// <summary>The current tutorial step from 0, or -1 when no tutorial runs.</summary>
+        public int TutorialStep { get; private set; } = -1;
+        public bool TutorialFirstWin { get; private set; }
+        float tutorialWait;
+
+        public string TutorialText
+        {
+            get
+            {
+                switch (TutorialStep)
+                {
+                    case 0: return "Двигайся: джойстик слева или стрелки / WASD. Проедь пару клеток.";
+                    case 1: return "Огонь: круглая кнопка справа или пробел. Разбей ящик перед собой, ему нужно два попадания.";
+                    case 2: return "Враг! Подбей его. Здесь враги не стреляют, в бою стреляют.";
+                    case 3: return "Из подсвеченных танков выпадают бонусы. Подъедь к бонусу, чтобы взять его.";
+                    case 4: return "Подбитые враги заряжают способность танка. Она заряжена: нажми «" + AbilityLabel(Sim.Ability) + "» внизу или E.";
+                    case 5: return "Береги реактор внизу: одно попадание в него, и бой проигран. Обучение пройдено!";
+                    default: return null;
+                }
+            }
+        }
+
         /// <summary>Parts earned on the level or wave that just ended, for the results screen.</summary>
         public int LastParts { get; private set; }
 
@@ -115,6 +139,7 @@ namespace GC26.Tanki.Game
             }
 
             HandleEvents();
+            UpdateTutorial(Time.deltaTime);
             world.Sync(Sim, Time.deltaTime);
             UpdateShake();
             NoticePhaseChange();
@@ -127,6 +152,7 @@ namespace GC26.Tanki.Game
         {
             foreach (GameEvent item in Sim.Events)
             {
+                TutorialEvent(item.Kind);
                 switch (item.Kind)
                 {
                     case GameEventKind.Shot:
@@ -294,6 +320,57 @@ namespace GC26.Tanki.Game
 #endif
         }
 
+        public void StartTutorial()
+        {
+            Sim.SetDifficulty(ChosenDifficulty);
+            Sim.StartTutorial(Save.Stats(), Save.ChosenTank);
+            BeginBattle();
+            SetTutorialStep(0);
+        }
+
+        void SetTutorialStep(int step)
+        {
+            TutorialStep = step;
+            tutorialWait = 0f;
+            if (step == 2) Sim.SpawnNow(EnemyKind.Raider);
+            if (step == 3)
+            {
+                // A shield bonus two cells from the player, on a free cell.
+                int px = Mathf.FloorToInt(Sim.Player.X), py = Mathf.FloorToInt(Sim.Player.Y);
+                int[,] offsets = { { 2, 0 }, { -2, 0 }, { 0, -2 }, { 2, -1 }, { -2, -1 }, { 1, -2 }, { -1, -2 }, { 0, 2 } };
+                for (int i = 0; i < offsets.GetLength(0); i++)
+                {
+                    int x = px + offsets[i, 0], y = py + offsets[i, 1];
+                    if (x < 0 || y < 0 || x >= Levels.Width || y >= Levels.Height || Sim.Tiles[x, y] != Tile.Empty) continue;
+                    Sim.PlaceBonus(BonusKind.Shield, x, y);
+                    break;
+                }
+            }
+            if (step == 4) Sim.FillSuper();
+            Sound.Pickup();
+        }
+
+        void TutorialEvent(GameEventKind kind)
+        {
+            if (TutorialStep < 0) return;
+            if (TutorialStep == 1 && kind == GameEventKind.CrateBroken) SetTutorialStep(2);
+            else if (TutorialStep == 2 && kind == GameEventKind.TankDestroyed) SetTutorialStep(3);
+            else if (TutorialStep == 3 && kind == GameEventKind.BonusTaken) SetTutorialStep(4);
+            else if (TutorialStep == 4 && (kind == GameEventKind.SuperStrike || kind == GameEventKind.Volley || kind == GameEventKind.Dome || kind == GameEventKind.Dash)) SetTutorialStep(5);
+        }
+
+        void UpdateTutorial(float dt)
+        {
+            if (TutorialStep < 0 || Sim.Mode != GameMode.Tutorial) return;
+            tutorialWait += dt;
+            Tank p = Sim.Player;
+            if (TutorialStep == 0 && p.Alive && Vector2.Distance(new Vector2(p.X, p.Y), new Vector2(7f - 1.5f, 14.5f)) > 1.5f) SetTutorialStep(1);
+            // The enemy may get lost; send another one after a while.
+            if (TutorialStep == 2 && Sim.Enemies.Count == 0 && tutorialWait > 4f) { Sim.SpawnNow(EnemyKind.Raider); tutorialWait = 0f; }
+            if (TutorialStep == 3 && Sim.Bonus == null && tutorialWait > 1f) SetTutorialStep(3);
+            if (TutorialStep == 5 && tutorialWait > 3.5f) Sim.FinishTutorial();
+        }
+
         public static string AbilityName(Ability ability)
         {
             switch (ability)
@@ -333,6 +410,19 @@ namespace GC26.Tanki.Game
                 Save.BestWave = Mathf.Max(Save.BestWave, reached);
             }
             bool won = phase == GamePhase.LevelCleared || phase == GamePhase.Victory;
+            if (Sim.Mode == GameMode.Tutorial)
+            {
+                TutorialStep = -1;
+                TutorialFirstWin = !Save.TutorialDone;
+                if (TutorialFirstWin)
+                {
+                    Save.TutorialDone = true;
+                    Save.Parts += 10;
+                    LastParts += 10;
+                }
+                Save.Save();
+                return;
+            }
             if (won && Sim.Mode == GameMode.Assault)
             {
                 Save.AssaultStars[Sim.LevelIndex] = Mathf.Max(Save.AssaultStars[Sim.LevelIndex], Sim.StarsWon);
@@ -380,6 +470,7 @@ namespace GC26.Tanki.Game
 
         void BeginBattle()
         {
+            TutorialStep = -1;
             Page = Page.Game;
             Paused = false;
             ToastTimer = 0f;
@@ -432,7 +523,8 @@ namespace GC26.Tanki.Game
 
         public void Retry()
         {
-            if (Sim.Mode == GameMode.Survival) StartSurvival();
+            if (Sim.Mode == GameMode.Tutorial) StartTutorial();
+            else if (Sim.Mode == GameMode.Survival) StartSurvival();
             else if (Sim.Mode == GameMode.Assault) StartAssault(Sim.LevelIndex);
             else StartLevel(Sim.LevelIndex);
         }
@@ -484,6 +576,7 @@ namespace GC26.Tanki.Game
 
         public void ToMenu()
         {
+            TutorialStep = -1;
             Page = Page.Menu;
             Paused = false;
             Sim.SetDifficulty(ChosenDifficulty);

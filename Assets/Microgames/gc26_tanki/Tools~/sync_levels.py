@@ -1,4 +1,4 @@
-"""Keeps the maps in one place: Scripts/Rules/Levels.cs is the source for the campaign and the arena,
+"""Keeps the maps in one place: Scripts/Rules/Levels.cs is the source for the campaign, the arena and the tutorial,
 Tools~/assault_maps.txt for the assault maps. This script checks the assault maps, writes them into
 Levels.cs, and copies every map into the browser version (Web~/steel-line.html).
 
@@ -122,14 +122,16 @@ def main():
 
     levels = parse_cs_levels(cs)
     names = {a[0] for a in assault}
-    campaign = [l for l in levels if l[0] != "Арена" and l[0] not in names]
+    campaign = [l for l in levels if l[0] not in ("Арена", "Обучение") and l[0] not in names]
     arena = next(l for l in levels if l[0] == "Арена")
+    tutorial = next(l for l in levels if l[0] == "Обучение")
     js = "\n".join([
         JS_START,
         "const LEVELS = [",
         ",\n".join("  " + js_map(*l) for l in campaign),
         "];",
         "const SURVIVAL = " + js_map(*arena) + ";",
+        "const TUTORIAL = " + js_map(*tutorial) + ";",
         "const ASSAULT = [",
         ",\n".join("  " + js_map(*a) for a in assault),
         "];",

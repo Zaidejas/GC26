@@ -12,7 +12,7 @@ namespace GC26.Tanki.Rules
 
     public enum GamePhase { Playing, LevelCleared, GameOver, Victory, WaveCleared }
 
-    public enum GameMode { Campaign, Survival, Assault }
+    public enum GameMode { Campaign, Survival, Assault, Tutorial }
 
     /// <summary>The four things the player can improve in the workshop, and in survival after each wave.</summary>
     public enum Stat { Armor, Gun, FireRate, Speed }
@@ -317,8 +317,9 @@ namespace GC26.Tanki.Rules
         public const float ClearDelay = 1.2f;
 
         public const int CrateHp = 2;
-        /// <summary>In survival the reactor takes this many hits; elsewhere one hit ends the game.</summary>
-        public const int SurvivalBaseHp = 3;
+        /// <summary>Hits our reactor takes in the campaign and survival.</summary>
+        public const int ReactorHp = 3;
+        public const int SurvivalBaseHp = ReactorHp;
         public const int BonusScore = 500;
 
         // New enemies: the miner leaves mines, the fixer mends the tanks around it, the rammer blows itself up.

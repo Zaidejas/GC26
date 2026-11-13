@@ -17,7 +17,7 @@ static class Program
         Test("a crate takes two ordinary hits", CrateTakesTwoHits);
         Test("concrete stops a shot until the top upgrade", ConcreteNeedsTopUpgrade);
         Test("shots cross water and tanks cannot", WaterStopsTanksOnly);
-        Test("a hit on the base ends the game", BaseHitEndsGame);
+        Test("the third hit on the base ends the game", BaseHitEndsGame);
         Test("the player keeps sliding on oil and stops on sand", OilSlides);
         Test("a turn requested before a junction happens at the junction", TurnIsBuffered);
         Test("opposing shots cancel each other", ShotsCancel);
@@ -58,6 +58,9 @@ static class Program
         Test("stars count the win, no tank lost and the par time", StarsAreEarned);
         Test("bot assaults with every tank keep every invariant", AssaultBotRuns);
         Test("in survival the reactor takes three hits and the arena has side gates", SurvivalReactorLasts);
+        Test("the tutorial loses nothing and ends only when told", TutorialIsSafe);
+        Test("campaign maps have gates on both sides", CampaignHasSideGates);
+        Test("the next level starts with full hearts", NextLevelRefillsHearts);
 
         Console.WriteLine(failures == 0 ? "ALL PASSED" : failures + " FAILED");
         return failures == 0 ? 0 : 1;
@@ -220,8 +223,14 @@ static class Program
         var sim = Sim("");
         sim.Player.X = 0.5f;
         sim.Player.Y = 7.5f;
+        // The reactor takes three hits now; the last one ends the game.
+        for (int hit = 1; hit < Tuning.ReactorHp; hit++)
+        {
+            Shoot(sim, Dir.Down);
+            Check(sim.Phase == GamePhase.Playing && sim.Tiles[0, 10] == Tile.Base, "the reactor holds after hit " + hit);
+        }
         Shoot(sim, Dir.Down);
-        Check(sim.Phase == GamePhase.GameOver, "own shot on the base should end the game");
+        Check(sim.Phase == GamePhase.GameOver, "the last hit on the base should end the game");
         Check(sim.Tiles[0, 10] == Tile.Empty, "base should be gone");
     }
 
@@ -1146,7 +1155,71 @@ static class Program
         Check(sim.Phase == GamePhase.GameOver && sim.BaseHp == 0, "the third hit ends the run");
 
         var campaign = Sim("");
-        Check(campaign.BaseHp == 1, "one hit in the campaign");
+        Check(campaign.BaseHp == Tuning.ReactorHp, "three hits in the campaign too");
+    }
+    static void TutorialIsSafe()
+    {
+        var sim = new GameSim(6);
+        sim.StartTutorial(new PlayerStats(), PlayerTank.Phantom);
+        Check(sim.Mode == GameMode.Tutorial && sim.LevelName == "Обучение", "tutorial mode");
+        Run(sim, 3f);
+        Check(sim.Phase == GamePhase.Playing && sim.Enemies.Count == 0, "no enemies and no end by itself");
+        sim.SpawnNow(EnemyKind.Raider);
+        Check(sim.Enemies.Count == 1, "an enemy on request");
+        sim.Player.ShieldTimer = 0f;
+        Run(sim, 8f);
+        Check(!sim.Bullets.Exists(b => !b.FromPlayer), "tutorial enemies never fire");
+        int lives = sim.Lives;
+        sim.Player.Hp = 1;
+        sim.Player.HurtTimer = 0f;
+        sim.Bullets.Add(new Bullet { OwnerId = -7, X = sim.Player.X, Y = sim.Player.Y, Dir = Dir.Up, Speed = 1f });
+        sim.Tick(Dt, default);
+        Check(sim.Lives == lives && sim.Phase == GamePhase.Playing, "a lost tank costs no life");
+        int x = sim.BaseX, y = sim.BaseY;
+        for (int i = 0; i < 5; i++)
+        {
+            sim.Bullets.Add(new Bullet { OwnerId = -7, X = x + 0.5f, Y = y + 0.02f, Dir = Dir.Down, Speed = 1f });
+            sim.Tick(Dt, default);
+        }
+        Check(sim.Tiles[x, y] == Tile.Base && sim.Phase == GamePhase.Playing, "the reactor cannot be hit in the tutorial");
+        sim.FinishTutorial();
+        Check(sim.Phase == GamePhase.Victory, "finished when told");
+    }
+
+    static void CampaignHasSideGates()
+    {
+        foreach (LevelDef level in Levels.All)
+        {
+            bool left = false, right = false;
+            for (int y = 1; y < Levels.Height; y++)
+            {
+                if (level.Rows[y][0] == 'E') left = true;
+                if (level.Rows[y][Levels.Width - 1] == 'E') right = true;
+            }
+            Check(left && right, level.Name + ": a gate on each side");
+        }
+    }
+    static void NextLevelRefillsHearts()
+    {
+        var sim = new GameSim(8);
+        sim.StartCampaign(0, new PlayerStats());
+        sim.ApplyBonus(BonusKind.Life);
+        sim.Player.ShieldTimer = 0f;
+        sim.Player.Hp = 1;
+        sim.Bullets.Add(new Bullet { OwnerId = -7, X = sim.Player.X, Y = sim.Player.Y, Dir = Dir.Up, Speed = 1f });
+        sim.Tick(Dt, default);
+        Check(sim.Lives == Tuning.StartLives, "one bonus life, one lost");
+        sim.Player.ShieldTimer = 0f;
+        Run(sim, Tuning.RespawnDelay + 0.2f);
+        sim.Player.ShieldTimer = 0f;
+        sim.Player.Hp = 1;
+        sim.Player.HurtTimer = 0f;
+        sim.Bullets.Add(new Bullet { OwnerId = -7, X = sim.Player.X, Y = sim.Player.Y, Dir = Dir.Up, Speed = 1f });
+        sim.Tick(Dt, default);
+        Check(sim.Lives == Tuning.StartLives - 1, "a heart down");
+        sim.NextLevel();
+        Check(sim.LevelIndex == 1 && sim.Lives == Tuning.StartLives, "full hearts on the next level, got " + sim.Lives);
+        Check(sim.Player.Hp == sim.MaxHp, "full health too");
     }
 }
 }
