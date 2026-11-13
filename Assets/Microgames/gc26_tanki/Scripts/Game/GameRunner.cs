@@ -153,17 +153,23 @@ namespace GC26.Tanki.Game
                     case GameEventKind.TankDestroyed:
                         Sound.Blast();
                         world.Burst(item.X, item.Y, WorldView.Hex("FF8A3D"), 18, 3.4f);
+                        bool boss = item.Enemy == EnemyKind.Boss;
+                        world.Smoke(item.X, item.Y, boss ? 10 : 5, boss ? 0.8f : 0.5f);
+                        world.Smoulder(item.X, item.Y, boss ? 5f : 2.5f);
                         shake = Mathf.Max(shake, 0.12f);
                         Save.Kills++;
                         if (item.Enemy == EnemyKind.Boss) Save.Bosses++;
                         break;
                     case GameEventKind.PlayerDestroyed:
+                        world.Smoke(item.X, item.Y, 7, 0.55f);
+                        world.Smoulder(item.X, item.Y, 3f);
                         Sound.BigBlast();
                         world.Burst(item.X, item.Y, WorldView.Hex("6FF2E0"), 24, 3.8f);
                         shake = Mathf.Max(shake, 0.3f);
                         Vibrate();
                         break;
                     case GameEventKind.BaseHit:
+                        world.Smoke(item.X, item.Y, 5, 0.5f);
                         Sound.BigBlast();
                         world.Burst(item.X, item.Y, WorldView.Hex("6FF2E0"), 20, 3.4f);
                         shake = Mathf.Max(shake, 0.35f);
@@ -171,6 +177,8 @@ namespace GC26.Tanki.Game
                         ShowToast("Реактор повреждён: осталось " + Sim.BaseHp);
                         break;
                     case GameEventKind.BaseDestroyed:
+                        world.Smoke(item.X, item.Y, 12, 0.9f);
+                        world.Smoulder(item.X, item.Y, 8f);
                         Sound.BigBlast();
                         world.Burst(item.X, item.Y, WorldView.Hex("6FF2E0"), 40, 5f);
                         shake = 0.5f;
@@ -219,6 +227,7 @@ namespace GC26.Tanki.Game
                         Save.Abilities++;
                         break;
                     case GameEventKind.MineBlast:
+                        world.Smoke(item.X, item.Y, 3, 0.4f);
                         Sound.Blast();
                         world.Burst(item.X, item.Y, WorldView.Hex("FF5A3C"), 16, 3.2f);
                         world.Ring(item.X, item.Y, WorldView.Hex("FF5A3C"), 1.2f, 0.4f);
@@ -235,6 +244,8 @@ namespace GC26.Tanki.Game
                         world.Burst(item.X, item.Y, WorldView.Hex("7CE05A"), 4, 1.2f);
                         break;
                     case GameEventKind.RamBlast:
+                        world.Smoke(item.X, item.Y, 8, 0.7f);
+                        world.Smoulder(item.X, item.Y, 2f);
                         Sound.BigBlast();
                         world.Burst(item.X, item.Y, WorldView.Hex("FF7A2A"), 26, 4f);
                         world.Ring(item.X, item.Y, WorldView.Hex("FF7A2A"), Tuning.RamBlast + 0.4f, 0.5f);
@@ -249,12 +260,16 @@ namespace GC26.Tanki.Game
                         world.Burst(item.X, item.Y, WorldView.Hex("FF5A3C"), 6, 2.2f);
                         break;
                     case GameEventKind.TurretDestroyed:
+                        world.Smoke(item.X, item.Y, 6, 0.6f);
+                        world.Smoulder(item.X, item.Y, 4f);
                         Sound.Blast();
                         world.Burst(item.X, item.Y, WorldView.Hex("FF5A3C"), 20, 3.6f);
                         shake = Mathf.Max(shake, 0.2f);
                         Save.Turrets++;
                         break;
                     case GameEventKind.CoreDestroyed:
+                        world.Smoke(item.X, item.Y, 14, 1f);
+                        world.Smoulder(item.X, item.Y, 10f);
                         Sound.BigBlast();
                         world.Burst(item.X, item.Y, WorldView.Hex("FF5A3C"), 50, 5.5f);
                         world.Ring(item.X, item.Y, WorldView.Hex("FF5A3C"), 5f, 0.9f);

@@ -56,6 +56,32 @@ namespace GC26.Tanki.Game
         Material[] trackMaterials;
         readonly Queue<TrackMark> tracks = new Queue<TrackMark>();
 
+        // Smoke: puffs that rise, swell and fade after blasts, and wrecks that keep smoking for a while.
+        const int PuffMax = 160;
+        const int PuffShades = 8;
+        Material[] puffMaterials;
+        Mesh puffMesh;
+        readonly List<Puff> puffs = new List<Puff>();
+        readonly List<Smoker> smokers = new List<Smoker>();
+
+        sealed class Puff
+        {
+            public Transform Item;
+            public Renderer Renderer;
+            public Vector3 Velocity;
+            public float Age;
+            public float Life;
+            public float Size;
+        }
+
+        sealed class Smoker
+        {
+            public float X;
+            public float Y;
+            public float Life;
+            public float Next;
+        }
+
         sealed class TrackMark
         {
             public Transform Item;
@@ -173,6 +199,9 @@ namespace GC26.Tanki.Game
             glints.Clear();
             foreach (TrackMark mark in tracks) Kill(mark.Item.gameObject);
             tracks.Clear();
+            foreach (Puff puff in puffs) Kill(puff.Item.gameObject);
+            puffs.Clear();
+            smokers.Clear();
             foreach (RingEffect ring in rings) { Kill(ring.Item.gameObject); Kill(ring.Material); }
             rings.Clear();
             System.Array.Clear(tiles, 0, tiles.Length);
@@ -331,6 +360,82 @@ namespace GC26.Tanki.Game
             }
         }
 
+        public void Smoke(float x, float y, int count, float size)
+        {
+            if (puffMaterials == null)
+            {
+                puffMaterials = new Material[PuffShades];
+                for (int i = 0; i < PuffShades; i++)
+                {
+                    puffMaterials[i] = new Material(ghostMaterial) { color = new Color(0.29f, 0.27f, 0.28f, 0.55f * (1f - i / (float)PuffShades)) };
+                    puffMaterials[i].SetColor("_EmissionColor", Color.black);
+                }
+                var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                puffMesh = sphere.GetComponent<MeshFilter>().sharedMesh;
+                Kill(sphere);
+            }
+            for (int i = 0; i < count; i++)
+            {
+                if (puffs.Count >= PuffMax)
+                {
+                    Kill(puffs[0].Item.gameObject);
+                    puffs.RemoveAt(0);
+                }
+                var item = new GameObject("Smoke");
+                item.transform.SetParent(root, false);
+                item.transform.position = ToWorld(x + Random.Range(-0.3f, 0.3f), y + Random.Range(-0.3f, 0.3f), 0.3f + Random.Range(0f, 0.2f));
+                item.AddComponent<MeshFilter>().sharedMesh = puffMesh;
+                var renderer = item.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = puffMaterials[0];
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                puffs.Add(new Puff
+                {
+                    Item = item.transform,
+                    Renderer = renderer,
+                    Velocity = new Vector3(Random.Range(-0.15f, 0.15f), Random.Range(0.5f, 1f), Random.Range(-0.15f, 0.15f)),
+                    Life = Random.Range(1f, 1.6f),
+                    Size = size * Random.Range(0.7f, 1.2f)
+                });
+            }
+        }
+
+        /// <summary>Keeps a spot smoking for a while, like a burning wreck.</summary>
+        public void Smoulder(float x, float y, float seconds)
+        {
+            smokers.Add(new Smoker { X = x, Y = y, Life = seconds });
+        }
+
+        void SyncSmoke(float dt)
+        {
+            for (int i = smokers.Count - 1; i >= 0; i--)
+            {
+                Smoker smoker = smokers[i];
+                smoker.Life -= dt;
+                smoker.Next -= dt;
+                if (smoker.Next <= 0f)
+                {
+                    Smoke(smoker.X, smoker.Y, 1, 0.32f);
+                    smoker.Next = 0.18f;
+                }
+                if (smoker.Life <= 0f) smokers.RemoveAt(i);
+            }
+            for (int i = puffs.Count - 1; i >= 0; i--)
+            {
+                Puff puff = puffs[i];
+                puff.Age += dt;
+                if (puff.Age >= puff.Life)
+                {
+                    Kill(puff.Item.gameObject);
+                    puffs.RemoveAt(i);
+                    continue;
+                }
+                float k = puff.Age / puff.Life;
+                puff.Item.position += puff.Velocity * dt;
+                puff.Item.localScale = Vector3.one * (puff.Size * (0.5f + k));
+                puff.Renderer.sharedMaterial = puffMaterials[Mathf.Min(PuffShades - 1, (int)(k * PuffShades))];
+            }
+        }
+
         void SyncWater()
         {
             if (waterMaterial == null) return;
@@ -400,6 +505,7 @@ namespace GC26.Tanki.Game
             UpdateRings(dt);
             SyncWater();
             SyncTracks(dt);
+            SyncSmoke(dt);
 
             if (reactorCore != null)
             {

@@ -1370,6 +1370,8 @@ function buildLevel(sim) {
   glints = [];
   for (const t of tracks) worldRoot.remove(t.m);
   tracks = [];
+  for (const p of puffs) worldRoot.remove(p.m);
+  puffs = []; smokers = [];
   beams = [];
   if (bonusView) worldRoot.remove(bonusView);
   bonusView = null; reactorCore = null;
@@ -1515,6 +1517,41 @@ function syncTracks(dt) {
     t.m.material = trackMats[Math.min(TRACK_SHADES - 1, Math.floor(t.age / TRACK_LIFE * TRACK_SHADES))];
   }
 }
+// Smoke: puffs that rise, swell and fade after blasts, and wrecks that keep smoking for a while.
+const PUFF_MAX = 160, PUFF_SHADES = 8;
+const puffGeo = new THREE.IcosahedronGeometry(.5, 0);
+const puffMats = [];
+for (let i = 0; i < PUFF_SHADES; i++) puffMats.push(new THREE.MeshLambertMaterial({ color: 0x4A4448, transparent: true, opacity: .55 * (1 - i / PUFF_SHADES), depthWrite: false }));
+let puffs = [], smokers = [];
+function smoke(x, y, count, size) {
+  for (let i = 0; i < count; i++) {
+    if (puffs.length >= PUFF_MAX) worldRoot.remove(puffs.shift().m);
+    const m = new THREE.Mesh(puffGeo, puffMats[0]);
+    m.position.set(x + rnd(-.3, .3), .3 + rnd(0, .2), y + rnd(-.3, .3));
+    m.rotation.set(rnd(0, 3), rnd(0, 3), 0);
+    worldRoot.add(m);
+    puffs.push({ m, age: 0, life: rnd(1, 1.6), size: size * rnd(.7, 1.2), vy: rnd(.5, 1), vx: rnd(-.15, .15), vz: rnd(-.15, .15) });
+  }
+}
+function smoulder(x, y, seconds) { smokers.push({ x, y, life: seconds, next: 0 }); }
+function syncSmoke(dt) {
+  for (let i = smokers.length - 1; i >= 0; i--) {
+    const s = smokers[i];
+    s.life -= dt; s.next -= dt;
+    if (s.next <= 0) { smoke(s.x, s.y, 1, .32); s.next = .18; }
+    if (s.life <= 0) smokers.splice(i, 1);
+  }
+  for (let i = puffs.length - 1; i >= 0; i--) {
+    const p = puffs[i];
+    p.age += dt;
+    if (p.age >= p.life) { worldRoot.remove(p.m); puffs.splice(i, 1); continue; }
+    const k = p.age / p.life;
+    p.m.position.x += p.vx * dt; p.m.position.y += p.vy * dt; p.m.position.z += p.vz * dt;
+    p.m.scale.setScalar(p.size * (.5 + k));
+    p.m.rotation.y += dt * .8;
+    p.m.material = puffMats[Math.min(PUFF_SHADES - 1, Math.floor(k * PUFF_SHADES))];
+  }
+}
 function syncTank(tank, dt) {
   let v = tankViews.get(tank), first = false;
   if (!v) { v = buildTank(tank); tankViews.set(tank, v); first = true; }
@@ -1639,6 +1676,7 @@ function syncWorld(sim, dt) {
   }
   syncWater();
   syncTracks(dt);
+  syncSmoke(dt);
   if (reactorCore) {
     // The enemy reactor beats faster as it weakens.
     const rate = sim.mode === "assault" && sim.coreMax ? 3 + 9 * (1 - sim.coreHp / sim.coreMax) : 3;
@@ -2229,10 +2267,10 @@ function handleEvents() {
     else if (e.kind === "tile") { refreshTile(sim, e.x, e.y); if (e.debris) burst(e.x + .5, e.y + .5, 0xA9713C, 5, 2.2); }
     else if (e.kind === "spark") { burst(e.x, e.y, 0xFFE9A8, 3, 1.6); tone(1400, 900, .05, .02); }
     else if (e.kind === "tankHit") { burst(e.x, e.y, 0xFFB057, 8, 2.4); tone(900, 500, .07, .05); }
-    else if (e.kind === "tankDown") { burst(e.x, e.y, 0xFF8A3D, 18, 3.4); noise(.3, .22); shake = Math.max(shake, .12); save.counters.kills++; if (e.boss) save.counters.bosses++; }
-    else if (e.kind === "playerDown") { burst(e.x, e.y, 0x6FF2E0, 24, 3.8); noise(.6, .3); shake = Math.max(shake, .3); vibrate(120); }
-    else if (e.kind === "baseHit") { burst(e.x, e.y, 0x6FF2E0, 20, 3.4); noise(.5, .3); shake = Math.max(shake, .35); vibrate(90); showToast("Реактор повреждён: осталось " + sim.baseHp); }
-    else if (e.kind === "baseDown") { burst(e.x, e.y, 0x6FF2E0, 40, 5); noise(.8, .35); shake = .5; }
+    else if (e.kind === "tankDown") { smoke(e.x, e.y, e.boss ? 10 : 5, e.boss ? .8 : .5); smoulder(e.x, e.y, e.boss ? 5 : 2.5); burst(e.x, e.y, 0xFF8A3D, 18, 3.4); noise(.3, .22); shake = Math.max(shake, .12); save.counters.kills++; if (e.boss) save.counters.bosses++; }
+    else if (e.kind === "playerDown") { smoke(e.x, e.y, 7, .55); smoulder(e.x, e.y, 3); burst(e.x, e.y, 0x6FF2E0, 24, 3.8); noise(.6, .3); shake = Math.max(shake, .3); vibrate(120); }
+    else if (e.kind === "baseHit") { smoke(e.x, e.y, 5, .5); burst(e.x, e.y, 0x6FF2E0, 20, 3.4); noise(.5, .3); shake = Math.max(shake, .35); vibrate(90); showToast("Реактор повреждён: осталось " + sim.baseHp); }
+    else if (e.kind === "baseDown") { smoke(e.x, e.y, 12, .9); smoulder(e.x, e.y, 8); burst(e.x, e.y, 0x6FF2E0, 40, 5); noise(.8, .35); shake = .5; }
     else if (e.kind === "bomb") { noise(.6, .3); shake = .4; }
     else if (e.kind === "playerHit") { burst(e.x, e.y, 0x6FF2E0, 10, 2.6); noise(.25, .2); shake = Math.max(shake, .15); vibrate(40); }
     else if (e.kind === "super") {
@@ -2248,14 +2286,14 @@ function handleEvents() {
       else { strikeBeam(e.x, e.y, e.dir); noise(.7, .32); tone(220, 1600, .35, .08, "sawtooth"); shake = .45; }
     }
     else if (e.kind === "mineLaid") tone(260, 220, .06, .02, "triangle");
-    else if (e.kind === "mineBlast") { burst(e.x, e.y, 0xFF5A3C, 16, 3.2); ring(e.x, e.y, 0xFF5A3C, 1.2, .4); noise(.4, .28); shake = Math.max(shake, .2); vibrate(60); }
+    else if (e.kind === "mineBlast") { smoke(e.x, e.y, 3, .4); burst(e.x, e.y, 0xFF5A3C, 16, 3.2); ring(e.x, e.y, 0xFF5A3C, 1.2, .4); noise(.4, .28); shake = Math.max(shake, .2); vibrate(60); }
     else if (e.kind === "mineShot") { burst(e.x, e.y, 0xFFB057, 10, 2.4); ring(e.x, e.y, 0xFFB057, .9, .3); noise(.2, .15); save.counters.mines++; }
     else if (e.kind === "heal") { burst(e.x, e.y, 0x7CE05A, 4, 1.2); tone(700, 1100, .08, .02, "triangle"); }
-    else if (e.kind === "ramBlast") { burst(e.x, e.y, 0xFF7A2A, 26, 4); ring(e.x, e.y, 0xFF7A2A, TUNE.ramBlast + .4, .5); noise(.6, .32); shake = Math.max(shake, .35); }
+    else if (e.kind === "ramBlast") { smoke(e.x, e.y, 8, .7); smoulder(e.x, e.y, 2); burst(e.x, e.y, 0xFF7A2A, 26, 4); ring(e.x, e.y, 0xFF7A2A, TUNE.ramBlast + .4, .5); noise(.6, .32); shake = Math.max(shake, .35); }
     else if (e.kind === "crate") save.counters.crates++;
-    else if (e.kind === "turretDown") { burst(e.x, e.y, 0xFF5A3C, 20, 3.6); noise(.4, .25); shake = Math.max(shake, .2); save.counters.turrets++; }
+    else if (e.kind === "turretDown") { smoke(e.x, e.y, 6, .6); smoulder(e.x, e.y, 4); burst(e.x, e.y, 0xFF5A3C, 20, 3.6); noise(.4, .25); shake = Math.max(shake, .2); save.counters.turrets++; }
     else if (e.kind === "coreHit") { burst(e.x, e.y, 0xFF5A3C, 6, 2.2); tone(500, 300, .08, .05); }
-    else if (e.kind === "coreDown") { burst(e.x, e.y, 0xFF5A3C, 50, 5.5); ring(e.x, e.y, 0xFF5A3C, 5, .9); noise(1, .4); shake = .6; vibrate(150); showToast("Вражеский реактор уничтожен!"); }
+    else if (e.kind === "coreDown") { smoke(e.x, e.y, 14, 1); smoulder(e.x, e.y, 10); burst(e.x, e.y, 0xFF5A3C, 50, 5.5); ring(e.x, e.y, 0xFF5A3C, 5, .9); noise(1, .4); shake = .6; vibrate(150); showToast("Вражеский реактор уничтожен!"); }
     else if (e.kind === "superReady") { tone(440, 1320, .22, .07, "triangle"); showToast(ABILITY_NAME[sim.ability()] + " готов!"); }
     else if (e.kind === "boss") { noise(.6, .3); shake = .3; showToast("Босс на поле!"); }
     else if (e.kind === "pickup") { burst(e.x, e.y, BONUS_COLOR[e.bonus], 10, 2.4); tone(440, 1320, .22, .07, "triangle"); showToast(BONUS_TEXT[e.bonus]); }
