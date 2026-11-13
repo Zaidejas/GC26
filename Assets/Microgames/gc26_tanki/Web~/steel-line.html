@@ -1305,7 +1305,7 @@ function refreshTile(sim, x, y) {
     // Mixing shapes and turning them keeps a row of bushes from looking copied.
     tileModel(c, "bush" + (x * 7 + y * 13) % 3).rotation.y = ((x + y * 3) % 4) * Math.PI / 2;
   } else if (t === T.Water) {
-    box(c, 0, .02, 0, 1, .04, 1, 0x2F8FA3, false, true);
+    buildWater(c, x, y);
   } else if (t === T.Oil) {
     box(c, 0, .012, 0, .98, .024, .98, 0x2A2433, false, true);
     const sh = ((x * 13 + y * 7) % 5) * .08 - .16;
@@ -1316,6 +1316,28 @@ function refreshTile(sim, x, y) {
     reactorCore = buildReactor(c, true);
   } else if (t === T.Turret) {
     turretHeads.set(x + "," + y, buildTurret(c));
+  }
+}
+// Water: one shared material that breathes, and two glints per cell drifting across it.
+const waterMat = new THREE.MeshLambertMaterial({ color: 0x2F8FA3, emissive: 0x1E6F80, emissiveIntensity: .25 });
+const glintMat = new THREE.MeshBasicMaterial({ color: 0xBFF4FF, transparent: true, opacity: .6, depthWrite: false });
+let glints = [];
+function buildWater(c, x, y) {
+  const w = new THREE.Mesh(unitBox, waterMat);
+  w.position.y = .02; w.scale.set(1, .04, 1); w.receiveShadow = true;
+  c.add(w);
+  for (let i = 0; i < 2; i++) {
+    const g = new THREE.Mesh(unitBox, glintMat);
+    c.add(g);
+    glints.push({ m: g, phase: ((x * 7 + y * 13 + i * 5) % 11) / 11, lane: i ? .22 : -.18 });
+  }
+}
+function syncWater() {
+  waterMat.emissiveIntensity = .22 + Math.sin(clock * 1.6) * .08;
+  for (const g of glints) {
+    const t = (clock * .25 + g.phase) % 1, width = .34 * Math.sin(t * Math.PI);
+    g.m.position.set(g.lane + Math.sin(clock * 1.3 + g.phase * 6) * .08, .045, -.45 + t * .9);
+    g.m.scale.set(Math.max(width, .001), .005, .04);
   }
 }
 function buildReactor(parent, enemy) {
@@ -1345,6 +1367,7 @@ function buildLevel(sim) {
   for (const d of debris) worldRoot.remove(d.m);
   debris = [];
   for (const b of beams) worldRoot.remove(b.m);
+  glints = [];
   beams = [];
   if (bonusView) worldRoot.remove(bonusView);
   bonusView = null; reactorCore = null;
@@ -1584,6 +1607,7 @@ function syncWorld(sim, dt) {
     d.m.position.x += d.vx * dt; d.m.position.y += d.vy * dt; d.m.position.z += d.vz * dt;
     d.m.rotation.x += 7 * dt; d.m.rotation.y += 5 * dt;
   }
+  syncWater();
   if (reactorCore) {
     // The enemy reactor beats faster as it weakens.
     const rate = sim.mode === "assault" && sim.coreMax ? 3 + 9 * (1 - sim.coreHp / sim.coreMax) : 3;

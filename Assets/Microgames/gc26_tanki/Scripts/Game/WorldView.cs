@@ -45,6 +45,17 @@ namespace GC26.Tanki.Game
         // See-through materials (the cloak, the rings) start from an asset, so the build keeps that shader variant.
         readonly Material ghostMaterial;
         Mesh effectRing;
+        Material waterMaterial;
+        Material glintMaterial;
+        readonly List<Glint> glints = new List<Glint>();
+
+        /// <summary>A light streak drifting across a water cell.</summary>
+        sealed class Glint
+        {
+            public Transform Item;
+            public float Phase;
+            public float Lane;
+        }
 
         Material groundMaterial;
         Material tileMaterial;
@@ -144,6 +155,7 @@ namespace GC26.Tanki.Game
             foreach (GameObject mine in mineViews) Kill(mine);
             mineViews.Clear();
             turretHeads.Clear();
+            glints.Clear();
             foreach (RingEffect ring in rings) { Kill(ring.Item.gameObject); Kill(ring.Material); }
             rings.Clear();
             System.Array.Clear(tiles, 0, tiles.Length);
@@ -209,7 +221,7 @@ namespace GC26.Tanki.Game
                     // Mixing shapes and turning them keeps a row of bushes from looking copied.
                     TileModel(cell, "bush" + (x * 7 + y * 13) % 3).localRotation = Quaternion.Euler(0f, (x + y * 3) % 4 * 90f, 0f);
                     break;
-                case Tile.Water: BuildWater(cell); break;
+                case Tile.Water: BuildWater(cell, x, y); break;
                 case Tile.Oil: BuildOil(cell, x, y); break;
                 case Tile.Base: BuildReactor(cell, false); break;
                 case Tile.Core: BuildReactor(cell, true); break;
@@ -234,9 +246,41 @@ namespace GC26.Tanki.Game
             return model.transform;
         }
 
-        void BuildWater(Transform cell)
+        /// <summary>Water: one shared material that breathes, and two glints per cell drifting across it.</summary>
+        void BuildWater(Transform cell, int x, int y)
         {
-            Box(cell, new Vector3(0f, 0.02f, 0f), new Vector3(1f, 0.04f, 1f), WaterColor);
+            if (waterMaterial == null)
+            {
+                waterMaterial = new Material(baseMaterial) { color = WaterColor };
+                waterMaterial.SetFloat("_Smoothness", 0.7f);
+                waterMaterial.EnableKeyword("_EMISSION");
+                glintMaterial = new Material(ghostMaterial) { color = new Color(0.75f, 0.96f, 1f, 0.6f) };
+                glintMaterial.SetColor("_EmissionColor", new Color(0.6f, 0.9f, 1f));
+            }
+            GameObject water = Box(cell, new Vector3(0f, 0.02f, 0f), new Vector3(1f, 0.04f, 1f), WaterColor);
+            water.GetComponent<Renderer>().sharedMaterial = waterMaterial;
+            for (int i = 0; i < 2; i++)
+            {
+                GameObject glint = Box(cell, Vector3.zero, Vector3.one, Color.white);
+                var renderer = glint.GetComponent<Renderer>();
+                renderer.sharedMaterial = glintMaterial;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                glints.Add(new Glint { Item = glint.transform, Phase = ((x * 7 + y * 13 + i * 5) % 11) / 11f, Lane = i == 1 ? 0.22f : -0.18f });
+            }
+        }
+
+        void SyncWater()
+        {
+            if (waterMaterial == null) return;
+            waterMaterial.SetColor("_EmissionColor", Hex("1E6F80") * (0.22f + Mathf.Sin(clock * 1.6f) * 0.08f));
+            foreach (Glint glint in glints)
+            {
+                if (glint.Item == null) continue;
+                float t = Mathf.Repeat(clock * 0.25f + glint.Phase, 1f);
+                float width = 0.34f * Mathf.Sin(t * Mathf.PI);
+                glint.Item.localPosition = new Vector3(glint.Lane + Mathf.Sin(clock * 1.3f + glint.Phase * 6f) * 0.08f, 0.045f, 0.45f - t * 0.9f);
+                glint.Item.localScale = new Vector3(Mathf.Max(width, 0.001f), 0.005f, 0.04f);
+            }
         }
 
         void BuildOil(Transform cell, int x, int y)
@@ -292,6 +336,7 @@ namespace GC26.Tanki.Game
             UpdateDebris(dt);
             UpdateBeams(dt);
             UpdateRings(dt);
+            SyncWater();
 
             if (reactorCore != null)
             {
