@@ -367,8 +367,8 @@ namespace GC26.Tanki.Game
                 puffMaterials = new Material[PuffShades];
                 for (int i = 0; i < PuffShades; i++)
                 {
-                    puffMaterials[i] = new Material(ghostMaterial) { color = new Color(0.29f, 0.27f, 0.28f, 0.55f * (1f - i / (float)PuffShades)) };
-                    puffMaterials[i].SetColor("_EmissionColor", Color.black);
+                    puffMaterials[i] = new Material(ghostMaterial) { color = new Color(0.6f, 0.57f, 0.59f, 0.7f * (1f - i / (float)PuffShades)) };
+                    puffMaterials[i].SetColor("_EmissionColor", new Color(0.16f, 0.15f, 0.16f));
                 }
                 var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 puffMesh = sphere.GetComponent<MeshFilter>().sharedMesh;
@@ -431,7 +431,7 @@ namespace GC26.Tanki.Game
                 }
                 float k = puff.Age / puff.Life;
                 puff.Item.position += puff.Velocity * dt;
-                puff.Item.localScale = Vector3.one * (puff.Size * (0.5f + k));
+                puff.Item.localScale = Vector3.one * (puff.Size * (0.8f + 1.4f * k));
                 puff.Renderer.sharedMaterial = puffMaterials[Mathf.Min(PuffShades - 1, (int)(k * PuffShades))];
             }
         }

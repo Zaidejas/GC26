@@ -1521,7 +1521,7 @@ function syncTracks(dt) {
 const PUFF_MAX = 160, PUFF_SHADES = 8;
 const puffGeo = new THREE.IcosahedronGeometry(.5, 0);
 const puffMats = [];
-for (let i = 0; i < PUFF_SHADES; i++) puffMats.push(new THREE.MeshLambertMaterial({ color: 0x4A4448, transparent: true, opacity: .55 * (1 - i / PUFF_SHADES), depthWrite: false }));
+for (let i = 0; i < PUFF_SHADES; i++) puffMats.push(new THREE.MeshLambertMaterial({ color: 0x9A9296, emissive: 0x2A2628, transparent: true, opacity: .7 * (1 - i / PUFF_SHADES), depthWrite: false }));
 let puffs = [], smokers = [];
 function smoke(x, y, count, size) {
   for (let i = 0; i < count; i++) {
@@ -1547,7 +1547,7 @@ function syncSmoke(dt) {
     if (p.age >= p.life) { worldRoot.remove(p.m); puffs.splice(i, 1); continue; }
     const k = p.age / p.life;
     p.m.position.x += p.vx * dt; p.m.position.y += p.vy * dt; p.m.position.z += p.vz * dt;
-    p.m.scale.setScalar(p.size * (.5 + k));
+    p.m.scale.setScalar(p.size * (.8 + 1.4 * k));
     p.m.rotation.y += dt * .8;
     p.m.material = puffMats[Math.min(PUFF_SHADES - 1, Math.floor(k * PUFF_SHADES))];
   }
