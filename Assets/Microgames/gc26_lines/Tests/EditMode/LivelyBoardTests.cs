@@ -88,7 +88,20 @@ namespace GC26.Lines.Tests
             int dust = view.GetComponentsInChildren<SpriteRenderer>(true).Count(r => r.name == "Dust");
             Assert.GreaterOrEqual(dust, 2 * BoardPresenter.DustPerCell, "Sparkles on the cells it has left");
             Run(1.2f);
-            Assert.AreEqual(0, view.GetComponentsInChildren<SpriteRenderer>(true).Count(r => r.name == "Dust"), "All gone");
+            Assert.AreEqual(0, view.GetComponentsInChildren<SpriteRenderer>().Count(r => r.name == "Dust"), "All gone (hidden, kept for the next move)");
+        }
+
+        [Test]
+        public void TheNextMove_ReusesTheSparkles_InsteadOfMakingNewOnes()
+        {
+            int Sparkles() => view.GetComponentsInChildren<SpriteRenderer>(true).Count(r => r.name == "Dust");
+            presenter.PlayMove(new[] { new Cell(0, 0), new Cell(0, 1), new Cell(0, 2) }, () => { });
+            Run(1.2f);
+            int afterFirst = Sparkles();
+            Assert.Greater(afterFirst, 0, "Kept, hidden, for the next move");
+            presenter.PlayMove(new[] { new Cell(0, 2), new Cell(0, 1), new Cell(0, 0) }, () => { });
+            Run(1.2f);
+            Assert.AreEqual(afterFirst, Sparkles(), "The same sparkles again, no new ones");
         }
 
         [Test]

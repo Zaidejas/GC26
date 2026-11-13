@@ -81,6 +81,7 @@ namespace GC26.Lines.View
     public static class Tween
     {
         static readonly List<TweenHandle> Active = new List<TweenHandle>();
+        static readonly List<TweenHandle> Ticking = new List<TweenHandle>(); // reused every frame: no garbage
         static TweenRunner runner;
 
         public static int ActiveCount => Active.Count;
@@ -170,11 +171,16 @@ namespace GC26.Lines.View
         /// <summary>Advances all animations. Called every frame by the runner, or directly by tests.</summary>
         public static void Tick(float deltaTime)
         {
-            // Copy, so callbacks can start or stop animations safely.
-            foreach (var handle in Active.ToArray())
-                handle.Step(deltaTime);
-            Active.RemoveAll(h => h.IsDone);
+            // Copy, so callbacks can start or stop animations safely (into a list kept for this, so a frame makes
+            // no garbage; garbage makes the phone pause now and then to clean up).
+            Ticking.Clear();
+            Ticking.AddRange(Active);
+            for (int i = 0; i < Ticking.Count; i++) Ticking[i].Step(deltaTime);
+            Ticking.Clear();
+            Active.RemoveAll(IsDone);
         }
+
+        static readonly Predicate<TweenHandle> IsDone = h => h.IsDone;
 
         static void EnsureRunner()
         {

@@ -117,6 +117,27 @@ namespace GC26.Lines.Tests
             Assert.IsTrue(UiFonts.CyrillicDisplay.HasCharacters("Настройки", out _, false, true));
         }
 
+        [Test]
+        public void EveryLetter_IsPreparedAhead_InBothLanguages()
+        {
+            var warmUp = UiFonts.WarmUp();
+            while (warmUp.MoveNext()) { } // the game spreads this over frames; here it runs all at once
+            foreach (var language in new[] { Language.English, Language.Russian })
+            {
+                string letters = Texts.Letters(language);
+                StringAssert.Contains("0", letters);
+                foreach (char c in letters)
+                {
+                    if (c == ' ') continue;
+                    bool cyrillic = c >= '\u0400' && c <= '\u04FF';
+                    var display = cyrillic ? UiFonts.CyrillicDisplay : UiFonts.Display;
+                    bool inDisplay = display.characterLookupTable.ContainsKey(c) || UiFonts.Body.characterLookupTable.ContainsKey(c);
+                    Assert.IsTrue(UiFonts.Body.characterLookupTable.ContainsKey(c), language + ": body font has '" + c + "'");
+                    Assert.IsTrue(inDisplay, language + ": titles can show '" + c + "'");
+                }
+            }
+        }
+
         // ---- Saved settings ----
 
         [Test]

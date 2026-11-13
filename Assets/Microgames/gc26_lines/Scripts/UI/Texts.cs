@@ -112,6 +112,19 @@ namespace GC26.Lines.UI
         static readonly string[] MonthsRu = { "янв.", "февр.", "марта", "апр.", "мая", "июня", "июля", "авг.", "сент.", "окт.", "нояб.", "дек." };
 
         /// <summary>A leaderboard date: "21 Oct" or "21 окт.".</summary>
+        /// <summary>Every letter the game can show in <paramref name="language"/> (texts, month names, digits, signs).</summary>
+        public static string Letters(Language language)
+        {
+            var all = new System.Text.StringBuilder("0123456789+-·:.,!?%#№ ");
+            foreach (var key in Keys) all.Append(In(language, key));
+            foreach (var month in language == Language.Russian ? MonthsRu : MonthsEn) all.Append(month);
+            var unique = new HashSet<char>();
+            var letters = new System.Text.StringBuilder();
+            foreach (char c in all.ToString())
+                if (!char.IsControl(c) && unique.Add(c)) letters.Append(c);
+            return letters.ToString();
+        }
+
         public static string Date(long unixMilliseconds)
         {
             var d = DateTimeOffset.FromUnixTimeMilliseconds(unixMilliseconds).ToLocalTime();

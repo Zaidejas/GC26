@@ -126,6 +126,10 @@ namespace GC26.Lines.Game
             Sounds.AddTapSounds(new Component[] { menu, hud, hud.Dialog, hud.GameOver, hud.Settings, howToPlay, leaderboardView }
                 .SelectMany(view => view.GetComponentsInChildren<UnityEngine.UI.Button>(true)));
             ShowMenu();
+            StartCoroutine(UiFonts.WarmUp()); // all letters ready before they're needed, without a hitch
+#if LINES_FPS
+            LinesFpsMeter.Create(mainCamera); // test builds only (LINES_FPS=1): frame rate on screen and in the log
+#endif
             Debug.Log("Lines: game started");
         }
 

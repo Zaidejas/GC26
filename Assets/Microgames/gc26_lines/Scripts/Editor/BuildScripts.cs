@@ -71,15 +71,21 @@ namespace GC26.Lines.EditorTools
             }
         }
 
+        /// <summary>LINES_FPS=1 makes a test build with the frame-rate meter on screen (task 35); normal builds have none.</summary>
+        public const string FpsDefine = "LINES_FPS";
+
         static void Build(BuildTarget target, string path)
         {
             PhoneAppSettings.Apply();
+            bool fps = Environment.GetEnvironmentVariable(FpsDefine) == "1";
+            if (fps) Debug.Log("Lines: test build with the frame-rate meter");
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = new[] { ProjectSetup.MainScenePath },
                 locationPathName = path,
                 target = target,
                 options = BuildOptions.None,
+                extraScriptingDefines = fps ? new[] { FpsDefine } : null,
             });
             if (report.summary.result != BuildResult.Succeeded)
                 Fail($"Lines: {target} build failed ({report.summary.totalErrors} errors).");

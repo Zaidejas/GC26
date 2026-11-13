@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -62,6 +63,44 @@ namespace GC26.Lines.UI
             var asset = TMP_FontAsset.CreateFontAsset(font, SamplingSize, SamplingSize / 10, GlyphRenderMode.SDFAA, AtlasSize, AtlasSize, AtlasPopulationMode.Dynamic, true);
             if (asset != null) asset.name = file;
             return asset;
+        }
+
+        /// <summary>
+        /// Prepares every letter the game can show, a few per frame, while the menu is up (task 35). Letters are
+        /// otherwise drawn into the font the first time they appear, and drawing several at once (new digits in the
+        /// score, a pop-up opening for the first time) made a frame late enough to see. The current language
+        /// goes first, then the other one.
+        /// </summary>
+        public static IEnumerator WarmUp(float millisecondsPerFrame = 3f)
+        {
+            Load();
+            var other = Texts.Current == Language.Russian ? Language.English : Language.Russian;
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            foreach (var language in new[] { Texts.Current, other })
+            foreach (char c in Texts.Letters(language))
+            {
+                string letter = c.ToString();
+                bool cyrillic = c >= '\u0400' && c <= '\u04FF';
+                foreach (var font in new[] { body, bold, cyrillic ? cyrillicDisplay : display })
+                    if (font != null) font.TryAddCharacters(letter, out _);
+                if (clock.Elapsed.TotalMilliseconds >= millisecondsPerFrame) // a small share of each frame only
+                {
+                    yield return null;
+                    clock.Restart();
+                }
+            }
+        }
+
+        /// <summary>How many letters the fonts have drawn so far (the test build's frame-rate log shows it).</summary>
+        public static int LetterCount
+        {
+            get
+            {
+                int n = 0;
+                foreach (var font in new[] { body, bold, display, cyrillicDisplay })
+                    if (font != null) n += font.characterTable.Count;
+                return n;
+            }
         }
 
         /// <summary>Body text: Nunito (bold text in Nunito ExtraBold).</summary>

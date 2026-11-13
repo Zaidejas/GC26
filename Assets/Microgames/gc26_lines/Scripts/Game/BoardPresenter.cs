@@ -163,19 +163,13 @@ namespace GC26.Lines.Game
                 float size = 0.12f + UnityEngine.Random.value * 0.09f;
                 var start = centre + new Vector3((UnityEngine.Random.value - 0.5f) * 0.55f, (UnityEngine.Random.value - 0.5f) * 0.55f, 0f);
                 var drift = new Vector3((UnityEngine.Random.value - 0.5f) * 0.3f, -(0.1f + UnityEngine.Random.value * 0.24f), 0f);
-                var glow = new GameObject("Dust").AddComponent<SpriteRenderer>();
-                glow.sprite = SpriteFactory.SoftDisc();
+                var spark = TakeDust();
+                var glow = spark.Glow;
+                var core = spark.Core;
                 glow.color = color;
-                glow.sortingOrder = BoardView.BallOrder + 1;
                 var t = glow.transform;
-                t.SetParent(board.transform, false);
                 t.localPosition = start;
                 t.localScale = Vector3.one * size;
-                var core = new GameObject("Core").AddComponent<SpriteRenderer>(); // the white centre of the sparkle
-                core.sprite = SpriteFactory.Disc();
-                core.sortingOrder = BoardView.BallOrder + 2;
-                core.transform.SetParent(t, false);
-                core.transform.localScale = Vector3.one * 0.35f;
                 glow.enabled = core.enabled = false; // each sparkle starts a little after the last one
                 float delay = k * DustStagger;
                 Tween.To(t, DustSeconds + delay, p =>
@@ -188,8 +182,60 @@ namespace GC26.Lines.Game
                     float alpha = 1f - eased;
                     glow.color = new Color(color.r, color.g, color.b, alpha);
                     core.color = new Color(1f, 1f, 1f, alpha);
-                }).OnComplete(() => DestroyObject(t.gameObject));
+                }).OnComplete(() => Release(dustPool, spark));
             }
+        }
+
+        // ---- Reused sparkles (task 35: object pooling) ----
+        // Dust and burst sparkles are hidden and kept when they finish, and used again for the next move,
+        // instead of making and deleting objects every time.
+
+        sealed class Spark
+        {
+            public SpriteRenderer Glow, Core; // Core: the white centre of a dust sparkle (none for burst particles)
+        }
+
+        readonly Stack<Spark> dustPool = new Stack<Spark>(), particlePool = new Stack<Spark>();
+
+        Spark TakeDust()
+        {
+            var spark = Take(dustPool);
+            if (spark != null) return spark;
+            spark = new Spark { Glow = NewSprite("Dust", SpriteFactory.SoftDisc(), BoardView.BallOrder + 1, board.transform) };
+            spark.Core = NewSprite("Core", SpriteFactory.Disc(), BoardView.BallOrder + 2, spark.Glow.transform);
+            spark.Core.transform.localScale = Vector3.one * 0.35f;
+            return spark;
+        }
+
+        Spark TakeParticle() =>
+            Take(particlePool) ?? new Spark { Glow = NewSprite("Particle", SpriteFactory.Disc(), BoardView.BallOrder + 1, board.transform) };
+
+        static Spark Take(Stack<Spark> pool)
+        {
+            while (pool.Count > 0)
+            {
+                var spark = pool.Pop();
+                if (spark.Glow == null) continue; // its board is gone
+                spark.Glow.gameObject.SetActive(true);
+                return spark;
+            }
+            return null;
+        }
+
+        static void Release(Stack<Spark> pool, Spark spark)
+        {
+            if (spark.Glow == null) return;
+            spark.Glow.gameObject.SetActive(false);
+            pool.Push(spark);
+        }
+
+        static SpriteRenderer NewSprite(string name, Sprite sprite, int order, Transform parent)
+        {
+            var sr = new GameObject(name).AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            sr.sortingOrder = order;
+            sr.transform.SetParent(parent, false);
+            return sr;
         }
 
         /// <summary>The ball has arrived: it contracts to 82 %, expands to 112 % and settles, in 0.38 s, then sways again.</summary>
@@ -294,12 +340,10 @@ namespace GC26.Lines.Game
             var centre = BoardView.CellToLocal(cell);
             for (int k = 0; k < ParticlesPerPiece; k++)
             {
-                var sr = new GameObject("Particle").AddComponent<SpriteRenderer>();
-                sr.sprite = SpriteFactory.Disc();
+                var spark = TakeParticle();
+                var sr = spark.Glow;
                 sr.color = color;
-                sr.sortingOrder = BoardView.BallOrder + 1;
                 var t = sr.transform;
-                t.SetParent(board.transform, false);
                 t.localPosition = centre;
                 const float size = 0.22f; // prototype: 2.2 % of the width ≈ a fifth of a cell
                 t.localScale = Vector3.one * size;
@@ -313,15 +357,8 @@ namespace GC26.Lines.Game
                     t.localPosition = centre + direction * (distance * p);
                     t.localScale = Vector3.one * (size * (1f - 0.8f * p));
                     sr.color = new Color(color.r, color.g, color.b, 1f - p);
-                }, Ease.OutQuad).OnComplete(() => DestroyObject(sr.gameObject));
+                }, Ease.OutQuad).OnComplete(() => Release(particlePool, spark));
             }
-        }
-
-        static void DestroyObject(GameObject go)
-        {
-            if (go == null) return;
-            if (Application.isPlaying) UnityEngine.Object.Destroy(go);
-            else UnityEngine.Object.DestroyImmediate(go);
         }
 
         /// <summary>The board filled up and every animation has finished (the game-over pop-up opens).</summary>
