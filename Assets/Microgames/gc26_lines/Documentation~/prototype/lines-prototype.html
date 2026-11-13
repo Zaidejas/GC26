@@ -1170,7 +1170,7 @@ body {
   const Sound = (() => {
     let ctx = null, sfx, musicOut, verb, noiseBuf = null, timer = 0, beat = 0, next = 0;
     const midi = (m) => 440 * Math.pow(2, (m - 69) / 12);
-    const PENT = [74, 76, 78, 81, 83, 86, 88, 90, 93, 95, 98]; // D major pentatonic from D5
+    const PENT = [74, 76, 78, 81, 83, 86, 88, 90, 93, 95, 98, 100, 102]; // D major pentatonic from D5 (a line of 9 reaches the last)
     const CHORDS = [[50, 54, 57, 61], [47, 50, 54, 57], [43, 47, 50, 54], [45, 50, 52, 57]]; // Dmaj7 Bm7 Gmaj7 Asus4
     const BEAT = 0.36;
 

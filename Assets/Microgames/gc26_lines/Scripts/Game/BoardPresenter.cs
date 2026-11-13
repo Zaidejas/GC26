@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GC26.Lines.Audio;
 using GC26.Lines.Core;
 using GC26.Lines.UI;
 using GC26.Lines.View;
@@ -35,6 +36,14 @@ namespace GC26.Lines.Game
             this.hud = hud;
         }
 
+        /// <summary>Plays the board's sounds (select, move, landing, clear, spawn, no path); tests can leave it out.</summary>
+        public LinesAudio Sounds { get; set; }
+
+        void Sound(LinesSound sound, int detail = 0)
+        {
+            if (Sounds != null) Sounds.Play(sound, detail);
+        }
+
         /// <summary>
         /// Redraws balls, preview dots, score and next pieces from the game. During a turn the game already
         /// holds the result, so this is only called at the start and at the end of each turn.
@@ -60,6 +69,7 @@ namespace GC26.Lines.Game
         {
             StopShake();
             StopBounce();
+            if (cell.HasValue && cell != selected) Sound(LinesSound.Select);
             selected = cell;
             board.Held = cell; // the selected ball bounces instead of swaying
             StartBounce();
@@ -90,6 +100,7 @@ namespace GC26.Lines.Game
         public void ShowBlocked(Cell from, Cell to)
         {
             hud?.ShowAlert(NoPathText);
+            Sound(LinesSound.Blocked);
             var ball = board.BallAt(from);
             if (ball == null) return;
             StopShake();
@@ -118,12 +129,18 @@ namespace GC26.Lines.Game
             for (int i = 0; i < path.Count - 1; i++)
             {
                 var left = path[i];
-                Tween.Delay(i * SecondsPerCell, () => Dust(left, dust));
+                int step = i;
+                Tween.Delay(i * SecondsPerCell, () =>
+                {
+                    Dust(left, dust);
+                    Sound(LinesSound.Step, step); // the sparkle run: one rising note per cell
+                });
             }
             Tween.MovePath(ball.transform, points, SecondsPerCell).OnComplete(() =>
             {
                 board.MoveBall(from, to);
                 board.HideDotAt(to); // the ball now covers that dot; its ball will appear elsewhere
+                Sound(LinesSound.Land);
                 Land(ball);
                 done();
             });
@@ -216,6 +233,7 @@ namespace GC26.Lines.Game
                 ball.transform.localScale = Vector3.zero;
                 Tween.Scale(ball.transform, full, GrowSeconds, Ease.OutQuad);
             }
+            if (cells.Count > 0) Sound(LinesSound.Spawn);
             Tween.Delay(SpawnSeconds, done);
         }
 
@@ -225,6 +243,7 @@ namespace GC26.Lines.Game
         /// </summary>
         public void PlayClear(IReadOnlyList<Cell> cells, int points, Action done)
         {
+            if (cells.Count > 0) Sound(LinesSound.Clear, LongestLine(cells));
             foreach (var cell in cells)
             {
                 var ball = board.BallAt(cell);
@@ -238,6 +257,23 @@ namespace GC26.Lines.Game
                 hud?.AddScore(points);
                 done();
             });
+        }
+
+        /// <summary>The longest straight line among the cleared cells (the harp climbs higher for longer lines).</summary>
+        public static int LongestLine(IReadOnlyList<Cell> cells)
+        {
+            var set = new HashSet<Cell>(cells);
+            int longest = 0;
+            var directions = new[] { (1, 0), (0, 1), (1, 1), (1, -1) };
+            foreach (var cell in cells)
+            foreach (var (dx, dy) in directions)
+            {
+                if (set.Contains(new Cell(cell.Column - dx, cell.Row - dy))) continue; // count each line from its start
+                int length = 1;
+                while (set.Contains(new Cell(cell.Column + dx * length, cell.Row + dy * length))) length++;
+                longest = Math.Max(longest, length);
+            }
+            return longest;
         }
 
         static void Pop(BallView ball)

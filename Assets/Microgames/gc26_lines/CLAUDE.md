@@ -59,7 +59,7 @@ python3 tools/check_names.py gc26_lines
 - Project-wide phone-app settings (name "Lines", app id `com.gc26.lines`, portrait only, icon, splash) are **not** committed: `Scripts/Editor/PhoneAppSettings.cs` applies them during a build, and `Tools~/build.sh` puts `ProjectSettings`, `Assets/Settings`, `Packages/packages-lock.json` and `GC26.slnx` back exactly as they were afterwards.
 - No third-party packages from the Asset Store. Animations use our own small helper (no DOTween).
 - MVP art: the dark magic-forest look from the prototype (GDD → Art), exported from it as PNGs: 7 glowing mushrooms (`Resources/gc26_lines/Mushrooms/mushroom_0…6.png`, the same in every game; `PieceSet.Mushrooms()`, with generated glossy balls as a fallback), two forest backgrounds (`Resources/gc26_lines/Backgrounds/`; `ForestBackground`: the menu's has tall mushrooms), the fonts (`Resources/gc26_lines/Fonts/`: Mystery Quest, which has only Latin letters, so Russian titles fall back to Kurale; Nunito Regular/ExtraBold with Cyrillic, from Google Fonts) and the app icon and splash logo (`Art/AppIcon/`). Colours live in `Palette`.
-- Every text the player sees is in `UI/Texts.cs` (English and Russian tables, same keys; a test checks both). Screens never hard-code words: they read `Texts.Get(key)` and refresh in `RefreshTexts()` when `Texts.Changed` fires. The language and the Music/Sounds/Vibration switches are `GameSettings`, saved by `SettingsService` in `settings.json`; the game has no sound yet, so the switches are only remembered. Play-mode tests start in English (`PlayModeTestBase`); edit-mode tests that switch language set English back.
+- Every text the player sees is in `UI/Texts.cs` (English and Russian tables, same keys; a test checks both). Screens never hard-code words: they read `Texts.Get(key)` and refresh in `RefreshTexts()` when `Texts.Changed` fires. The language and the Music/Sounds/Vibration switches are `GameSettings`, saved by `SettingsService` in `settings.json`; Vibration isn't used yet. Play-mode tests start in English (`PlayModeTestBase`); edit-mode tests that switch language set English back.
 - Game screen life (teacher's feedback): `Fireflies` (behind the board), the sway (`BoardView.AdvanceSway`; each ball's picture hangs on a foot hinge, so sway never touches the ball's position or scale), the magic dust and landing pulse (`BoardPresenter.PlayMove`), and the entrance (`BoardView.PlayEntrance`, on every `ShowGame`).
 
 ## Code layout (inside the game folder)
@@ -71,6 +71,7 @@ Scripts/Game/              GC26.Lines            GameBootstrap, LinesGameControl
 Scripts/View/              GC26.Lines            board/ball views, sprite generation, animation helper
 Scripts/UI/                GC26.Lines            screens (menu, game HUD, how to play, leaderboard), pop-ups incl. Settings, texts in both languages (uGUI + TextMeshPro, built from code)
 Scripts/Services/          GC26.Lines            saving (game in progress, leaderboard, settings)
+Scripts/Audio/             GC26.Lines            sounds and music made from code (Synth, SoundBank: the Forest Sounds recipes; LinesAudio plays them)
 Scripts/Editor/            GC26.Lines.Editor     project setup, phone-app settings, build scripts, layout screenshots
 Tests/EditMode/            GC26.Lines.Tests.EditMode   (Core rules, Tween driven by Tween.Tick)
 Tests/PlayMode/            GC26.Lines.Tests.PlayMode   (things that need real frames)
@@ -81,7 +82,7 @@ Documentation~/  Tools~/   docs and the build script (skipped by Unity)
 microgame.json  README.md  the game's card for the shared menu, and the team README
 ```
 
-- Namespaces follow the folders: `GC26.Lines.Core`, `GC26.Lines.Game`, `GC26.Lines.View`, `GC26.Lines.UI`, `GC26.Lines.Services`, `GC26.Lines.EditorTools`, `GC26.Lines.Tests`.
+- Namespaces follow the folders: `GC26.Lines.Core`, `GC26.Lines.Game`, `GC26.Lines.View`, `GC26.Lines.UI`, `GC26.Lines.Services`, `GC26.Lines.Audio`, `GC26.Lines.EditorTools`, `GC26.Lines.Tests`.
 - Core raises C# events (`OnBallMoved`, `OnMoveBlocked`, `OnLinesCleared`, `OnBallsSpawned`, `OnGameOver`); the view layer listens. Game rules never live in views.
 - Every Core rule gets unit tests. Use a seeded random generator so tests are repeatable.
 - Play-mode test classes inherit `PlayModeTestBase`, which points saving at a temporary folder, so tests start without a saved game and never touch the real one. They start the game with `LoadGameScene()`, which loads the scene by its path (it isn't in the shared Build Settings).

@@ -1,3 +1,5 @@
+using System.Linq;
+using GC26.Lines.Audio;
 using GC26.Lines.Core;
 using GC26.Lines.Services;
 using GC26.Lines.UI;
@@ -59,6 +61,9 @@ namespace GC26.Lines.Game
         /// <summary>The player's Settings choices (music, sounds, vibration, language), saved on the device.</summary>
         public GameSettings Settings { get; private set; }
 
+        /// <summary>The game's sounds and music.</summary>
+        public LinesAudio Sounds { get; private set; }
+
         /// <summary>Where the game in progress is kept.</summary>
         public SaveService Saves => saves;
 
@@ -81,6 +86,9 @@ namespace GC26.Lines.Game
             howToPlay = HowToPlayView.Create(mainCamera);
             leaderboardView = LeaderboardView.Create(mainCamera);
             presenter = new BoardPresenter(boardView, hud);
+            // Sounds and music (made from code in the background), following the Settings switches.
+            Sounds = LinesAudio.Create(transform, Settings.music, Settings.sounds);
+            presenter.Sounds = Sounds;
             saves = new SaveService();
             scoreFile = new LeaderboardService();
             Scores = scoreFile.Load();
@@ -114,6 +122,9 @@ namespace GC26.Lines.Game
             leaderboardView.Closed += ShowMenu;
             leaderboardView.PlayAgainClicked += () => { StartNewGame(); ShowGame(); };
             menu.SetSecondaryScreensAvailable(howToPlay: true, leaderboardScreen: true);
+            // Every button ticks softly when tapped (all screens and pop-ups are built by now).
+            Sounds.AddTapSounds(new Component[] { menu, hud, hud.Dialog, hud.GameOver, hud.Settings, howToPlay, leaderboardView }
+                .SelectMany(view => view.GetComponentsInChildren<UnityEngine.UI.Button>(true)));
             ShowMenu();
             Debug.Log("Lines: game started");
         }
@@ -187,6 +198,7 @@ namespace GC26.Lines.Game
         {
             Settings = changed;
             settingsFile.Save(Settings);
+            Sounds.Apply(Settings.music, Settings.sounds);
             var language = Texts.FromCode(Settings.language);
             if (language.HasValue) Texts.Set(language.Value);
         }
@@ -288,6 +300,7 @@ namespace GC26.Lines.Game
             SaveGame();
             hud.Dialog.Close();
             hud.GameOver.Show(score, Scores.DefaultName);
+            Sounds.Play(LinesSound.GameOver);
         }
 
         /// <summary>Save on the game-over pop-up: adds the score and opens the Leaderboard.</summary>
@@ -300,6 +313,7 @@ namespace GC26.Lines.Game
             ScorePending = false;
             SaveGame();
             hud.GameOver.Close();
+            if (place >= 0) Sounds.Play(LinesSound.Record); // the score made the top 10
             ShowLeaderboard(Texts.ResultMessage(place, score, name), afterGame: true);
         }
 
