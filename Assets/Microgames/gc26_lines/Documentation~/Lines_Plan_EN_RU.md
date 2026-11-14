@@ -20,7 +20,7 @@ Revised Nov 2, 2026 / Обновлено 2 ноября 2026
 - **Claude writes the code and runs the checks:** unit and play-mode tests and layout screenshots (16:9, 20:9, real iPhone sizes) from the command line; in Part 2 also builds that run in the iOS Simulator or Android Emulator, with screenshots.
 - **Unity stays closed** while Claude works, because an open editor locks the project.
 - **Real phones** are checked regularly, from Week 6.
-- **Tasks** live on the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14), numbered 01–41 in work order (later features: L01–L13).
+- **Tasks** live on the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14), numbered 01–41 in work order (later features: L01–L14; the playtest with friends moved from 37 to L14, after all development).
 - **Commits** go to the `gc26_lines` branch and name the task they belong to ("Task 05: Pathfinder").
 
 ### Core rules to implement
@@ -164,7 +164,7 @@ Tests/         EditMode tests for Core
 - **Claude пишет код и проверяет его:** запускает юнит-тесты, play-mode-тесты и скриншоты раскладки (16:9, 20:9, размеры настоящих iPhone) из командной строки; в части 2 также сборки, которые запускаются в iOS Simulator или Android Emulator, со скриншотами.
 - **Unity закрыт**, пока работает Claude: открытый редактор блокирует проект.
 - **Настоящие телефоны** проверяем регулярно, начиная с 6-й недели.
-- **Задачи** находятся на [доске проекта gc26_lines](https://github.com/users/Zaidejas/projects/14) и пронумерованы 01–41 в порядке работы (отложенные функции: L01–L13).
+- **Задачи** находятся на [доске проекта gc26_lines](https://github.com/users/Zaidejas/projects/14) и пронумерованы 01–41 в порядке работы (отложенные функции: L01–L14; тест с друзьями перенесён из 37 в L14, после всей разработки).
 - **Коммиты** идут в ветку `gc26_lines` и называют задачу, к которой относятся («Task 05: Pathfinder»).
 
 ### Основные правила игры

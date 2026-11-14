@@ -28,7 +28,7 @@ A global git ignore rule `*~` (on this Mac in `~/.gitignore_global`, common for 
 - `Documentation~/prototype/lines-prototype.html`: a playable browser prototype (open it in a browser). **The Unity game should look and play the same, as closely as possible**: rules, animation timings, layout, screens and menu flow. When the GDD and the prototype disagree, ask the user. Its JavaScript rule functions (`findPath`, `linesThrough`, `spawn`, `clearLines`, `addScore`) are a useful cross-check for the C# Core. It is also published at https://claude.ai/artifact/6fQXEJVoA8iEaHxpHKtgFL (republish after changing it).
 - `Documentation~/Lines_Plan_EN_RU.md`: the 8-week plan and architecture (English and Russian versions; keep both in sync when editing).
 - Folders whose names end in `~` (`Documentation~`, `Tools~`) are skipped by Unity, so they don't clutter the project.
-- Tasks: the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14). Tasks 01–41 are in work order (Part 1, tasks 16–25: every prototype feature in Unity; Part 2, tasks 26–41: simulators and phones; 32a moved the game into the team layout); L01–L13 are later features. Each task says what to do, when it is done, and which doc section it comes from.
+- Tasks: the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14). Tasks 01–41 are in work order (Part 1, tasks 16–25: every prototype feature in Unity; Part 2, tasks 26–41: simulators and phones; 32a moved the game into the team layout; 37 became L14); L01–L14 are later features (L14, the playtest with friends, comes last, after all development). Each task says what to do, when it is done, and which doc section it comes from.
 
 ## Working with the user
 
