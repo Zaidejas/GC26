@@ -126,7 +126,7 @@ Tests/         EditMode tests for Core
 - Fix the remaining bugs and freeze the code.
 - Final builds installed on your iPhone and Android phone.
 - Update the docs to match the finished game.
-- **Milestone:** version 1.0 running on both phones.
+- **Milestone:** the final version (0.1.0; the version number was kept) running on both phones.
 
 ### Milestones at a glance
 
@@ -137,7 +137,7 @@ Tests/         EditMode tests for Core
 | 4 | Whole game in Unity, like the prototype (MVP features complete) |
 | 5 | Running in the iOS Simulator and Android Emulator |
 | 6 | Running on real phones |
-| 8 | Version 1.0 on both phones |
+| 8 | Final version (0.1.0) on both phones |
 
 ### Main risks and how to handle them
 
@@ -270,7 +270,7 @@ Tests/         EditMode-тесты для Core
 - Исправить оставшиеся ошибки и заморозить код.
 - Установить финальные сборки на ваш iPhone и телефон с Android.
 - Обновить документацию под готовую игру.
-- **Контрольная точка:** версия 1.0 работает на обоих телефонах.
+- **Контрольная точка:** финальная версия (0.1.0; номер версии оставлен прежним) работает на обоих телефонах.
 
 ### Контрольные точки
 
@@ -281,7 +281,7 @@ Tests/         EditMode-тесты для Core
 | 4 | Вся игра в Unity, как прототип (все функции MVP готовы) |
 | 5 | Игра работает в iOS Simulator и Android Emulator |
 | 6 | Игра работает на настоящих телефонах |
-| 8 | Версия 1.0 на обоих телефонах |
+| 8 | Финальная версия (0.1.0) на обоих телефонах |
 
 ### Основные риски и что с ними делать
 
