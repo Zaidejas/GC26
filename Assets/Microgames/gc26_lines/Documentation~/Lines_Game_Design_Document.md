@@ -92,7 +92,7 @@ Input is ignored while a move, clear or spawn animation is playing.
 
 ## Scoring
 
-Longer lines are worth much more than short ones, which rewards the player for taking risks. The values below are starting points to tune during testing in Week 7.
+Longer lines are worth much more than short ones, which rewards the player for taking risks. The values below were re-checked in task 38 and kept as they are.
 
 | Balls cleared in one line | Points |
 | :---- | :---- |
