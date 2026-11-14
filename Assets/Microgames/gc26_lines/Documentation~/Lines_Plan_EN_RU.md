@@ -20,7 +20,7 @@ Revised Nov 2, 2026; updated Nov 14, 2026 to match the finished game / Обно�
 - **Claude writes the code and runs the checks:** unit and play-mode tests and layout screenshots (16:9, 20:9, real iPhone sizes) from the command line; in Part 2 also builds that run in the iOS Simulator or Android Emulator, with screenshots.
 - **Unity stays closed** while Claude works, because an open editor locks the project.
 - **Real phones** are checked regularly, from Week 6.
-- **Tasks** live on the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14), numbered 01–41 in work order (later features: L01–L14; the playtest with friends moved from 37 to L14, after all development).
+- **Tasks** live on the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14), numbered 01–41 in work order (later features: L01–L13; L01 Settings, L02 Vibration, then the rest; the playtest with friends moved from 37 to L13, the last one, after all development).
 - **Commits** go to the `game/gc26_lines` branch (called `gc26_lines` until Nov 11) and name the task they belong to ("Task 05: Pathfinder").
 
 ### Core rules to implement
@@ -81,7 +81,7 @@ Tests/         EditMode (rules, views) and PlayMode (the real scene)
 Tools~/        setup.sh, build.sh
 ```
 
-**Added beyond the original plan** (mostly teacher's feedback): Settings (Music, Sounds, Vibration switch, language, How to play), English and Russian, music and sounds, a livelier board (fireflies, sway, magic dust, landing pulse, entrance), house icons, swiping between How to play cards, and the move into the GC26 team layout. Vibration itself is still a later feature (L05).
+**Added beyond the original plan** (mostly teacher's feedback): Settings (Music, Sounds, Vibration switch, language, How to play), English and Russian, music and sounds, a livelier board (fireflies, sway, magic dust, landing pulse, entrance), house icons, swiping between How to play cards, and the move into the GC26 team layout. Vibration itself is still a later feature (L02).
 
 - **Turn flow:** `Idle → BallSelected → Moving → Resolving → Spawning → CheckGameOver → Idle`.
 - **Communication:** the core logic raises C\# events (`OnBallMoved`, `OnMoveBlocked`, `OnLinesCleared`, `OnBallsSpawned`, `OnGameOver`), and the view layer listens to them.
@@ -144,7 +144,7 @@ Tools~/        setup.sh, build.sh
 
 - Profile on real phones: object pooling, a 60 FPS target, fewer draw calls.
 - Final check of both target screen shapes, 16:9 and 20:9, plus notched phones (simulators, emulators and real devices).
-- Playtest with friends. Android: share the APK. iOS: on your own iPhone (a free Apple account can't install on other people's phones). Collect feedback and fix bugs. *(Moved to the end, L14, after the later features.)*
+- Playtest with friends. Android: share the APK. iOS: on your own iPhone (a free Apple account can't install on other people's phones). Collect feedback and fix bugs. *(Moved to the end, L13, after the later features.)*
 - Re-check the scoring balance.
 
 #### Week 8: Final version
@@ -190,7 +190,7 @@ Tools~/        setup.sh, build.sh
 - **Claude пишет код и проверяет его:** запускает юнит-тесты, play-mode-тесты и скриншоты раскладки (16:9, 20:9, размеры настоящих iPhone) из командной строки; в части 2 также сборки, которые запускаются в iOS Simulator или Android Emulator, со скриншотами.
 - **Unity закрыт**, пока работает Claude: открытый редактор блокирует проект.
 - **Настоящие телефоны** проверяем регулярно, начиная с 6-й недели.
-- **Задачи** находятся на [доске проекта gc26_lines](https://github.com/users/Zaidejas/projects/14) и пронумерованы 01–41 в порядке работы (отложенные функции: L01–L14; тест с друзьями перенесён из 37 в L14, после всей разработки).
+- **Задачи** находятся на [доске проекта gc26_lines](https://github.com/users/Zaidejas/projects/14) и пронумерованы 01–41 в порядке работы (отложенные функции: L01–L13; L01 — настройки, L02 — вибрация, затем остальное; тест с друзьями перенесён из 37 в L13, последнюю, после всей разработки).
 - **Коммиты** идут в ветку `game/gc26_lines` (до 11 ноября она называлась `gc26_lines`) и называют задачу, к которой относятся («Task 05: Pathfinder»).
 
 ### Основные правила игры
@@ -251,7 +251,7 @@ Tests/         EditMode (правила, отображение) и PlayMode (н
 Tools~/        setup.sh, build.sh
 ```
 
-**Добавлено сверх первоначального плана** (в основном по отзывам преподавателя): настройки (музыка, звуки, переключатель вибрации, язык, «Как играть»), английский и русский языки, музыка и звуки, «живое» поле (светлячки, покачивание, волшебная пыль, пульс при приземлении, появление поля), иконки-домики, перелистывание карточек «Как играть» свайпом и переезд в общую структуру проекта GC26. Сама вибрация пока остаётся отложенной функцией (L05).
+**Добавлено сверх первоначального плана** (в основном по отзывам преподавателя): настройки (музыка, звуки, переключатель вибрации, язык, «Как играть»), английский и русский языки, музыка и звуки, «живое» поле (светлячки, покачивание, волшебная пыль, пульс при приземлении, появление поля), иконки-домики, перелистывание карточек «Как играть» свайпом и переезд в общую структуру проекта GC26. Сама вибрация пока остаётся отложенной функцией (L02).
 
 - **Порядок хода:** `Idle → BallSelected → Moving → Resolving → Spawning → CheckGameOver → Idle`.
 - **Связь между слоями:** логика вызывает события C\# (`OnBallMoved`, `OnMoveBlocked`, `OnLinesCleared`, `OnBallsSpawned`, `OnGameOver`), а слой отображения на них подписывается.
@@ -314,7 +314,7 @@ Tools~/        setup.sh, build.sh
 
 - Профилирование на настоящих телефонах: пул объектов, цель 60 FPS, меньше вызовов отрисовки.
 - Финальная проверка обоих целевых форматов экрана, 16:9 и 20:9, и телефонов с вырезом (симуляторы, эмуляторы и настоящие устройства).
-- Дать поиграть друзьям. Android: отправить APK. iOS: на вашем iPhone (с бесплатным аккаунтом Apple нельзя установить игру на чужие телефоны). Собрать отзывы и исправить ошибки. *(Перенесено в конец, L14, после отложенных функций.)*
+- Дать поиграть друзьям. Android: отправить APK. iOS: на вашем iPhone (с бесплатным аккаунтом Apple нельзя установить игру на чужие телефоны). Собрать отзывы и исправить ошибки. *(Перенесено в конец, L13, после отложенных функций.)*
 - Ещё раз проверить баланс очков.
 
 #### Неделя 8: финальная версия
