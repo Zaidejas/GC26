@@ -54,6 +54,17 @@ namespace GC26.Lines.EditorTools
             new Shot("howto-3-ru_1080x1920", 1080, 1920, 0, 0, howTo: 3, russian: true),
             new Shot("gameover-ru_1080x1920", 1080, 1920, 0, 0, gameOver: true, russian: true),
             new Shot("leaderboard-after-game-ru_1080x1920", 1080, 1920, 0, 0, scores: 2, russian: true),
+            // Task 36: every screen at both target shapes (16:9 without a notch, 20:9 with one).
+            new Shot("alert-no-path_1080x1920", 1080, 1920, 0, 0, "No path"),
+            new Shot("dialog-reset_1080x2400_notch", 1080, 2400, 132, 63, resetDialog: true),
+            new Shot("howto-1_1080x2400_notch", 1080, 2400, 132, 63, howTo: 1),
+            new Shot("howto-2_1080x2400_notch", 1080, 2400, 132, 63, howTo: 2),
+            new Shot("leaderboard-empty_1080x2400_notch", 1080, 2400, 132, 63, scores: 1),
+            new Shot("leaderboard-from-menu_1080x1920", 1080, 1920, 0, 0, scores: 3),
+            new Shot("settings_1080x2400_notch", 1080, 2400, 132, 63, settings: true),
+            new Shot("settings-ru_1080x2400_notch", 1080, 2400, 132, 63, settings: true, russian: true),
+            new Shot("20x9-ru_1080x2400_notch", 1080, 2400, 132, 63, russian: true),
+            new Shot("menu-ru_1080x1920", 1080, 1920, 0, 0, menu: true, russian: true),
         };
 
         [MenuItem("Lines/Render Layout Screenshots")]

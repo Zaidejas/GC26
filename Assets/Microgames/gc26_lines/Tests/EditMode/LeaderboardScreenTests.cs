@@ -88,6 +88,24 @@ namespace GC26.Lines.Tests
         }
 
         [Test]
+        public void AllTenPlaces_FitOnA16x9Screen_WithSlightlyShorterRows()
+        {
+            view.Show(Board(10));
+            Assert.IsTrue(view.AllRowsFit, "No scrolling needed from the menu");
+            Assert.Less(view.RowHeightNow, 15f, "Rows a little shorter");
+            Assert.GreaterOrEqual(view.RowHeightNow, LeaderboardView.ShortestRow);
+        }
+
+        [Test]
+        public void TallScreens_KeepTheFullRowHeight()
+        {
+            view.ApplyLayout(BoardLayout.Compute(new Vector2(1080, 2400), new Rect(0, 0, 1080, 2400)));
+            view.Show(Board(10));
+            Assert.IsTrue(view.AllRowsFit);
+            Assert.AreEqual(15f, view.RowHeightNow, 1e-4f, "20:9: rows as before");
+        }
+
+        [Test]
         public void Names_AreDrawn()
         {
             var board = new Leaderboard();

@@ -313,7 +313,8 @@ body {
 .dots span { width: 2.2cqw; height: 2.2cqw; border-radius: 50%; background: var(--line); }
 .dots span.on { background: var(--text); }
 
-.scores { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2cqw; flex: 1; min-height: 0; overflow-y: auto; }
+/* --fit (1 down to 0.45) makes the rows a little shorter on short screens, so all 10 places fit without scrolling. */
+.scores { --fit: 1; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: calc(2cqw * var(--fit)); flex: 1; min-height: 0; overflow-y: auto; }
 .name-form { display: flex; flex-direction: column; gap: 1.6cqw; margin: -2cqw 0 0; text-align: left; }
 #scores-again { height: 13cqw; flex: none; }
 .scores-msg { margin: 0; text-align: center; font-family: var(--font-display); font-weight: 600; font-size: 5.2cqw; }
@@ -330,7 +331,7 @@ body {
 
 .scores li {
   display: grid; grid-template-columns: 8cqw 1fr auto; align-items: center; gap: 3cqw;
-  background: #ffffff; border-radius: 3cqw; padding: 2.2cqw 4cqw; border: 0.5cqw solid transparent;
+  background: #ffffff; border-radius: 3cqw; padding: calc(2.2cqw * var(--fit)) 4cqw; border: 0.5cqw solid transparent;
 }
 .scores li.latest { border-color: var(--focus); }
 .scores .rank { font-family: var(--font-display); font-weight: 600; font-size: 5cqw; color: var(--soft); }
@@ -1229,6 +1230,18 @@ body {
       li.append(rank, who, pts);
       ol.appendChild(li);
     });
+    fitScores();
+  }
+  // On short screens the rows get a little shorter (less space above and below the name), just enough for all
+  // places to fit; never below 45 % of that space, so a very short screen still scrolls.
+  function fitScores() {
+    const ol = $("#scores-list");
+    ol.style.setProperty("--fit", "1");
+    if (ol.hidden || ol.scrollHeight <= ol.clientHeight) return;
+    for (let fit = 0.95; fit >= 0.449; fit -= 0.05) {
+      ol.style.setProperty("--fit", fit.toFixed(2));
+      if (ol.scrollHeight <= ol.clientHeight) return;
+    }
   }
 
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
@@ -1408,8 +1421,12 @@ body {
       document.querySelectorAll("#ratio button").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
       phone.style.setProperty("--r", btn.dataset.r);
       if (currentScreen() === "howto") setTimeout(renderHowto, 300); // after the frame resizes
+      if (currentScreen() === "scores") setTimeout(fitScores, 300);
     }));
-    window.addEventListener("resize", () => { if (currentScreen() === "howto") renderHowto(); });
+    window.addEventListener("resize", () => {
+      if (currentScreen() === "howto") renderHowto();
+      if (currentScreen() === "scores") fitScores();
+    });
 
     phone.classList.add("forest"); // the one look: a dark, magical mushroom forest
     // The score number follows the mushrooms when the screen size changes or the fonts arrive.

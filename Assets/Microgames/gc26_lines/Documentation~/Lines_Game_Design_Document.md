@@ -177,6 +177,7 @@ The MVP has four screens and three pop-ups. The app opens on the main menu.
 - **New game** starts right away when there's no unfinished game; otherwise it asks for confirmation first.
 - The game screen, How to play and Leaderboard all have the same house icon in the top-left corner (just the white icon, no ring or disc behind it). It returns to the main menu, except How to play opened from Settings during a game, which returns to the game. Leaving the game saves it, so Continue picks it up exactly where it was (Undo included).
 - How to play and Leaderboard have no title at the top, only the back button.
+- On shorter screens (16:9) the leaderboard rows get a little shorter, so all 10 places fit without scrolling when it's opened from the menu. Right after a game the result line and Play again take some room, so the list may scroll a little; it opens on the game just finished.
 
 **Settings** (teacher's feedback, pulled forward from the later features)
 

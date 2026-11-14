@@ -21,6 +21,8 @@ namespace GC26.Lines.UI
         const float PadSide = 5f, PadBottom = 7f, Gap = 5f;
         const float MessageSize = 5.2f, EmptySize = 4.4f, PlayAgainHeight = 13f;
         const float RowHeight = 15f, RowGap = 2f, RowRadius = 3f, RowBorder = 0.5f, RowPadX = 4f;
+        /// <summary>On short screens rows get shorter (gaps too), just enough for all 10 places; never below this.</summary>
+        public const float ShortestRow = 12.5f;
         const float RankWidth = 8f, ColumnGap = 3f, RankSize = 5f, NameSize = 4.4f, DateSize = 3.6f, PointsSize = 6f;
         /// <summary>The text shown while there are no finished games, in the current language.</summary>
         public static string EmptyText => Texts.Get("scoresEmpty");
@@ -42,6 +44,7 @@ namespace GC26.Lines.UI
         BoardLayout layout;
         Leaderboard board = new Leaderboard();
         long highlightTime;
+        float rowHeight = RowHeight, rowGap = RowGap; // in prototype units, after fitting
 
         /// <summary>The back arrow.</summary>
         public event Action Closed;
@@ -57,6 +60,10 @@ namespace GC26.Lines.UI
         /// <summary>The highlighted row (the game just saved), or -1.</summary>
         public int HighlightedRow { get; private set; } = -1;
         public float ScrollPosition => scroll.verticalNormalizedPosition;
+        /// <summary>The row height now, in prototype units (15, or less on a short screen).</summary>
+        public float RowHeightNow => rowHeight;
+        /// <summary>True when every row is on screen without scrolling.</summary>
+        public bool AllRowsFit => content.sizeDelta.y <= viewport.sizeDelta.y + 0.5f;
 
         public static LeaderboardView Create(Camera camera)
         {
@@ -194,9 +201,14 @@ namespace GC26.Lines.UI
                 return;
             }
 
-            Place(viewport, left, bottom, width, Mathf.Max(0f, top - bottom));
-            float rowH = RowHeight * u;
-            content.sizeDelta = new Vector2(0f, board.Count * rowH + (board.Count - 1) * RowGap * u);
+            float listH = Mathf.Max(0f, top - bottom);
+            Place(viewport, left, bottom, width, listH);
+            // Shorter rows when they don't all fit (16:9 phones), but never below ShortestRow: then it scrolls.
+            float natural = board.Count * RowHeight + (board.Count - 1) * RowGap;
+            float fit = Mathf.Clamp(listH / u / natural, ShortestRow / RowHeight, 1f);
+            rowHeight = RowHeight * fit;
+            rowGap = RowGap * fit;
+            content.sizeDelta = new Vector2(0f, board.Count * rowHeight * u + (board.Count - 1) * rowGap * u);
             content.anchoredPosition = Vector2.zero;
             HighlightedRow = -1;
             for (int i = 0; i < rows.Count; i++)
@@ -215,8 +227,8 @@ namespace GC26.Lines.UI
 
         void DrawRow(Row row, int index, ScoreEntry entry, bool latest, float width, float u)
         {
-            float h = RowHeight * u;
-            row.Rect.anchoredPosition = new Vector2(0f, -index * (RowHeight + RowGap) * u);
+            float h = rowHeight * u;
+            row.Rect.anchoredPosition = new Vector2(0f, -index * (rowHeight + rowGap) * u);
             row.Rect.sizeDelta = new Vector2(width, h);
             row.Border.color = Palette.SeeThroughPanel;
             UiShapes.MakeRounded(row.Border, RowRadius * u);
@@ -259,8 +271,8 @@ namespace GC26.Lines.UI
                 return;
             }
             float u = layout.Unit;
-            float rowTop = HighlightedRow * (RowHeight + RowGap) * u;
-            float offset = Mathf.Clamp(rowTop - (viewportHeight - RowHeight * u) / 2f, 0f, overflow);
+            float rowTop = HighlightedRow * (rowHeight + rowGap) * u;
+            float offset = Mathf.Clamp(rowTop - (viewportHeight - rowHeight * u) / 2f, 0f, overflow);
             scroll.verticalNormalizedPosition = 1f - offset / overflow;
         }
 
