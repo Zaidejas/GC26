@@ -88,7 +88,17 @@ Input is ignored while a move, clear or spawn animation is playing.
 
 - Cells are at least 9 mm wide on a 6-inch phone, so the board fills the screen width.
 - *Later:* a movement effect closer to the original, where the ball visibly steps from cell to cell along its path.
-- *Later:* light vibration on a line clear, with an off switch in Settings.
+- **Vibration** (task L02; always together with a sound or picture, and off with the Vibration switch in Settings). Only moments that matter vibrate, so the player keeps noticing it:
+
+  | Moment | Feel |
+  | :---- | :---- |
+  | Line cleared | A firm tap; a stronger one for a line of 7 or more; two taps (about 0.12 s apart) when one move clears two or more lines |
+  | No path | Two quick soft knocks: the phone's own "error" feel |
+  | New record (the score makes the top 10) | The phone's own "success" feel |
+  | Game over | One heavy thump |
+  | Vibration switched on in Settings | One light tick, so the player feels what they turned on |
+
+  Nothing vibrates for the cells of a move, selecting, new mushrooms or button taps. The game uses the phone's own light, firm and heavy feels (iPhone haptics; on Android the matching vibration effects), which work on the iPhone even with the silent switch on. In the browser prototype only Android phones can vibrate.
 
 ## Scoring
 
@@ -133,7 +143,6 @@ These are planned for after the MVP and are not scheduled in the 8 weeks unless 
 | Best score during play | The best score shown on the game screen next to the current score |
 | More settings | A theme choice (Settings itself is now in the MVP) |
 | How to play on first launch | Open the How to play cards automatically the first time the app starts |
-| Vibration | Light vibration on a line clear |
 | More themes | The MVP has one theme: the dark magic forest |
 | Custom art packs | Replace the MVP mushrooms (and board) with other art |
 | Other game modes | Daily Challenge (the same seed for every player that day, one attempt) and Timed (3 minutes, +5 seconds per cleared line) |
@@ -182,7 +191,7 @@ The MVP has four screens and three pop-ups. The app opens on the main menu.
 **Settings** (teacher's feedback, pulled forward from the later features)
 
 - The gear is a plain white icon like the house (no ring or disc). The pop-up is the same dark card as the other pop-ups; the game stays visible behind it.
-- **Music, Sounds, Vibration:** on/off switches (gold when on), all on by default, remembered on the device. Music and Sounds switch the game's sounds and music (see Sounds and music) on and off at once; there is no vibration yet, so that switch only remembers the choice.
+- **Music, Sounds, Vibration:** on/off switches (gold when on), all on by default, remembered on the device. Music and Sounds switch the game's sounds and music (see Sounds and music) on and off at once; Vibration switches the vibration (see Controls and feedback).
 - **Language:** English or Русский. Everything changes at once (menu, game screen, pop-ups, How to play, leaderboard messages and dates); the game's name "Lines" stays the same. The first time, the game uses Russian on a phone set to Russian, English otherwise; the choice is remembered.
 - **How to play** closes Settings and opens the How to play cards; their back button and "Got it" return to where Settings was opened (the game or the menu). How to play also stays on the main menu.
 - Later, in the shared GC26 app, this pop-up can also be the game's pause, with a "Back to games" button.

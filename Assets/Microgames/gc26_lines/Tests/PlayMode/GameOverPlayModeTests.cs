@@ -88,6 +88,19 @@ namespace GC26.Lines.Tests
         }
 
         [UnityTest]
+        public IEnumerator GameOver_Thumps_AndANewRecord_FeelsLikeSuccess()
+        {
+            SaveNearlyOverGame(60);
+            yield return Launch();
+            var game = Object.FindAnyObjectByType<GameBootstrap>();
+            yield return PlayTheLastMove(game);
+            CollectionAssert.AreEqual(new[] { GC26.Lines.Haptics.LinesFeel.GameOver }, game.Haptics.Played, "Game over: one heavy thump");
+            game.Hud.GameOver.SaveButton.Click();
+            CollectionAssert.AreEqual(new[] { GC26.Lines.Haptics.LinesFeel.GameOver, GC26.Lines.Haptics.LinesFeel.Success }, game.Haptics.Played,
+                "The score made the top 10");
+        }
+
+        [UnityTest]
         public IEnumerator ClosingOnThePopUp_AddsTheScoreAtTheNextLaunch()
         {
             SaveNearlyOverGame(75);

@@ -63,6 +63,8 @@ namespace GC26.Lines.Game
 
         /// <summary>The game's sounds and music.</summary>
         public LinesAudio Sounds { get; private set; }
+        /// <summary>Vibration (task L02), following the Vibration switch.</summary>
+        public Haptics.LinesHaptics Haptics { get; private set; }
 
         /// <summary>Where the game in progress is kept.</summary>
         public SaveService Saves => saves;
@@ -89,6 +91,8 @@ namespace GC26.Lines.Game
             // Sounds and music (made from code in the background), following the Settings switches.
             Sounds = LinesAudio.Create(transform, Settings.music, Settings.sounds);
             presenter.Sounds = Sounds;
+            Haptics = new Haptics.LinesHaptics(Settings.vibration);
+            presenter.Haptics = Haptics;
             saves = new SaveService();
             scoreFile = new LeaderboardService();
             Scores = scoreFile.Load();
@@ -200,9 +204,12 @@ namespace GC26.Lines.Game
         /// <summary>A switch or the language changed in Settings: remember it, and switch the language at once.</summary>
         void OnSettingsChanged(GameSettings changed)
         {
+            bool vibrationWasOn = Settings.vibration;
             Settings = changed;
             settingsFile.Save(Settings);
             Sounds.Apply(Settings.music, Settings.sounds);
+            Haptics.Enabled = Settings.vibration;
+            if (Settings.vibration && !vibrationWasOn) Haptics.Play(GC26.Lines.Haptics.LinesFeel.Tick); // feel what was switched on
             var language = Texts.FromCode(Settings.language);
             if (language.HasValue) Texts.Set(language.Value);
         }
@@ -305,6 +312,7 @@ namespace GC26.Lines.Game
             hud.Dialog.Close();
             hud.GameOver.Show(score, Scores.DefaultName);
             Sounds.Play(LinesSound.GameOver);
+            Haptics.Play(GC26.Lines.Haptics.LinesFeel.GameOver);
         }
 
         /// <summary>Save on the game-over pop-up: adds the score and opens the Leaderboard.</summary>
@@ -317,7 +325,11 @@ namespace GC26.Lines.Game
             ScorePending = false;
             SaveGame();
             hud.GameOver.Close();
-            if (place >= 0) Sounds.Play(LinesSound.Record); // the score made the top 10
+            if (place >= 0) // the score made the top 10
+            {
+                Sounds.Play(LinesSound.Record);
+                Haptics.Play(GC26.Lines.Haptics.LinesFeel.Success);
+            }
             ShowLeaderboard(Texts.ResultMessage(place, score, name), afterGame: true);
         }
 

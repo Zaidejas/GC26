@@ -39,6 +39,9 @@ namespace GC26.Lines.Game
         /// <summary>Plays the board's sounds (select, move, landing, clear, spawn, no path); tests can leave it out.</summary>
         public LinesAudio Sounds { get; set; }
 
+        /// <summary>Vibrates for a cleared line and for no path (task L02); tests can leave it out.</summary>
+        public Haptics.LinesHaptics Haptics { get; set; }
+
         void Sound(LinesSound sound, int detail = 0)
         {
             if (Sounds != null) Sounds.Play(sound, detail);
@@ -101,6 +104,7 @@ namespace GC26.Lines.Game
         {
             hud?.ShowAlert(NoPathText);
             Sound(LinesSound.Blocked);
+            Haptics?.Play(GC26.Lines.Haptics.LinesFeel.Error);
             var ball = board.BallAt(from);
             if (ball == null) return;
             StopShake();
@@ -289,7 +293,12 @@ namespace GC26.Lines.Game
         /// </summary>
         public void PlayClear(IReadOnlyList<Cell> cells, int points, Action done)
         {
-            if (cells.Count > 0) Sound(LinesSound.Clear, LongestLine(cells));
+            if (cells.Count > 0)
+            {
+                int longest = LongestLine(cells);
+                Sound(LinesSound.Clear, longest);
+                Haptics?.Play(GC26.Lines.Haptics.LinesHaptics.ForLine(longest), LineCount(cells)); // one tap per line
+            }
             foreach (var cell in cells)
             {
                 var ball = board.BallAt(cell);
@@ -320,6 +329,23 @@ namespace GC26.Lines.Game
                 longest = Math.Max(longest, length);
             }
             return longest;
+        }
+
+        /// <summary>How many lines (of 5 or more) the cleared cells make; crossing lines share a cell.</summary>
+        public static int LineCount(IReadOnlyList<Cell> cells)
+        {
+            var set = new HashSet<Cell>(cells);
+            int count = 0;
+            var directions = new[] { (1, 0), (0, 1), (1, 1), (1, -1) };
+            foreach (var cell in cells)
+            foreach (var (dx, dy) in directions)
+            {
+                if (set.Contains(new Cell(cell.Column - dx, cell.Row - dy))) continue;
+                int length = 1;
+                while (set.Contains(new Cell(cell.Column + dx * length, cell.Row + dy * length))) length++;
+                if (length >= GameConfig.MinLineLength) count++;
+            }
+            return Math.Max(1, count);
         }
 
         static void Pop(BallView ball)

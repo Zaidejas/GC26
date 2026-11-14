@@ -885,7 +885,7 @@ body {
     const s = slotOf(selected);
     if (s) { s.classList.remove("shake"); void s.offsetWidth; s.classList.add("shake"); }
     toast(t("noPath"));
-    Sound.play("blocked");
+    Sound.play("blocked"); buzz("error");
   }
   async function move(target) {
     const path = findPath(S.board, selected, target);
@@ -917,6 +917,7 @@ body {
     if (fromMove) pts *= lines.length;
     cells.forEach((i) => { const s = slotOf(i); if (s) { s.firstChild.classList.add("pop"); burst(i, S.board[i]); } });
     Sound.play("clear", Math.max(...lines.map((l) => l.length)));
+    buzz(Math.max(...lines.map((l) => l.length)) >= 7 ? "clearBig" : "clear", lines.length);
     await wait(260);
     cells.forEach((i) => { S.board[i] = -1; });
     S.score += pts; bump(pts); render();
@@ -964,7 +965,7 @@ body {
     S.pendingScore = S.score; save();
     $("#player-name").value = defaultName();
     $("#over").hidden = false;
-    Sound.play("gameOver");
+    Sound.play("gameOver"); buzz("gameOver");
     setTimeout(() => { const f = $("#player-name"); f.focus(); f.select(); }, 50);
   }
   // Adds a pending score under `name`; a PlayerN name moves the counter on, a typed name is remembered.
@@ -983,7 +984,7 @@ body {
       : rank > 0 ? t("yourRank", rank + 1, name)
       : t("notInTop", score);
     cameFromGameOver = true;
-    if (rank >= 0) Sound.play("record");
+    if (rank >= 0) { Sound.play("record"); buzz("success"); }
     $("#over").hidden = true;
     showScreen("scores");
   }
@@ -1003,7 +1004,17 @@ body {
   let latestScoreTime = 0, tutStep = 0;
   let howtoReturn = "menu"; // How to play goes back to where it was opened from (menu or game)
 
-  // ---- Settings: music, sounds, vibration (remembered on this device). Vibration isn't used yet. ----
+  // ---- Vibration (GDD → Controls and feedback): only a few moments, off with the Vibration switch. Browsers can
+  // vibrate only on Android (iPhones ignore it); the phone game uses the phones' own light, firm and heavy feels. ----
+  const BUZZ = { tick: [8], clear: [22], clearBig: [40], error: [14, 60, 14], success: [12, 70, 12, 70, 28], gameOver: [70] };
+  function buzz(kind, times = 1) {
+    if (!settings.vibration || !navigator.vibrate) return;
+    let pattern = BUZZ[kind];
+    if (times > 1) pattern = pattern.concat([100], pattern); // two lines at once: two taps
+    try { navigator.vibrate(pattern); } catch (e) {}
+  }
+
+  // ---- Settings: music, sounds, vibration (remembered on this device). ----
   const SETTINGS_KEY = "lines-prototype-settings";
   const settings = Object.assign({ music: true, sounds: true, vibration: true,
       lang: (navigator.language || "").toLowerCase().startsWith("ru") ? "ru" : "en" },
@@ -1398,6 +1409,7 @@ body {
       settings[sw.dataset.key] = !settings[sw.dataset.key];
       saveSettings(); renderSettings();
       if (sw.dataset.key === "music") Sound.syncMusic();
+      if (sw.dataset.key === "vibration") buzz("tick"); // feel what was switched on (nothing when off)
     }));
     document.querySelectorAll("#settings .langs button").forEach((b) => b.addEventListener("click", () => {
       settings.lang = b.dataset.lang; saveSettings(); applyLanguage();

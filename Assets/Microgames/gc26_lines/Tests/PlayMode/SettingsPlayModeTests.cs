@@ -50,6 +50,24 @@ namespace GC26.Lines.Tests
         }
 
         [UnityTest]
+        public IEnumerator VibrationSwitch_TicksWhenTurnedOn_AndSilencesTheGame()
+        {
+            yield return Launch();
+            var game = Object.FindAnyObjectByType<GameBootstrap>();
+            Assert.IsTrue(game.Haptics.Enabled, "On by default");
+            game.Menu.SettingsButton.Click();
+            game.Hud.Settings.VibrationSwitch.Click(); // off
+            Assert.IsFalse(game.Haptics.Enabled);
+            Assert.IsEmpty(game.Haptics.Played, "Switching off doesn't vibrate");
+            game.Hud.Settings.VibrationSwitch.Click(); // on again
+            Assert.IsTrue(game.Haptics.Enabled);
+            CollectionAssert.AreEqual(new[] { GC26.Lines.Haptics.LinesFeel.Tick }, game.Haptics.Played, "One tick when switched on");
+            game.Hud.Settings.MusicSwitch.Click();
+            Assert.AreEqual(1, game.Haptics.Played.Count, "Other switches don't tick");
+            Assert.IsTrue(game.Settings.vibration, "Remembered");
+        }
+
+        [UnityTest]
         public IEnumerator Gears_AreReallyTappable()
         {
             yield return Launch();
