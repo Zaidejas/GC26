@@ -1,6 +1,6 @@
 # Lines — Development Plan / План разработки
 
-Revised Nov 2, 2026 / Обновлено 2 ноября 2026
+Revised Nov 2, 2026; updated Nov 14, 2026 to match the finished game / Обновлено 2 ноября 2026; 14 ноября 2026 приведено в соответствие с готовой игрой
 
 - [English version](#english-version)
 - [Русская версия](#русская-версия)
@@ -21,7 +21,7 @@ Revised Nov 2, 2026 / Обновлено 2 ноября 2026
 - **Unity stays closed** while Claude works, because an open editor locks the project.
 - **Real phones** are checked regularly, from Week 6.
 - **Tasks** live on the [gc26_lines project board](https://github.com/users/Zaidejas/projects/14), numbered 01–41 in work order (later features: L01–L14; the playtest with friends moved from 37 to L14, after all development).
-- **Commits** go to the `gc26_lines` branch and name the task they belong to ("Task 05: Pathfinder").
+- **Commits** go to the `game/gc26_lines` branch (called `gc26_lines` until Nov 11) and name the task they belong to ("Task 05: Pathfinder").
 
 ### Core rules to implement
 
@@ -56,6 +56,32 @@ Scripts/
   Services/    SaveService (JSON: game in progress, leaderboard)
 Tests/         EditMode tests for Core
 ```
+
+**As built** (everything in `Assets/Microgames/gc26_lines/`, the team layout since task 32a; namespaces `GC26.Lines.*`):
+
+```
+Scenes/        gc26_lines_Main (a camera and GameBootstrap + LinesMicrogame)
+Scripts/
+  Core/        Board, Cell, BallColor, Pathfinder, LineDetector, Spawner,
+               ScoreCalculator, GameState, GameSave, GameSettings, Leaderboard
+  Game/        GameBootstrap (creates and switches the screens),
+               LinesGameController (turn state machine), BoardPresenter
+               (animations and sounds), InputHandler, LinesMicrogame,
+               LinesFpsMeter (test builds only)
+  View/        BoardView (pooled mushrooms), BoardLayout, PieceSet,
+               SpriteFactory, Fireflies, ForestBackground, Palette, Tween
+  UI/          MenuView, HudView, HowToPlayView, LeaderboardView,
+               SettingsDialog, ConfirmDialog, GameOverDialog, AlertToast,
+               Texts (English and Russian), UiFonts, PillButton, ...
+  Audio/       Synth, SoundBank, LinesAudio (music and sounds from code)
+  Services/    SaveService, LeaderboardService, SettingsService
+  Editor/      ProjectSetup, BuildScripts, PhoneAppSettings,
+               LayoutScreenshots, ...
+Tests/         EditMode (rules, views) and PlayMode (the real scene)
+Tools~/        setup.sh, build.sh
+```
+
+**Added beyond the original plan** (mostly teacher's feedback): Settings (Music, Sounds, Vibration switch, language, How to play), English and Russian, music and sounds, a livelier board (fireflies, sway, magic dust, landing pulse, entrance), house icons, swiping between How to play cards, and the move into the GC26 team layout. Vibration itself is still a later feature (L05).
 
 - **Turn flow:** `Idle → BallSelected → Moving → Resolving → Spawning → CheckGameOver → Idle`.
 - **Communication:** the core logic raises C\# events (`OnBallMoved`, `OnMoveBlocked`, `OnLinesCleared`, `OnBallsSpawned`, `OnGameOver`), and the view layer listens to them.
@@ -94,7 +120,7 @@ Tests/         EditMode tests for Core
 #### Week 4: Saving, screens and polish (Part 1)
 
 - Save the game in progress (board, score, preview, Undo step) as JSON in the game's own save folder (`MicrogameSave.Folder("gc26_lines")`) after each move and when the app goes to the background, and restore it with Continue.
-- Main menu (Continue, New game, How to play, Leaderboard) as the start screen, and a back button (arrow) on the game, How to play and Leaderboard screens.
+- Main menu (Continue, New game, How to play, Leaderboard) as the start screen, and a back button on the game, How to play and Leaderboard screens (built as a house icon).
 - How to play: 3 cards with small board pictures.
 - Game over and leaderboard: the game-over pop-up only asks for a name (pre-filled with the last typed name or PlayerN) and Save opens the Leaderboard: local top 10 finished games with name, score and date, a result line and Play again. Older scores win ties; a score left unsaved when the app closes is added at the next launch. Ranking rules in Core, with unit tests.
 - UI transitions and the prototype's fonts.
@@ -118,7 +144,7 @@ Tests/         EditMode tests for Core
 
 - Profile on real phones: object pooling, a 60 FPS target, fewer draw calls.
 - Final check of both target screen shapes, 16:9 and 20:9, plus notched phones (simulators, emulators and real devices).
-- Playtest with friends. Android: share the APK. iOS: on your own iPhone (a free Apple account can't install on other people's phones). Collect feedback and fix bugs.
+- Playtest with friends. Android: share the APK. iOS: on your own iPhone (a free Apple account can't install on other people's phones). Collect feedback and fix bugs. *(Moved to the end, L14, after the later features.)*
 - Re-check the scoring balance.
 
 #### Week 8: Final version
@@ -165,7 +191,7 @@ Tests/         EditMode tests for Core
 - **Unity закрыт**, пока работает Claude: открытый редактор блокирует проект.
 - **Настоящие телефоны** проверяем регулярно, начиная с 6-й недели.
 - **Задачи** находятся на [доске проекта gc26_lines](https://github.com/users/Zaidejas/projects/14) и пронумерованы 01–41 в порядке работы (отложенные функции: L01–L14; тест с друзьями перенесён из 37 в L14, после всей разработки).
-- **Коммиты** идут в ветку `gc26_lines` и называют задачу, к которой относятся («Task 05: Pathfinder»).
+- **Коммиты** идут в ветку `game/gc26_lines` (до 11 ноября она называлась `gc26_lines`) и называют задачу, к которой относятся («Task 05: Pathfinder»).
 
 ### Основные правила игры
 
@@ -200,6 +226,32 @@ Scripts/
   Services/    SaveService (JSON: текущая партия, таблица рекордов)
 Tests/         EditMode-тесты для Core
 ```
+
+**Как сделано** (всё в `Assets/Microgames/gc26_lines/`, по правилам команды с задачи 32a; пространства имён `GC26.Lines.*`):
+
+```
+Scenes/        gc26_lines_Main (камера и GameBootstrap + LinesMicrogame)
+Scripts/
+  Core/        Board, Cell, BallColor, Pathfinder, LineDetector, Spawner,
+               ScoreCalculator, GameState, GameSave, GameSettings, Leaderboard
+  Game/        GameBootstrap (создаёт и переключает экраны),
+               LinesGameController (машина состояний хода), BoardPresenter
+               (анимации и звуки), InputHandler, LinesMicrogame,
+               LinesFpsMeter (только в тестовых сборках)
+  View/        BoardView (пул грибов), BoardLayout, PieceSet,
+               SpriteFactory, Fireflies, ForestBackground, Palette, Tween
+  UI/          MenuView, HudView, HowToPlayView, LeaderboardView,
+               SettingsDialog, ConfirmDialog, GameOverDialog, AlertToast,
+               Texts (английский и русский), UiFonts, PillButton, ...
+  Audio/       Synth, SoundBank, LinesAudio (музыка и звуки из кода)
+  Services/    SaveService, LeaderboardService, SettingsService
+  Editor/      ProjectSetup, BuildScripts, PhoneAppSettings,
+               LayoutScreenshots, ...
+Tests/         EditMode (правила, отображение) и PlayMode (настоящая сцена)
+Tools~/        setup.sh, build.sh
+```
+
+**Добавлено сверх первоначального плана** (в основном по отзывам преподавателя): настройки (музыка, звуки, переключатель вибрации, язык, «Как играть»), английский и русский языки, музыка и звуки, «живое» поле (светлячки, покачивание, волшебная пыль, пульс при приземлении, появление поля), иконки-домики, перелистывание карточек «Как играть» свайпом и переезд в общую структуру проекта GC26. Сама вибрация пока остаётся отложенной функцией (L05).
 
 - **Порядок хода:** `Idle → BallSelected → Moving → Resolving → Spawning → CheckGameOver → Idle`.
 - **Связь между слоями:** логика вызывает события C\# (`OnBallMoved`, `OnMoveBlocked`, `OnLinesCleared`, `OnBallsSpawned`, `OnGameOver`), а слой отображения на них подписывается.
@@ -238,7 +290,7 @@ Tests/         EditMode-тесты для Core
 #### Неделя 4: сохранение, экраны и доработка (часть 1)
 
 - Сохранять текущую партию (поле, счёт, превью, шаг для отмены) в JSON в собственной папке сохранений игры (`MicrogameSave.Folder("gc26_lines")`) после каждого хода и при сворачивании приложения, и продолжать её кнопкой «Продолжить».
-- Главное меню (Продолжить, Новая игра, Как играть, Таблица рекордов) как стартовый экран и кнопка «назад» (стрелка) на экранах игры, «Как играть» и таблицы рекордов.
+- Главное меню (Продолжить, Новая игра, Как играть, Таблица рекордов) как стартовый экран и кнопка «назад» на экранах игры, «Как играть» и таблицы рекордов (сделана в виде домика).
 - «Как играть»: 3 карточки с маленькими картинками поля.
 - Конец игры и таблица рекордов: окно конца игры только спрашивает имя (заполнено последним введённым именем или PlayerN), «Сохранить» открывает таблицу: 10 лучших законченных игр с именем, счётом и датой, строка с результатом и кнопка «Играть снова». При равенстве остаётся более старый результат; несохранённый при закрытии приложения счёт добавляется при следующем запуске. Правила рейтинга в Core, с юнит-тестами.
 - Переходы в интерфейсе и шрифты прототипа.
@@ -262,7 +314,7 @@ Tests/         EditMode-тесты для Core
 
 - Профилирование на настоящих телефонах: пул объектов, цель 60 FPS, меньше вызовов отрисовки.
 - Финальная проверка обоих целевых форматов экрана, 16:9 и 20:9, и телефонов с вырезом (симуляторы, эмуляторы и настоящие устройства).
-- Дать поиграть друзьям. Android: отправить APK. iOS: на вашем iPhone (с бесплатным аккаунтом Apple нельзя установить игру на чужие телефоны). Собрать отзывы и исправить ошибки.
+- Дать поиграть друзьям. Android: отправить APK. iOS: на вашем iPhone (с бесплатным аккаунтом Apple нельзя установить игру на чужие телефоны). Собрать отзывы и исправить ошибки. *(Перенесено в конец, L14, после отложенных функций.)*
 - Ещё раз проверить баланс очков.
 
 #### Неделя 8: финальная версия

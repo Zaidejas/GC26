@@ -1,6 +1,6 @@
 # Lines — Game Design Document
 
-Oct 21, 2026 · revised Nov 2, 2026 · hmmd2
+Oct 21, 2026 · revised Nov 2, 2026 · updated Nov 14, 2026 to match the finished game (version 0.1.0) · hmmd2
 
 Earlier online version (before the Nov 2 revision): [https\://claude.ai/artifact/MbLgFyYVPGJvoRkVvUrSSQ](https://claude.ai/artifact/MbLgFyYVPGJvoRkVvUrSSQ)
 
@@ -165,8 +165,8 @@ The MVP has four screens and three pop-ups. The app opens on the main menu.
 | :---- | :---- | :---- |
 | Main menu | Game title, Continue (with the saved game's score), New game, How to play, Leaderboard; a gear icon (Settings) in the top-right corner | App launch; back buttons |
 | Game | House button (main menu) top-left and gear (Settings) top-right, score, preview of the next 3 balls, board, Undo, Reset. The SCORE and NEXT labels share one line, and the score number sits on the same line as the 3 next mushrooms (the middle of its digits level with their middle) | Continue or New game |
-| How to play | Back button, then 3 short cards with a small board picture each: move a ball along a free path; make lines of five; the next balls, game over and Undo. Back / Next, and "Got it" on the last card; a swipe left or right also changes the card (the card follows the finger, slides out and the next one slides in; a short swipe springs back; the first and last card only stretch a little, and a swipe never closes How to play). The buttons use the same slide. The picture and title stay in the same place on every card | Main menu |
-| Leaderboard | Back button, then the local top 10 finished games, each with rank, name, date and score; the game just finished is highlighted, with a result line above the list and a Play again button below it. Shows a short explanation while it's empty | Main menu; Save on the game-over pop-up |
+| How to play | House button, then 3 short cards with a small board picture each: move a ball along a free path; make lines of five; the next balls, game over and Undo. Back / Next, and "Got it" on the last card; a swipe left or right also changes the card (the card follows the finger, slides out and the next one slides in; a short swipe springs back; the first and last card only stretch a little, and a swipe never closes How to play). The buttons use the same slide. The picture and title stay in the same place on every card | Main menu |
+| Leaderboard | House button, then the local top 10 finished games, each with rank, name, date and score; the game just finished is highlighted, with a result line above the list and a Play again button below it. Shows a short explanation while it's empty | Main menu; Save on the game-over pop-up |
 | New game confirmation | "Start a new game?" with Yes and Cancel; the current game is lost | Reset button, or New game on the menu while a game is unfinished |
 | Settings | A pop-up card with on/off switches for Music, Sounds and Vibration, the Language (English / Русский), and a How to play button. Closes with ✕ or a tap outside the card | The gear on the main menu or the game screen |
 | Game over | Final score and a name field with Save, nothing else. Save adds the score to the leaderboard and opens the Leaderboard screen | Game, when the board is full |
@@ -176,7 +176,7 @@ The MVP has four screens and three pop-ups. The app opens on the main menu.
 - **Continue** resumes the saved game and shows its score. It is disabled when there's no unfinished game.
 - **New game** starts right away when there's no unfinished game; otherwise it asks for confirmation first.
 - The game screen, How to play and Leaderboard all have the same house icon in the top-left corner (just the white icon, no ring or disc behind it). It returns to the main menu, except How to play opened from Settings during a game, which returns to the game. Leaving the game saves it, so Continue picks it up exactly where it was (Undo included).
-- How to play and Leaderboard have no title at the top, only the back button.
+- How to play and Leaderboard have no title at the top, only the house button.
 - On shorter screens (16:9) the leaderboard rows get a little shorter, so all 10 places fit without scrolling when it's opened from the menu. Right after a game the result line and Play again take some room, so the list may scroll a little; it opens on the game just finished.
 
 **Settings** (teacher's feedback, pulled forward from the later features)
@@ -210,7 +210,7 @@ The MVP has four screens and three pop-ups. The app opens on the main menu.
 **Saving the game in progress (MVP)**
 
 - The game is saved after every move and when the app is closed or goes to the background.
-- The save holds the board, the score, the preview (colors and cells), the preview mode and the Undo step, so Undo still works after a restart.
+- The save holds the board, the score, the preview (colors and cells) and the Undo step, so Undo still works after a restart. (The preview mode will join it when the other modes are added; the MVP has only Full preview.)
 - The saved game is resumed with Continue on the main menu.
 - Closing the app during a game keeps it for Continue.
 - When a game ends, the score waits on the game-over pop-up and is kept in the save. If the app is closed before Save is tapped, the score goes to the leaderboard under the pre-filled name at the next launch.
@@ -245,7 +245,7 @@ The look is a dark, magical mushroom forest at night: glowing mushrooms on a dar
 - **Splash screen:** while the game loads: the same glowing mushroom and the gold "Lines" title over the plain forest background, for about 2 seconds, with no Unity logo. Before that, iOS shows a plain screen in the game's dark colour.
 - One theme (the dark magic forest) in the MVP.
 - Preview dots: "ghost" versions of the next mushrooms in their target cells: about half the size of a real one, see-through and a little paler, with no glow, so they read as "a mushroom will grow here", not as real pieces (teacher's feedback; glowing coloured dots, a breathing animation and a magic circle were tried and dropped).
-- Game screen life (teacher's feedback, so the board isn't still before the first move): about 12 fireflies (warm gold and soft turquoise) drift slowly behind the board and pulse brighter and dimmer; every mushroom on the board sways gently on its foot (about 3° each way, 3 s per sway, each at its own rhythm, steady across moves; not while selected or moving; previews don't sway). When the game screen opens (New game, Continue, Reset) the board fades in and grows slightly into place, then the mushrooms pop up one after another from top-left to bottom-right, the previews last (about 0.6–1 s in all). All of these are off when the device asks for reduced motion.
+- Game screen life (teacher's feedback, so the board isn't still before the first move): about 12 fireflies (warm gold and soft turquoise) drift slowly behind the board and pulse brighter and dimmer; every mushroom on the board sways gently on its foot (about 3° each way, 3 s per sway, each at its own rhythm, steady across moves; not while selected or moving; previews don't sway). When the game screen opens (New game, Continue, Reset) the board fades in and grows slightly into place, then the mushrooms pop up one after another from top-left to bottom-right, the previews last (about 0.6–1 s in all). In the browser prototype all of these are off when the device asks for reduced motion; the Unity game doesn't read that phone setting.
 - Animations: a moving ball leaves a trail of magic dust (3 tiny sparkles in its colour on each cell it leaves, drifting down and fading in about half a second; teacher's feedback, a glowing comet tail was tried and dropped); when it arrives it pulses once: contracts to about 80%, expands to about 110% and settles, in about 0.4 s (teacher's feedback); the selected ball bounces, balls grow in when they spawn, cleared balls shrink and burst into particles, and a blocked move shakes the ball.
 - Sounds and music: see Sounds and music. In the game they are made from code when it starts (no sound files), the same recipes as the prototype.
 
@@ -253,18 +253,19 @@ The look is a dark, magical mushroom forest at night: glowing mushrooms on a dar
 
 The game logic is plain C\# kept separate from Unity, so it can be unit-tested. The Unity layer only draws the board and takes input.
 
-**Code-first approach.** The project has a single, nearly empty `Main` scene. Everything else — the board, the balls, the UI — is created by code when the game starts. No scenes, prefabs or layouts are built by hand in the Unity editor; the editor is used only to look at the result. This lets the whole game be written and changed as code.
+**Code-first approach.** The project has a single, nearly empty scene, `gc26_lines_Main` (a camera and the `GameBootstrap` object). Everything else — the board, the balls, the UI — is created by code when the game starts. No scenes, prefabs or layouts are built by hand in the Unity editor; the editor is used only to look at the result. This lets the whole game be written and changed as code.
 
 | Area | Choice |
 | :---- | :---- |
 | Engine | Unity 6 (6000.5.6f1), 2D, URP |
-| Logic | Plain C\#: `Board`, `Pathfinder` (BFS), `LineDetector`, `Spawner` (seeded RNG, picks colors and cells in advance), `ScoreCalculator` |
-| Turn flow | State machine: Idle → Ball selected → Moving → Resolving → Spawning → Check game over |
+| Logic | Plain C\#: `Board`, `Pathfinder` (BFS), `LineDetector`, `Spawner` (seeded RNG, picks colors and cells in advance), `ScoreCalculator`, `GameState` (one turn, Undo), `Leaderboard` |
+| Turn flow | State machine in `LinesGameController`: Idle → Ball selected → Moving → Resolving → Spawning → Check game over; `BoardPresenter` plays the animations and sounds |
 | Rendering | Pooled ball objects. The mushroom images and the two forest backgrounds are PNGs exported from the browser prototype; the board is generated in code. Animations with a small animation helper written in our own code (no third-party animation library) |
 | Input | New Input System, touch (mouse in the editor) |
-| UI | uGUI with TextMeshPro, created from code, safe-area aware. Screens: main menu, game, how to play, leaderboard; switched by a small screen manager |
-| Saving | `SaveService`: the game in progress as JSON in the game's own save folder (`MicrogameSave.Folder("gc26_lines")`, the team rule), saved after each move and when the app goes to the background. The leaderboard (top 10) is a separate JSON file; its ranking rules live in Core and are unit-tested |
-| Testing | EditMode unit tests for all game logic, run from the command line. Visual checks in the iOS Simulator and Android Emulator, then on real phones |
+| UI | uGUI with TextMeshPro, created from code, safe-area aware. Screens: main menu, game, How to play, leaderboard; pop-ups: Settings, new game confirmation, game over, and the "No path" alert. `GameBootstrap` creates them and switches between them. Every text is in `Texts` (English and Russian) |
+| Sound | Music and sounds made from code when the game starts (`Synth`, `SoundBank`, `LinesAudio`), no sound files |
+| Saving | `SaveService`: the game in progress as JSON in the game's own save folder (`MicrogameSave.Folder("gc26_lines")`, the team rule), saved after each move and when the app goes to the background. The leaderboard (top 10, `LeaderboardService`) and the settings (`SettingsService`) are separate JSON files; the ranking rules live in Core and are unit-tested |
+| Testing | EditMode unit tests for all game logic and the views, and play-mode tests in the real scene (including a robot that plays whole games and checks the screen against the board after every turn and that every-frame code makes no garbage), all run from the command line. Layout screenshots at 16:9, 20:9 and real iPhone sizes. Then the iOS Simulator, the Android Emulator and real phones (an iPhone 14 Pro and an Android phone, both at 60 FPS) |
 | Builds | iOS: Unity → Xcode project → iOS Simulator, and your own iPhone with a free Apple account (the app must be reinstalled every 7 days). Android: APK installed directly on the emulator and your phone |
 | Targets | Portrait 16:9 and 20:9 screens. 60 FPS on older phones. iOS 15+, Android 8.0+ |
 | Team project | Lines is one of the GC26 microgames (RULES.md in the repository root): everything lives in `Assets/Microgames/gc26_lines/`, namespaces `GC26.Lines.*`, scene `gc26_lines_Main`. It is built alone as a phone app for now; the link to the shared GC26 menu (`LinesMicrogame`, `microgame.json`) is in place but the "Back to games" button and pause come when all games are merged |
