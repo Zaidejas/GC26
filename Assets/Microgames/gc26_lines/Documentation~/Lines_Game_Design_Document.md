@@ -123,13 +123,7 @@ Longer lines are worth much more than short ones, which rewards the player for t
 
 ## Preview modes
 
-The original game had three difficulty levels that differ only in how much the player knows about the next balls. The MVP ships with the first one. The other two are later features.
-
-| Mode | What the player sees before the spawn | Release |
-| :---- | :---- | :---- |
-| Full preview | The colors of the next 3 balls and the cells where they will appear | MVP |
-| Colors only | The colors of the next 3 balls, but not where they will appear | Later |
-| No preview | Nothing about the next balls | Later |
+The original game had three difficulty levels that differ only in how much the player knows about the next balls: Full preview (the colors of the next 3 balls and the cells where they will appear), Colors only, and No preview. Lines has **only Full preview**. The other two were planned as a later feature (L03) and dropped on Nov 14, 2026: scores from different modes can't be compared, so they would need separate leaderboards, and the work across every screen was too much for what they add. The full preview is what makes this version friendly.
 
 ## Later features (not in the MVP)
 
@@ -137,8 +131,6 @@ These are planned for after the MVP and are not scheduled in the 8 weeks unless 
 
 | Feature | Notes |
 | :---- | :---- |
-| Preview modes | "Colors only" and "No preview" (see above), chosen when starting a new game |
-| More menu entries | Modes on the main menu |
 | Pause menu | Not needed: nothing happens until the player acts |
 | Best score during play | The best score shown on the game screen next to the current score |
 | More settings | A theme choice (Settings itself is now in the MVP) |
@@ -219,7 +211,7 @@ The MVP has four screens and three pop-ups. The app opens on the main menu.
 **Saving the game in progress (MVP)**
 
 - The game is saved after every move and when the app is closed or goes to the background.
-- The save holds the board, the score, the preview (colors and cells) and the Undo step, so Undo still works after a restart. (The preview mode will join it when the other modes are added; the MVP has only Full preview.)
+- The save holds the board, the score, the preview (colors and cells) and the Undo step, so Undo still works after a restart.
 - The saved game is resumed with Continue on the main menu.
 - Closing the app during a game keeps it for Continue.
 - When a game ends, the score waits on the game-over pop-up and is kept in the save. If the app is closed before Save is tapped, the score goes to the leaderboard under the pre-filled name at the next launch.
