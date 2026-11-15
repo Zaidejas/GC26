@@ -117,6 +117,7 @@ Longer lines are worth much more than short ones, which rewards the player for t
 - **Undo:** removes the points scored by the move it takes back.
 - **Leaderboard (MVP):** a local top 10 of finished games, each with a player name, score and date (see Screens and UI).
   - Only finished games count: a game abandoned with Reset or New game never reaches the leaderboard.
+  - A game that ends with 0 points never goes on the leaderboard: the game-over pop-up then has no name field, only "Clear a line to get on the leaderboard." and two buttons, Menu and Play again.
   - **Ties:** the older score keeps its place. A new score must be higher than the 10th place to get in.
   - After saving, the leaderboard says "New best score, Anna!", "You're #3, Anna!" or "120 points didn't make the top 10".
 - **Passing the best score during play** (task L04): the best is the top of the leaderboard (finished games only). When the score of the game in progress passes it, fireworks burst over the game screen (about 1.5 s of gold, turquoise, pink and lilac sparks), a glowing "New best!" appears in the middle of the board, and the "New record" sound and the "success" vibration play. Then a small glowing gold crown sits next to the score number, its middle level with the middle of the digits, for the rest of the game. It happens once per game; if Undo takes the score back below the best, the crown quietly disappears. A continued game that is already above the best shows the crown without fireworks. With no finished games yet there is no best, so nothing happens. (A plain "Best 412" number next to the score was tried and dropped.)
@@ -124,6 +125,28 @@ Longer lines are worth much more than short ones, which rewards the player for t
 ## Preview modes
 
 The original game had three difficulty levels that differ only in how much the player knows about the next balls: Full preview (the colors of the next 3 balls and the cells where they will appear), Colors only, and No preview. Lines has **only Full preview**. The other two were planned as a later feature (L03) and dropped on Nov 14, 2026: scores from different modes can't be compared, so they would need separate leaderboards, and the work across every screen was too much for what they add. The full preview is what makes this version friendly.
+
+## Timed mode (task L09)
+
+A second, faster way to play next to the normal game (called **Classic** from now on). Same board, same rules, same points; the difference is a clock.
+
+| Rule | Value |
+| :---- | :---- |
+| Time | 3:00 at the start. Every cleared line adds 5 seconds (two lines in one move: +10 s; lines made by new mushrooms count too) |
+| End | When the clock reaches 0:00 ("Time's up!"), or as usual when the board is full |
+| What counts | Only the player's thinking time: the clock stops while a mushroom moves, lines clear and new mushrooms appear, and whenever the game screen isn't in front (menu, Settings, the Reset question, How to play) or the app is in the background |
+| Undo | None (it would give free thinking time): the Undo button is gone and Reset sits alone in the middle of the bottom row, the same size |
+| Points | The same table as Classic |
+
+**Choosing the mode.** Two round badges sit on the main menu right above Continue: a mushroom (**Classic**) and a stopwatch (**Timed**), each with its name under it; the chosen one glows gold. The choice is remembered. Continue, New game and Leaderboard all follow the chosen mode.
+
+**Each mode has its own game in progress.** A Classic game and a Timed game are saved separately and never replace each other. Leaving a timed game or closing the app stops its clock; Continue (with Timed chosen) picks it up with the time that was left, and shows it next to the score ("· score 40 · 1:20").
+
+**The clock** sits at the top of the game screen, centred between the house and the gear (above SCORE and NEXT), inside the safe area, so the iPhone's camera cut-out never covers it: a stopwatch icon and the time left as m:ss in the score's font. "+5s" (or "+10s") floats up to its right when time is added. From 0:30 it turns yellow and ticks softly each second, its digits giving a small pulse; from 0:10 it turns red and the tick is sharper. At 0:00 a glowing gold "Time's up!" shows over the board, and a moment later the game-over pop-up opens as in Classic.
+
+**Leaderboard.** The same two badges, smaller and side by side next to the house, are the Leaderboard's tabs: **Classic** and **Timed**, each a top 10 with the same rules (finished games only, older scores win ties). It opens on the tab of the game just finished, or of the mode chosen on the menu. The "New best" celebration (fireworks and the crown, see Scoring) compares with the best of the mode being played.
+
+**How to play** has a fourth card, "Race the clock".
 
 ## Later features (not in the MVP)
 
@@ -163,10 +186,10 @@ The MVP has four screens and three pop-ups. The app opens on the main menu.
 
 | Screen | Contents | Opens from |
 | :---- | :---- | :---- |
-| Main menu | Game title, Continue (with the saved game's score), New game, How to play, Leaderboard; a gear icon (Settings) in the top-right corner | App launch; back buttons |
+| Main menu | Game title, the Classic / Timed badges, Continue (with the saved game's score), New game, How to play, Leaderboard; a gear icon (Settings) in the top-right corner | App launch; back buttons |
 | Game | House button (main menu) top-left and gear (Settings) top-right, score, preview of the next 3 balls, board, Undo, Reset. The SCORE and NEXT labels share one line, and the score number sits on the same line as the 3 next mushrooms (the middle of its digits level with their middle) | Continue or New game |
 | How to play | House button, then 3 short cards with a small board picture each: move a ball along a free path; make lines of five; the next balls, game over and Undo. Back / Next, and "Got it" on the last card; a swipe left or right also changes the card (the card follows the finger, slides out and the next one slides in; a short swipe springs back; the first and last card only stretch a little, and a swipe never closes How to play). The buttons use the same slide. The picture and title stay in the same place on every card | Main menu |
-| Leaderboard | House button, then the local top 10 finished games, each with rank, name, date and score; the game just finished is highlighted, with a result line above the list and a Play again button below it. Shows a short explanation while it's empty | Main menu; Save on the game-over pop-up |
+| Leaderboard | House button and the Classic / Timed tabs, then the local top 10 finished games, each with rank, name, date and score; the game just finished is highlighted, with a result line above the list and a Play again button below it. Shows a short explanation while it's empty | Main menu; Save on the game-over pop-up |
 | New game confirmation | "Start a new game?" with Yes and Cancel; the current game is lost | Reset button, or New game on the menu while a game is unfinished |
 | Settings | A pop-up card with on/off switches for Music, Sounds and Vibration, the Language (English / Русский), and a How to play button. Closes with ✕ or a tap outside the card | The gear on the main menu or the game screen |
 | Game over | Final score and a name field with Save, nothing else. Save adds the score to the leaderboard and opens the Leaderboard screen | Game, when the board is full |
@@ -215,7 +238,7 @@ The MVP has four screens and three pop-ups. The app opens on the main menu.
 - Closing the app during a game keeps it for Continue.
 - When a game ends, the score waits on the game-over pop-up and is kept in the save. If the app is closed before Save is tapped, the score goes to the leaderboard under the pre-filled name at the next launch.
 - After a game ends, Continue is disabled until a new game starts. Reset also starts a new save.
-- The leaderboard (top 10 scores with dates) is saved on the device separately from the game in progress.
+- The leaderboards (top 10 scores with dates, one for each mode) are saved on the device separately from the games in progress (one for each mode, see Timed mode).
 
 ## Art
 
