@@ -101,6 +101,23 @@ body {
 }
 .gain.show { animation: gain 0.9s ease-out; }
 @keyframes gain { 0% { opacity: 0; transform: translateY(2cqw); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-4cqw); } }
+.num-row { position: relative; display: block; }
+/* L04: above the best score, a gold crown next to the score number, level with the middle of its digits. */
+.crown { position: absolute; left: 100%; top: 1.25cqw; width: 7.5cqw; height: 7.5cqw; margin-left: 1.2cqw; transform-origin: 50% 90%;
+  filter: drop-shadow(0 0 1.6cqw rgba(255, 205, 90, 0.8)); }
+.crown.pop { animation: crown-pop 0.7s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes crown-pop { from { transform: scale(0) rotate(-25deg); } to { transform: scale(1) rotate(0); } }
+.crown svg { width: 100%; height: 100%; display: block; }
+.fireworks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 30; }
+.best-toast {
+  position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%) scale(0.6); opacity: 0; pointer-events: none; z-index: 31;
+  font-family: var(--font-display); font-weight: 600; font-size: 8cqw; white-space: nowrap;
+  background: linear-gradient(180deg, #fff2c2, #ffc35a 70%, #ff9a3c); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 2.5cqw rgba(255, 200, 90, 0.7));
+}
+.best-toast.show { animation: best-toast 2s ease-out forwards; }
+@keyframes best-toast { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); } 15% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+  25% { transform: translate(-50%, -50%) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -60%) scale(1); } }
 .next { text-align: right; }
 .next-balls { display: flex; gap: 1.6cqw; margin-top: 1.4cqw; }
 .next-balls .ball { width: 7.5cqw; height: 7.5cqw; }
@@ -421,6 +438,7 @@ body {
         <button type="button" id="r169" data-r="1.7778" aria-pressed="true">16:9</button>
         <button type="button" id="r209" data-r="2.2222" aria-pressed="false">20:9</button>
       </div>
+
     </div>
   </header>
 
@@ -470,6 +488,7 @@ body {
 
         <div class="view" id="screen-game" hidden>
           <div class="flies" id="flies" aria-hidden="true"></div>
+          <canvas class="fireworks" id="fireworks" aria-hidden="true"></canvas>
           <div class="topbar">
             <button type="button" class="icon-btn home" id="back" data-i18n-aria="mainMenu" aria-label="Main menu" title="Main menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 3.8l8.5 7.2"/><path d="M5.8 9.6V19a1.2 1.2 0 0 0 1.2 1.2h3.4v-5.4h3.2v5.4H17a1.2 1.2 0 0 0 1.2-1.2V9.6"/></svg></button>
             <button type="button" class="icon-btn gear" id="settings-game" data-i18n-aria="settings" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
@@ -478,7 +497,7 @@ body {
           <div class="hud">
             <div class="score">
               <span class="label" data-i18n="score">Score</span>
-              <span class="num" id="score">0</span>
+              <span class="num-row"><span class="num" id="score">0</span><span class="crown" id="crown" hidden aria-label="Above your best score"><svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="crown-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2c2"/><stop offset="0.6" stop-color="#ffc35a"/><stop offset="1" stop-color="#ff9a3c"/></linearGradient></defs><path d="M4 11l6 5 6-9 6 9 6-5-2.5 13h-19z" fill="url(#crown-gold)" stroke="#fff4cf" stroke-width="1" stroke-linejoin="round"/><rect x="6.5" y="25" width="19" height="3" rx="1.2" fill="url(#crown-gold)"/><circle cx="4" cy="10" r="2" fill="#fff2c2"/><circle cx="16" cy="6" r="2.2" fill="#fff2c2"/><circle cx="28" cy="10" r="2" fill="#fff2c2"/><circle cx="16" cy="19" r="1.8" fill="#7ff0e0"/></svg></span></span>
               <span class="gain" id="gain"></span>
             </div>
             <div class="next">
@@ -494,6 +513,7 @@ body {
               <div class="fx" id="fx"></div>
             </div>
             <div class="toast" id="toast" role="status" aria-live="polite"></div>
+            <div class="best-toast" id="best-toast" role="status" aria-live="polite"></div>
           </div>
 
           <div class="actions">
@@ -803,6 +823,7 @@ body {
       layer.appendChild(s);
     }
     $("#score").textContent = S.score;
+    renderBest();
     alignScore();
     const next = $("#next"); next.textContent = "";
     S.preview.colors.forEach((c) => next.appendChild(ballEl(c)));
@@ -865,6 +886,64 @@ body {
       setTimeout(() => p.remove(), 500);
     }
   }
+  // ---- L04: the best score during play. When the score passes the best finished game: fireworks and
+  // "New best!", then a gold crown next to the score for the rest of the game (once per game; Undo below the
+  // best hides the crown quietly; a continued game already above it shows the crown without fireworks). ----
+  let bestAtStart = 0, celebrated = false;
+  const bestScore = () => (loadScores()[0] || {}).score || 0;
+  function renderBest() {
+    const above = bestAtStart > 0 && S.score > bestAtStart;
+    $("#crown").hidden = !above;
+  }
+  function checkBest() {
+    if (celebrated || bestAtStart <= 0 || S.score <= bestAtStart) return;
+    celebrated = true;
+    const crown = $("#crown");
+    crown.classList.remove("pop"); void crown.offsetWidth; crown.classList.add("pop");
+    const b = $("#best-toast"); b.textContent = t("newBestShort");
+    b.classList.remove("show"); void b.offsetWidth; b.classList.add("show");
+    Sound.play("record"); buzz("success");
+    fireworks();
+  }
+  // Fireworks over the game screen: a few rockets burst into gold, turquoise and pink sparks that fall and fade.
+  function fireworks() {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const cv = $("#fireworks"), r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    cv.width = r.width * dpr; cv.height = r.height * dpr;
+    const g = cv.getContext("2d"); g.scale(dpr, dpr);
+    const W = r.width, H = r.height, u = W / 100, colors = ["#ffd56b", "#ffe9a8", "#7ff0e0", "#ff8fc8", "#b9a2ff"];
+    const sparks = [];
+    const bursts = [[0.3, 0.3, 0], [0.7, 0.24, 250], [0.5, 0.42, 500], [0.22, 0.5, 800], [0.78, 0.48, 1000]];
+    const start = performance.now();
+    function boom(x, y) {
+      const c1 = colors[Math.floor(Math.random() * colors.length)], c2 = colors[Math.floor(Math.random() * colors.length)];
+      for (let k = 0; k < 42; k++) {
+        const a = (k / 42) * Math.PI * 2 + Math.random() * 0.15, v = (0.55 + Math.random() * 0.5) * u * 0.42;
+        sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0, max: 900 + Math.random() * 500, c: k % 2 ? c1 : c2 });
+      }
+    }
+    const pending = bursts.map(([x, y, at]) => ({ x: x * W, y: y * H, at }));
+    let last = start;
+    function frame(now) {
+      const dt = Math.min(40, now - last); last = now;
+      for (const b of pending) if (!b.done && now - start >= b.at) { b.done = true; boom(b.x, b.y); }
+      g.clearRect(0, 0, W, H);
+      g.globalCompositeOperation = "lighter";
+      for (const s of sparks) {
+        s.life += dt; if (s.life > s.max) continue;
+        s.vx *= 0.985; s.vy = s.vy * 0.985 + 0.0016 * u * dt; s.x += s.vx * dt / 16; s.y += s.vy * dt / 16;
+        const f = 1 - s.life / s.max;
+        g.globalAlpha = f; g.fillStyle = s.c;
+        g.beginPath(); g.arc(s.x, s.y, (0.35 + 0.45 * f) * u, 0, Math.PI * 2); g.fill();
+        g.globalAlpha = f * 0.25; g.beginPath(); g.arc(s.x, s.y, 1.4 * f * u, 0, Math.PI * 2); g.fill();
+      }
+      g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+      if (pending.some((b) => !b.done) || sparks.some((s) => s.life <= s.max)) requestAnimationFrame(frame);
+      else g.clearRect(0, 0, W, H);
+    }
+    requestAnimationFrame(frame);
+  }
+
   let toastTimer = 0;
   function toast(text) {
     const t = $("#toast"); t.textContent = text; t.classList.add("show");
@@ -921,6 +1000,7 @@ body {
     await wait(260);
     cells.forEach((i) => { S.board[i] = -1; });
     S.score += pts; bump(pts); render();
+    checkBest();
   }
   async function spawn() {
     const placed = [];
@@ -943,6 +1023,7 @@ body {
 
   function newGame() {
     S = newState(); selected = -1; busy = false;
+    bestAtStart = bestScore(); celebrated = false;
     $("#confirm").hidden = true; $("#over").hidden = true;
     render(S.board.map((c, i) => (c >= 0 ? i : -1)).filter((i) => i >= 0));
     save();
@@ -1037,6 +1118,7 @@ body {
       howto2Title: "Make lines of five", howto2Text: "Five or more of the same kind in a row, column or diagonal disappear and score points. Longer lines score more.",
       howto3Title: "Watch what's coming", howto3Text: "If your move makes no line, 3 new pieces arrive where the faded mushrooms show. The game ends when the board is full. Undo takes back one move.",
       scoresEmpty: "No finished games yet. Your score is added here when a game ends.", playAgain: "Play again",
+      newBestShort: "New best!",
       newBest: (name) => "New best score, " + name + "!", yourRank: (rank, name) => "You're #" + rank + ", " + name + "!",
       notInTop: (score) => score + " points didn't make the top 10",
       settings: "Settings", music: "Music", sounds: "Sounds", vibration: "Vibration", language: "Language",
@@ -1053,6 +1135,7 @@ body {
       howto2Title: "Собирай линии из пяти", howto2Text: "Пять и больше одинаковых грибов в ряд, столбец или по диагонали исчезают и приносят очки. Чем длиннее линия, тем больше очков.",
       howto3Title: "Следи, что дальше", howto3Text: "Если ход не собрал линию, появятся 3 новых гриба — там, где видны бледные грибы. Игра заканчивается, когда поле заполнено. «Отменить» возвращает один ход.",
       scoresEmpty: "Пока нет законченных игр. Твой счёт появится здесь, когда игра закончится.", playAgain: "Сыграть ещё",
+      newBestShort: "Новый рекорд!",
       newBest: (name) => "Новый рекорд, " + name + "!", yourRank: (rank, name) => "Ты на " + rank + "-м месте, " + name + "!",
       notInTop: (score) => "Счёт " + score + " не попал в топ-10",
       settings: "Настройки", music: "Музыка", sounds: "Звуки", vibration: "Вибрация", language: "Язык",
@@ -1165,7 +1248,8 @@ body {
   function alignScore() {
     const num = $("#score"), next = $("#next");
     if (!num || !next || !num.offsetParent) return;
-    num.style.transform = "";
+    const row = num.parentElement;
+    row.style.transform = "";
     const cs = getComputedStyle(num), size = parseFloat(cs.fontSize);
     const g = (alignScore.ctx ||= document.createElement("canvas").getContext("2d"));
     g.font = `${cs.fontWeight} ${size}px ${cs.fontFamily}`;
@@ -1174,7 +1258,9 @@ body {
     const box = num.getBoundingClientRect(), balls = next.getBoundingClientRect();
     const inkMiddle = box.top + baseline + (m.actualBoundingBoxDescent - m.actualBoundingBoxAscent) / 2;
     const shift = (balls.top + balls.bottom) / 2 - inkMiddle;
-    num.style.transform = `translateY(${shift / size}em)`; // in em, so it scales with the screen
+    row.style.transform = `translateY(${shift / size * 10}cqw)`; // the number and the crown move together
+    const crown = $("#crown"), inkInRow = inkMiddle - box.top; // the middle of the digits, from the row's top
+    crown.style.top = `${(inkInRow / size) * 10 - 3.75}cqw`; // the crown (7.5cqw tall) centred on it
   }
 
   function renderHowto() {
@@ -1461,6 +1547,7 @@ body {
       S = restored;
       if (!Array.isArray(S.creatures) || S.creatures.length !== 7) S.creatures = pickCreatures();
     }
+    bestAtStart = bestScore(); celebrated = !!S && S.score > bestAtStart; // a continued game already above: crown, no fireworks
     applyLanguage();
     makeFireflies();
     showScreen("menu");

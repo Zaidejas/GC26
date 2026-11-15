@@ -119,7 +119,7 @@ Longer lines are worth much more than short ones, which rewards the player for t
   - Only finished games count: a game abandoned with Reset or New game never reaches the leaderboard.
   - **Ties:** the older score keeps its place. A new score must be higher than the 10th place to get in.
   - After saving, the leaderboard says "New best score, Anna!", "You're #3, Anna!" or "120 points didn't make the top 10".
-- *Later:* the best score shown on the game screen during play.
+- **Passing the best score during play** (task L04): the best is the top of the leaderboard (finished games only). When the score of the game in progress passes it, fireworks burst over the game screen (about 1.5 s of gold, turquoise, pink and lilac sparks), a glowing "New best!" appears in the middle of the board, and the "New record" sound and the "success" vibration play. Then a small glowing gold crown sits next to the score number, its middle level with the middle of the digits, for the rest of the game. It happens once per game; if Undo takes the score back below the best, the crown quietly disappears. A continued game that is already above the best shows the crown without fireworks. With no finished games yet there is no best, so nothing happens. (A plain "Best 412" number next to the score was tried and dropped.)
 
 ## Preview modes
 
@@ -132,7 +132,6 @@ These are planned for after the MVP and are not scheduled in the 8 weeks unless 
 | Feature | Notes |
 | :---- | :---- |
 | Pause menu | Not needed: nothing happens until the player acts |
-| Best score during play | The best score shown on the game screen next to the current score |
 | More settings | A theme choice (Settings itself is now in the MVP) |
 | How to play on first launch | Open the How to play cards automatically the first time the app starts |
 | More themes | The MVP has one theme: the dark magic forest |
