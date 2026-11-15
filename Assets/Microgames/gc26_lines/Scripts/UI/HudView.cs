@@ -338,6 +338,13 @@ namespace GC26.Lines.UI
             newBestTween.OnKilled = () => { rt.anchoredPosition = home; rt.localScale = Vector3.one; };
         }
 
+        /// <summary>Hides "New best!" at once (a new game starts while it still shows).</summary>
+        public void StopNewBest()
+        {
+            newBestTween?.Kill();
+            newBest.alpha = 0f;
+        }
+
         // The crown sits just right of the digits, its middle level with the middle of the digits.
         void PlaceCrown()
         {

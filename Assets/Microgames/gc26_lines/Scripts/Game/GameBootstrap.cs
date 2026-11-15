@@ -306,6 +306,7 @@ namespace GC26.Lines.Game
             BestAtStart = Scores != null && Scores.Count > 0 ? Scores.entries[0].score : 0;
             celebrated = BestAtStart > 0 && controller.Game.Score > BestAtStart;
             hud.SetCrown(celebrated);
+            hud.StopNewBest();
             fireworks.Stop();
         }
 

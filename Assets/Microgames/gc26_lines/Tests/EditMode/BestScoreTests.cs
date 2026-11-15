@@ -88,6 +88,13 @@ namespace GC26.Lines.Tests
             Assert.AreEqual("New best!", hud.NewBestText);
             for (int i = 0; i < 200; i++) Tween.Tick(0.01f);
             Assert.IsFalse(hud.NewBestShowing, "Gone after 2 s");
+
+            hud.ShowNewBest();
+            for (int i = 0; i < 50; i++) Tween.Tick(0.01f);
+            hud.StopNewBest(); // a new game starts mid-way
+            Assert.IsFalse(hud.NewBestShowing);
+            for (int i = 0; i < 100; i++) Tween.Tick(0.01f);
+            Assert.IsFalse(hud.NewBestShowing, "It doesn't come back");
         }
     }
 }
