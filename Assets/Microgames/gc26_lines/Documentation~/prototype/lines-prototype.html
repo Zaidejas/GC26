@@ -904,9 +904,9 @@ body {
     if (celebrated || bestAtStart <= 0 || S.score <= bestAtStart) return;
     celebrated = true;
     const crown = $("#crown");
-    crown.classList.remove("pop"); void crown.offsetWidth; crown.classList.add("pop");
+    playOnce(crown, "pop");
     const b = $("#best-toast"); b.textContent = t("newBestShort");
-    b.classList.remove("show"); void b.offsetWidth; b.classList.add("show");
+    playOnce(b, "show");
     Sound.play("record"); buzz("success");
     fireworks();
   }
@@ -949,6 +949,14 @@ body {
     requestAnimationFrame(frame);
   }
 
+  // Plays a CSS animation once. The class goes when it ends: a class left on would replay the animation every
+  // time its screen is shown again (browsers restart animations on elements that were hidden).
+  function playOnce(el, cls) {
+    el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+    const done = () => { el.classList.remove(cls); el.removeEventListener("animationend", done); el.removeEventListener("animationcancel", done); };
+    el.addEventListener("animationend", done); el.addEventListener("animationcancel", done); // cancel: hidden mid-way
+  }
+
   let toastTimer = 0;
   function toast(text) {
     const t = $("#toast"); t.textContent = text; t.classList.add("show");
@@ -956,7 +964,7 @@ body {
   }
   function bump(pts) {
     const g = $("#gain"); g.textContent = "+" + pts;
-    g.classList.remove("show"); void g.offsetWidth; g.classList.add("show");
+    playOnce(g, "show");
   }
 
   // ---- Turn flow ----
