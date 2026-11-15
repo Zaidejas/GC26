@@ -43,7 +43,7 @@ namespace GC26.Lines.UI
         {
             ["tagline"] = "Line up five of a kind", ["continue"] = "Continue", ["scoreShort"] = "score",
             ["newGame"] = "New game", ["howToPlay"] = "How to play", ["leaderboard"] = "Leaderboard",
-            ["score"] = "SCORE", ["next"] = "NEXT", ["undo"] = "Undo", ["reset"] = "Reset", ["noPath"] = "No path",
+            ["score"] = "SCORE", ["next"] = "NEXT", ["undo"] = "Undo", ["reset"] = "Reset", ["noPath"] = "No path", ["newBestShort"] = "New best!",
             ["confirmTitle"] = "Start a new game?", ["confirmText"] = "Your current game will be lost.",
             ["cancel"] = "Cancel", ["yes"] = "Yes",
             ["gameOver"] = "Game over", ["finalScore"] = "Final score", ["nameLabel"] = "Your name for the leaderboard",
@@ -65,7 +65,7 @@ namespace GC26.Lines.UI
         {
             ["tagline"] = "Собери пять в ряд", ["continue"] = "Продолжить", ["scoreShort"] = "счёт",
             ["newGame"] = "Новая игра", ["howToPlay"] = "Как играть", ["leaderboard"] = "Рекорды",
-            ["score"] = "СЧЁТ", ["next"] = "СЛЕДУЮЩИЕ", ["undo"] = "Отменить", ["reset"] = "Заново", ["noPath"] = "Нет пути",
+            ["score"] = "СЧЁТ", ["next"] = "СЛЕДУЮЩИЕ", ["undo"] = "Отменить", ["reset"] = "Заново", ["noPath"] = "Нет пути", ["newBestShort"] = "Новый рекорд!",
             ["confirmTitle"] = "Начать новую игру?", ["confirmText"] = "Текущая игра будет потеряна.",
             ["cancel"] = "Отмена", ["yes"] = "Да",
             ["gameOver"] = "Игра окончена", ["finalScore"] = "Итоговый счёт", ["nameLabel"] = "Твоё имя для таблицы рекордов",

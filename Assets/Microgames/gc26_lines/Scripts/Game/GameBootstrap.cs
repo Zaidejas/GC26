@@ -65,6 +65,12 @@ namespace GC26.Lines.Game
         public LinesAudio Sounds { get; private set; }
         /// <summary>Vibration (task L02), following the Vibration switch.</summary>
         public Haptics.LinesHaptics Haptics { get; private set; }
+        /// <summary>L04: fireworks when the score passes the best.</summary>
+        public Fireworks Fireworks => fireworks;
+        Fireworks fireworks;
+        /// <summary>L04: the best finished game when this game started (0: none yet), and whether it was celebrated.</summary>
+        public int BestAtStart { get; private set; }
+        bool celebrated;
 
         /// <summary>Where the game in progress is kept.</summary>
         public SaveService Saves => saves;
@@ -82,6 +88,7 @@ namespace GC26.Lines.Game
             Texts.Set(Texts.FromCode(Settings.language) ?? Texts.FromSystem(Application.systemLanguage));
             Texts.Changed += OnLanguageChanged;
             boardView = BoardView.Create();
+            fireworks = Fireworks.Create(mainCamera);
             hud = HudView.Create(mainCamera);
             forest = ForestBackground.Create(mainCamera);
             menu = MenuView.Create(mainCamera);
@@ -154,6 +161,7 @@ namespace GC26.Lines.Game
             forest.Show(menu: true);
             GameScreenShowing = false;
             boardView.gameObject.SetActive(false);
+            fireworks.Stop();
             hud.SetVisible(false);
             howToPlay.Hide();
             leaderboardView.Hide();
@@ -178,6 +186,7 @@ namespace GC26.Lines.Game
             forest.Show(menu: false);
             GameScreenShowing = false;
             boardView.gameObject.SetActive(false);
+            fireworks.Stop();
             hud.SetVisible(false);
             menu.Hide();
             leaderboardView.Hide();
@@ -235,6 +244,7 @@ namespace GC26.Lines.Game
             forest.Show(menu: false);
             GameScreenShowing = false;
             boardView.gameObject.SetActive(false);
+            fireworks.Stop();
             hud.SetVisible(false);
             menu.Hide();
             howToPlay.Hide();
@@ -291,6 +301,34 @@ namespace GC26.Lines.Game
         {
             Controller = controller;
             controller.GameChanged += SaveGame;
+            controller.GameChanged += CheckBest;
+            // L04: the best is the top finished game. A continued game already above it gets the crown without fireworks.
+            BestAtStart = Scores != null && Scores.Count > 0 ? Scores.entries[0].score : 0;
+            celebrated = BestAtStart > 0 && controller.Game.Score > BestAtStart;
+            hud.SetCrown(celebrated);
+            fireworks.Stop();
+        }
+
+        /// <summary>
+        /// L04 (GDD → Scoring): the first time in a game the score passes the best, fireworks, "New best!", the record
+        /// sound and the success vibration, and the crown pops up next to the score. Undo below the best hides the
+        /// crown quietly; passing it again doesn't celebrate twice.
+        /// </summary>
+        void CheckBest()
+        {
+            if (Controller == null) return;
+            bool above = BestAtStart > 0 && Controller.Game.Score > BestAtStart;
+            if (above && !celebrated)
+            {
+                celebrated = true;
+                hud.SetCrown(true, pop: true);
+                hud.ShowNewBest();
+                fireworks.Play();
+                Sounds.Play(LinesSound.Record);
+                Haptics.Play(GC26.Lines.Haptics.LinesFeel.Success);
+                return;
+            }
+            if (hud.CrownShowing != above) hud.SetCrown(above);
         }
 
         /// <summary>Writes the game in progress to the device.</summary>

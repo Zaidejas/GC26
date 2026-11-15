@@ -18,8 +18,8 @@ namespace GC26.Lines.EditorTools
     {
         struct Shot
         {
-            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog, Menu, GameOver, Settings, Russian; public int HowTo, Scores;
-            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false, bool menu = false, int howTo = 0, bool gameOver = false, int scores = 0, bool settings = false, bool russian = false) { HowTo = howTo; GameOver = gameOver; Scores = scores; Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; Menu = menu; Settings = settings; Russian = russian; }
+            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog, Menu, GameOver, Settings, Russian, Best; public int HowTo, Scores;
+            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false, bool menu = false, int howTo = 0, bool gameOver = false, int scores = 0, bool settings = false, bool russian = false, bool best = false) { Best = best; HowTo = howTo; GameOver = gameOver; Scores = scores; Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; Menu = menu; Settings = settings; Russian = russian; }
         }
 
         static readonly Shot[] Shots =
@@ -65,6 +65,10 @@ namespace GC26.Lines.EditorTools
             new Shot("settings-ru_1080x2400_notch", 1080, 2400, 132, 63, settings: true, russian: true),
             new Shot("20x9-ru_1080x2400_notch", 1080, 2400, 132, 63, russian: true),
             new Shot("menu-ru_1080x1920", 1080, 1920, 0, 0, menu: true, russian: true),
+            // L04: passing the best score (the crown, "New best!" and the fireworks half a second in)
+            new Shot("best_1080x1920", 1080, 1920, 0, 0, best: true),
+            new Shot("best_1080x2400_notch", 1080, 2400, 132, 63, best: true),
+            new Shot("best-ru_1080x1920", 1080, 1920, 0, 0, best: true, russian: true),
         };
 
         [MenuItem("Lines/Render Layout Screenshots")]
@@ -159,6 +163,15 @@ namespace GC26.Lines.EditorTools
             if (shot.Settings)
                 hud.Settings.Show(new GameSettings { sounds = false });
             if (shot.Alert != null) hud.ShowAlert(shot.Alert);
+            if (shot.Best)
+            {
+                hud.SetScore(1140);
+                hud.SetCrown(true, pop: true);
+                hud.ShowNewBest();
+                var fireworks = Fireworks.Create(camera);
+                fireworks.Play();
+                for (int i = 0; i < 30; i++) fireworks.Advance(0.02f);
+            }
             Tween.Tick(1f); // pop-ups and messages fully faded in
             Canvas.ForceUpdateCanvases();
             Finish(shot, camera, path);

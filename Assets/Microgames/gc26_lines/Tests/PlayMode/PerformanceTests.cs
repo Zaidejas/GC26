@@ -61,6 +61,9 @@ namespace GC26.Lines.Tests
             yield return GarbagePerCall("fireflies", () => game.BoardView.Fireflies.Advance(0.016f), results);
             yield return GarbagePerCall("menu floating", () => game.Menu.AdvanceFloating(0.016f), results);
             yield return GarbagePerCall("music fade", () => game.Sounds.FadeMusic(0.016f), results);
+            game.Fireworks.Play();
+            yield return GarbagePerCall("fireworks", () => { if (!game.Fireworks.Playing) game.Fireworks.Play(); game.Fireworks.Advance(0.0005f); }, results);
+            game.Fireworks.Stop();
             Debug.Log("Lines perf (" + Tween.ActiveCount + " animations running), garbage per frame: " + string.Join(", ", results.Select(r => r.Key + " " + r.Value + " B")));
             foreach (var r in results) Assert.AreEqual(0, r.Value, r.Key + " makes no garbage each frame");
         }

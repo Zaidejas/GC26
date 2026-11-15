@@ -312,6 +312,82 @@ namespace GC26.Lines.View
             return Vector2.Distance(p, a + ab * t);
         }
 
+        static Sprite crown;
+
+        /// <summary>
+        /// L04: the gold crown next to the score above the best (the prototype's SVG, 32×32): three points with
+        /// pale gold pearls, a band, a turquoise jewel, a gold gradient (light at the top) and a cream outline.
+        /// </summary>
+        public static Sprite Crown()
+        {
+            if (crown != null) return crown;
+            const int n = 128, ss = 3; // pixels; samples per pixel each way (smooth edges)
+            const float scale = 32f / n;
+            var body = new[] { new Vector2(4, 11), new Vector2(10, 16), new Vector2(16, 7), new Vector2(22, 16), new Vector2(28, 11), new Vector2(25.5f, 24), new Vector2(6.5f, 24) };
+            Color top = Hex(0xFFF2C2), mid = Hex(0xFFC35A), bottom = Hex(0xFF9A3C), pearl = Hex(0xFFF2C2), jewel = Hex(0x7FF0E0), outline = Hex(0xFFF4CF);
+            Color Gold(float y)
+            {
+                float t = Mathf.InverseLerp(7f, 28f, y);
+                return t < 0.6f ? Color.Lerp(top, mid, t / 0.6f) : Color.Lerp(mid, bottom, (t - 0.6f) / 0.4f);
+            }
+            Color? At(Vector2 p)
+            {
+                if (Vector2.Distance(p, new Vector2(16, 19)) <= 1.8f) return jewel;
+                if (Vector2.Distance(p, new Vector2(4, 10)) <= 2f || Vector2.Distance(p, new Vector2(28, 10)) <= 2f
+                    || Vector2.Distance(p, new Vector2(16, 6)) <= 2.2f) return pearl;
+                if (p.x >= 6.5f && p.x <= 25.5f && p.y >= 25f && p.y <= 28f) return Gold(p.y); // the band
+                bool inside = Inside(body, p);
+                float edge = EdgeDistance(body, p);
+                if (inside && edge <= 0.5f || !inside && edge <= 0.5f) return outline;
+                return inside ? Gold(p.y) : (Color?)null;
+            }
+            var pixels = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                Color sum = Color.clear; int hits = 0;
+                for (int sy = 0; sy < ss; sy++)
+                for (int sx = 0; sx < ss; sx++)
+                {
+                    // SVG y points down; texture y points up.
+                    var p = new Vector2((x + (sx + 0.5f) / ss) * scale, (n - y - (sy + 0.5f) / ss) * scale);
+                    var c = At(p);
+                    if (c.HasValue) { sum += c.Value; hits++; }
+                }
+                if (hits == 0) continue;
+                var col = sum / hits;
+                col.a = (float)hits / (ss * ss);
+                pixels[y * n + x] = col;
+            }
+            crown = Sprite.Create(NewTexture(n, pixels, "Crown"), new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), n);
+            crown.name = "Crown";
+            return crown;
+        }
+
+        static Color Hex(int rgb) => new Color(((rgb >> 16) & 255) / 255f, ((rgb >> 8) & 255) / 255f, (rgb & 255) / 255f);
+
+        static bool Inside(Vector2[] polygon, Vector2 p)
+        {
+            bool inside = false;
+            for (int i = 0, j = polygon.Length - 1; i < polygon.Length; j = i++)
+                if ((polygon[i].y > p.y) != (polygon[j].y > p.y)
+                    && p.x < (polygon[j].x - polygon[i].x) * (p.y - polygon[i].y) / (polygon[j].y - polygon[i].y) + polygon[i].x)
+                    inside = !inside;
+            return inside;
+        }
+
+        static float EdgeDistance(Vector2[] polygon, Vector2 p)
+        {
+            float best = float.MaxValue;
+            for (int i = 0, j = polygon.Length - 1; i < polygon.Length; j = i++)
+            {
+                Vector2 a = polygon[j], b = polygon[i], ab = b - a;
+                float t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / ab.sqrMagnitude);
+                best = Mathf.Min(best, Vector2.Distance(p, a + ab * t));
+            }
+            return best;
+        }
+
         /// <summary>A plain white square, 1 world unit wide.</summary>
         public static Sprite Pixel()
         {

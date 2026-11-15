@@ -25,6 +25,11 @@ namespace GC26.Lines.UI
         readonly Image[] next = new Image[GameConfig.BallsPerTurn];
         float unit = 10f;
         TweenHandle gainTween;
+        // L04: the gold crown next to the score above the best, and the "New best!" that pops up over the board.
+        public const float CrownSize = 5f, CrownGap = 1.2f, NewBestSize = 8f, NewBestSeconds = 2f, CrownPopSeconds = 0.7f;
+        Image crown, crownGlow;
+        TextMeshProUGUI newBest;
+        TweenHandle newBestTween;
         AlertToast alert;
         PillButton undo, reset;
         ConfirmDialog dialog;
@@ -83,6 +88,22 @@ namespace GC26.Lines.UI
             UiFonts.UseDisplay(scoreText);
             UiFonts.UseDisplay(gainText);
             nextLabel = NewText("Next label", "", Palette.SoftText, TextAlignmentOptions.BottomRight, bold: true);
+            crownGlow = NewRect("Crown glow", area).gameObject.AddComponent<Image>();
+            crownGlow.sprite = SpriteFactory.SoftDisc();
+            crownGlow.color = new Color(1f, 0.8f, 0.35f, 0.55f);
+            crownGlow.raycastTarget = false;
+            crown = NewRect("Crown", area).gameObject.AddComponent<Image>();
+            crown.sprite = SpriteFactory.Crown();
+            crown.preserveAspect = true;
+            crown.raycastTarget = false;
+            ((RectTransform)crown.transform).pivot = ((RectTransform)crownGlow.transform).pivot = new Vector2(0.5f, 0.5f);
+            SetCrown(false);
+            newBest = NewText("New best", "", Color.white, TextAlignmentOptions.Center, bold: true);
+            newBest.rectTransform.SetParent(transform, false); // over the board, not inside the score area
+            UiFonts.UseDisplay(newBest);
+            newBest.enableVertexGradient = true; // the gold of the "Lines" title: light at the top, orange below
+            newBest.colorGradient = new VertexGradient(new Color(1f, 0.95f, 0.76f), new Color(1f, 0.95f, 0.76f), new Color(1f, 0.6f, 0.24f), new Color(1f, 0.6f, 0.24f));
+            newBest.alpha = 0f;
             alert = AlertToast.Create((RectTransform)transform);
             undo = PillButton.Create((RectTransform)transform, "");
             undo.SetLeadingIcon(SpriteFactory.UndoIcon());
@@ -156,8 +177,14 @@ namespace GC26.Lines.UI
             Place(nextLabel.rectTransform, right - 40 * u, (PieceSize + 1.4f) * u, 40 * u, LabelSize * 1.4f * u);
             nextLabel.fontSize = LabelSize * u;
             AlignScore(); // puts NEXT on the same line as SCORE
+            PlaceCrown();
 
             alert.ApplyLayout(layout.Board.center, u); // messages appear over the middle of the board
+            // "New best!" a little above the board's middle (the prototype's 38 % of the screen from the top).
+            var nb = newBest.rectTransform;
+            nb.pivot = new Vector2(0.5f, 0.5f);
+            Place(nb, layout.Board.center.x, layout.Board.center.y + layout.Board.height * 0.12f, 90f * u, NewBestSize * 1.4f * u);
+            newBest.fontSize = NewBestSize * u;
             back.Place(layout.BackButton, u);
             settingsButton.Place(layout.SettingsButton, u);
 
@@ -196,6 +223,7 @@ namespace GC26.Lines.UI
             scoreText.text = score.ToString();
             AlignScore();
             PlaceGain();
+            PlaceCrown();
         }
 
         // The score number stands on the same line as the 3 Next mushrooms: the middle of its digits (their ink,
@@ -265,6 +293,60 @@ namespace GC26.Lines.UI
                 next[i].enabled = show;
                 if (show) next[i].sprite = pieces.SpriteFor(colors[i]);
             }
+        }
+
+        /// <summary>Whether the crown is shown next to the score (tests).</summary>
+        public bool CrownShowing => crown.enabled;
+        /// <summary>The crown's middle and size, in the HUD's pixels (tests).</summary>
+        public Vector2 CrownCentre => ((RectTransform)crown.transform).anchoredPosition;
+        public float CrownHeight => ((RectTransform)crown.transform).sizeDelta.y;
+        /// <summary>The "New best!" text and whether it is on screen now (tests).</summary>
+        public string NewBestText => newBest.text;
+        public bool NewBestShowing => newBest.alpha > 0.01f;
+
+        /// <summary>Shows or hides the crown; <paramref name="pop"/> makes it pop up with a little twist.</summary>
+        public void SetCrown(bool show, bool pop = false)
+        {
+            crown.enabled = crownGlow.enabled = show;
+            Tween.Kill(crown.transform);
+            crown.transform.localScale = Vector3.one;
+            crown.transform.localRotation = Quaternion.identity;
+            if (!show || !pop) return;
+            var t = crown.transform;
+            Tween.To(t, CrownPopSeconds, p =>
+            {
+                t.localScale = Vector3.one * p; // with OutBack: a little too big, then settles
+                t.localRotation = Quaternion.Euler(0f, 0f, 25f * (1f - p));
+            }, Ease.OutBack);
+        }
+
+        /// <summary>"New best!" pops up over the board, stays a moment, then rises a little and fades (2 s).</summary>
+        public void ShowNewBest()
+        {
+            newBest.text = Texts.Get("newBestShort");
+            newBestTween?.Kill();
+            var rt = newBest.rectTransform;
+            var home = rt.anchoredPosition;
+            float rise = NewBestSize * 0.1f * 1.4f * unit;
+            newBestTween = Tween.To(newBest, NewBestSeconds, p =>
+            {
+                newBest.alpha = p < 0.15f ? p / 0.15f : p < 0.75f ? 1f : 1f - (p - 0.75f) / 0.25f;
+                float size = p < 0.15f ? Mathf.Lerp(0.6f, 1.08f, p / 0.15f) : p < 0.25f ? Mathf.Lerp(1.08f, 1f, (p - 0.15f) / 0.1f) : 1f;
+                rt.localScale = Vector3.one * size;
+                rt.anchoredPosition = home + Vector2.up * (p > 0.75f ? rise * (p - 0.75f) / 0.25f : 0f);
+            }).OnComplete(() => { rt.anchoredPosition = home; newBest.alpha = 0f; });
+            newBestTween.OnKilled = () => { rt.anchoredPosition = home; rt.localScale = Vector3.one; };
+        }
+
+        // The crown sits just right of the digits, its middle level with the middle of the digits.
+        void PlaceCrown()
+        {
+            if (crown == null || unit <= 0f || !DigitInk(out float inkBottom, out float inkTop)) return;
+            var score = scoreText.rectTransform;
+            float x = score.anchoredPosition.x + scoreText.GetPreferredValues(scoreText.text).x + CrownGap * unit + CrownSize * unit / 2f;
+            var centre = new Vector2(x, score.anchoredPosition.y + (inkBottom + inkTop) / 2f);
+            Place((RectTransform)crown.transform, centre.x, centre.y, CrownSize * unit, CrownSize * unit);
+            Place((RectTransform)crownGlow.transform, centre.x, centre.y, CrownSize * 2f * unit, CrownSize * 2f * unit);
         }
 
         void PlaceGain()
