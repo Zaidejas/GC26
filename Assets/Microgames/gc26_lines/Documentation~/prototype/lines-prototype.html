@@ -103,7 +103,7 @@ body {
 @keyframes gain { 0% { opacity: 0; transform: translateY(2cqw); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-4cqw); } }
 .num-row { position: relative; display: block; }
 /* L04: above the best score, a gold crown next to the score number, level with the middle of its digits. */
-.crown { position: absolute; left: 100%; top: 2cqw; width: 6cqw; height: 6cqw; margin-left: 1.2cqw; transform-origin: 50% 90%;
+.crown { position: absolute; left: 100%; top: 2.5cqw; width: 5cqw; height: 5cqw; margin-left: 1.2cqw; transform-origin: 50% 90%;
   filter: drop-shadow(0 0 1.6cqw rgba(255, 205, 90, 0.8)); }
 .crown.pop { animation: crown-pop 0.7s cubic-bezier(.2, 1.6, .4, 1); }
 @keyframes crown-pop { from { transform: scale(0) rotate(-25deg); } to { transform: scale(1) rotate(0); } }
@@ -1260,7 +1260,7 @@ body {
     const shift = (balls.top + balls.bottom) / 2 - inkMiddle;
     row.style.transform = `translateY(${shift / size * 10}cqw)`; // the number and the crown move together
     const crown = $("#crown"), inkInRow = inkMiddle - box.top; // the middle of the digits, from the row's top
-    crown.style.top = `${(inkInRow / size) * 10 - 3}cqw`; // the crown (6cqw tall) centred on it
+    crown.style.top = `${(inkInRow / size) * 10 - 2.5}cqw`; // the crown (5cqw tall) centred on it
   }
 
   function renderHowto() {
