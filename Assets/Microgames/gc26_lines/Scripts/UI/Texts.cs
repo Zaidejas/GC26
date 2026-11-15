@@ -57,6 +57,11 @@ namespace GC26.Lines.UI
             ["howto3Text"] = "If your move makes no line, 3 new pieces arrive where the faded mushrooms show. The game ends when the board is full. Undo takes back one move.",
             ["scoresEmpty"] = "No finished games yet. Your score is added here when a game ends.",
             ["playAgain"] = "Play again",
+            // L09 Timed mode
+            ["classic"] = "Classic", ["timed"] = "Timed", ["timeUp"] = "Time's up!", ["secondsShort"] = "s",
+            ["howto4Title"] = "Race the clock",
+            ["howto4Text"] = "Choose Timed on the menu to play against the clock: 3 minutes, and every cleared line adds 5 seconds. The clock stops while mushrooms move. There's no Undo here.",
+            ["zeroHint"] = "Clear a line to get on the leaderboard.", ["menuButton"] = "Menu",
             ["settings"] = "Settings", ["music"] = "Music", ["sounds"] = "Sounds", ["vibration"] = "Vibration",
             ["language"] = "Language",
         };
@@ -79,6 +84,11 @@ namespace GC26.Lines.UI
             ["howto3Text"] = "Если ход не собрал линию, появятся 3 новых гриба — там, где видны бледные грибы. Игра заканчивается, когда поле заполнено. «Отменить» возвращает один ход.",
             ["scoresEmpty"] = "Пока нет законченных игр. Твой счёт появится здесь, когда игра закончится.",
             ["playAgain"] = "Сыграть ещё",
+            // L09 Timed mode
+            ["classic"] = "Классика", ["timed"] = "На время", ["timeUp"] = "Время вышло!", ["secondsShort"] = "с",
+            ["howto4Title"] = "Наперегонки со временем",
+            ["howto4Text"] = "Выбери в меню «На время», чтобы играть на скорость: 3 минуты, и каждая собранная линия добавляет 5 секунд. Пока грибы двигаются, часы стоят. Отмены здесь нет.",
+            ["zeroHint"] = "Собери линию, чтобы попасть в таблицу рекордов.", ["menuButton"] = "Меню",
             ["settings"] = "Настройки", ["music"] = "Музыка", ["sounds"] = "Звуки", ["vibration"] = "Вибрация",
             ["language"] = "Язык",
         };

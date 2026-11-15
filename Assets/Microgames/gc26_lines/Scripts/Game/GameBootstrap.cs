@@ -38,6 +38,11 @@ namespace GC26.Lines.Game
         public LeaderboardView LeaderboardScreen => leaderboardView;
         /// <summary>The top 10 and the player-name memory (saved in its own file).</summary>
         public Leaderboard Scores { get; private set; }
+        /// <summary>L09: Timed mode's own top 10 (the name memory stays in <see cref="Scores"/>).</summary>
+        public Leaderboard TimedScores { get; private set; }
+        /// <summary>L09: the mode chosen on the menu (Continue, New game and Leaderboard follow it).</summary>
+        public bool Timed { get; private set; }
+        public Leaderboard ScoresFor(bool timed) => timed ? TimedScores : Scores;
         /// <summary>The finished game's score is waiting on the game-over pop-up.</summary>
         public bool ScorePending { get; private set; }
         long latestScoreTime;
@@ -53,8 +58,10 @@ namespace GC26.Lines.Game
         public bool InputBlocked => !GameScreenShowing || (hud != null && (hud.Dialog.IsOpen || hud.GameOver.IsOpen || hud.Settings.IsOpen));
 
         BoardPresenter presenter;
-        SaveService saves;
-        LeaderboardService scoreFile;
+        SaveService classicSaves, timedSaves;
+        LeaderboardService scoreFile, timedScoreFile;
+        int lastClockSecond = -1;
+        bool timeUpPending; // "Time's up!" is showing; the game-over pop-up follows
         SettingsService settingsFile;
         bool howToPlayFromGame; // How to play was opened from Settings during a game: it returns there
 
@@ -72,8 +79,9 @@ namespace GC26.Lines.Game
         public int BestAtStart { get; private set; }
         bool celebrated;
 
-        /// <summary>Where the game in progress is kept.</summary>
-        public SaveService Saves => saves;
+        /// <summary>Where the chosen mode's game in progress is kept.</summary>
+        public SaveService Saves => SavesFor(Timed);
+        public SaveService SavesFor(bool timed) => timed ? timedSaves : classicSaves;
 
         public static string ResetTitle => Texts.Get("confirmTitle");
         public static string ResetMessage => Texts.Get("confirmText");
@@ -100,13 +108,20 @@ namespace GC26.Lines.Game
             presenter.Sounds = Sounds;
             Haptics = new Haptics.LinesHaptics(Settings.vibration);
             presenter.Haptics = Haptics;
-            saves = new SaveService();
+            classicSaves = new SaveService();
+            timedSaves = new SaveService(timed: true);
             scoreFile = new LeaderboardService();
+            timedScoreFile = new LeaderboardService(timed: true);
             Scores = scoreFile.Load();
             Scores.placeholderPrefix = Texts.Get("player");
-            RecordLeftoverScore();
+            TimedScores = timedScoreFile.Load();
+            Timed = Settings.mode == "timed";
+            RecordLeftoverScore(timed: false);
+            RecordLeftoverScore(timed: true);
             presenter.GameOver += OnGameOver;
             hud.GameOver.Saved += SaveScore;
+            hud.GameOver.MenuChosen += () => { hud.GameOver.Close(); ShowMenu(); };
+            hud.GameOver.PlayAgainChosen += () => { hud.GameOver.Close(); StartNewGame(); ShowGame(); };
             // MVP art: the 7 glowing mushrooms in every game (glossy balls only if the images are missing).
             boardView.SetPieces(PieceSet.Mushrooms());
             // A saved game is loaded but waits behind Continue.
@@ -130,6 +145,9 @@ namespace GC26.Lines.Game
             hud.Settings.Changed += OnSettingsChanged;
             hud.Settings.HowToPlayClicked += () => ShowHowToPlay(fromGame: GameScreenShowing);
             menu.LeaderboardClicked += () => ShowLeaderboard();
+            menu.ModeChosen += SetMode;
+            leaderboardView.TabChosen += timed =>
+                leaderboardView.Show(ScoresFor(timed), latestScoreTime, null, leaderboardView.PlayAgainShowing, timed);
             leaderboardView.Closed += ShowMenu;
             leaderboardView.PlayAgainClicked += () => { StartNewGame(); ShowGame(); };
             menu.SetSecondaryScreensAvailable(howToPlay: true, leaderboardScreen: true);
@@ -149,7 +167,7 @@ namespace GC26.Lines.Game
         {
             int seed = System.Environment.TickCount;
             ScorePending = false; // only finished games reach the leaderboard
-            Use(new LinesGameController(GameState.NewGame(seed), presenter));
+            Use(new LinesGameController(GameState.NewGame(seed, Timed), presenter));
             SaveGame(); // Reset also starts a new save
         }
 
@@ -165,7 +183,25 @@ namespace GC26.Lines.Game
             hud.SetVisible(false);
             howToPlay.Hide();
             leaderboardView.Hide();
-            menu.Show(HasUnfinishedGame ? Controller.Game.Score : (int?)null, boardView.Pieces);
+            menu.Show(HasUnfinishedGame ? Controller.Game.Score : (int?)null, boardView.Pieces, Timed,
+                HasUnfinishedGame ? Controller.Game.TimeLeft : (float?)null);
+        }
+
+        /// <summary>
+        /// L09: a mode badge on the menu. The other mode's game in progress (if any) is loaded behind Continue;
+        /// the one left is saved first. The choice is remembered.
+        /// </summary>
+        public void SetMode(bool timed)
+        {
+            if (timed == Timed) return;
+            SaveGame();
+            Timed = timed;
+            Settings.mode = timed ? "timed" : "classic";
+            settingsFile.Save(Settings);
+            Controller = null;
+            ScorePending = false;
+            TryContinueSavedGame();
+            ShowMenu();
         }
 
         /// <summary>Menu → How to play: opens on the first card; the back arrow or "Got it" returns.</summary>
@@ -205,7 +241,7 @@ namespace GC26.Lines.Game
         /// <summary>The gear on the menu or the game screen (not while a move is still animating).</summary>
         public void OpenSettings()
         {
-            if (hud.Dialog.IsOpen || hud.GameOver.IsOpen || hud.Settings.IsOpen) return;
+            if (hud.Dialog.IsOpen || hud.GameOver.IsOpen || hud.Settings.IsOpen || timeUpPending) return;
             if (GameScreenShowing && Controller != null && !Controller.AcceptsInput && Controller.State != TurnState.GameOver) return;
             hud.Settings.Show(Settings);
         }
@@ -239,8 +275,9 @@ namespace GC26.Lines.Game
         /// The Leaderboard screen. Right after a game it shows <paramref name="result"/> and Play again;
         /// the latest saved score in this session stays highlighted.
         /// </summary>
-        public void ShowLeaderboard(string result = null, bool afterGame = false)
+        public void ShowLeaderboard(string result = null, bool afterGame = false, bool? timed = null)
         {
+            bool tab = timed ?? Timed;
             forest.Show(menu: false);
             GameScreenShowing = false;
             boardView.gameObject.SetActive(false);
@@ -248,7 +285,7 @@ namespace GC26.Lines.Game
             hud.SetVisible(false);
             menu.Hide();
             howToPlay.Hide();
-            leaderboardView.Show(Scores, latestScoreTime, result, afterGame);
+            leaderboardView.Show(ScoresFor(tab), latestScoreTime, result, afterGame, tab);
         }
 
         public void ShowGame()
@@ -260,6 +297,7 @@ namespace GC26.Lines.Game
             boardView.gameObject.SetActive(true);
             hud.SetVisible(true);
             GameScreenShowing = true;
+            if (Controller != null) { hud.SetTimed(Controller.Game.Timed); UpdateClock(false); }
             boardView.PlayEntrance(); // the board fades in, the mushrooms pop up one by one
         }
 
@@ -280,7 +318,7 @@ namespace GC26.Lines.Game
         /// <summary>The back arrow: saves the game and returns to the menu (not while an animation plays).</summary>
         public void BackToMenu()
         {
-            if (!GameScreenShowing || hud.Dialog.IsOpen || hud.Settings.IsOpen) return;
+            if (!GameScreenShowing || hud.Dialog.IsOpen || hud.Settings.IsOpen || timeUpPending) return;
             if (Controller != null && !Controller.AcceptsInput && Controller.State != TurnState.GameOver) return;
             Controller?.ClearSelection();
             SaveGame();
@@ -290,9 +328,9 @@ namespace GC26.Lines.Game
         /// <summary>Loads the saved game, if there is one that isn't over. Returns false otherwise.</summary>
         public bool TryContinueSavedGame()
         {
-            var save = saves.Load();
+            var save = Saves.Load();
             var game = save?.ToGameState();
-            if (game == null || game.IsOver) return false;
+            if (game == null || game.IsOver || game.Timed != Timed) return false;
             Use(new LinesGameController(game, presenter));
             return true;
         }
@@ -302,8 +340,13 @@ namespace GC26.Lines.Game
             Controller = controller;
             controller.GameChanged += SaveGame;
             controller.GameChanged += CheckBest;
-            // L04: the best is the top finished game. A continued game already above it gets the crown without fireworks.
-            BestAtStart = Scores != null && Scores.Count > 0 ? Scores.entries[0].score : 0;
+            controller.TimeAdded += seconds => hud.ShowTimeAdded(seconds);
+            hud.SetTimed(controller.Game.Timed);
+            lastClockSecond = -1;
+            timeUpPending = false;
+            // L04: the best is the top finished game of this mode. A continued game already above it gets the crown without fireworks.
+            var best = ScoresFor(controller.Game.Timed);
+            BestAtStart = best != null && best.Count > 0 ? best.entries[0].score : 0;
             celebrated = BestAtStart > 0 && controller.Game.Score > BestAtStart;
             hud.SetCrown(celebrated);
             hud.StopNewBest();
@@ -335,10 +378,10 @@ namespace GC26.Lines.Game
         /// <summary>Writes the game in progress to the device.</summary>
         public void SaveGame()
         {
-            if (Controller == null || saves == null) return;
+            if (Controller == null || classicSaves == null) return;
             var save = GameSave.From(Controller.Game);
             save.hasPendingScore = ScorePending && Controller.Game.IsOver;
-            saves.Save(save);
+            SavesFor(Controller.Game.Timed).Save(save);
         }
 
         // ---- Game over and the leaderboard ----
@@ -346,9 +389,11 @@ namespace GC26.Lines.Game
         /// <summary>The board is full: the pop-up asks for a name; the score waits in the save until Save.</summary>
         void OnGameOver(int score)
         {
-            ScorePending = true;
+            timeUpPending = false;
+            ScorePending = score > 0; // 0 points never go on the leaderboard: the pop-up offers Menu / Play again
             SaveGame();
             hud.Dialog.Close();
+            hud.Settings.Close();
             hud.GameOver.Show(score, Scores.DefaultName);
             Sounds.Play(LinesSound.GameOver);
             Haptics.Play(GC26.Lines.Haptics.LinesFeel.GameOver);
@@ -359,8 +404,9 @@ namespace GC26.Lines.Game
         {
             if (!ScorePending || Controller == null) return;
             int score = Controller.Game.Score;
+            bool timed = Controller.Game.Timed;
             string name = Scores.CleanName(typedName);
-            int place = RecordScore(score, name);
+            int place = RecordScore(score, typedName, timed);
             ScorePending = false;
             SaveGame();
             hud.GameOver.Close();
@@ -369,14 +415,17 @@ namespace GC26.Lines.Game
                 Sounds.Play(LinesSound.Record);
                 Haptics.Play(GC26.Lines.Haptics.LinesFeel.Success);
             }
-            ShowLeaderboard(Texts.ResultMessage(place, score, name), afterGame: true);
+            ShowLeaderboard(Texts.ResultMessage(place, score, name), afterGame: true, timed: timed);
         }
 
-        int RecordScore(int score, string name)
+        // The name memory lives in the Classic leaderboard; the score goes to its mode's list.
+        int RecordScore(int score, string typedName, bool timed)
         {
             latestScoreTime = LeaderboardService.Now();
-            int place = Scores.Record(score, name, latestScoreTime);
+            string name = Scores.RememberName(typedName);
+            int place = ScoresFor(timed).Add(score, name, latestScoreTime);
             scoreFile.Save(Scores);
+            if (timed) timedScoreFile.Save(TimedScores);
             return place;
         }
 
@@ -384,14 +433,15 @@ namespace GC26.Lines.Game
         /// At launch: a score left on the game-over pop-up (the app closed before Save) goes to the
         /// leaderboard under the name the field was pre-filled with (GDD → Saving).
         /// </summary>
-        void RecordLeftoverScore()
+        void RecordLeftoverScore(bool timed)
         {
-            var save = saves.Load();
-            if (save == null || !save.isOver || !save.hasPendingScore || save.score < 0) return;
-            RecordScore(save.score, Scores.DefaultName);
+            var file = SavesFor(timed);
+            var save = file.Load();
+            if (save == null || !save.isOver || !save.hasPendingScore) return;
+            if (save.score > 0) RecordScore(save.score, Scores.DefaultName, timed);
             latestScoreTime = 0; // nothing to highlight: the player didn't see this one saved
             save.hasPendingScore = false;
-            saves.Save(save);
+            file.Save(save);
         }
 
         // The game also saves when the app goes to the background or closes (GDD → Saving).
@@ -401,16 +451,60 @@ namespace GC26.Lines.Game
         /// <summary>Reset: asks "Start a new game?" first (not while an animation plays).</summary>
         public void AskToReset()
         {
-            if (InputBlocked) return;
+            if (InputBlocked || timeUpPending) return;
             if (!Controller.AcceptsInput && Controller.State != TurnState.GameOver) return;
             hud.Dialog.Show(ResetTitle, ResetMessage, Texts.Get("yes"), () => { StartNewGame(); boardView.PlayEntrance(); });
         }
 
         void Update()
         {
+            TickClock(Mathf.Min(Time.deltaTime, 0.1f));
             // The editor's Game view can be resized, and phones can report a new safe area.
             if (new Vector2(Screen.width, Screen.height) != lastScreenSize || Screen.safeArea != lastSafeArea)
                 Relayout();
+        }
+
+        // ---- L09: the clock ----
+
+        /// <summary>
+        /// Runs the Timed game's clock by <paramref name="seconds"/>: only on the game screen, while the player is
+        /// thinking (no animation, no pop-up). From 0:30 it ticks each second (sharper from 0:10). At 0:00:
+        /// "Time's up!", then the game-over pop-up. Tests call it directly to move time on.
+        /// </summary>
+        public void TickClock(float seconds)
+        {
+            if (!GameScreenShowing || Controller == null || !Controller.Game.Timed || Controller.Game.IsOver) return;
+            if (hud.Dialog.IsOpen || hud.Settings.IsOpen || hud.GameOver.IsOpen) return;
+            bool ranOut = Controller.AdvanceClock(seconds);
+            UpdateClock(true);
+            if (ranOut) TimeUp();
+        }
+
+        public bool TimeUpShowing => timeUpPending;
+
+        void UpdateClock(bool live)
+        {
+            if (Controller == null || !Controller.Game.Timed) return;
+            float left = Controller.Game.TimeLeft;
+            hud.SetClock(left, !Controller.Game.IsOver);
+            int second = Mathf.CeilToInt(left - 1e-4f);
+            if (second == lastClockSecond) return;
+            lastClockSecond = second;
+            if (!live || second <= 0 || left > GameConfig.TimeWarn) return;
+            Sounds.Play(LinesSound.Tick, left <= GameConfig.TimeLow ? 1 : 0);
+            hud.PulseClock();
+        }
+
+        void TimeUp()
+        {
+            timeUpPending = true;
+            hud.ShowTimeUp();
+            var game = Controller.Game;
+            Tween.Delay(1.3f, () =>
+            {
+                if (Controller == null || Controller.Game != game || !timeUpPending) return;
+                presenter.ShowGameOver(game.Score);
+            });
         }
 
         void Relayout()

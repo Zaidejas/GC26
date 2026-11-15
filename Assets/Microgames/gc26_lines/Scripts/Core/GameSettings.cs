@@ -13,6 +13,8 @@ namespace GC26.Lines.Core
         public bool sounds = true;
         public bool vibration = true;
         public string language = "";
+        /// <summary>L09: the mode chosen on the menu, "classic" or "timed" (remembered).</summary>
+        public string mode = "classic";
 
         public GameSettings Copy() => (GameSettings)MemberwiseClone();
     }

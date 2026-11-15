@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace GC26.Lines.Audio
 {
     /// <summary>The game's moments that make a sound (GDD → Sounds and music).</summary>
-    public enum LinesSound { Tap, Select, Step, Land, Clear, Spawn, Blocked, GameOver, Record }
+    public enum LinesSound { Tap, Select, Step, Land, Clear, Spawn, Blocked, GameOver, Record, Tick }
 
     /// <summary>
     /// Every sound and the music, made by <see cref="Synth"/> from the recipes picked on the Forest Sounds page
@@ -50,6 +50,8 @@ namespace GC26.Lines.Audio
                     for (int k = 0; k < StepNotes; k++) bank.effects[(sound, k)] = Effect(sound, k, effectReverb);
                 else if (sound == LinesSound.Clear)
                     for (int n = ShortestLine; n <= LongestLine; n++) bank.effects[(sound, n)] = Effect(sound, n, effectReverb);
+                else if (sound == LinesSound.Tick)
+                    for (int k = 0; k < 2; k++) bank.effects[(sound, k)] = Effect(sound, k, effectReverb); // 1: the last 10 s
                 else bank.effects[(sound, 0)] = Effect(sound, 0, effectReverb);
             }
             if (music) bank.Music = FireflyDance(seed);
@@ -90,6 +92,11 @@ namespace GC26.Lines.Audio
                 case LinesSound.GameOver: // Music box
                     int[] falling = { 86, 83, 81, 78, 76, 74 };
                     for (int i = 0; i < falling.Length; i++) s.Bell(Synth.Midi(falling[i]), i * 0.22f, i == falling.Length - 1 ? 1.6f : 0.6f, 0.12f * g);
+                    break;
+                case LinesSound.Tick: // L09: the clock in the last 30 s (variant 1, the last 10 s: sharper)
+                    bool urgent = variant == 1;
+                    s.Noise(0, 0.02f, (urgent ? 0.22f : 0.12f) * g, 0.001f, Synth.FilterType.BandPass, urgent ? 3200 : 1900, 4);
+                    s.Tone(Synth.Wave.Sine, urgent ? 1800 : 1150, 0, 0.025f, (urgent ? 0.09f : 0.05f) * g, 0.001f);
                     break;
                 case LinesSound.Record: // Warm swell
                     s.Pad(new[] { 62, 66, 69, 74 }, 0, 1.9f, 0.22f * g, 1800);

@@ -28,6 +28,15 @@ namespace GC26.Lines.UI
         // L04: the gold crown next to the score above the best, and the "New best!" that pops up over the board.
         public const float CrownSize = 5f, CrownGap = 1.2f, NewBestSize = 8f, NewBestSeconds = 2f, CrownPopSeconds = 0.7f;
         Image crown, crownGlow;
+        // L09 Timed mode: the clock at the top, between the house and the gear; Reset alone in the middle.
+        public const float ClockSize = 7.5f, ClockIconSize = 5.4f, ClockIconGap = 1.6f, TimeGainSize = 4.6f;
+        public static readonly Color ClockWarn = new Color(1f, 0.835f, 0.42f), ClockLow = new Color(1f, 0.42f, 0.42f);
+        Image clockIcon;
+        TextMeshProUGUI clockText, timeGain;
+        TweenHandle timeGainTween;
+        bool timed;
+        BoardLayout lastLayout;
+        bool hasLayout;
         TextMeshProUGUI newBest;
         TweenHandle newBestTween;
         AlertToast alert;
@@ -98,6 +107,19 @@ namespace GC26.Lines.UI
             crown.raycastTarget = false;
             ((RectTransform)crown.transform).pivot = ((RectTransform)crownGlow.transform).pivot = new Vector2(0.5f, 0.5f);
             SetCrown(false);
+            clockIcon = NewRect("Clock icon", (RectTransform)transform).gameObject.AddComponent<Image>();
+            clockIcon.sprite = SpriteFactory.StopwatchIcon();
+            clockIcon.preserveAspect = true;
+            clockIcon.raycastTarget = false;
+            clockText = NewText("Clock", "3:00", Palette.Text, TextAlignmentOptions.MidlineLeft, bold: true);
+            clockText.rectTransform.SetParent(transform, false);
+            UiFonts.UseDisplay(clockText);
+            clockText.rectTransform.pivot = new Vector2(0f, 0.5f);
+            timeGain = NewText("Time gain", "", GainColor, TextAlignmentOptions.MidlineLeft, bold: true);
+            timeGain.rectTransform.SetParent(transform, false);
+            UiFonts.UseDisplay(timeGain);
+            timeGain.alpha = 0f;
+            clockIcon.enabled = clockText.enabled = false; // Classic until SetTimed
             newBest = NewText("New best", "", Color.white, TextAlignmentOptions.Center, bold: true);
             newBest.rectTransform.SetParent(transform, false); // over the board, not inside the score area
             UiFonts.UseDisplay(newBest);
@@ -156,6 +178,7 @@ namespace GC26.Lines.UI
         public void ApplyLayout(BoardLayout layout)
         {
             unit = layout.Unit;
+            lastLayout = layout; hasLayout = true;
             var rect = layout.Hud;
             Place(area, rect.x, rect.y, rect.width, rect.height);
 
@@ -192,7 +215,10 @@ namespace GC26.Lines.UI
             var actions = layout.Actions;
             float half = (actions.width - 4f * u) / 2f;
             undo.Place(new Rect(actions.x, actions.y, half, actions.height), u);
-            reset.Place(new Rect(actions.x + half + 4f * u, actions.y, half, actions.height), u);
+            // Timed mode has no Undo: Reset alone in the middle, the same size.
+            float resetX = timed ? actions.center.x - half / 2f : actions.x + half + 4f * u;
+            reset.Place(new Rect(resetX, actions.y, half, actions.height), u);
+            PlaceClock(layout);
             dialog.ApplyLayout(u);
             gameOver.ApplyLayout(u);
             settings.ApplyLayout(u);
@@ -320,10 +346,91 @@ namespace GC26.Lines.UI
             }, Ease.OutBack);
         }
 
-        /// <summary>"New best!" pops up over the board, stays a moment, then rises a little and fades (2 s).</summary>
-        public void ShowNewBest()
+        // ---- L09: the clock ----
+
+        /// <summary>Timed mode on the game screen: the clock shows, Undo goes and Reset moves to the middle.</summary>
+        public void SetTimed(bool on)
         {
-            newBest.text = Texts.Get("newBestShort");
+            timed = on;
+            clockIcon.enabled = clockText.enabled = on;
+            undo.gameObject.SetActive(!on);
+            if (!on) { timeGainTween?.Kill(); timeGain.alpha = 0f; }
+            if (hasLayout) ApplyLayout(lastLayout);
+        }
+
+        public bool ClockShowing => clockText.enabled;
+        public string ClockReading => clockText.text;
+        public Color ClockColor => clockText.color;
+        public bool UndoShowing => undo.gameObject.activeSelf;
+        /// <summary>The middle of the clock (icon and time together) and of Reset, in the HUD's pixels (tests).</summary>
+        public Vector2 ClockCentre { get; private set; }
+        public Vector2 ResetCentre => ((RectTransform)reset.transform).anchoredPosition;
+
+        /// <summary>Shows <paramref name="seconds"/> left: yellow from 0:30, red from 0:10 (while the game runs).</summary>
+        public void SetClock(float seconds, bool running)
+        {
+            clockText.text = MenuView.ClockText(seconds);
+            var colour = !running || seconds <= 0f ? Palette.Text
+                : seconds <= Core.GameConfig.TimeLow ? ClockLow
+                : seconds <= Core.GameConfig.TimeWarn ? ClockWarn : Palette.Text;
+            clockText.color = colour;
+            clockIcon.color = colour;
+        }
+
+        /// <summary>The digits give a small pulse (each second in the last 30).</summary>
+        public void PulseClock()
+        {
+            var t = clockText.rectTransform;
+            Tween.Kill(t);
+            Tween.To(t, 0.5f, p => t.localScale = Vector3.one * Mathf.Lerp(1.12f, 1f, p), Ease.OutQuad)
+                .OnKilled = () => { if (t != null) t.localScale = Vector3.one; };
+        }
+
+        /// <summary>"+5s" floats up to the right of the clock (prototype: like the points, 0.9 s).</summary>
+        public void ShowTimeAdded(float seconds)
+        {
+            timeGain.text = "+" + Mathf.RoundToInt(seconds) + Texts.Get("secondsShort");
+            timeGainTween?.Kill();
+            var rt = timeGain.rectTransform;
+            var start = rt.anchoredPosition;
+            float rise = 6f * unit;
+            timeGainTween = Tween.To(timeGain, 0.9f, p =>
+            {
+                timeGain.alpha = p < 0.2f ? p / 0.2f : 1f - (p - 0.2f) / 0.8f;
+                rt.anchoredPosition = start + new Vector2(0, -2f * unit + rise * p);
+            }).OnComplete(() => rt.anchoredPosition = start);
+            timeGainTween.OnKilled = () => { rt.anchoredPosition = start; timeGain.alpha = 0f; };
+        }
+
+        public bool TimeAddedShowing => timeGain.alpha > 0.01f;
+
+        // The stopwatch icon and the time, centred together between the house and the gear.
+        void PlaceClock(BoardLayout layout)
+        {
+            float u = layout.Unit;
+            clockText.fontSize = ClockSize * u;
+            float textW = clockText.GetPreferredValues("0:00").x;
+            float total = ClockIconSize * u + ClockIconGap * u + textW;
+            var centre = new Vector2(layout.Board.center.x, layout.BackButton.center.y);
+            ClockCentre = centre;
+            float left = centre.x - total / 2f;
+            Place((RectTransform)clockIcon.transform, left, centre.y - ClockIconSize * u / 2f, ClockIconSize * u, ClockIconSize * u);
+            var ct = clockText.rectTransform;
+            ct.anchoredPosition = new Vector2(left + (ClockIconSize + ClockIconGap) * u, centre.y);
+            ct.sizeDelta = new Vector2(textW * 1.4f, ClockSize * 1.3f * u);
+            timeGain.fontSize = TimeGainSize * u;
+            Place(timeGain.rectTransform, left + total + 2f * u, centre.y - TimeGainSize * 0.65f * u, 20f * u, TimeGainSize * 1.3f * u);
+        }
+
+        /// <summary>"Time's up!" over the board, the same way as "New best!".</summary>
+        public void ShowTimeUp() => ShowBanner(Texts.Get("timeUp"));
+
+        /// <summary>"New best!" pops up over the board, stays a moment, then rises a little and fades (2 s).</summary>
+        public void ShowNewBest() => ShowBanner(Texts.Get("newBestShort"));
+
+        void ShowBanner(string text)
+        {
+            newBest.text = text;
             newBestTween?.Kill();
             var rt = newBest.rectTransform;
             var home = rt.anchoredPosition;

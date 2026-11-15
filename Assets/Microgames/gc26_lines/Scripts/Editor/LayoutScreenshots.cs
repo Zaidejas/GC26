@@ -18,8 +18,8 @@ namespace GC26.Lines.EditorTools
     {
         struct Shot
         {
-            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog, Menu, GameOver, Settings, Russian, Best; public int HowTo, Scores;
-            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false, bool menu = false, int howTo = 0, bool gameOver = false, int scores = 0, bool settings = false, bool russian = false, bool best = false) { Best = best; HowTo = howTo; GameOver = gameOver; Scores = scores; Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; Menu = menu; Settings = settings; Russian = russian; }
+            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog, Menu, GameOver, Settings, Russian, Best, Timed, ZeroOver; public int HowTo, Scores;
+            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false, bool menu = false, int howTo = 0, bool gameOver = false, int scores = 0, bool settings = false, bool russian = false, bool best = false, bool timed = false, bool zeroOver = false) { Timed = timed; ZeroOver = zeroOver; Best = best; HowTo = howTo; GameOver = gameOver; Scores = scores; Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; Menu = menu; Settings = settings; Russian = russian; }
         }
 
         static readonly Shot[] Shots =
@@ -69,6 +69,13 @@ namespace GC26.Lines.EditorTools
             new Shot("best_1080x1920", 1080, 1920, 0, 0, best: true),
             new Shot("best_1080x2400_notch", 1080, 2400, 132, 63, best: true),
             new Shot("best-ru_1080x1920", 1080, 1920, 0, 0, best: true, russian: true),
+            // L09: Timed mode (the clock at the top, Reset alone), the menu badges, the 0-point pop-up
+            new Shot("timed_1080x1920", 1080, 1920, 0, 0, timed: true),
+            new Shot("timed_1080x2400_notch", 1080, 2400, 132, 63, timed: true),
+            new Shot("timed_iphone-18-pro_1206x2622", 1206, 2622, 177, 102, timed: true),
+            new Shot("timed-ru_1080x1920", 1080, 1920, 0, 0, timed: true, russian: true),
+            new Shot("gameover-zero_1080x1920", 1080, 1920, 0, 0, zeroOver: true),
+            new Shot("gameover-zero-ru_1080x2400_notch", 1080, 2400, 132, 63, zeroOver: true, russian: true),
         };
 
         [MenuItem("Lines/Render Layout Screenshots")]
@@ -163,6 +170,17 @@ namespace GC26.Lines.EditorTools
             if (shot.Settings)
                 hud.Settings.Show(new GameSettings { sounds = false });
             if (shot.Alert != null) hud.ShowAlert(shot.Alert);
+            if (shot.Timed)
+            {
+                hud.SetTimed(true);
+                hud.SetClock(24.3f, running: true); // the last 30 s: yellow
+                hud.ShowTimeAdded(5f);
+            }
+            if (shot.ZeroOver)
+            {
+                hud.SetScore(0);
+                hud.GameOver.Show(0, GC26.Lines.UI.Texts.Get("player") + "3");
+            }
             if (shot.Best)
             {
                 hud.SetScore(1140);

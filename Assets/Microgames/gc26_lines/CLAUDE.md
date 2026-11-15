@@ -132,7 +132,7 @@ B="Assets/Microgames/gc26_lines/Tools~/build.sh"
 - A real iPhone (task 33): the user's iPhone 14 Pro, with Developer Mode on and their developer profile trusted (Settings → General → VPN & Device Management). With a free account the app stops opening after 7 days: run `ios-device` again to reinstall. `xcrun devicectl device capture screenshot --device <UDID> --destination shot.png` takes a screenshot from the phone.
 - This Xcode has no separate Simulator app window; watch the game with `mcp__Claude_Code_iOS_Simulator__control` (attach, screenshot).
 - The app id is `com.gc26.lines` (set in `PhoneAppSettings`, only during builds). Builds switch Unity back to the Mac platform at the end.
-- Saves on a phone are in the app's data folder under `gc26_lines/` (`game.json`, `leaderboard.json`). In the iOS Simulator: `$(xcrun simctl get_app_container booted com.gc26.lines data)/Documents/gc26_lines/`.
+- Saves on a phone are in the app's data folder under `gc26_lines/` (`game.json`, `leaderboard.json`, `settings.json`; Timed mode keeps its own `game-timed.json` and `leaderboard-timed.json`, while the player-name memory stays in `leaderboard.json`). In the iOS Simulator: `$(xcrun simctl get_app_container booted com.gc26.lines data)/Documents/gc26_lines/`.
 - Android tools come with Unity's Android module (installed through Unity Hub). The Android SDK, with the emulator and an Android 16 arm64 phone image, lives in `/Applications/Unity/Hub/Editor/6000.5.6f1/PlaybackEngines/AndroidPlayer/SDK`, and its Java in `…/AndroidPlayer/OpenJDK`. There are two emulator phones, `Lines_16x9` (1080×1920) and `Lines_20x9` (1080×2400):
 
 ```bash

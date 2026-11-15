@@ -312,6 +312,57 @@ namespace GC26.Lines.View
             return Vector2.Distance(p, a + ab * t);
         }
 
+        static readonly Dictionary<int, Sprite> CircleRings = new Dictionary<int, Sprite>();
+
+        /// <summary>
+        /// A thin white circle outline, 1 unit across; the line is <paramref name="thicknessShare"/> of the radius
+        /// (the mode badges: the prototype's 0.4cqw line on a 12cqw disc is about 0.067).
+        /// </summary>
+        public static Sprite CircleRing(float thicknessShare)
+        {
+            int key = Mathf.RoundToInt(thicknessShare * 1000f);
+            if (CircleRings.TryGetValue(key, out var cached) && cached != null) return cached;
+            const int n = 128;
+            float r = n / 2f, inner = r * (1f - thicknessShare);
+            var pixels = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(r, r));
+                float a = Mathf.Clamp01(r - 0.5f - d + 0.5f) * Mathf.Clamp01(d - inner + 0.5f);
+                pixels[y * n + x] = new Color(1f, 1f, 1f, a);
+            }
+            var sprite = Sprite.Create(NewTexture(n, pixels, "CircleRing"), new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), n);
+            sprite.name = "CircleRing " + key;
+            CircleRings[key] = sprite;
+            return sprite;
+        }
+
+        static Sprite stopwatchIcon, mushroomIcon;
+
+        /// <summary>L09: the Timed mode's stopwatch (the clock on the game screen and the mode badge).</summary>
+        public static Sprite StopwatchIcon() => stopwatchIcon != null ? stopwatchIcon : (stopwatchIcon = StrokeIcon("Stopwatch", 2.2f,
+            Arc(new Vector2(12f, 13.5f), 7.5f, 0f, 360f),
+            new[] { new Vector2(12f, 10f), new Vector2(12f, 13.5f), new Vector2(14.2f, 15.7f) },
+            new[] { new Vector2(10f, 2.8f), new Vector2(14f, 2.8f) },
+            new[] { new Vector2(12f, 2.8f), new Vector2(12f, 6f) }));
+
+        /// <summary>L09: the Classic mode badge: a mushroom outline (a dome cap with two spots, a rounded stem).</summary>
+        public static Sprite MushroomIcon()
+        {
+            if (mushroomIcon != null) return mushroomIcon;
+            var cap = new List<Vector2>();
+            for (int i = 0; i <= 30; i++)
+            {
+                float a = Mathf.Lerp(180f, 360f, i / 30f) * Mathf.Deg2Rad; // the top half of an ellipse (SVG y points down)
+                cap.Add(new Vector2(12f + 8.5f * Mathf.Cos(a), 12.5f + 7f * Mathf.Sin(a)));
+            }
+            cap.Add(new Vector2(3.5f, 12.5f));
+            return mushroomIcon = StrokeIcon("Mushroom", 2.2f, cap.ToArray(),
+                Join(new[] { new Vector2(9.5f, 12.5f), new Vector2(9.5f, 18f) }, Arc(new Vector2(12f, 18f), 2.5f, 180f, 0f), new[] { new Vector2(14.5f, 12.5f) }),
+                Arc(new Vector2(9f, 8.5f), 0.4f, 0f, 360f), Arc(new Vector2(14.5f, 7.5f), 0.4f, 0f, 360f));
+        }
+
         static Sprite crown;
 
         /// <summary>

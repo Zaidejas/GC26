@@ -41,6 +41,7 @@ namespace GC26.Lines.UI
         readonly List<Row> rows = new List<Row>();
         TextMeshProUGUI message, empty;
         PillButton back, playAgain;
+        ModeBadges tabs; // L09: Classic | Timed
         BoardLayout layout;
         Leaderboard board = new Leaderboard();
         long highlightTime;
@@ -49,6 +50,11 @@ namespace GC26.Lines.UI
         /// <summary>The back arrow.</summary>
         public event Action Closed;
         public event Action PlayAgainClicked;
+        /// <summary>L09: a tab was tapped (true: Timed).</summary>
+        public event Action<bool> TabChosen;
+        public ModeBadges Tabs => tabs;
+        /// <summary>The list showing is Timed mode's.</summary>
+        public bool ShowingTimed => tabs.TimedChosen;
 
         public bool IsShowing => gameObject.activeSelf;
         public string Message => message.gameObject.activeSelf ? message.text : "";
@@ -88,6 +94,8 @@ namespace GC26.Lines.UI
             back = PillButton.CreateIcon(root, SpriteFactory.HomeIcon(), "Home");
             back.MakePlain(); // the same plain house as on the game screen (teacher's feedback)
             back.Clicked += () => Closed?.Invoke();
+            tabs = ModeBadges.Create(root, sideLabels: true);
+            tabs.Chosen += timed => TabChosen?.Invoke(timed);
 
             message = NewText("Message", root, Palette.Text, true, TextAlignmentOptions.Center);
             UiFonts.UseDisplay(message);
@@ -149,8 +157,10 @@ namespace GC26.Lines.UI
         /// (0: none); <paramref name="result"/> is the line above the list (null: none); Play again shows
         /// only right after a finished game.
         /// </summary>
-        public void Show(Leaderboard scores, long latestTime = 0, string result = null, bool showPlayAgain = false)
+        public void Show(Leaderboard scores, long latestTime = 0, string result = null, bool showPlayAgain = false, bool timed = false)
         {
+            tabs.SetChosen(timed);
+            tabs.RefreshTexts();
             board = scores ?? new Leaderboard();
             highlightTime = latestTime;
             empty.text = EmptyText; // texts in the language chosen now
@@ -172,6 +182,7 @@ namespace GC26.Lines.UI
             float left = contentLeft + PadSide * u, width = (100f - 2f * PadSide) * u;
 
             back.Place(layout.BackButton, u);
+            tabs.Place(new Vector2(safe.center.x, layout.BackButton.center.y), u, 9f, 3.6f, 5f);
 
             // From the bottom up: Play again; from the top down: the result line.
             float bottom = safe.y + PadBottom * u;

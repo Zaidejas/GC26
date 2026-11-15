@@ -145,6 +145,8 @@ namespace GC26.Lines.Tests
             yield return new WaitForSeconds(0.5f); // the cards slide
             game.HowToPlay.NextButton.Click();
             yield return new WaitForSeconds(0.5f);
+            game.HowToPlay.NextButton.Click(); // L09: a fourth card, Timed mode
+            yield return new WaitForSeconds(0.5f);
             Assert.AreEqual("Got it", game.HowToPlay.NextButton.Text);
             game.HowToPlay.NextButton.Click();
             Assert.IsTrue(game.Menu.IsShowing, "Got it returns to the menu");

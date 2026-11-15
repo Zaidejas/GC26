@@ -33,6 +33,7 @@ namespace GC26.Lines.UI
             new Card("0****o", "howto1Title", "howto1Text"),
             new Card(".22222", "howto2Title", "howto2Text"),
             new Card("a.4.bc", "howto3Title", "howto3Text"),
+            new Card("*3333o", "howto4Title", "howto4Text"), // L09: Timed mode
         };
 
         // Prototype sizes (cqw).

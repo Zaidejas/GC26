@@ -11,6 +11,8 @@ namespace GC26.Lines.UI
     /// The game-over pop-up (GDD → Screens; prototype's "over" card): "Game over", the final score and a
     /// name field with Save, nothing else. The field starts with the last typed name or PlayerN; tapping
     /// it selects the whole name, so typing replaces it. Save (or Done on the keyboard) hands the name on.
+    /// A game that ends with 0 points has no name field: "Clear a line to get on the leaderboard." and
+    /// Menu / Play again instead (0 points never go on the leaderboard).
     /// </summary>
     public sealed class GameOverDialog : MonoBehaviour
     {
@@ -20,17 +22,21 @@ namespace GC26.Lines.UI
         const float FieldHeight = 12f, FieldRadius = 3f, FieldBorder = 0.4f, FieldPad = 3.4f, FieldFont = 4.6f;
         const float RowGap = 2f, LabelGap = 1.6f, SaveWidth = 22f; // "Save" plus 5u padding each side
         const float GlowSize = 8f; // the prototype's soft violet glow around the card
+        const float HintSize = 3.6f, HintGap = 3f, ZeroButtonGap = 3f;
         static readonly Color FieldFill = Palette.Hex(0x15142A);
 
         RectTransform root, card, field;
         Image cardImage, cardGlow, fieldBorder, fieldFill;
-        TextMeshProUGUI title, note, final, label, placeholder;
+        TextMeshProUGUI title, note, final, label, placeholder, hint;
         TMP_InputField input;
-        PillButton save;
+        PillButton save, menuButton, againButton;
+        bool zero;
         float unit = 10f;
 
         /// <summary>Save was pressed; gives what is in the name field (may be empty).</summary>
         public event Action<string> Saved;
+        /// <summary>0 points: Menu or Play again was pressed.</summary>
+        public event Action MenuChosen, PlayAgainChosen;
 
         PopupMotion motion;
 
@@ -39,6 +45,11 @@ namespace GC26.Lines.UI
         public string FinalText => final.text;
         public PillButton SaveButton => save;
         public TMP_InputField NameField => input;
+        /// <summary>The 0-point version is showing (no name field).</summary>
+        public bool IsZero => zero;
+        public string HintText => hint.text;
+        public PillButton MenuButton => menuButton;
+        public PillButton PlayAgainButton => againButton;
 
         public static GameOverDialog Create(RectTransform canvas)
         {
@@ -116,6 +127,12 @@ namespace GC26.Lines.UI
             motion = new PopupMotion(gameObject, card);
             save = PillButton.Create(card, "", primary: true);
             save.Clicked += Submit;
+            hint = NewText("Hint", "", Palette.SoftText, true, TextAlignmentOptions.Center);
+            hint.textWrappingMode = TextWrappingModes.Normal;
+            menuButton = PillButton.Create(card, "");
+            againButton = PillButton.Create(card, "", primary: true);
+            menuButton.Clicked += () => { if (IsOpen) MenuChosen?.Invoke(); };
+            againButton.Clicked += () => { if (IsOpen) PlayAgainChosen?.Invoke(); };
             RefreshTexts();
         }
 
@@ -140,8 +157,18 @@ namespace GC26.Lines.UI
 
             float titleH = TitleSize * 1.25f * u, noteH = NoteSize * 1.3f * u, finalH = FinalSize * 1.1f * u;
             float labelH = LabelSize * 1.3f * u, fieldH = FieldHeight * u;
+            hint.fontSize = HintSize * u;
+            float hintH = hint.GetPreferredValues(hint.text, width - 2f * PadSide * u, 0f).y;
+            label.gameObject.SetActive(!zero);
+            field.gameObject.SetActive(!zero);
+            save.gameObject.SetActive(!zero);
+            hint.gameObject.SetActive(zero);
+            menuButton.gameObject.SetActive(zero);
+            againButton.gameObject.SetActive(zero);
             // Title, 2u, "Final score", the number, 6u, (form pulled up 2u) label, 1.6u, the field row.
-            float height = PadTop * u + titleH + 2f * u + noteH + finalH + (6f - 2f) * u + labelH + LabelGap * u + fieldH + PadBottom * u;
+            // 0 points: ... the number, 4u, the hint, 3u, Menu and Play again.
+            float lower = zero ? hintH + HintGap * u + fieldH : labelH + LabelGap * u + fieldH;
+            float height = PadTop * u + titleH + 2f * u + noteH + finalH + (6f - 2f) * u + lower + PadBottom * u;
             card.sizeDelta = new Vector2(width, height);
             cardGlow.rectTransform.sizeDelta = card.sizeDelta + Vector2.one * 2f * GlowSize * u;
             UiShapes.MakeGlow(cardGlow, GlowSize * u);
@@ -153,6 +180,15 @@ namespace GC26.Lines.UI
             Place(note.rectTransform, PadSide * u, y, inner, noteH);
             y -= finalH;
             Place(final.rectTransform, PadSide * u, y, inner, finalH);
+            if (zero)
+            {
+                y -= (6f - 2f) * u + hintH;
+                Place(hint.rectTransform, PadSide * u, y, inner, hintH);
+                float half = (inner - ZeroButtonGap * u) / 2f;
+                menuButton.Place(new Rect(PadSide * u, PadBottom * u, half, fieldH), u);
+                againButton.Place(new Rect(PadSide * u + half + ZeroButtonGap * u, PadBottom * u, half, fieldH), u);
+                return;
+            }
             y -= (6f - 2f) * u + labelH;
             Place(label.rectTransform, PadSide * u, y, inner, labelH);
 
@@ -175,6 +211,7 @@ namespace GC26.Lines.UI
         public void Show(int score, string defaultName)
         {
             Score = score;
+            zero = score <= 0;
             final.text = score.ToString();
             input.text = defaultName ?? "";
             placeholder.text = defaultName ?? Texts.Get("player");
@@ -190,6 +227,9 @@ namespace GC26.Lines.UI
             note.text = Texts.Get("finalScore");
             label.text = Texts.Get("nameLabel");
             save.SetText(Texts.Get("save"));
+            hint.text = Texts.Get("zeroHint");
+            menuButton.SetText(Texts.Get("menuButton"));
+            againButton.SetText(Texts.Get("playAgain"));
             if (string.IsNullOrEmpty(input.text)) placeholder.text = Texts.Get("player");
         }
 

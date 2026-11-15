@@ -20,6 +20,9 @@ namespace GC26.Lines.UI
         const float PieceSize = 11f, PieceGap = 2f, DecoHeight = 13f, DecoMargin = 4f;
         const float LogoSize = 21f, TagSize = 4.2f, TagMargin = 2.5f;
         const float ButtonHeight = 13.5f, ButtonGap = 3f, BrandToButtons = 12f, SidePadding = 10f;
+        // L09: the Classic | Timed badges right above Continue (prototype: 12cqw discs, 3.6cqw names, 5cqw to Continue).
+        const float BadgeDisc = 12f, BadgeText = 3.6f, BadgeGap = 8f, BadgesToButtons = 5f;
+        static float BadgesHeight => BadgeDisc + 1.2f + BadgeText * 1.3f;
         const float FloatHeight = 0.14f, FloatHalfPeriod = 1.4f, FloatStagger = 0.17f;
 
         Canvas canvas;
@@ -29,10 +32,15 @@ namespace GC26.Lines.UI
         Image logoGlow;
         PillButton continueButton, newGame, howTo, leaderboard, settings;
         int? savedScore;
+        float? savedTimeLeft;
+        ModeBadges modes;
         BoardLayout layout;
         PieceSet pieces = PieceSet.Balls();
 
         public event Action ContinueClicked, NewGameClicked, HowToPlayClicked, LeaderboardClicked, SettingsClicked;
+        /// <summary>L09: a mode badge was tapped (true: Timed).</summary>
+        public event Action<bool> ModeChosen;
+        public ModeBadges Modes => modes;
 
         public PillButton ContinueButton => continueButton;
         public PillButton NewGameButton => newGame;
@@ -82,6 +90,8 @@ namespace GC26.Lines.UI
             logoGlow.raycastTarget = false;
             logoGlow.transform.SetSiblingIndex(logo.transform.GetSiblingIndex());
 
+            modes = ModeBadges.Create(root, sideLabels: false);
+            modes.Chosen += timed => ModeChosen?.Invoke(timed);
             continueButton = PillButton.Create(root, "", primary: true);
             newGame = PillButton.Create(root, "");
             howTo = PillButton.Create(root, "");
@@ -106,7 +116,7 @@ namespace GC26.Lines.UI
             float left = contentLeft + SidePadding * u, width = (100f - 2f * SidePadding) * u;
 
             float brandH = DecoHeight + DecoMargin + LogoSize * 0.95f + TagMargin + TagSize * 1.3f;
-            float buttonsH = 4f * ButtonHeight + 3f * ButtonGap;
+            float buttonsH = BadgesHeight + BadgesToButtons + 4f * ButtonHeight + 3f * ButtonGap;
             float total = (brandH + BrandToButtons + buttonsH) * u;
             float top = safe.center.y + total / 2f;
 
@@ -130,6 +140,8 @@ namespace GC26.Lines.UI
             Place(tagline.rectTransform, left, tagTop - TagSize * 1.3f * u, width, TagSize * 1.3f * u);
 
             float y = top - (brandH + BrandToButtons) * u;
+            modes.Place(new Vector2(safe.center.x, y - BadgesHeight * u / 2f), u, BadgeDisc, BadgeText, BadgeGap);
+            y -= (BadgesHeight + BadgesToButtons) * u;
             foreach (var b in new[] { continueButton, newGame, howTo, leaderboard })
             {
                 y -= ButtonHeight * u;
@@ -145,10 +157,12 @@ namespace GC26.Lines.UI
         {
             tagline.text = Texts.Get("tagline");
             newGame.SetText(Texts.Get("newGame"));
+            modes.RefreshTexts();
             howTo.SetText(Texts.Get("howToPlay"));
             leaderboard.SetText(Texts.Get("leaderboard"));
+            string time = savedTimeLeft.HasValue ? " · " + ClockText(savedTimeLeft.Value) : "";
             continueButton.SetText(savedScore.HasValue
-                ? $"{Texts.Get("continue")} <size=78%><alpha=#BF>· {Texts.Get("scoreShort")} {savedScore.Value}<alpha=#FF></size>"
+                ? $"{Texts.Get("continue")} <size=78%><alpha=#BF>· {Texts.Get("scoreShort")} {savedScore.Value}{time}<alpha=#FF></size>"
                 : Texts.Get("continue"));
         }
 
@@ -156,16 +170,25 @@ namespace GC26.Lines.UI
         /// Shows the menu. <paramref name="savedScore"/> is the unfinished game's score, or null when
         /// there is none (then Continue is greyed out and shows no score).
         /// </summary>
-        public void Show(int? savedScore, PieceSet pieceSet)
+        public void Show(int? savedScore, PieceSet pieceSet, bool timed = false, float? timeLeft = null)
         {
             pieces = pieceSet ?? PieceSet.Balls();
             this.savedScore = savedScore;
+            savedTimeLeft = savedScore.HasValue && timed ? timeLeft : null;
+            modes.SetChosen(timed);
             continueButton.Interactable = savedScore.HasValue;
             RefreshTexts();
             var colors = BallColors.All;
             for (int i = 0; i < deco.Count; i++) deco[i].sprite = pieces.SpriteFor(colors[i]);
             gameObject.SetActive(true);
             StopFloating(); // start from the bottom
+        }
+
+        /// <summary>The time left on a clock as m:ss, rounded up (1.2 s left shows 0:02).</summary>
+        public static string ClockText(float seconds)
+        {
+            int s = Mathf.CeilToInt(Mathf.Max(0f, seconds) - 1e-4f);
+            return (s / 60) + ":" + (s % 60).ToString("00");
         }
 
         public void Hide()

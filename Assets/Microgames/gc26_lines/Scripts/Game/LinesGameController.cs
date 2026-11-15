@@ -42,6 +42,9 @@ namespace GC26.Lines.Game
         public event Action<TurnState> StateChanged;
         /// <summary>The game's position changed and settled: a turn finished, or a move was undone (time to save).</summary>
         public event Action GameChanged;
+        /// <summary>Timed mode: a turn's cleared lines added these seconds to the clock.</summary>
+        public event Action<float> TimeAdded;
+        MoveResult lastMove;
 
         public LinesGameController(GameState game, IBoardPresenter presenter)
         {
@@ -76,6 +79,21 @@ namespace GC26.Lines.Game
         {
             if (State != TurnState.BallSelected) return;
             Select(null);
+        }
+
+        /// <summary>
+        /// Timed mode: runs the clock down by <paramref name="seconds"/>, only while the player is thinking (no
+        /// animation playing). Returns true when the time ran out: the game is over (the caller shows "Time's up!").
+        /// </summary>
+        public bool AdvanceClock(float seconds)
+        {
+            if (!Game.Timed || !AcceptsInput) return false;
+            if (!Game.AdvanceClock(seconds)) return false;
+            Selected = null;
+            presenter.ShowSelected(null);
+            SetState(TurnState.GameOver);
+            GameChanged?.Invoke();
+            return true;
         }
 
         /// <summary>True when the Undo button should be usable: something to undo and no animation playing.</summary>
@@ -117,6 +135,7 @@ namespace GC26.Lines.Game
             Selected = null;
             presenter.ShowSelected(null);
             var result = Game.TryMove(from, to); // the rules are applied at once; the screen catches up below
+            lastMove = result;
             SetState(TurnState.Moving);
             presenter.PlayMove(result.Path, () => AfterMove(result));
         }
@@ -148,6 +167,8 @@ namespace GC26.Lines.Game
         void FinishTurn()
         {
             presenter.ShowState(Game);
+            if (lastMove != null && lastMove.TimeAdded > 0f) TimeAdded?.Invoke(lastMove.TimeAdded);
+            lastMove = null;
             if (Game.IsOver)
             {
                 SetState(TurnState.GameOver);

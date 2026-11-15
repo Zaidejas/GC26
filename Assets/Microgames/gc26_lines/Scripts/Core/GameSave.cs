@@ -38,6 +38,10 @@ namespace GC26.Lines.Core
         /// </summary>
         public bool hasPendingScore;
 
+        /// <summary>Timed mode (task L09): the game has a clock, and the seconds left on it. Older saves are Classic.</summary>
+        public bool timed;
+        public float timeLeft;
+
         /// <summary>Captures <paramref name="game"/>.</summary>
         public static GameSave From(GameState game)
         {
@@ -50,6 +54,8 @@ namespace GC26.Lines.Core
                 previewCells = game.Preview.Cells.Select(Index).ToArray(),
                 isOver = game.IsOver,
                 randomState = game.Spawner.Random.State,
+                timed = game.Timed,
+                timeLeft = game.TimeLeft,
             };
             var undo = game.UndoStep;
             if (undo != null)
@@ -87,7 +93,8 @@ namespace GC26.Lines.Core
                 }
 
                 var spawner = new Spawner(GameRandom.FromState(unchecked((uint)randomState)));
-                return new GameState(gameBoard, preview, score, spawner, isOver, undo);
+                if (timed && (float.IsNaN(timeLeft) || timeLeft < 0f)) return null;
+                return new GameState(gameBoard, preview, score, spawner, isOver, undo, timed, timeLeft);
             }
             catch (Exception)
             {

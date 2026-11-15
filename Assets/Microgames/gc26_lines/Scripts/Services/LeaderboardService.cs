@@ -15,13 +15,15 @@ namespace GC26.Lines.Services
     public class LeaderboardService
     {
         public const string FileName = "leaderboard.json";
+        /// <summary>Timed mode's own top 10 (GDD → Timed mode). The player-name memory stays in the Classic file.</summary>
+        public const string TimedFileName = "leaderboard-timed.json";
 
         readonly string path;
 
-        public LeaderboardService(string folder = null)
+        public LeaderboardService(string folder = null, bool timed = false)
         {
             folder = folder ?? SaveService.FolderOverride ?? MicrogameSave.Folder(LinesMicrogame.Id);
-            path = Path.Combine(folder, FileName);
+            path = Path.Combine(folder, timed ? TimedFileName : FileName);
         }
 
         public string FilePath => path;

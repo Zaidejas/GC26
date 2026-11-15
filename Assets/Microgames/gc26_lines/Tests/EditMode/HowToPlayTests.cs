@@ -52,7 +52,13 @@ namespace GC26.Lines.Tests
             view.NextButton.Click();
             Settle();
             Assert.AreEqual("Watch what's coming", view.Title);
+            Assert.AreEqual("Next", view.NextButton.Text);
+            view.NextButton.Click();
+            Settle();
+            Assert.AreEqual("Race the clock", view.Title, "L09: the fourth card, Timed mode");
             Assert.AreEqual("Got it", view.NextButton.Text);
+            view.PreviousButton.Click();
+            Settle();
             view.PreviousButton.Click();
             Settle();
             Assert.AreEqual(1, view.Step);
@@ -64,7 +70,7 @@ namespace GC26.Lines.Tests
         {
             int closed = 0;
             view.Closed += () => closed++;
-            view.GoTo(2);
+            view.GoTo(HowToPlayView.Cards.Length - 1);
             view.NextButton.Click();
             Assert.AreEqual(1, closed);
             Assert.AreEqual("Home", view.BackButton.IconSprite.name, "The same plain house as on the game screen");
@@ -163,11 +169,12 @@ namespace GC26.Lines.Tests
             view.Swipe(Width * 0.5f, 0.1f);
             Settle();
             Assert.AreEqual(0, view.Step, "Nothing before the first card");
-            view.GoTo(2);
+            int last = HowToPlayView.Cards.Length - 1;
+            view.GoTo(last);
             view.Swipe(-Width * 0.5f, 0.1f);
             Assert.AreEqual(-Width * 0.5f * HowToPlayView.EdgeStretch, view.CardOffset, 1f, "It only stretches a little");
             Settle();
-            Assert.AreEqual(2, view.Step);
+            Assert.AreEqual(last, view.Step);
             Assert.AreEqual(0, closed, "Only Got it closes");
             Assert.AreEqual(0f, view.CardOffset, 1e-3f);
         }

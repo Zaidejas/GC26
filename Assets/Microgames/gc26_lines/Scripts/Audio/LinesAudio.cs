@@ -89,6 +89,7 @@ namespace GC26.Lines.Audio
             if (!Ready) return;
             int variant = sound == LinesSound.Step ? detail % SoundBank.StepNotes
                 : sound == LinesSound.Clear ? Mathf.Clamp(detail, SoundBank.ShortestLine, SoundBank.LongestLine)
+                : sound == LinesSound.Tick ? (detail != 0 ? 1 : 0)
                 : 0;
             if (clips.TryGetValue((sound, variant), out var clip)) effects.PlayOneShot(clip);
         }

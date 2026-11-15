@@ -19,6 +19,8 @@ namespace GC26.Lines.Core
         public IReadOnlyList<Line> LinesFromSpawn { get; internal set; } = Array.Empty<Line>();
         public int SpawnPoints { get; internal set; }
         public bool GameOver { get; internal set; }
+        /// <summary>Timed mode: the seconds added to the clock by the lines this move cleared.</summary>
+        public float TimeAdded { get; internal set; }
     }
 
     /// <summary>The position before the last move, for Undo: board, score and preview.</summary>
@@ -51,6 +53,13 @@ namespace GC26.Lines.Core
         public bool IsOver { get; private set; }
         public Spawner Spawner { get; }
 
+        /// <summary>Timed mode (GDD → Timed mode): a clock, no Undo, +5 s for every cleared line.</summary>
+        public bool Timed { get; }
+        /// <summary>Timed mode: the seconds left on the clock (0 in Classic).</summary>
+        public float TimeLeft { get; private set; }
+        /// <summary>Timed mode: the clock reached 0:00 (the game is over).</summary>
+        public bool TimeUp => Timed && IsOver && TimeLeft <= 0f;
+
         /// <summary>
         /// The position before the last move, or null. Undo is one step only, as in the classic game:
         /// there is none at the start of a game, right after an undo, or after game over (GDD → Controls).
@@ -72,17 +81,21 @@ namespace GC26.Lines.Core
         public event Action OnUndone;
 
         /// <summary>Starts a new game: 3 random balls and the first preview.</summary>
-        public static GameState NewGame(int seed)
+        public static GameState NewGame(int seed, bool timed = false)
         {
             var spawner = new Spawner(seed);
             var board = new Board();
             spawner.PlaceStartBalls(board);
-            return new GameState(board, spawner.MakePreview(board), 0, spawner);
+            return new GameState(board, spawner.MakePreview(board), 0, spawner, timed: timed, timeLeft: GameConfig.TimedStart);
         }
 
         /// <summary>Continues a game from a given position (used by saving and by tests).</summary>
-        public GameState(Board board, Preview preview, int score, Spawner spawner, bool isOver = false, UndoSnapshot undoStep = null)
+        public GameState(Board board, Preview preview, int score, Spawner spawner, bool isOver = false, UndoSnapshot undoStep = null,
+            bool timed = false, float timeLeft = 0f)
         {
+            Timed = timed;
+            TimeLeft = timed ? Math.Max(0f, timeLeft) : 0f;
+            if (timed) undoStep = null; // no Undo in Timed mode
             Board = board ?? throw new ArgumentNullException(nameof(board));
             Preview = preview ?? throw new ArgumentNullException(nameof(preview));
             Spawner = spawner ?? throw new ArgumentNullException(nameof(spawner));
@@ -108,6 +121,22 @@ namespace GC26.Lines.Core
         }
 
         /// <summary>
+        /// Timed mode: runs the clock down by <paramref name="seconds"/> of the player's thinking time (the caller stops
+        /// it during animations and away from the game screen). At 0:00 the game is over ("Time's up!").
+        /// Returns true on the call that ran the time out.
+        /// </summary>
+        public bool AdvanceClock(float seconds)
+        {
+            if (!Timed || IsOver || seconds <= 0f) return false;
+            TimeLeft = Math.Max(0f, TimeLeft - seconds);
+            if (TimeLeft > 0f) return false;
+            IsOver = true;
+            UndoStep = null;
+            OnGameOver?.Invoke(Score);
+            return true;
+        }
+
+        /// <summary>
         /// Plays one turn: moves the ball at <paramref name="from"/> to the empty cell <paramref name="to"/>.
         /// If there is no free path nothing changes, <see cref="OnMoveBlocked"/> fires and Moved is false.
         /// </summary>
@@ -125,7 +154,7 @@ namespace GC26.Lines.Core
                 return result;
             }
 
-            UndoStep = new UndoSnapshot(Board.Clone(), Score, Preview); // Preview is immutable, so it can be kept as is
+            if (!Timed) UndoStep = new UndoSnapshot(Board.Clone(), Score, Preview); // Preview is immutable, so it can be kept as is
             Board.Move(from, to);
             result.Moved = true;
             result.Path = path;
@@ -137,6 +166,7 @@ namespace GC26.Lines.Core
                 // A cleared line skips the spawn; the preview stays the same for the next turn.
                 result.LinesFromMove = moveLines;
                 result.MovePoints = Clear(moveLines, ScoreCalculator.ForMove(moveLines), byMove: true);
+                result.TimeAdded = AddTime(moveLines.Count);
                 return result;
             }
 
@@ -152,6 +182,7 @@ namespace GC26.Lines.Core
             {
                 result.LinesFromSpawn = spawnLines;
                 result.SpawnPoints = Clear(spawnLines, ScoreCalculator.ForSpawn(spawnLines), byMove: false);
+                result.TimeAdded = AddTime(spawnLines.Count);
             }
 
             if (Board.IsFull)
@@ -166,6 +197,14 @@ namespace GC26.Lines.Core
                 Preview = Spawner.MakePreview(Board);
             }
             return result;
+        }
+
+        float AddTime(int lines)
+        {
+            if (!Timed) return 0f;
+            float added = GameConfig.TimeBonus * lines;
+            TimeLeft += added;
+            return added;
         }
 
         int Clear(List<Line> lines, int points, bool byMove)

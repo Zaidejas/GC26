@@ -16,16 +16,18 @@ namespace GC26.Lines.Services
     public class SaveService
     {
         public const string FileName = "game.json";
+        /// <summary>Timed mode keeps its own game in progress (GDD → Timed mode).</summary>
+        public const string TimedFileName = "game-timed.json";
 
         /// <summary>Tests point this at a temporary folder so they never touch a real saved game.</summary>
         public static string FolderOverride;
 
         readonly string path;
 
-        public SaveService(string folder = null)
+        public SaveService(string folder = null, bool timed = false)
         {
             folder = folder ?? FolderOverride ?? MicrogameSave.Folder(LinesMicrogame.Id);
-            path = Path.Combine(folder, FileName);
+            path = Path.Combine(folder, timed ? TimedFileName : FileName);
         }
 
         public string FilePath => path;

@@ -61,12 +61,18 @@ namespace GC26.Lines.Core
         /// count on; any other name is remembered for next time. Returns the place (0 = best),
         /// or -1 when the score didn't make the top 10.
         /// </summary>
-        public int Record(int score, string typedName, long time)
+        public int Record(int score, string typedName, long time) => Add(score, RememberName(typedName), time);
+
+        /// <summary>
+        /// The name a score is saved under (see <see cref="CleanName"/>): a PlayerN name moves the placeholder count on,
+        /// any other name is remembered for next time. Timed scores go to another list but use this memory too.
+        /// </summary>
+        public string RememberName(string typedName)
         {
             var name = CleanName(typedName);
             if (name == NextPlaceholder) placeholdersUsed++;
             else lastName = name;
-            return Add(score, name, time);
+            return name;
         }
 
         /// <summary>
@@ -75,6 +81,7 @@ namespace GC26.Lines.Core
         /// </summary>
         public int Add(int score, string name, long time)
         {
+            if (score <= 0) return -1; // 0 points never go on the leaderboard (GDD → Scoring)
             int place = 0;
             while (place < entries.Count && entries[place].score >= score) place++;
             if (place >= MaxEntries) return -1;
@@ -90,7 +97,7 @@ namespace GC26.Lines.Core
         public void Tidy()
         {
             if (entries == null) entries = new List<ScoreEntry>();
-            entries.RemoveAll(e => e == null || e.score < 0);
+            entries.RemoveAll(e => e == null || e.score <= 0); // 0-point games (saved before that rule) go too
             foreach (var e in entries)
             {
                 e.name = (e.name ?? "").Trim();
