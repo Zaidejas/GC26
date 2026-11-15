@@ -438,6 +438,11 @@ body {
         <button type="button" id="r169" data-r="1.7778" aria-pressed="true">16:9</button>
         <button type="button" id="r209" data-r="2.2222" aria-pressed="false">20:9</button>
       </div>
+      <div class="ratio" id="test-scores" role="group" aria-label="Leaderboard test tools">
+        <span>Leaderboard</span>
+        <button type="button" data-scores="low" title="One 10-point score, so the first lines pass the best">Best 10</button>
+        <button type="button" data-scores="clear" title="Remove every score">Clear</button>
+      </div>
 
     </div>
   </header>
@@ -1515,6 +1520,15 @@ body {
     swipeHowto();
 
     const phone = $("#phone");
+    // Test tools (prototype only): a leaderboard with one low score, or none, to check "New best!" quickly.
+    document.querySelectorAll("#test-scores button").forEach((btn) => btn.addEventListener("click", () => {
+      const list = btn.dataset.scores === "low" ? [{ score: 10, name: "Test", time: Date.now() }] : [];
+      try { localStorage.setItem(SCORES_KEY, JSON.stringify(list)); } catch (e) {}
+      bestAtStart = bestScore(); celebrated = !!S && S.score > bestAtStart;
+      if (S) render();
+      if (currentScreen() === "scores") renderScores();
+      toast(btn.dataset.scores === "low" ? "Best score: 10" : "Leaderboard cleared");
+    }));
     document.querySelectorAll("#ratio button").forEach((btn) => btn.addEventListener("click", () => {
       document.querySelectorAll("#ratio button").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
       phone.style.setProperty("--r", btn.dataset.r);
