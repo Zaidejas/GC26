@@ -160,7 +160,7 @@ These are planned for after the MVP and are not scheduled in the 8 weeks unless 
 | More themes | The MVP has one theme: the dark magic forest |
 | Custom art packs | Replace the MVP mushrooms (and board) with other art |
 | Timed mode | 3 minutes, +5 seconds per cleared line. (A Daily Challenge, the same seed for every player that day with one attempt, was dropped on Nov 15, 2026: with no server, daily scores can't be compared between players, and it would need its own results list, streak and save.) |
-| Achievements and statistics | For example: first 7-ball line, two lines in one move, 1,000 points in one game. Statistics: games played, best score, longest line, average score |
+| Achievements and statistics | *Dropped on Nov 16, 2026 (task L10):* the leaderboards and the New best crown already give the player goals, and a new screen, menu icon, save file and unlock pop-ups would add little. The idea was: first 7-ball line, two lines in one move, 1,000 points in one game; statistics: games played, best score, longest line, average score |
 | Unlockable themes | Ball and board themes unlocked by reaching score milestones |
 | Web version | A browser build of the same game |
 
