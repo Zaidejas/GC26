@@ -54,7 +54,7 @@ body {
 .ratio button {
   font: 700 0.9rem var(--font-body); color: var(--ink); background: var(--chip);
   border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); border-radius: 999px;
-  padding: 6px 14px; cursor: pointer; font-variant-numeric: tabular-nums;
+  padding: 6px 14px; cursor: pointer; font-variant-numeric: tabular-nums; white-space: nowrap;
 }
 .ratio button[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-ink); border-color: var(--chip-on); }
 .ratio button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
@@ -222,7 +222,7 @@ body {
 .toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 
 /* Buttons */
-.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 4cqw; padding: 0 2cqw; }
+.actions { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 3cqw; padding: 0 2cqw; }
 .screen button.btn {
   height: 12cqw; border-radius: 999px; border: 0.4cqw solid var(--line); background: #ffffff;
   font: 800 4.6cqw var(--font-body); color: var(--text); cursor: pointer;
@@ -308,6 +308,8 @@ body {
 .menu-buttons { display: flex; flex-direction: column; gap: 3cqw; }
 .menu-buttons .btn { height: 13.5cqw; }
 .btn .sub { font-weight: 700; font-size: 3.6cqw; opacity: 0.75; }
+.btn .sub-clock { white-space: nowrap; } /* plain text on the same line, the icon sits on the text's line */
+.btn .sub-clock svg { display: inline-block; width: 3.6cqw !important; height: 3.6cqw !important; vertical-align: -0.12em; margin-right: 0.6cqw; }
 
 .subview { display: flex; flex-direction: column; gap: 5cqw; padding: 3.5cqw 5cqw 7cqw; }
 .subhead { display: flex; align-items: center; gap: 4cqw; position: relative; }
@@ -344,8 +346,108 @@ body {
   font-family: var(--font-display); font-size: 4.6cqw; color: #9cf5b0; text-shadow: 0 0 2cqw rgba(140, 255, 170, 0.6); white-space: nowrap; }
 .time-gain.show { animation: gain 0.9s ease-out; }
 /* Timed mode has no Undo: Reset alone, in the middle, the same size. */
-.actions.single { grid-template-columns: 1fr; justify-items: center; }
-.actions.single #reset { width: calc(50% - 2cqw); }
+/* Timed: Pause takes Undo's place. While paused the board and NEXT are hidden, so the pause gives no free thinking time. */
+.phone.forest .modal.paused { background: rgba(6, 8, 20, 0.92); }
+.modal.paused #resume { width: 100%; margin-top: 4cqw; }
+.screen.is-paused #balls, .screen.is-paused #next { visibility: hidden; }
+
+/* Specials (prototype trial): the rainbow mushroom (a joker), frozen mushrooms and the puffball. */
+.ball.iced { position: relative; }
+.ball.iced { filter: saturate(0.9) brightness(1.05) drop-shadow(0 0 0.9cqw rgba(150, 220, 255, 0.8)) !important; }
+.ball.iced::after {
+  content: ""; position: absolute; inset: -7%; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22i%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23f2fcff%22%20stop-opacity%3D%22.42%22/%3E%3Cstop%20offset%3D%22.5%22%20stop-color%3D%22%239fdcff%22%20stop-opacity%3D%22.12%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23cdeeff%22%20stop-opacity%3D%22.38%22/%3E%3C/linearGradient%3E%3CradialGradient%20id%3D%22f%22%20cx%3D%2250%25%22%20cy%3D%2248%25%22%20r%3D%2258%25%22%3E%3Cstop%20offset%3D%22.6%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%220%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23fff%22%20stop-opacity%3D%22.9%22/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath%20d%3D%22M13%209L52%205L87%208L95%2022L94%2058L92%2085L80%2095L44%2094L15%2093L5%2080L6%2045L7%2019Z%22%20fill%3D%22url%28%23i%29%22/%3E%3Cpath%20d%3D%22M13%209L52%205L87%208L95%2022L94%2058L92%2085L80%2095L44%2094L15%2093L5%2080L6%2045L7%2019Z%22%20fill%3D%22url%28%23f%29%22%20stroke%3D%22%23eefaff%22%20stroke-width%3D%222.4%22%20stroke-linejoin%3D%22round%22/%3E%3Cpath%20d%3D%22M13%209L28%2025L72%2023L87%208M28%2025L25%2074L15%2093M72%2023L75%2072L80%2095M25%2074L75%2072%22%20stroke%3D%22%23fff%22%20stroke-opacity%3D%22.5%22%20stroke-width%3D%221.6%22%20fill%3D%22none%22/%3E%3Cpath%20d%3D%22M18%2014L46%2011L29%2024Z%22%20fill%3D%22%23fff%22%20opacity%3D%22.75%22/%3E%3Cpath%20d%3D%22M80%2030L88%2026L86%2052Z%22%20fill%3D%22%23fff%22%20opacity%3D%22.45%22/%3E%3Cpath%20d%3D%22M58%2038l7%209-5%205%208%2011%22%20stroke%3D%22%23fff%22%20stroke-opacity%3D%22.7%22%20stroke-width%3D%221.3%22%20fill%3D%22none%22/%3E%3Cg%20fill%3D%22%23fff%22%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2240%22%20r%3D%221.6%22%20opacity%3D%22.9%22/%3E%3Ccircle%20cx%3D%2216%22%20cy%3D%2260%22%20r%3D%221.1%22/%3E%3Ccircle%20cx%3D%2284%22%20cy%3D%2278%22%20r%3D%221.5%22%20opacity%3D%22.9%22/%3E%3Ccircle%20cx%3D%2262%22%20cy%3D%2286%22%20r%3D%221.2%22/%3E%3Ccircle%20cx%3D%2240%22%20cy%3D%2216%22%20r%3D%221%22/%3E%3Ccircle%20cx%3D%2290%22%20cy%3D%2242%22%20r%3D%221.1%22/%3E%3Cpath%20d%3D%22M33%2085l1.2%202.8%202.8%201.2-2.8%201.2L33%2093l-1.2-2.8-2.8-1.2%202.8-1.2z%22/%3E%3Cpath%20d%3D%22M76%2015l1%202.4%202.4%201-2.4%201L76%2022l-1-2.4-2.4-1%202.4-1z%22/%3E%3C/g%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  filter: drop-shadow(0 0 0.8cqw rgba(170, 230, 255, 0.85));
+}
+.p.mu-7, .dust.mu-7 { background: conic-gradient(#ff4d6d, #ffb21c, #ffe14d, #4ee07a, #3cc8ff, #6b7bff, #c36bff, #ff4d6d); }
+.p.shard { width: 1.8cqw; height: 1.8cqw; border-radius: 0.3cqw; rotate: 45deg; background: linear-gradient(135deg, #ffffff, #9fdcff); box-shadow: 0 0 1cqw #bfe9ff; }
+.blast {
+  position: absolute; width: calc(300% / 9); height: calc(300% / 9); transform: translate(-50%, -50%) scale(0.2); border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, #fffbe0 0 12%, rgba(236, 245, 160, 0.9) 30%, rgba(180, 210, 100, 0.45) 55%, transparent 72%);
+  animation: blast 0.55s ease-out forwards;
+}
+@keyframes blast { 40% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); } to { opacity: 0; transform: translate(-50%, -50%) scale(1.4); } }
+.aim { position: absolute; border-radius: 1.6cqw; pointer-events: none; background: rgba(255, 200, 90, 0.12);
+  border: 0.5cqw dashed rgba(255, 213, 107, 0.9); box-shadow: 0 0 3cqw rgba(255, 200, 90, 0.5), inset 0 0 3cqw rgba(255, 200, 90, 0.35); }
+.super-btn {
+  position: relative; width: 14cqw; height: 14cqw; border-radius: 50%; border: 0; padding: 0; cursor: pointer; justify-self: center;
+  background: conic-gradient(#ffd56b calc(var(--prog, 0) * 1turn), rgba(255, 255, 255, 0.14) 0);
+  box-shadow: 0 0 3cqw rgba(140, 220, 255, 0.12);
+}
+.super-btn .core { position: absolute; inset: 0.7cqw; border-radius: 50%; background: rgba(28, 20, 58, 0.92); display: grid; place-items: center; }
+.super-btn svg { width: 72%; height: 72%; opacity: 0.4; filter: grayscale(0.6); transition: opacity 0.2s; }
+.super-btn.ready svg { opacity: 1; filter: drop-shadow(0 0 1.4cqw rgba(255, 210, 110, 0.85)); }
+.super-btn.ready { box-shadow: 0 0 4cqw rgba(255, 200, 90, 0.45); }
+.super-btn.armed { animation: armed 0.8s ease-in-out infinite alternate; }
+@keyframes armed { from { box-shadow: 0 0 2cqw rgba(255, 200, 90, 0.5); } to { box-shadow: 0 0 7cqw rgba(255, 210, 110, 1); scale: 1.06; } }
+.super-btn .count {
+  position: absolute; right: -0.8cqw; top: -0.8cqw; min-width: 5cqw; height: 5cqw; border-radius: 999px; display: grid; place-items: center;
+  font: 800 3.2cqw var(--font-body); background: linear-gradient(180deg, #ffe08a, #ffad45); color: #3a2208; box-shadow: 0 0 2cqw rgba(255, 190, 90, 0.7);
+}
+.super-btn .count[hidden] { display: none; }
+.super-btn.pop { animation: super-pop 0.6s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes super-pop { from { scale: 0.5; } to { scale: 1; } }
+/* First-time tutorials (coach marks): the screen dims except one spot, a hand taps on it, and a caption explains. */
+.coach { position: absolute; inset: 0; z-index: 40; cursor: pointer; }
+.coach-hole { position: absolute; border-radius: 2.4cqw; pointer-events: none; transition: left 0.25s, top 0.25s, width 0.25s, height 0.25s;
+  box-shadow: 0 0 0 300vmax rgba(5, 6, 18, 0.74), 0 0 0 0.6cqw #ffd56b, 0 0 5cqw rgba(255, 210, 110, 0.85); }
+.coach-hole.round { border-radius: 50%; }
+.coach-hand { position: absolute; width: 15cqw; height: 15cqw; pointer-events: none; transition: left 0.25s, top 0.25s;
+  filter: drop-shadow(0 1cqw 1.5cqw rgba(0, 0, 0, 0.55)); animation: coach-tap 1.1s ease-in-out infinite; }
+.coach-hand svg { width: 100%; height: 100%; display: block; }
+.coach-hand.flip { rotate: 180deg; }
+@keyframes coach-tap { 0%, 100% { transform: translate(0, 3cqw); } 45%, 60% { transform: translate(0, 0) scale(0.9); } }
+.coach-text { position: absolute; left: 50%; transform: translateX(-50%); width: max-content; max-width: 80cqw; text-align: center; pointer-events: none;
+  padding: 2.6cqw 4.4cqw; border-radius: 3cqw; background: rgba(20, 14, 42, 0.96); border: 0.35cqw solid rgba(255, 213, 107, 0.6);
+  box-shadow: 0 0 4cqw rgba(255, 190, 90, 0.3); }
+.coach-text b { display: block; font-family: var(--font-display); font-weight: 600; font-size: 5cqw; line-height: 1.25; color: #ffd56b; }
+.coach-text span { display: block; font-size: 3.4cqw; color: var(--soft); margin-top: 0.8cqw; }
+.coach-text span:empty { display: none; }
+.coach-text #coach-ok { pointer-events: auto; width: 100%; height: 10cqw; margin-top: 3cqw; padding: 0 8cqw; }
+.coach-text #coach-skip { pointer-events: auto; height: 8.5cqw; margin: 2.6cqw auto 0; padding: 0 6cqw; font-size: 3.8cqw; }
+/* The puffball's fuse sparkles while one is ready; its burst is a cloud of golden-green spores. */
+.super-btn .spark { transform-box: fill-box; transform-origin: center; }
+.super-btn.ready .spark { animation: spark 0.3s ease-in-out infinite alternate; }
+@keyframes spark { from { opacity: 0.55; transform: scale(0.85); } to { opacity: 1; transform: scale(1.1); } }
+.spore { position: absolute; width: var(--s); height: var(--s); margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2); border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, #ffffff 0 18%, var(--c) 48%, transparent 72%); animation: spore 1s ease-out forwards; }
+@keyframes spore { from { transform: translate(0, 0) scale(0.5); opacity: 1; } to { transform: translate(var(--dx), var(--dy)) scale(1.5); opacity: 0; } }
+/* A bubble above the puffball button: how far the next one is, or how to aim. */
+.actions { position: relative; }
+.bubble {
+  position: absolute; left: 50%; bottom: calc(100% + 3cqw); transform: translate(-50%, 1cqw); opacity: 0; pointer-events: none;
+  width: max-content; max-width: 78cqw; padding: 2.4cqw 4cqw; border-radius: 3cqw; text-align: center; z-index: 5;
+  background: rgba(20, 14, 42, 0.95); border: 0.35cqw solid rgba(255, 213, 107, 0.55); box-shadow: 0 0 4cqw rgba(255, 190, 90, 0.3);
+  transition: opacity 0.18s, transform 0.18s;
+}
+.bubble::after { content: ""; position: absolute; left: 50%; top: 100%; margin-left: -1.6cqw; border: 1.6cqw solid transparent; border-top-color: rgba(255, 213, 107, 0.55); }
+.bubble.show { opacity: 1; transform: translate(-50%, 0); }
+.bubble b { display: block; font-family: var(--font-display); font-weight: 600; font-size: 4.6cqw; color: #ffd56b; }
+.bubble span { display: block; font-size: 3.4cqw; color: var(--soft); margin-top: 0.6cqw; }
+.bubble .bar { height: 1.2cqw; border-radius: 999px; background: rgba(255, 255, 255, 0.12); margin-top: 1.8cqw; overflow: hidden; }
+.bubble .bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ffe08a, #ffad45); box-shadow: 0 0 1.6cqw #ffc35a; }
+/* A puffball earned: a gold banner over the board. */
+.super-toast {
+  position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) scale(0.6); opacity: 0; pointer-events: none; z-index: 31;
+  display: flex; align-items: center; gap: 3cqw; padding: 2.6cqw 5cqw 2.6cqw 3cqw; border-radius: 4cqw; width: max-content;
+  background: linear-gradient(180deg, rgba(58, 38, 96, 0.96), rgba(30, 20, 60, 0.96)); border: 0.4cqw solid #ffd56b;
+  box-shadow: 0 0 6cqw rgba(255, 200, 90, 0.55);
+}
+.super-toast svg { width: 11cqw; height: 11cqw; filter: drop-shadow(0 0 1.6cqw rgba(255, 210, 110, 0.9)); flex: none; }
+.super-toast b { display: block; font-family: var(--font-display); font-weight: 600; font-size: 5.4cqw; color: #ffd56b; }
+.super-toast span { display: block; font-size: 3.6cqw; color: var(--text); margin-top: 0.4cqw; }
+.super-toast.show { animation: super-toast 2.6s ease-out forwards; }
+@keyframes super-toast { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); } 12% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+  20% { transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -58%) scale(1); } }
+.toast small { display: block; font-weight: 600; font-size: 3.4cqw; opacity: 0.85; margin-top: 0.4cqw; }
+.toast { text-align: center; }
+/* Aiming the puffball: a gold square shows the 3×3 that will burst, and the mushrooms in it tremble. */
+.aim { transition: left 0.08s, top 0.08s; z-index: 2; }
+.slot.doomed { animation: doomed 0.18s ease-in-out infinite alternate !important; }
+@keyframes doomed { from { translate: -4% 0; rotate: -3deg; } to { translate: 4% 0; rotate: 3deg; } }
+.slot.doomed .ball { filter: brightness(1.25) drop-shadow(0 0 1.4cqw rgba(255, 190, 90, 0.95)) !important; }
+.mini .super-ico { width: 86%; height: 86%; filter: drop-shadow(0 0 1.2cqw rgba(255, 210, 110, 0.85)); }
+.mini .boom { width: 70%; height: 70%; border-radius: 50%; background: radial-gradient(circle, #ffffff 0 12%, rgba(255, 225, 140, 0.9) 32%, rgba(255, 150, 80, 0.35) 60%, transparent 72%); }
 .subhead h2 { font-family: var(--font-display); font-weight: 600; font-size: 6.8cqw; margin: 0; }
 
 /* Centered; the title and text get the height of the tallest card (set in renderHowto),
@@ -479,6 +581,14 @@ body {
         <button type="button" data-scores="low" title="One 10-point score, so the first lines pass the best">Best 10</button>
         <button type="button" data-scores="clear" title="Remove every score">Clear</button>
       </div>
+      <div class="ratio" id="test-specials" role="group" aria-label="Special mushroom test tools">
+        <span>Test</span>
+        <button type="button" data-special="rainbow" title="The first mushroom in NEXT becomes a rainbow one (and its tutorial shows)">Rainbow next</button>
+        <button type="button" data-special="ice" title="The first mushroom in NEXT arrives frozen (and its tutorial shows)">Ice next</button>
+        <button type="button" data-special="super" title="Add one puffball, up to 2 (and its tutorial shows)">+1 Puffball</button>
+        <button type="button" data-special="tips" title="This game shows its tutorials once more">Replay tips</button>
+        <button type="button" data-special="score190" title="A new game at 190 points with a line of 5 one move away: make it to earn the first puffball">Start at 190</button>
+      </div>
 
     </div>
   </header>
@@ -558,6 +668,7 @@ body {
             </div>
             <div class="toast" id="toast" role="status" aria-live="polite"></div>
             <div class="best-toast" id="best-toast" role="status" aria-live="polite"></div>
+            <div class="super-toast" id="super-toast" role="status" aria-live="polite"><span class="ico"></span><div><b id="super-toast-title"></b><span id="super-toast-text"></span></div></div>
           </div>
 
           <div class="actions">
@@ -565,6 +676,12 @@ body {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
               <span data-i18n="undo">Undo</span>
             </button>
+            <div class="bubble" id="bubble" role="status" aria-live="polite"></div>
+            <button type="button" class="btn" id="pause" hidden>
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1.2"/><rect x="14" y="4.5" width="4" height="15" rx="1.2"/></svg>
+              <span data-i18n="pause">Pause</span>
+            </button>
+            <button type="button" class="super-btn" id="super" data-i18n-aria="superName" aria-label="Puffball"><span class="core"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="pb-body" cx="38%" cy="34%" r="75%"><stop offset="0" stop-color="#fffbea"/><stop offset=".55" stop-color="#efdcab"/><stop offset="1" stop-color="#b08a52"/></radialGradient><radialGradient id="pb-spark" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#ffe27a"/><stop offset=".7" stop-color="#ff9a3c" stop-opacity=".6"/><stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/></radialGradient></defs><path d="M50 32C72 32 87 47 87 65C87 81 72 91 50 91C28 91 13 81 13 65C13 47 28 32 50 32Z" fill="url(#pb-body)"/><path d="M22 82C33 89 67 89 78 82" stroke="#8f6c3c" stroke-width="3" fill="none" opacity=".45" stroke-linecap="round"/><g fill="#fffaf0"><circle cx="36" cy="49" r="3.2"/><circle cx="53" cy="43" r="2.6"/><circle cx="66" cy="53" r="3"/><circle cx="45" cy="62" r="2.4"/><circle cx="72" cy="68" r="2.2"/><circle cx="29" cy="65" r="2.3"/><circle cx="57" cy="73" r="2.6"/><circle cx="40" cy="78" r="1.9"/></g><g fill="#c9a66a" opacity=".7"><circle cx="61" cy="62" r="1.6"/><circle cx="34" cy="57" r="1.4"/><circle cx="49" cy="53" r="1.3"/><circle cx="66" cy="78" r="1.5"/></g><ellipse cx="50" cy="33" rx="6.5" ry="3" fill="#9a7542"/><path d="M50 32C50 22 57 15 66 15" stroke="#6b4a2a" stroke-width="3.6" fill="none" stroke-linecap="round"/><path d="M27 54C29 45 35 39 43 37" stroke="#fff" stroke-width="3.6" fill="none" stroke-linecap="round" opacity=".75"/><g class="spark"><circle cx="68" cy="14" r="11" fill="url(#pb-spark)"/><path d="M68 5.5l2 6.5 6.5 2-6.5 2-2 6.5-2-6.5-6.5-2 6.5-2z" fill="#fff"/></g><g fill="#ffe9a8"><circle cx="82" cy="8" r="1.6"/><circle cx="80" cy="24" r="1.3"/><circle cx="57" cy="6" r="1.2"/></g></svg></span><span class="count" id="super-count" hidden>0</span></button>
             <button type="button" class="btn" id="reset">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
               <span data-i18n="reset">Reset</span>
@@ -598,14 +715,27 @@ body {
           </div>
         </div>
 
+        <div class="coach" id="coach" hidden>
+          <div class="coach-hole" id="coach-hole"></div>
+          <div class="coach-hand" id="coach-hand"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M26 6c3 0 5 2 5 5v17l3-1c3-1 6 1 6 4l3-1c3-1 6 1 6 4 3-1 6 1 6 4v12c0 9-7 16-16 16h-4c-6 0-10-3-13-8L8 42c-2-3-1-6 2-7 2-1 5 0 6 2l5 6V11c0-3 2-5 5-5z" fill="#fff" stroke="#3a2a5a" stroke-width="2.5" stroke-linejoin="round"/></svg></div>
+          <div class="coach-text" id="coach-text" role="status" aria-live="polite"><b></b><span></span><button type="button" class="btn primary" id="coach-ok" data-i18n="gotIt" hidden>Got it</button><button type="button" class="btn" id="coach-skip" data-i18n="skip" hidden>Skip</button></div>
+        </div>
+
+        <div class="modal paused" id="paused" hidden>
+          <div class="card" role="dialog" aria-modal="true" aria-labelledby="paused-title">
+            <h2 id="paused-title" data-i18n="paused">Paused</h2>
+            <p data-i18n="pausedText">The clock is stopped and the board is hidden.</p>
+            <button type="button" class="btn primary wide" id="resume" data-i18n="resume">Resume</button>
+          </div>
+        </div>
+
         <div class="modal" id="over" hidden>
           <div class="card" role="dialog" aria-modal="true" aria-labelledby="over-title">
             <h2 id="over-title" data-i18n="gameOver">Game over</h2>
             <p><span id="over-note">Final score</span> <span class="final" id="final">0</span></p>
             <form class="name-form" id="over-form">
-              <label for="player-name" data-i18n="nameLabel">Your name for the leaderboard</label>
               <div class="name-row">
-                <input id="player-name" type="text" maxlength="16" autocomplete="nickname" placeholder="Player" enterkeyhint="done">
+                <input id="player-name" data-i18n-aria="nameLabel" aria-label="Your name for the leaderboard" type="text" maxlength="16" autocomplete="nickname" placeholder="Player" enterkeyhint="done">
                 <button type="submit" class="btn primary" id="save-score" data-i18n="save">Save</button>
               </div>
             </form>
@@ -702,6 +832,19 @@ body {
       '<path d="M11 57C30 63 70 63 89 57" stroke="#d9c2ff" stroke-width="3" fill="none" stroke-linecap="round"/>' +
       '<g fill="#ffe066"><circle cx="31" cy="35" r="5"/><circle cx="53" cy="28" r="5.5"/><circle cx="72" cy="40" r="4.5"/><circle cx="43" cy="48" r="3.6"/><circle cx="24" cy="50" r="3"/><circle cx="63" cy="51" r="3.2"/></g>' +
       gloss("M20 40C25 30 33 24 42 22") },
+    // 7: the rainbow mushroom (a joker that fits any line). Rare: about 1 new mushroom in 40.
+    { name: "rainbow", c: "#ff9ff3", svg:
+      '<defs>' + glow("#ffffff") + stemG("#ffffff", "#b9a8ff") +
+      '<linearGradient id="rb" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff4d6d"/><stop offset=".18" stop-color="#ff9f1c"/><stop offset=".34" stop-color="#ffe14d"/>' +
+      '<stop offset=".5" stop-color="#4ee07a"/><stop offset=".66" stop-color="#3cc8ff"/><stop offset=".82" stop-color="#5b7bff"/><stop offset="1" stop-color="#c36bff"/></linearGradient>' +
+      '<radialGradient id="sh" cx="38%" cy="25%" r="75%"><stop offset="0" stop-color="#fff" stop-opacity=".7"/><stop offset=".45" stop-color="#fff" stop-opacity=".08"/><stop offset="1" stop-color="#1a0630" stop-opacity=".35"/></radialGradient>' +
+      '</defs>' + halo + sparks +
+      '<path d="M43 56C42 70 40 82 35 93C44 96 57 96 65 93C60 82 58 70 57 56Z" fill="url(#st)"/>' +
+      '<path d="M11 60C9 35 28 15 50 15C72 15 91 35 89 60C70 66 30 66 11 60Z" fill="url(#rb)"/>' +
+      '<path d="M11 60C9 35 28 15 50 15C72 15 91 35 89 60C70 66 30 66 11 60Z" fill="url(#sh)"/>' +
+      '<path d="M12 60C30 66 70 66 88 60" stroke="#ffffff" stroke-width="3.2" fill="none" stroke-linecap="round" opacity=".85"/>' +
+      '<g fill="#fff"><path d="M50 27l2.2 5.6 5.8.2-4.6 3.8 1.6 5.8L50 39.2l-5 3.2 1.6-5.8-4.6-3.8 5.8-.2z"/><circle cx="30" cy="44" r="2.6"/><circle cx="70" cy="44" r="2.6"/></g>' +
+      gloss("M20 40C25 29 33 22 42 19") },
   ];
   const mushroomSheet = document.createElement("style");
   mushroomSheet.textContent = MUSHROOMS.map((f, k) => ".mu-" + k + "{--c:" + f.c + ";--img:url(\"data:image/svg+xml," +
@@ -798,15 +941,40 @@ body {
   let S = null, selected = -1, busy = false;
 
   // ---- Rules (same as the Core classes in Unity) ----
-  function makePreview(b) {
+  // Specials (prototype trial): the rainbow mushroom (RAINBOW) counts as any colour; from ICE_FROM points some new
+  // mushrooms arrive frozen (can't be moved, still count for their colour, a line through one breaks the ice);
+  // every SUPER_EVERY points earns a puffball (up to SUPER_MAX) that bursts a 3×3 square.
+  // Ice balance (checked with 250 robot games per setting): 1 in 20 from 100 points costs about 3% of the score, so
+  // it stays; ICE_MAX caps the frozen mushrooms on the board at once, so very long games can't pile them up.
+  const RAINBOW = 7, RAINBOW_ODDS = 40, ICE_FROM = 100, ICE_ODDS = 20, ICE_MAX = 4, SUPER_EVERY = 200, SUPER_MAX = 2;
+  const newColor = (rainbows) => (rainbows && rnd(RAINBOW_ODDS) === 0 ? RAINBOW : rnd(7));
+  // The first NEXT of a new game never has a rainbow: the player is just getting used to the board.
+  function makePreview(b, score = 0, rainbows = true) {
     const e = empties(b), cells = [];
     while (cells.length < 3 && e.length) cells.push(e.splice(rnd(e.length), 1)[0]);
-    return { colors: [rnd(7), rnd(7), rnd(7)], cells };
+    const colors = [newColor(rainbows), newColor(rainbows), newColor(rainbows)];
+    let frozen = S && Array.isArray(S.ice) ? S.ice.filter(Boolean).length : 0;
+    const ice = colors.map((c) => {
+      const yes = c !== RAINBOW && score >= ICE_FROM && frozen < ICE_MAX && rnd(ICE_ODDS) === 0;
+      if (yes) frozen++;
+      return yes;
+    });
+    return { colors, cells, ice };
+  }
+  // Older saves have no specials yet.
+  function withSpecials(st) {
+    if (!Array.isArray(st.ice) || st.ice.length !== CELLS) st.ice = new Array(CELLS).fill(false);
+    if (st.preview && !Array.isArray(st.preview.ice)) st.preview.ice = [false, false, false];
+    if (typeof st.supers !== "number") st.supers = 0;
+    st.stuck = !!st.stuck; st.noMoves = !!st.noMoves;
+    if (!st.tips || typeof st.tips !== "object") st.tips = {}; // the tutorials already shown in this game
+    if (typeof st.superMark !== "number") st.superMark = (Math.floor(st.score / SUPER_EVERY) + 1) * SUPER_EVERY;
+    return st;
   }
   function newState() {
     const b = new Array(CELLS).fill(-1), e = empties(b);
     for (let k = 0; k < 3; k++) b[e.splice(rnd(e.length), 1)[0]] = rnd(7);
-    const st = { board: b, score: 0, preview: makePreview(b), undo: null, over: false, creatures: pickCreatures() };
+    const st = withSpecials({ board: b, score: 0, preview: makePreview(b, 0, false), undo: null, over: false, creatures: pickCreatures() });
     if (mode === "timed") { st.timed = true; st.timeLeft = TIME_MS; }
     return st;
   }
@@ -827,18 +995,33 @@ body {
     }
     return null;
   }
+  // Lines of 5+ through cell i. A rainbow mushroom fits any colour, so a rainbow in the middle can join two
+  // different colours in one direction (each side may make its own line).
   function linesThrough(b, i) {
-    const color = b[i]; if (color < 0) return [];
+    const own = b[i]; if (own < 0) return [];
+    const at = (c, r) => (c >= 0 && c < N && r >= 0 && r < N ? b[r * N + c] : -1);
     const out = [];
     for (const [dc, dr] of [[1, 0], [0, 1], [1, 1], [1, -1]]) {
-      const line = [i];
-      for (const s of [1, -1]) {
-        let c = col(i) + dc * s, r = row(i) + dr * s;
-        while (c >= 0 && c < N && r >= 0 && r < N && b[r * N + c] === color) { line.push(r * N + c); c += dc * s; r += dr * s; }
+      let colors = [own];
+      if (own === RAINBOW) {
+        colors = [];
+        for (const s of [1, -1]) { // the first real colour on each side, past any other rainbows
+          let c = col(i) + dc * s, r = row(i) + dr * s;
+          while (at(c, r) === RAINBOW) { c += dc * s; r += dr * s; }
+          if (at(c, r) >= 0 && !colors.includes(at(c, r))) colors.push(at(c, r));
+        }
+        if (!colors.length) colors = [RAINBOW];
       }
-      if (line.length >= 5) out.push(line.sort((a, z) => a - z));
+      for (const color of colors) {
+        const line = [i];
+        for (const s of [1, -1]) {
+          let c = col(i) + dc * s, r = row(i) + dr * s;
+          while (at(c, r) === color || at(c, r) === RAINBOW) { line.push(r * N + c); c += dc * s; r += dr * s; }
+        }
+        if (line.length >= 5) out.push(line.sort((a, z) => a - z));
+      }
     }
-    return out;
+    return uniqueLines(out);
   }
   function uniqueLines(lines) {
     const seen = new Set();
@@ -864,14 +1047,14 @@ body {
     if (!S.over) S.preview.cells.forEach((i, k) => {
       if (S.board[i] >= 0) return;
       const s = document.createElement("div"); s.className = "slot"; place(s, i);
-      s.appendChild(ballEl(S.preview.colors[k], "dot")); layer.appendChild(s);
+      s.appendChild(ballEl(S.preview.colors[k], "dot" + (S.preview.ice[k] ? " iced" : ""))); layer.appendChild(s);
     });
     for (let i = 0; i < CELLS; i++) {
       if (S.board[i] < 0) continue;
       const s = document.createElement("div"); s.className = "slot"; s.dataset.i = i; place(s, i);
-      const b = ballEl(S.board[i], (i === selected ? "selected" : "") + (grown.has(i) ? " grow" : ""));
+      const b = ballEl(S.board[i], (i === selected ? "selected" : "") + (grown.has(i) ? " grow" : "") + (S.ice[i] ? " iced" : ""));
       // A mushroom still landing keeps bouncing from where it was when the board is redrawn (new ones arriving).
-      if (i !== selected) {
+      if (i !== selected && !S.ice[i]) { // frozen mushrooms don't sway
         // Sway keeps its rhythm across redraws: the phase comes from the clock, not from when this element was made.
         s.classList.add("idle");
         s.style.animationDelay = -(((performance.now() / 1000) + i * 0.37) % 6) + "s";
@@ -885,10 +1068,13 @@ body {
     renderBest();
     alignScore();
     const next = $("#next"); next.textContent = "";
-    S.preview.colors.forEach((c) => next.appendChild(ballEl(c)));
+    S.preview.colors.forEach((c, k) => next.appendChild(ballEl(c, S.preview.ice[k] ? "iced" : "")));
+    renderSuper();
+    drawAim();
     $("#undo").disabled = !S.undo || S.over;
     $("#timer").hidden = !S.timed;
-    $("#undo").hidden = !!S.timed; $(".actions").classList.toggle("single", !!S.timed); // Timed: no Undo, Reset in the middle
+    $("#undo").hidden = !!S.timed; $("#pause").hidden = !S.timed; // Timed: Pause instead of Undo
+    $("#pause").disabled = S.over;
     renderClock();
   }
   // Magic dust behind a moving mushroom: 3 small sparkles in its colour on each cell it leaves.
@@ -935,6 +1121,17 @@ body {
       flies.appendChild(f);
     }
   }
+  // Ice breaking: a few pale shards.
+  function shards(i) {
+    const cx = (col(i) + 0.5) * 100 / N, cy = (row(i) + 0.5) * 100 / N;
+    for (let k = 0; k < 6; k++) {
+      const p = document.createElement("div"); p.className = "p shard";
+      const a = (k / 6) * Math.PI * 2 + Math.random() * 0.8, d = 4 + Math.random() * 5;
+      p.style.left = cx + "%"; p.style.top = cy + "%";
+      p.style.setProperty("--dx", (Math.cos(a) * d) + "cqw"); p.style.setProperty("--dy", (Math.sin(a) * d) + "cqw");
+      fx.appendChild(p); setTimeout(() => p.remove(), 500);
+    }
+  }
   function burst(i, color) {
     const cx = (col(i) + 0.5) * 100 / N, cy = (row(i) + 0.5) * 100 / N;
     for (let k = 0; k < 7; k++) {
@@ -951,7 +1148,8 @@ body {
   // ---- L04: the best score during play. When the score passes the best finished game: fireworks and
   // "New best!", then a gold crown next to the score for the rest of the game (once per game; Undo below the
   // best hides the crown quietly; a continued game already above it shows the crown without fireworks). ----
-  let bestAtStart = 0, celebrated = false;
+  let bestAtStart = 0, celebrated = false, celebrateUntil = 0;
+  const celebrating = () => Math.max(0, celebrateUntil - performance.now());
   const bestScore = () => (loadScores()[0] || {}).score || 0;
   function renderBest() {
     const above = bestAtStart > 0 && S.score > bestAtStart;
@@ -964,6 +1162,7 @@ body {
     playOnce(crown, "pop");
     const b = $("#best-toast"); b.textContent = t("newBestShort");
     playOnce(b, "show");
+    celebrateUntil = performance.now() + 2200; // a puffball banner or a tutorial waits for "New best!" and the fireworks
     Sound.play("record"); buzz("success");
     fireworks();
   }
@@ -1008,9 +1207,16 @@ body {
 
   // Plays a CSS animation once. The class goes when it ends: a class left on would replay the animation every
   // time its screen is shown again (browsers restart animations on elements that were hidden).
+  // Plays a one-off CSS animation again from the start. Restarting makes the browser send a late "cancelled" signal
+  // for the earlier run; each run ignores signals from its first moments and from other runs, so it isn't switched off.
   function playOnce(el, cls) {
+    const run = (el._run = (el._run || 0) + 1), started = performance.now();
     el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
-    const done = () => { el.classList.remove(cls); el.removeEventListener("animationend", done); el.removeEventListener("animationcancel", done); };
+    const done = (e) => {
+      if (e.target !== el || performance.now() - started < 100) return;
+      el.removeEventListener("animationend", done); el.removeEventListener("animationcancel", done);
+      if (el._run === run) el.classList.remove(cls);
+    };
     el.addEventListener("animationend", done); el.addEventListener("animationcancel", done); // cancel: hidden mid-way
   }
 
@@ -1037,7 +1243,7 @@ body {
     }
   }
   const clockRunning = () => !!(S && S.timed && !S.over && !busy && currentScreen() === "game"
-    && $("#settings").hidden && $("#confirm").hidden && !document.hidden);
+    && $("#settings").hidden && $("#confirm").hidden && $("#paused").hidden && $("#coach").hidden && !document.hidden);
   let clockLast = 0, clockSaved = 0;
   function clockFrame(now) {
     const dt = clockLast ? Math.min(100, now - clockLast) : 0;
@@ -1071,15 +1277,18 @@ body {
     mode = m; writeStore(MODE_KEY, m);
     S = load(m);
     if (S && (!Array.isArray(S.creatures) || S.creatures.length !== 7)) S.creatures = pickCreatures();
-    selected = -1;
+    if (S) withSpecials(S);
+    selected = -1; aiming = false;
     bestAtStart = bestScore(); celebrated = !!S && S.score > bestAtStart;
     renderMenu();
   }
 
   let toastTimer = 0;
-  function toast(text) {
-    const t = $("#toast"); t.textContent = text; t.classList.add("show");
-    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 1100);
+  function toast(text, sub) {
+    const t = $("#toast"); t.textContent = text;
+    if (sub) { const small = document.createElement("small"); small.textContent = sub; t.appendChild(small); }
+    t.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), sub ? 2000 : 1100);
   }
   function bump(pts) {
     const g = $("#gain"); g.textContent = "+" + pts;
@@ -1089,20 +1298,264 @@ body {
   // ---- Turn flow ----
   function onCell(i) {
     if (busy || S.over) return;
+    if (aiming) { if (i === aimCell) superBurst(i); else { aimCell = i; drawAim(); } return; }
+    if (S.board[i] >= 0 && S.ice[i]) { frozen(i); return; }
     if (S.board[i] >= 0) { if (i !== selected) { selected = i; Sound.play("select"); render(); } return; }
     if (selected >= 0) move(i);
   }
+  // A frozen mushroom can't be picked up: it shakes with a little crack (the selection stays).
+  function frozen(i) {
+    const s = slotOf(i);
+    if (s) { s.classList.remove("shake"); void s.offsetWidth; s.classList.add("shake"); }
+    toast(t("frozen"), t("frozenHint"));
+    Sound.play("crack"); buzz("tick");
+  }
+
+  // ---- The puffball: earned every SUPER_EVERY points (up to SUPER_MAX). Tap its button: the burst lights up on the
+  // busiest spot; tap another cell to move it, tap the lit spot to burst the 3×3 square (no points, no new mushrooms). ----
+  let aiming = false, aimCell = -1, bubbleTimer = 0;
+  // A bubble above the puffball button. progress: 0–1 for a bar, or null.
+  function showBubble(title, text, progress, ms) {
+    const b = $("#bubble"); b.textContent = "";
+    const h = document.createElement("b"); h.textContent = title; b.appendChild(h);
+    const p = document.createElement("span"); p.textContent = text; b.appendChild(p);
+    if (progress != null) { const bar = document.createElement("div"); bar.className = "bar"; const i = document.createElement("i"); i.style.width = Math.round(progress * 100) + "%"; bar.appendChild(i); b.appendChild(bar); }
+    b.classList.add("show");
+    clearTimeout(bubbleTimer); if (ms) bubbleTimer = setTimeout(hideBubble, ms);
+  }
+  function hideBubble() { clearTimeout(bubbleTimer); $("#bubble").classList.remove("show"); }
+  // A puffball earned: a gold banner over the board (the first time, the tip card explains it instead).
+  function showSuperToast() {
+    if (celebrating()) { setTimeout(showSuperToast, celebrating()); return; }
+    const el = $("#super-toast");
+    el.querySelector(".ico").innerHTML = $("#super .core").innerHTML;
+    $("#super-toast-title").textContent = t("superGot"); $("#super-toast-text").textContent = t("superGotText");
+    playOnce(el, "show");
+  }
+  // Aiming (as on a phone): a gold square over the 3×3 that will burst; the mushrooms inside tremble. It starts on the
+  // busiest spot; a tap on another cell (or a drag) moves it, and a tap on the lit spot bursts.
+  function drawAim() {
+    fx.querySelectorAll(".aim").forEach((a) => a.remove());
+    layer.querySelectorAll(".slot.doomed").forEach((sl) => sl.classList.remove("doomed"));
+    if (!aiming || aimCell < 0) return;
+    const c0 = Math.max(0, col(aimCell) - 1), c1 = Math.min(N - 1, col(aimCell) + 1);
+    const r0 = Math.max(0, row(aimCell) - 1), r1 = Math.min(N - 1, row(aimCell) + 1);
+    const a = document.createElement("div"); a.className = "aim";
+    a.style.left = (c0 * 100 / N) + "%"; a.style.top = (r0 * 100 / N) + "%";
+    a.style.width = ((c1 - c0 + 1) * 100 / N) + "%"; a.style.height = ((r1 - r0 + 1) * 100 / N) + "%";
+    fx.appendChild(a);
+    squareAround(aimCell).forEach((k) => { const sl = slotOf(k); if (sl) sl.classList.add("doomed"); });
+  }
+  // ---- Tutorials (coach marks): the screen dims except one spot, a hand taps on it, and a caption explains.
+  // The first rainbow and the first frozen mushroom of a game are announced where they show up (NEXT or the board),
+  // closed with Got it; the first puffball is used step by step: tap the button, choose where, tap again.
+  // Once per game; the clock stops meanwhile. ----
+  // Every new game shows each tutorial again, once: what was shown is kept in the game itself (saved with it), so
+  // Continue doesn't repeat them but a new game or Reset does.
+  const tipsSeen = () => (S && S.tips) || {};
+  let tipQueue = [], coachStep = null;
+  function queueTip(k) { if (!tipsSeen()[k] && !tipQueue.includes(k)) tipQueue.push(k); }
+  function checkTips() {
+    if (!S || S.over) return;
+    if (S.stuck) { offerRescue(); return; }
+    if (S.board.includes(RAINBOW) || S.preview.colors.includes(RAINBOW)) queueTip("rainbow");
+    if (S.ice.some(Boolean) || S.preview.ice.some(Boolean)) queueTip("ice");
+    if (S.supers > 0) queueTip("super");
+    showNextTip();
+  }
+  // Where things are, in the screen's own pixels.
+  function rectOf(el) {
+    const sc = document.querySelector(".screen").getBoundingClientRect(), r = el.getBoundingClientRect();
+    return { x: r.left - sc.left, y: r.top - sc.top, w: r.width, h: r.height };
+  }
+  function cellsRect(i, around) {
+    const g = rectOf($("#grid")), cw = g.w / N, ch = g.h / N;
+    const c0 = around ? Math.max(0, col(i) - 1) : col(i), c1 = around ? Math.min(N - 1, col(i) + 1) : col(i);
+    const r0 = around ? Math.max(0, row(i) - 1) : row(i), r1 = around ? Math.min(N - 1, row(i) + 1) : row(i);
+    return { x: g.x + c0 * cw, y: g.y + r0 * ch, w: (c1 - c0 + 1) * cw, h: (r1 - r0 + 1) * ch, cx: g.x + (col(i) + 0.5) * cw, cy: g.y + (row(i) + 0.5) * ch };
+  }
+  // The spot whose 3×3 holds the most mushrooms (a full square preferred), for the first puffball.
+  function bestBurstCell() {
+    let best = -1, score = -1;
+    for (let i = 0; i < CELLS; i++) {
+      const sq = squareAround(i), v = sq.filter((k) => S.board[k] >= 0).length * 10 + (sq.length === 9 ? 1 : 0);
+      if (v > score) { score = v; best = i; }
+    }
+    return best;
+  }
+  function showStep(step) {
+    coachStep = step;
+    const r = step.rect(), pad = step.round ? 0.6 : 0.3, unit = rectOf($(".screen")).w / 100;
+    const hole = $("#coach-hole");
+    hole.classList.toggle("round", !!step.round);
+    Object.assign(hole.style, { left: (r.x - pad * unit) + "px", top: (r.y - pad * unit) + "px", width: (r.w + 2 * pad * unit) + "px", height: (r.h + 2 * pad * unit) + "px" });
+    const cx = r.cx ?? r.x + r.w / 2, cy = r.cy ?? r.y + r.h / 2, hand = 15 * unit, H = rectOf($(".screen")).h;
+    // Low on the screen (the puffball button) the hand points down from above, so it isn't cut off.
+    const flip = cy > H * 0.8, el = $("#coach-hand");
+    el.classList.toggle("flip", flip);
+    Object.assign(el.style, flip ? { left: (cx - 0.59 * hand) + "px", top: (cy - 0.91 * hand) + "px" }
+      : { left: (cx - 0.41 * hand) + "px", top: (cy - 0.09 * hand) + "px" });
+    const box = $("#coach-text");
+    box.querySelector("b").textContent = step.text; box.querySelector("span").textContent = step.sub || "";
+    $("#coach-ok").hidden = !step.button; // an announcement closes with its "Got it" button
+    $("#coach-skip").hidden = !step.skip;  // the puffball walk-through can be skipped
+    $("#coach-skip").textContent = step.skipLabel || t("skip");
+    if (step.captionAbove) { box.style.bottom = (H - r.y + 3 * unit) + "px"; box.style.top = ""; }
+    else if (cy < H * 0.55) { box.style.top = (r.y + r.h + hand + 3 * unit) + "px"; box.style.bottom = ""; }
+    else { box.style.bottom = (H - Math.min(r.y, flip ? cy - hand : r.y) + 4 * unit) + "px"; box.style.top = ""; }
+    $("#coach").hidden = false;
+  }
+  function forgetTip(k) { if (S && S.tips) delete S.tips[k]; }
+  // Leaving the game screen or starting a new game drops a tutorial in progress, so it can't block the next one.
+  function resetCoach() { $("#coach").hidden = true; coachStep = null; tipQueue = []; }
+  function endCoach() { $("#coach").hidden = true; coachStep = null; setTimeout(showNextTip, 300); }
+  function showNextTip() {
+    if (coachStep || !tipQueue.length || busy || currentScreen() !== "game" || !$("#paused").hidden || !S || S.over) return;
+    if (celebrating()) { setTimeout(showNextTip, celebrating() + 100); return; }
+    const k = tipQueue.shift();
+    S.tips[k] = true; save();
+    selected = -1; render();
+    if (k === "rainbow" || k === "ice") {
+      // An announcement: the spot lights up with a caption, and Got it closes it. The light goes on the board if one is
+      // there already, otherwise on its place in NEXT, where it shows up first.
+      const i = k === "rainbow" ? S.board.indexOf(RAINBOW) : S.ice.indexOf(true);
+      const n = k === "rainbow" ? S.preview.colors.indexOf(RAINBOW) : S.preview.ice.indexOf(true);
+      const nextBall = n >= 0 ? $("#next").children[n] : null;
+      if ((i < 0 || S.board[i] < 0) && !nextBall) { showNextTip(); return; }
+      const rect = i >= 0 && S.board[i] >= 0 ? () => cellsRect(i) : () => rectOf(nextBall);
+      showStep({ rect, text: t(k === "rainbow" ? "coachRainbow" : "coachIce"), button: true, go: endCoach });
+    } else if (k === "super") {
+      if (S.supers <= 0) { showNextTip(); return; }
+      // Step 1: the hand shows the puffball button ("Tap it"). Step 2: the whole board lights up with the burst on the
+      // busiest spot; a tap (or a drag) on another cell moves it, a tap on the lit spot bursts. Skip ends it at either
+      // step (the puffball stays for later).
+      const aimStep = {
+        board: true, captionAbove: true, skip: true, text: t("coachAimTitle"), sub: t("coachSuper2"),
+        rect: () => { const g = rectOf($("#grid")), c = cellsRect(aimCell); return { x: g.x, y: g.y, w: g.w, h: g.h, cx: c.cx, cy: c.cy }; },
+        tap: (cell) => {
+          if (cell === aimCell) { $("#coach").hidden = true; coachStep = null; superBurst(cell); return; }
+          aimCell = cell; drawAim(); showStep(aimStep);
+        },
+        onSkip: () => { setAiming(false); endCoach(); },
+      };
+      showStep({ rect: () => rectOf($("#super")), round: true, skip: true, text: t("coachSuper1"), sub: t("coachSuper1b"), onSkip: endCoach,
+        go: () => { setAiming(true); hideBubble(); showStep(aimStep); } });
+    }
+    Sound.play("tip");
+  }
+  // Timed mode's Pause: the clock stops and the board is hidden until Resume.
+  function setPaused(on) {
+    $("#paused").hidden = !on;
+    document.querySelector(".screen").classList.toggle("is-paused", on);
+    if (on) {
+      if (aiming) { aiming = false; aimCell = -1; hideBubble(); $("#grid").style.touchAction = ""; } // the hint goes too
+      selected = -1; render();
+    } else if (S && S.stuck) setTimeout(offerRescue, 250);
+  }
+  function renderSuper() {
+    const btn = $("#super"), have = S.supers > 0;
+    btn.classList.toggle("ready", have);
+    btn.classList.toggle("armed", aiming);
+    btn.style.setProperty("--prog", S.supers >= SUPER_MAX ? 1 : 1 - (S.superMark - S.score) / SUPER_EVERY);
+    $("#super-count").hidden = !have; $("#super-count").textContent = S.supers;
+  }
+  function setAiming(on) {
+    const was = aiming;
+    aiming = on && S.supers > 0 && !S.over;
+    aimCell = -1; // set again below when aiming starts (on the busiest spot)
+    $("#grid").style.touchAction = aiming ? "none" : ""; // the finger can drag the square around
+    if (aiming) { selected = -1; aimCell = bestBurstCell(); showBubble(t("aimTitle"), t("aimText"), null, 0); Sound.play("arm"); buzz("tick"); }
+    else { hideBubble(); if (was) Sound.play("disarm"); }
+    render();
+    if (!aiming && S.stuck) setTimeout(offerRescue, 250); // still no move: offer the puffball again
+  }
+  function earnSupers() {
+    let got = 0;
+    // A full pocket (SUPER_MAX) pauses the ring: nothing more is earned, and points scored meanwhile don't count.
+    while (S.supers < SUPER_MAX && S.score >= S.superMark) { S.superMark += SUPER_EVERY; S.supers++; got++; }
+    if (!got) return;
+    renderSuper();
+    playOnce($("#super"), "pop");
+    if (tipsSeen().super) showSuperToast(); else queueTip("super"); // the first one: the tutorial shows how to use it
+    Sound.play("superGot"); buzz("reward");
+  }
+  function squareAround(i) {
+    const out = [];
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      const c = col(i) + dc, r = row(i) + dr;
+      if (c >= 0 && c < N && r >= 0 && r < N) out.push(r * N + c);
+    }
+    return out;
+  }
+  async function superBurst(i) {
+    const cells = squareAround(i).filter((k) => S.board[k] >= 0);
+    if (!cells.length) { toast(t("superNothing")); return; }
+    busy = true; aiming = false; aimCell = -1; hideBubble(); $("#grid").style.touchAction = "";
+    const snap = snapshot();
+    if (S.supers >= SUPER_MAX) S.superMark = S.score + SUPER_EVERY; // the paused ring starts again from here
+    S.supers--;
+    renderSuper();
+    const flash = document.createElement("div"); flash.className = "blast";
+    flash.style.left = ((col(i) + 0.5) * 100 / N) + "%"; flash.style.top = ((row(i) + 0.5) * 100 / N) + "%";
+    fx.appendChild(flash); setTimeout(() => flash.remove(), 650);
+    const sporeColors = ["#fff4c2", "#e8f59a", "#c8e86a", "#ffe08a"];
+    for (let k = 0; k < 24; k++) {
+      const sp = document.createElement("div"); sp.className = "spore";
+      const a = Math.random() * Math.PI * 2, d = 7 + Math.random() * 12;
+      sp.style.left = flash.style.left; sp.style.top = flash.style.top;
+      sp.style.setProperty("--s", (1.4 + Math.random() * 2.2) + "cqw"); sp.style.setProperty("--c", sporeColors[k % 4]);
+      sp.style.setProperty("--dx", (Math.cos(a) * d) + "cqw"); sp.style.setProperty("--dy", (Math.sin(a) * d - 2) + "cqw");
+      sp.style.animationDelay = (Math.random() * 120) + "ms";
+      fx.appendChild(sp); setTimeout(() => sp.remove(), 1300);
+    }
+    Sound.play("boom"); buzz("heavy");
+    cells.forEach((k) => { const s = slotOf(k); if (s) { s.firstChild.classList.add("pop"); burst(k, S.board[k]); if (S.ice[k]) shards(k); } });
+    await wait(300);
+    cells.forEach((k) => { S.board[k] = -1; S.ice[k] = false; });
+    // Not a move: like a cleared line, a burst brings no new mushrooms (Undo can still take it back).
+    endTurn(snap);
+  }
+  const snapshot = () => ({ board: S.board.slice(), score: S.score, preview: JSON.parse(JSON.stringify(S.preview)),
+    ice: S.ice.slice(), supers: S.supers, superMark: S.superMark });
   function blocked() {
     const s = slotOf(selected);
     if (s) { s.classList.remove("shake"); void s.offsetWidth; s.classList.add("shake"); }
     toast(t("noPath"));
     Sound.play("blocked"); buzz("error");
   }
+  // No mushroom can move: every free cell (if any) is walled in by frozen mushrooms, the board edge or nothing.
+  function noMoves() {
+    for (let i = 0; i < CELLS; i++) {
+      if (S.board[i] < 0 || S.ice[i]) continue;
+      const c = col(i), r = row(i);
+      if ((c > 0 && S.board[i - 1] < 0) || (c < N - 1 && S.board[i + 1] < 0) || (r > 0 && S.board[i - N] < 0) || (r < N - 1 && S.board[i + N] < 0)) return false;
+    }
+    return true;
+  }
+  // The end of every turn: when no move is left, a puffball in stock is offered as a rescue; without one, game over.
+  function endTurn(snap) {
+    S.stuck = false;
+    if (!S.over && noMoves()) { if (S.supers > 0) S.stuck = true; else { S.over = true; S.noMoves = empties(S.board).length > 0; } }
+    S.undo = S.over || S.timed ? null : snap; // no Undo in Timed mode
+    render(); save(); busy = false;
+    if (S.over) showOver(); else if (S.stuck) offerRescue(); else checkTips();
+  }
+  // Stuck with a puffball: the hand points at it. Tap it to aim, or End game.
+  function offerRescue() {
+    if (!S || S.over || !S.stuck || coachStep || busy || currentScreen() !== "game") return;
+    if (S.supers <= 0) { S.over = true; S.stuck = false; S.undo = null; save(); showOver(); return; }
+    const full = empties(S.board).length === 0;
+    showStep({ rect: () => rectOf($("#super")), round: true, text: t(full ? "rescueFull" : "rescueNoMoves"), sub: t("rescueSub"),
+      skip: true, skipLabel: t("endGame"),
+      onSkip: () => { $("#coach").hidden = true; coachStep = null; S.over = true; S.stuck = false; S.noMoves = !full; S.undo = null; save(); render(); showOver(); },
+      go: () => { $("#coach").hidden = true; coachStep = null; setAiming(true); } });
+    Sound.play("tip");
+  }
   async function move(target) {
     const path = findPath(S.board, selected, target);
     if (!path) { blocked(); return; }
     busy = true;
-    const snap = { board: S.board.slice(), score: S.score, preview: JSON.parse(JSON.stringify(S.preview)) };
+    const snap = snapshot();
 
     const s = slotOf(selected);
     s.firstChild.classList.remove("selected");
@@ -1118,23 +1571,23 @@ body {
     if (lines.length) await clearLines(lines, true);
     else await spawn();
 
-    S.undo = S.over || S.timed ? null : snap; // no Undo in Timed mode
-    render(); save(); busy = false;
-    if (S.over) showOver();
+    endTurn(snap);
   }
   async function clearLines(lines, fromMove) {
     const cells = [...new Set(lines.flat())];
     let pts = lines.reduce((sum, l) => sum + pointsFor(l.length), 0);
     if (fromMove) pts *= lines.length;
-    cells.forEach((i) => { const s = slotOf(i); if (s) { s.firstChild.classList.add("pop"); burst(i, S.board[i]); } });
+    cells.forEach((i) => { const s = slotOf(i); if (s) { s.firstChild.classList.add("pop"); burst(i, S.board[i]); if (S.ice[i]) shards(i); } });
     Sound.play("clear", Math.max(...lines.map((l) => l.length)));
+    if (cells.some((i) => S.ice[i])) Sound.play("shatter");
     buzz(Math.max(...lines.map((l) => l.length)) >= 7 ? "clearBig" : "clear", lines.length);
     await wait(260);
-    cells.forEach((i) => { S.board[i] = -1; });
+    cells.forEach((i) => { S.board[i] = -1; S.ice[i] = false; });
     S.score += pts; bump(pts);
     if (S.timed) { S.timeLeft += BONUS_MS * lines.length; $("#time-gain").textContent = "+" + (BONUS_MS * lines.length / 1000) + "s"; playOnce($("#time-gain"), "show"); }
     render();
     checkBest();
+    earnSupers();
   }
   async function spawn() {
     const placed = [];
@@ -1144,19 +1597,21 @@ body {
         const e = empties(S.board); if (!e.length) return;
         i = e[rnd(e.length)];
       }
-      S.board[i] = color; placed.push(i);
+      S.board[i] = color; S.ice[i] = !!S.preview.ice[k]; placed.push(i);
     });
     render(placed);
     if (placed.length) Sound.play("spawn");
+    if (placed.some((i) => S.board[i] === RAINBOW)) Sound.play("rainbow");
+    if (placed.some((i) => S.ice[i])) Sound.play("frost");
     await wait(240);
     const lines = uniqueLines(placed.flatMap((i) => linesThrough(S.board, i)));
     if (lines.length) await clearLines(lines, false);
-    if (empties(S.board).length === 0) { S.over = true; return; }
-    S.preview = makePreview(S.board);
+    if (empties(S.board).length === 0) return; // full: endTurn decides (game over, or a puffball to the rescue)
+    S.preview = makePreview(S.board, S.score);
   }
 
   function newGame() {
-    S = newState(); selected = -1; busy = false;
+    S = newState(); selected = -1; busy = false; aiming = false; aimCell = -1; hideBubble(); setPaused(false); resetCoach();
     bestAtStart = bestScore(); celebrated = false;
     $("#confirm").hidden = true; $("#over").hidden = true;
     render(S.board.map((c, i) => (c >= 0 ? i : -1)).filter((i) => i >= 0));
@@ -1176,7 +1631,7 @@ body {
 
   function showOver() {
     $("#final").textContent = S.score;
-    $("#over-note").textContent = t("finalScore");
+    $("#over-note").textContent = S.noMoves ? t("noMovesNote") : t("finalScore"); // walled in by ice, not a full board
     // 0 points never go on the leaderboard: no name to ask, just Menu or Play again.
     const zero = S.score <= 0;
     $("#over-form").hidden = zero; $("#over-zero").hidden = !zero;
@@ -1224,10 +1679,18 @@ body {
   const SCORES_KEY = "lines-prototype-scores";
   let latestScoreTime = 0, tutStep = 0;
   let howtoReturn = "menu"; // How to play goes back to where it was opened from (menu or game)
+  // Its top-left button says where it goes: the house back to the menu, an arrow back to the game in progress.
+  const HOUSE_ICON = '<path d="M3.5 11 12 3.8l8.5 7.2"/><path d="M5.8 9.6V19a1.2 1.2 0 0 0 1.2 1.2h3.4v-5.4h3.2v5.4H17a1.2 1.2 0 0 0 1.2-1.2V9.6"/>';
+  const BACK_ICON = '<path d="M19.5 12H5"/><path d="M11.5 5 4.5 12l7 7"/>';
+  function renderHowtoBack() {
+    const btn = $("#howto-back"), toGame = howtoReturn === "game", key = toGame ? "backToGame" : "backToMenu";
+    btn.querySelector("svg").innerHTML = toGame ? BACK_ICON : HOUSE_ICON;
+    btn.dataset.i18nAria = key; btn.setAttribute("aria-label", t(key)); btn.title = t(key);
+  }
 
   // ---- Vibration (GDD → Controls and feedback): only a few moments, off with the Vibration switch. Browsers can
   // vibrate only on Android (iPhones ignore it); the phone game uses the phones' own light, firm and heavy feels. ----
-  const BUZZ = { tick: [8], clear: [22], clearBig: [40], error: [14, 60, 14], success: [12, 70, 12, 70, 28], gameOver: [70] };
+  const BUZZ = { heavy: [60], reward: [14, 60, 30], tick: [8], clear: [22], clearBig: [40], error: [14, 60, 14], success: [12, 70, 12, 70, 28], gameOver: [70] };
   function buzz(kind, times = 1) {
     if (!settings.vibration || !navigator.vibrate) return;
     let pattern = BUZZ[kind];
@@ -1257,14 +1720,26 @@ body {
       howto1Title: "Move a piece", howto1Text: "Tap a piece, then an empty cell. It moves only if there is a free path up, down, left or right.",
       howto2Title: "Make lines of five", howto2Text: "Five or more of the same kind in a row, column or diagonal disappear and score points. Longer lines score more.",
       classic: "Classic", timed: "Timed", timeUp: "Time's up!", time: "Time", zeroHint: "Clear a line to get on the leaderboard.", menuButton: "Menu",
-      howto4Title: "Race the clock", howto4Text: "Choose Timed on the menu to play against the clock: 3 minutes, and every cleared line adds 5 seconds. The clock stops while mushrooms move. There's no Undo here.",
+      howto4Title: "Race the clock", howto4Text: "Choose Timed on the menu to play against the clock: 3 minutes, and every cleared line adds 5 seconds. The clock stops while mushrooms move.",
       howto3Title: "Watch what's coming", howto3Text: "If your move makes no line, 3 new pieces arrive where the faded mushrooms show. The game ends when the board is full. Undo takes back one move.",
       scoresEmpty: "No finished games yet. Your score is added here when a game ends.", playAgain: "Play again",
       newBestShort: "New best!",
+      howto5Title: "Rainbow mushroom", howto5Text: "The rare rainbow mushroom fits any line: it counts as every colour at once. One rainbow can even finish two lines of different colours in a single move.",
+      howto6Title: "Frozen mushrooms", howto6Text: "From 100 points, some new mushrooms arrive frozen. They can't be moved, but they still count for their colour: make a line through one to break the ice.",
+      howto7Title: "Puffball bomb", howto7Text: "Every 200 points earn a puffball (you can keep 2). Tap it below the board: a 3×3 square lights up. Tap another cell to move it, and tap the lit spot to burst. No new mushrooms come after a burst.",
+      pause: "Pause", paused: "Paused", pausedText: "The clock is stopped and the board is hidden.", resume: "Resume",
+      frozen: "Frozen — can't move", frozenHint: "Make a line through it to break the ice",
+      superName: "Puffball", superGot: "A puffball for you!", superGotText: "Tap it below the board to use it", superNothing: "Nothing to burst here",
+      superIn: (n) => "Puffball in " + n + (n === 1 ? " point" : " points"), superRule: "You get one every 200 points and can keep 2",
+      aimTitle: "Where to burst?", aimText: "Tap another cell to move it, tap the lit spot to burst. The puffball button cancels.",
+      coachRainbow: "A rainbow mushroom: it fits any line", coachIce: "Frozen: it can't move. Make a line through it to break the ice",
+      rescueFull: "The board is full!", rescueNoMoves: "No moves left!", rescueSub: "Use your puffball to keep going", endGame: "End game",
+      noMovesNote: "No moves left. Final score",
+      coachSuper1: "You earned a puffball!", coachSuper1b: "Tap it to use it", coachAimTitle: "Where to burst?", coachSuper2: "Tap another cell to move it, tap the lit spot to burst", skip: "Skip",
       newBest: (name) => "New best score, " + name + "!", yourRank: (rank, name) => "You're #" + rank + ", " + name + "!",
       notInTop: (score) => score + " points didn't make the top 10",
       settings: "Settings", music: "Music", sounds: "Sounds", vibration: "Vibration", language: "Language",
-      close: "Close", mainMenu: "Main menu", backToMenu: "Back to menu",
+      close: "Close", mainMenu: "Main menu", backToMenu: "Back to menu", backToGame: "Back to the game",
     },
     ru: {
       tagline: "Собери пять в ряд", continue: "Продолжить", scoreShort: "счёт", newGame: "Новая игра",
@@ -1276,14 +1751,27 @@ body {
       howto1Title: "Передвинь гриб", howto1Text: "Нажми на гриб, затем на пустую клетку. Он переместится, только если есть свободный путь вверх, вниз, влево или вправо.",
       howto2Title: "Собирай линии из пяти", howto2Text: "Пять и больше одинаковых грибов в ряд, столбец или по диагонали исчезают и приносят очки. Чем длиннее линия, тем больше очков.",
       classic: "Классика", timed: "На время", timeUp: "Время вышло!", time: "Время", zeroHint: "Собери линию, чтобы попасть в таблицу рекордов.", menuButton: "Меню",
-      howto4Title: "Наперегонки со временем", howto4Text: "Выбери в меню «На время», чтобы играть на скорость: 3 минуты, и каждая собранная линия добавляет 5 секунд. Пока грибы двигаются, часы стоят. Отмены здесь нет.",
+      howto4Title: "Наперегонки со временем", howto4Text: "Выбери в меню «На время», чтобы играть на скорость: 3 минуты, и каждая собранная линия добавляет 5 секунд. Пока грибы двигаются, часы стоят.",
       howto3Title: "Следи, что дальше", howto3Text: "Если ход не собрал линию, появятся 3 новых гриба — там, где видны бледные грибы. Игра заканчивается, когда поле заполнено. «Отменить» возвращает один ход.",
       scoresEmpty: "Пока нет законченных игр. Твой счёт появится здесь, когда игра закончится.", playAgain: "Сыграть ещё",
       newBestShort: "Новый рекорд!",
+      howto5Title: "Радужный гриб", howto5Text: "Редкий радужный гриб подходит к любой линии: он считается грибом любого цвета. Один радужный гриб может даже завершить две линии разных цветов за один ход.",
+      howto6Title: "Замёрзшие грибы", howto6Text: "После 100 очков некоторые новые грибы появляются замёрзшими. Их нельзя передвинуть, но они считаются своим цветом: собери линию через такой гриб, чтобы разбить лёд.",
+      howto7Title: "Дождевик-бомба", howto7Text: "Каждые 200 очков дают дождевик (можно хранить 2). Нажми на него под полем: загорится квадрат 3×3. Нажми другую клетку, чтобы передвинуть его, и нажми на отмеченное место, чтобы взорвать. После взрыва новые грибы не появляются.",
+      pause: "Пауза", paused: "Пауза", pausedText: "Часы остановлены, а поле скрыто.", resume: "Продолжить",
+      frozen: "Замёрз — не двигается", frozenHint: "Собери через него линию, чтобы разбить лёд",
+      superName: "Дождевик", superGot: "Тебе дождевик!", superGotText: "Нажми на него под полем, чтобы применить", superNothing: "Здесь нечего взрывать",
+      superIn: (n) => "Дождевик через " + n + " " + (n % 10 === 1 && n % 100 !== 11 ? "очко" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "очка" : "очков"),
+      superRule: "Он даётся каждые 200 очков, можно хранить 2",
+      aimTitle: "Где взорвать?", aimText: "Нажми другую клетку, чтобы передвинуть; нажми на отмеченное место, чтобы взорвать. Кнопка дождевика — отмена.",
+      coachRainbow: "Радужный гриб подходит к любой линии", coachIce: "Замёрз и не двигается. Собери через него линию, чтобы разбить лёд",
+      rescueFull: "Поле заполнено!", rescueNoMoves: "Ходов больше нет!", rescueSub: "Взорви дождевик, чтобы играть дальше", endGame: "Закончить игру",
+      noMovesNote: "Ходов больше нет. Итоговый счёт",
+      coachSuper1: "Тебе дождевик!", coachSuper1b: "Нажми на него, чтобы применить", coachAimTitle: "Где взорвать?", coachSuper2: "Нажми другую клетку, чтобы передвинуть; нажми на отмеченное место, чтобы взорвать", skip: "Пропустить",
       newBest: (name) => "Новый рекорд, " + name + "!", yourRank: (rank, name) => "Ты на " + rank + "-м месте, " + name + "!",
       notInTop: (score) => "Счёт " + score + " не попал в топ-10",
       settings: "Настройки", music: "Музыка", sounds: "Звуки", vibration: "Вибрация", language: "Язык",
-      close: "Закрыть", mainMenu: "Главное меню", backToMenu: "В меню",
+      close: "Закрыть", mainMenu: "Главное меню", backToMenu: "В меню", backToGame: "Назад к игре",
     },
   };
   const LANGS = Object.keys(I18N);
@@ -1300,15 +1788,23 @@ body {
     if (now === "menu") renderMenu();
     if (now === "howto") renderHowto();
   }
-  function openSettings() { renderSettings(); $("#settings").hidden = false; $("#settings-close").focus(); }
-  function closeSettings() { $("#settings").hidden = true; }
+  // Timed: like Pause, the board and NEXT hide behind Settings, so the stopped clock gives no free thinking time.
+  function openSettings() {
+    renderSettings(); $("#settings").hidden = false; $("#settings-close").focus();
+    if (S && S.timed && !S.over && currentScreen() === "game") document.querySelector(".screen").classList.add("is-paused");
+  }
+  function closeSettings() {
+    $("#settings").hidden = true;
+    if ($("#paused").hidden) document.querySelector(".screen").classList.remove("is-paused");
+  }
 
   function showScreen(name, alreadyDrawn) {
     ["menu", "game", "howto", "scores"].forEach((n) => { $("#screen-" + n).hidden = n !== name; });
+    if (name !== "game") resetCoach();
     if (name === "menu") renderMenu();
     if (name === "game" && !alreadyDrawn) render();
-    if (name === "game") playEntrance();
-    if (name === "howto") renderHowto();
+    if (name === "game") { playEntrance(); setTimeout(checkTips, 900); }
+    if (name === "howto") { renderHowtoBack(); renderHowto(); }
     if (name === "scores") renderScores();
   }
   function currentScreen() {
@@ -1319,7 +1815,15 @@ body {
   function renderMenu() {
     const can = hasSavedGame();
     $("#continue").disabled = !can;
-    $("#continue-sub").textContent = can ? "· " + t("scoreShort") + " " + S.score + (S.timed ? " · " + clockText(S.timeLeft) : "") : "";
+    // Timed: the time left gets the clock's stopwatch icon, so it reads as time, not as another number.
+    const sub = $("#continue-sub");
+    sub.textContent = can ? "· " + t("scoreShort") + " " + S.score + (S.timed ? " · " : "") : "";
+    if (can && S.timed) {
+      const watch = document.createElement("span"); watch.className = "sub-clock";
+      watch.innerHTML = $("#timer svg").outerHTML + clockText(S.timeLeft);
+      watch.setAttribute("aria-label", t("time") + " " + clockText(S.timeLeft));
+      sub.appendChild(watch);
+    }
     renderModePick($("#mode"), mode);
     const deco = $("#deco"); deco.textContent = "";
     for (let i = 0; i < 5; i++) {
@@ -1331,6 +1835,9 @@ body {
     { mini: "0****o", get title() { return t("howto1Title"); }, get text() { return t("howto1Text"); } },
     { mini: ".22222", get title() { return t("howto2Title"); }, get text() { return t("howto2Text"); } },
     { mini: "a.4.bc", get title() { return t("howto3Title"); }, get text() { return t("howto3Text"); } },
+    { mini: "33733.", get title() { return t("howto5Title"); }, get text() { return t("howto5Text"); } },
+    { mini: "11B11.", get title() { return t("howto6Title"); }, get text() { return t("howto6Text"); } },
+    { mini: "S.xxx.", get title() { return t("howto7Title"); }, get text() { return t("howto7Text"); } },
     { mini: "*3333o", get title() { return t("howto4Title"); }, get text() { return t("howto4Text"); } },
   ];
   // Changing cards: the card slides out to one side and the next one slides in from the other (dir +1: next).
@@ -1409,17 +1916,25 @@ body {
     crown.style.top = `${(inkInRow / size) * 10 - 2.5}cqw`; // the crown (5cqw tall) centred on it
   }
 
-  function renderHowto() {
-    const card = HOWTO[tutStep], mini = $("#tut-mini");
+  // A small strip of 6 cells: 0–7 mushrooms (7 = rainbow), A–G frozen ones, a–g ghosts, S the puffball,
+  // x a burst, * a step of a path, o the target cell.
+  function fillMini(mini, pattern) {
     mini.textContent = "";
-    for (const ch of card.mini) {
+    for (const ch of pattern) {
       const cell = document.createElement("div");
-      if (ch >= "0" && ch <= "6") cell.appendChild(ballEl(+ch));
+      if (ch >= "0" && ch <= "7") cell.appendChild(ballEl(+ch));
+      else if (ch >= "A" && ch <= "G") cell.appendChild(ballEl(ch.charCodeAt(0) - 65, "iced"));
+      else if (ch === "S") cell.innerHTML = $("#super .core").innerHTML.replace("<svg", '<svg class="super-ico"');
+      else if (ch === "x") { const s = document.createElement("span"); s.className = "boom"; cell.appendChild(s); }
       else if (ch >= "a" && ch <= "g") cell.appendChild(ballEl(ch.charCodeAt(0) - 97, "dot"));
       else if (ch === "*") { const s = document.createElement("span"); s.className = "step"; cell.appendChild(s); }
       else if (ch === "o") cell.className = "target";
       mini.appendChild(cell);
     }
+  }
+  function renderHowto() {
+    const card = HOWTO[tutStep];
+    fillMini($("#tut-mini"), card.mini);
     // Give every card the same text height (the tallest one), so nothing shifts between cards.
     const title = $("#tut-title"), text = $("#tut-text");
     title.style.minHeight = ""; text.style.minHeight = "";
@@ -1577,6 +2092,19 @@ body {
       gameOver: (t) => [86, 83, 81, 78, 76, 74].forEach((m, i) => bell(midi(m), t + i * 0.22, i === 5 ? 1.6 : 0.6, 0.12)), // Music box
       tick: (t, urgent) => { noise({ t, dur: 0.02, g: urgent ? 0.22 : 0.12, a: 0.001, filter: { type: "bandpass", f: urgent ? 3200 : 1900, q: 4 } });
         tone({ freq: urgent ? 1800 : 1150, t, dur: 0.025, g: urgent ? 0.09 : 0.05, a: 0.001 }); }, // the clock in the last 30 s
+      crack: (t) => { noise({ t, dur: 0.06, g: 0.28, a: 0.001, filter: { type: "highpass", f: 2800, q: 1 } }); tone({ freq: [[0, 2600], [0.05, 1700]], t, dur: 0.06, g: 0.06, a: 0.001 }); }, // ice
+      boom: (t) => { tone({ freq: [[0, 170], [0.3, 42]], t, dur: 0.45, g: 0.5, a: 0.003 }); noise({ t, dur: 0.4, g: 0.32, a: 0.002, filter: { type: "lowpass", f: 900, q: 0.7 } });
+        noise({ t: t + 0.02, dur: 0.7, g: 0.14, a: 0.06, filter: { type: "bandpass", f: 1300, q: 0.5 } }); // the puff of spores
+        [81, 86, 90].forEach((m, i) => bell(midi(m), t + 0.14 + i * 0.07, 0.7, 0.05)); }, // the puffball's burst
+      rainbow: (t) => [0, 1, 2, 3, 4, 5, 6].forEach((k, i) => bell(midi(PENT[3 + k]), t + 0.05 + i * 0.035, 0.5, 0.04)), // a rainbow arrives: a shimmer
+      frost: (t) => { bell(midi(98), t + 0.04, 0.9, 0.045); bell(midi(93), t + 0.1, 0.8, 0.035);
+        noise({ t, dur: 0.3, g: 0.05, a: 0.02, filter: { type: "highpass", f: 6000, q: 0.7 } }); }, // a frozen one arrives: a frosty chime
+      shatter: (t) => { noise({ t, dur: 0.2, g: 0.3, a: 0.001, filter: { type: "highpass", f: 3500, q: 0.8 } });
+        [100, 95, 98, 93].forEach((m, i) => bell(midi(m), t + 0.02 + i * 0.04, 0.35, 0.04)); }, // ice breaks in a line
+      arm: (t) => tone({ type: "triangle", freq: [[0, 300], [0.25, 900]], t, dur: 0.3, g: 0.12, a: 0.02 }),    // the puffball gets ready
+      disarm: (t) => tone({ type: "triangle", freq: [[0, 700], [0.2, 260]], t, dur: 0.24, g: 0.1, a: 0.02 }), // ...and is put away
+      tip: (t) => { bell(midi(86), t, 0.9, 0.08); bell(midi(93), t + 0.12, 1.1, 0.07); },                    // a first-time tip
+      superGot: (t) => [74, 78, 81, 86].forEach((m, i) => bell(midi(m), t + i * 0.07, 0.8, 0.08)), // a puffball earned
       record: (t) => { pad([62, 66, 69, 74], t, 1.9, 0.22, sfx, 1800); [86, 90, 93].forEach((m, i) => bell(midi(m), t + 0.5 + i * 0.1, 1.2, 0.06)); }, // Warm swell
     };
     function play(name, arg) {
@@ -1625,7 +2153,9 @@ body {
     $("#undo").addEventListener("click", () => {
       if (busy || !S.undo || S.over || S.timed) return;
       const u = S.undo;
-      S.board = u.board; S.score = u.score; S.preview = u.preview; S.undo = null; selected = -1;
+      S.board = u.board; S.score = u.score; S.preview = u.preview; S.undo = null; selected = -1; aiming = false; aimCell = -1; hideBubble();
+      if (u.ice) { S.ice = u.ice; S.supers = u.supers; S.superMark = u.superMark; }
+      withSpecials(S);
       render(); save();
     });
     $("#reset").addEventListener("click", () => { if (!busy) $("#confirm").hidden = false; });
@@ -1636,7 +2166,73 @@ body {
     $("#over-menu").addEventListener("click", () => { $("#over").hidden = true; showScreen("menu"); });
 
     // Menu and screens
-    $("#back").addEventListener("click", () => { if (busy) return; selected = -1; save(); showScreen("menu"); });
+    $("#back").addEventListener("click", () => { if (busy) return; selected = -1; aiming = false; aimCell = -1; hideBubble(); setPaused(false); save(); showScreen("menu"); });
+    $("#pause").addEventListener("click", () => { if (!busy && S.timed && !S.over) setPaused(true); });
+    $("#resume").addEventListener("click", () => { setPaused(false); showNextTip(); });
+    // A tap on the tutorial: anywhere goes on for the "look" steps; the puffball steps need a tap on the lit spot.
+    // The cell under a point on the screen, or -1 off the board.
+    const cellAtPoint = (x, y) => {
+      const r = $("#grid").getBoundingClientRect(), c = Math.floor((x - r.left) / r.width * N), w = Math.floor((y - r.top) / r.height * N);
+      return c >= 0 && c < N && w >= 0 && w < N ? w * N + c : -1;
+    };
+    $("#coach").addEventListener("pointermove", (e) => { // the puffball tutorial: a finger dragging moves the burst
+      if (!coachStep || !coachStep.board || !(e.buttons & 1)) return;
+      const cell = cellAtPoint(e.clientX, e.clientY);
+      if (cell >= 0 && cell !== aimCell) { aimCell = cell; drawAim(); showStep(coachStep); }
+    });
+    $("#coach").addEventListener("click", (e) => {
+      if (!coachStep) return;
+      if (e.target.closest("#coach-skip")) { coachStep.onSkip(); return; }
+      if (coachStep.button) { if (e.target.closest("#coach-ok")) coachStep.go(); return; }
+      if (coachStep.board) { const cell = cellAtPoint(e.clientX, e.clientY); if (cell >= 0) coachStep.tap(cell); return; }
+      if (coachStep.anywhere) { coachStep.go(); return; }
+      const sc = document.querySelector(".screen").getBoundingClientRect(), r = coachStep.rect();
+      const x = e.clientX - sc.left, y = e.clientY - sc.top;
+      if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) coachStep.go();
+    });
+    // A finger dragging on the board moves the aim (as on a phone; just hovering with a mouse doesn't).
+    $("#grid").addEventListener("pointermove", (e) => {
+      if (!aiming || busy || !(e.buttons & 1)) return;
+      const r = $("#grid").getBoundingClientRect();
+      const c = Math.floor((e.clientX - r.left) / r.width * N), w = Math.floor((e.clientY - r.top) / r.height * N);
+      if (c < 0 || c >= N || w < 0 || w >= N) return;
+      if (w * N + c !== aimCell) { aimCell = w * N + c; drawAim(); }
+    });
+    $("#super").addEventListener("click", () => {
+      if (busy || S.over) return;
+      if (S.supers <= 0) {
+        const left = S.superMark - S.score;
+        showBubble(t("superIn", left), t("superRule"), 1 - left / SUPER_EVERY, 2600);
+        return;
+      }
+      setAiming(!aiming);
+    });
+    // Test tools (prototype only): a rainbow or a frozen mushroom next, or one more puffball.
+    document.querySelectorAll("#test-specials button").forEach((btn) => btn.addEventListener("click", () => {
+      const k = btn.dataset.special;
+      // 190 pts: a new game (in the chosen mode) at 190 points, with 4 red mushrooms in a row and a 5th one below:
+      // move it up to make the line, pass 200 and get the first puffball (and its tutorial).
+      if (k === "score190") {
+        newGame();
+        S.board.fill(-1); S.ice.fill(false);
+        [[37, 0], [38, 0], [39, 0], [40, 0], [59, 0], [10, 3], [16, 5], [64, 2], [70, 4], [76, 6]].forEach(([i, c]) => { S.board[i] = c; });
+        S.preview = { colors: [1, 2, 5], cells: [0, 8, 80], ice: [false, false, false] };
+        S.score = 190; S.superMark = 200; S.supers = 0; S.tips = {}; S.undo = null;
+        bestAtStart = bestScore(); celebrated = S.score > bestAtStart;
+        showScreen("game", false); save();
+        toast("190 points: move the lower red one up");
+        return;
+      }
+      // The others work from any screen: they open the game in progress (or start one) first.
+      if (!S || S.over) newGame();
+      if (currentScreen() !== "game") showScreen("game");
+      // Each one also replays its own tutorial (forgets that it was seen), so it can be checked any time.
+      if (k === "rainbow") { S.preview.colors[0] = RAINBOW; S.preview.ice[0] = false; forgetTip("rainbow"); }
+      if (k === "ice") { if (S.preview.colors[0] === RAINBOW) S.preview.colors[0] = 0; S.preview.ice[0] = true; forgetTip("ice"); }
+      if (k === "super") { S.supers = Math.min(SUPER_MAX, S.supers + 1); forgetTip("super"); queueTip("super"); }
+      if (k === "tips") { S.tips = {}; toast("Tips will show again"); }
+      if (currentScreen() === "game") { render(); checkTips(); } save();
+    }));
     $("#continue").addEventListener("click", () => { if (hasSavedGame()) showScreen("game"); });
     $("#new").addEventListener("click", () => { if (hasSavedGame()) $("#confirm").hidden = false; else startNew(); });
     $("#howto").addEventListener("click", () => { tutStep = 0; howtoReturn = "menu"; showScreen("howto"); });
@@ -1667,7 +2263,11 @@ body {
       scoresTab = b.dataset.mode; scoresMessage = ""; cameFromGameOver = again;
       renderScores();
     });
-    document.addEventListener("visibilitychange", () => { if (document.hidden) save(); });
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) return;
+      save();
+      if (S && S.timed && !S.over && currentScreen() === "game" && $("#coach").hidden) setPaused(true); // back from another app: paused
+    });
     requestAnimationFrame(clockFrame);
     $("#howto-back").addEventListener("click", () => showScreen(howtoReturn));
     $("#scores-back").addEventListener("click", () => showScreen("menu"));
@@ -1719,6 +2319,7 @@ body {
     if (restored) {
       S = restored;
       if (!Array.isArray(S.creatures) || S.creatures.length !== 7) S.creatures = pickCreatures();
+      withSpecials(S);
     }
     bestAtStart = bestScore(); celebrated = !!S && S.score > bestAtStart; // a continued game already above: crown, no fireworks
     applyLanguage();
