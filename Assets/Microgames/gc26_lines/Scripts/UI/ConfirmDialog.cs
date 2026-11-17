@@ -114,12 +114,32 @@ namespace GC26.Lines.UI
             Place(message.rectTransform, PadSide * u, y, inner, messageH);
 
             float half = (inner - ButtonGap * u) / 2f;
+            cancel.gameObject.SetActive(!single);
+            if (single) { confirm.Place(new Rect(PadSide * u, PadBottom * u, inner, buttonsH), u); return; } // L18: Pause: Resume only
             cancel.Place(new Rect(PadSide * u, PadBottom * u, half, buttonsH), u);
             confirm.Place(new Rect(PadSide * u + half + ButtonGap * u, PadBottom * u, half, buttonsH), u);
         }
 
+        bool single;
+
+        /// <summary>L18: one main button only (Pause: "Paused" with Resume); no Cancel.</summary>
+        public void ShowSingle(string titleText, string messageText, string buttonText, Action onButton)
+        {
+            single = true;
+            Open(titleText, messageText, buttonText, onButton);
+        }
+
+        /// <summary>True while it shows one button only (tests).</summary>
+        public bool IsSingle => single && IsOpen;
+
         /// <summary>Opens the dialog; <paramref name="onYes"/> runs if the player presses the main button.</summary>
         public void Show(string titleText, string messageText, string confirmText, Action onYes)
+        {
+            single = false;
+            Open(titleText, messageText, confirmText, onYes);
+        }
+
+        void Open(string titleText, string messageText, string confirmText, Action onYes)
         {
             title.text = titleText;
             message.text = messageText;

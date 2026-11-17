@@ -41,6 +41,22 @@ namespace GC26.Lines.Core
         /// <summary>Timed mode (task L09): the game has a clock, and the seconds left on it. Older saves are Classic.</summary>
         public bool timed;
         public float timeLeft;
+        /// <summary>
+        /// Special mushrooms (tasks L14–L17): which balls are frozen (on the board and in NEXT, also for the Undo step),
+        /// the puffballs in stock and the score of the next one, the tutorials this game has shown, and the
+        /// specials' own random numbers. Older saves have none of these: a game with no specials (colors 1–7).
+        /// </summary>
+        public bool[] frozen;
+        public bool[] previewFrozen;
+        public bool[] undoFrozen;
+        public bool[] undoPreviewFrozen;
+        public int puffballs;
+        public int nextPuffballAt;
+        public int undoPuffballs;
+        public int undoNextPuffballAt;
+        public bool hasSpecialsState;
+        public long specialsState;
+        public string[] tutorials;
 
         /// <summary>Captures <paramref name="game"/>.</summary>
         public static GameSave From(GameState game)
@@ -56,6 +72,13 @@ namespace GC26.Lines.Core
                 randomState = game.Spawner.Random.State,
                 timed = game.Timed,
                 timeLeft = game.TimeLeft,
+                frozen = Frozen(game.Board),
+                previewFrozen = game.Preview.Frozen.ToArray(),
+                puffballs = game.Puffballs,
+                nextPuffballAt = game.NextPuffballAt,
+                hasSpecialsState = true,
+                specialsState = game.Spawner.Specials.State,
+                tutorials = game.TutorialsShown.OrderBy(t => t).ToArray(),
             };
             var undo = game.UndoStep;
             if (undo != null)
@@ -65,6 +88,10 @@ namespace GC26.Lines.Core
                 save.undoScore = undo.Score;
                 save.undoPreviewColors = undo.Preview.Colors.Select(c => (int)c).ToArray();
                 save.undoPreviewCells = undo.Preview.Cells.Select(Index).ToArray();
+                save.undoFrozen = Frozen(undo.Board);
+                save.undoPreviewFrozen = undo.Preview.Frozen.ToArray();
+                save.undoPuffballs = undo.Puffballs;
+                save.undoNextPuffballAt = undo.NextPuffballAt;
             }
             return save;
         }
@@ -78,23 +105,27 @@ namespace GC26.Lines.Core
             try
             {
                 if (version != CurrentVersion) return null;
-                var gameBoard = ReadBoard(board);
-                var preview = ReadPreview(previewColors, previewCells);
+                var gameBoard = ReadBoard(board, frozen);
+                var preview = ReadPreview(previewColors, previewCells, previewFrozen);
                 if (gameBoard == null || preview == null || score < 0) return null;
                 if (!isOver && preview.Cells.Any(c => !gameBoard.IsEmpty(c))) return null;
 
                 UndoSnapshot undo = null;
                 if (hasUndo && !isOver)
                 {
-                    var undoGameBoard = ReadBoard(undoBoard);
-                    var undoPreview = ReadPreview(undoPreviewColors, undoPreviewCells);
+                    var undoGameBoard = ReadBoard(undoBoard, undoFrozen);
+                    var undoPreview = ReadPreview(undoPreviewColors, undoPreviewCells, undoPreviewFrozen);
                     if (undoGameBoard == null || undoPreview == null || undoScore < 0) return null;
-                    undo = new UndoSnapshot(undoGameBoard, undoScore, undoPreview);
+                    undo = new UndoSnapshot(undoGameBoard, undoScore, undoPreview, undoPuffballs, undoNextPuffballAt);
                 }
 
-                var spawner = new Spawner(GameRandom.FromState(unchecked((uint)randomState)));
+                var random = GameRandom.FromState(unchecked((uint)randomState));
+                var spawner = new Spawner(random, hasSpecialsState ? GameRandom.FromState(unchecked((uint)specialsState)) : null);
                 if (timed && (float.IsNaN(timeLeft) || timeLeft < 0f)) return null;
-                return new GameState(gameBoard, preview, score, spawner, isOver, undo, timed, timeLeft);
+                if (puffballs < 0 || puffballs > GameConfig.PuffballMax) return null;
+                var game = new GameState(gameBoard, preview, score, spawner, isOver, undo, timed, timeLeft, puffballs, nextPuffballAt);
+                if (tutorials != null) foreach (var t in tutorials) if (!string.IsNullOrEmpty(t)) game.TutorialsShown.Add(t);
+                return game;
             }
             catch (Exception)
             {
@@ -112,29 +143,39 @@ namespace GC26.Lines.Core
             return cells;
         }
 
-        static bool IsColor(int value) => value >= 1 && value <= GameConfig.ColorCount;
+        // The 7 plain colors and the rainbow (L14).
+        static bool IsColor(int value) => value >= 1 && value <= (int)BallColor.Rainbow;
 
-        static Board ReadBoard(int[] cells)
+        static bool[] Frozen(Board board)
+        {
+            var result = new bool[board.CellCount];
+            for (int i = 0; i < result.Length; i++) result[i] = board.IsFrozen(CellAt(i));
+            return result;
+        }
+
+        static Board ReadBoard(int[] cells, bool[] frozenCells)
         {
             if (cells == null || cells.Length != GameConfig.BoardSize * GameConfig.BoardSize) return null;
+            if (frozenCells != null && frozenCells.Length != 0 && frozenCells.Length != cells.Length) return null;
             var board = new Board();
             for (int i = 0; i < cells.Length; i++)
             {
                 if (cells[i] == 0) continue;
                 if (!IsColor(cells[i])) return null;
-                board.Place(CellAt(i), (BallColor)cells[i]);
+                bool ice = frozenCells != null && frozenCells.Length == cells.Length && frozenCells[i];
+                board.Place(CellAt(i), (BallColor)cells[i], ice);
             }
             return board;
         }
 
-        static Preview ReadPreview(int[] colors, int[] cells)
+        static Preview ReadPreview(int[] colors, int[] cells, bool[] frozenNext)
         {
             if (colors == null || cells == null) return null;
             if (colors.Length != GameConfig.BallsPerTurn || cells.Length > GameConfig.BallsPerTurn) return null;
             if (!colors.All(IsColor)) return null;
             if (cells.Any(i => i < 0 || i >= GameConfig.BoardSize * GameConfig.BoardSize)) return null;
             if (cells.Distinct().Count() != cells.Length) return null;
-            return new Preview(colors.Select(c => (BallColor)c), cells.Select(CellAt));
+            return new Preview(colors.Select(c => (BallColor)c), cells.Select(CellAt), frozenNext);
         }
     }
 }

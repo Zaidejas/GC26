@@ -154,6 +154,31 @@ namespace GC26.Lines.View
             return ring;
         }
 
+        static Sprite aimRing;
+
+        /// <summary>L16: the aim square's outline: the same rounded ring, drawn bolder (a 0.05-cell line) for 9-slicing.</summary>
+        public static Sprite AimRing()
+        {
+            if (aimRing != null) return aimRing;
+            var source = RoundRectRing();
+            aimRing = Sprite.Create(source.texture, source.rect, new Vector2(0.5f, 0.5f), 60f, 0, SpriteMeshType.FullRect,
+                new Vector4(RoundRadiusPx, RoundRadiusPx, RoundRadiusPx, RoundRadiusPx));
+            aimRing.name = "AimRing";
+            return aimRing;
+        }
+
+        static Sprite backIcon, pauseIcon;
+
+        /// <summary>L19: the back arrow (How to play opened from the game returns there).</summary>
+        public static Sprite BackIcon() => backIcon != null ? backIcon : (backIcon = StrokeIcon("Back", 2.4f,
+            new[] { new Vector2(19.5f, 12f), new Vector2(5f, 12f) },
+            new[] { new Vector2(11.5f, 5f), new Vector2(4.5f, 12f), new Vector2(11.5f, 19f) }));
+
+        /// <summary>L18: the Pause button's two bars.</summary>
+        public static Sprite PauseIcon() => pauseIcon != null ? pauseIcon : (pauseIcon = StrokeIcon("Pause", 3.6f,
+            new[] { new Vector2(8f, 6.5f), new Vector2(8f, 17.5f) },
+            new[] { new Vector2(16f, 6.5f), new Vector2(16f, 17.5f) }));
+
         // How much of pixel (x, y) is inside a rounded square inset by `inset` px with corner radius r (0–1).
         static float RoundedInside(int x, int y, int n, float r, float inset)
         {

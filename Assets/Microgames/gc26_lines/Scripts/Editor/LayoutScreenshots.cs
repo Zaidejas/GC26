@@ -18,8 +18,8 @@ namespace GC26.Lines.EditorTools
     {
         struct Shot
         {
-            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog, Menu, GameOver, Settings, Russian, Best, Timed, ZeroOver; public int HowTo, Scores;
-            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false, bool menu = false, int howTo = 0, bool gameOver = false, int scores = 0, bool settings = false, bool russian = false, bool best = false, bool timed = false, bool zeroOver = false) { Timed = timed; ZeroOver = zeroOver; Best = best; HowTo = howTo; GameOver = gameOver; Scores = scores; Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; Menu = menu; Settings = settings; Russian = russian; }
+            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog, Menu, GameOver, Settings, Russian, Best, Timed, ZeroOver; public int HowTo, Scores, Special;
+            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false, bool menu = false, int howTo = 0, bool gameOver = false, int scores = 0, bool settings = false, bool russian = false, bool best = false, bool timed = false, bool zeroOver = false, int special = 0) { Special = special; Timed = timed; ZeroOver = zeroOver; Best = best; HowTo = howTo; GameOver = gameOver; Scores = scores; Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; Menu = menu; Settings = settings; Russian = russian; }
         }
 
         static readonly Shot[] Shots =
@@ -76,6 +76,23 @@ namespace GC26.Lines.EditorTools
             new Shot("timed-ru_1080x1920", 1080, 1920, 0, 0, timed: true, russian: true),
             new Shot("gameover-zero_1080x1920", 1080, 1920, 0, 0, zeroOver: true),
             new Shot("gameover-zero-ru_1080x2400_notch", 1080, 2400, 132, 63, zeroOver: true, russian: true),
+            // L14–L19: the special mushrooms, their tutorials, Pause (special: 1 board, 2 aiming, 3 the puffball tutorial,
+            // 4 the rainbow announcement, 5 the rescue, 6 Pause, 7 the banner and the "not yet" bubble, 8 a frozen tap)
+            new Shot("specials_1080x1920", 1080, 1920, 0, 0, special: 1),
+            new Shot("specials-aim_1080x2400_notch", 1080, 2400, 132, 63, special: 2),
+            new Shot("specials-tutorial-aim_1080x1920", 1080, 1920, 0, 0, special: 3),
+            new Shot("specials-tutorial-aim-ru_1080x2400_notch", 1080, 2400, 132, 63, special: 3, russian: true),
+            new Shot("specials-rainbow_1080x1920", 1080, 1920, 0, 0, special: 4),
+            new Shot("specials-rescue_1080x2400_notch", 1080, 2400, 132, 63, special: 5),
+            new Shot("specials-rescue-ru_1080x1920", 1080, 1920, 0, 0, special: 5, russian: true),
+            new Shot("specials-pause_1080x1920", 1080, 1920, 0, 0, special: 6),
+            new Shot("specials-banner_1080x1920", 1080, 1920, 0, 0, special: 7),
+            new Shot("specials-frozen-tap-ru_1080x1920", 1080, 1920, 0, 0, special: 8, russian: true),
+            new Shot("howto-5_1080x1920", 1080, 1920, 0, 0, howTo: 5),
+            new Shot("howto-6_1080x1920", 1080, 1920, 0, 0, howTo: 6),
+            new Shot("howto-7_1080x1920", 1080, 1920, 0, 0, howTo: 7),
+            new Shot("howto-7-ru_iphone-se_750x1334", 750, 1334, 0, 0, howTo: 7, russian: true),
+            new Shot("menu-timed_1080x1920", 1080, 1920, 0, 0, menu: true, timed: true),
         };
 
         [MenuItem("Lines/Render Layout Screenshots")]
@@ -144,7 +161,8 @@ namespace GC26.Lines.EditorTools
             {
                 var menu = GC26.Lines.UI.MenuView.Create(camera);
                 menu.ApplyLayout(layout);
-                menu.Show(120, PieceSet.Mushrooms());
+                if (shot.Timed) menu.Show(120, PieceSet.Mushrooms(), timed: true, timeLeft: 80f); // L18: Continue's stopwatch
+                else menu.Show(120, PieceSet.Mushrooms());
                 menu.SetSecondaryScreensAvailable(true, true);
                 Canvas.ForceUpdateCanvases();
                 Finish(shot, camera, path);
@@ -190,9 +208,69 @@ namespace GC26.Lines.EditorTools
                 fireworks.Play();
                 for (int i = 0; i < 30; i++) fireworks.Advance(0.02f);
             }
+            if (shot.Special > 0) Specials(shot, layout, camera, view, hud);
             Tween.Tick(1f); // pop-ups and messages fully faded in
             Canvas.ForceUpdateCanvases();
             Finish(shot, camera, path);
+        }
+
+        // L14–L19: a board with a rainbow, frozen mushrooms (on the board, as a ghost and in NEXT) and a puffball ready.
+        static void Specials(Shot shot, BoardLayout layout, Camera camera, BoardView view, GC26.Lines.UI.HudView hud)
+        {
+            var board = DemoBoard(GameState.NewGame(7).Board);
+            foreach (var (cell, color, ice) in new[] { (new Cell(4, 4), BallColor.Rainbow, false), (new Cell(2, 3), BallColor.Blue, true),
+                         (new Cell(6, 5), BallColor.Yellow, true), (new Cell(3, 4), BallColor.Green, false), (new Cell(5, 4), BallColor.Green, false) })
+                if (board.IsEmpty(cell)) board.Place(cell, color, ice);
+            var next = new Preview(new[] { BallColor.Rainbow, BallColor.Cyan, BallColor.Red }, new[] { new Cell(1, 1), new Cell(7, 2), new Cell(6, 7) },
+                new[] { false, true, false });
+            view.ShowBoard(board);
+            view.ShowPreviewDots(next, board);
+            hud.SetScore(312);
+            hud.SetPreview(next.Colors, next.Frozen, view.Pieces);
+            hud.SetPuffballs(shot.Special == 7 ? 0 : 1, shot.Special == 7 ? 0.56f : 1f);
+            var coach = GC26.Lines.UI.CoachMarks.Create(camera);
+            coach.ApplyLayout(new Vector2(shot.Width, shot.Height), layout.Unit);
+            Vector2 CellCentre(Cell c) => layout.WorldToScreen(layout.BoardCenterWorld + (Vector2)BoardView.CellToLocal(c));
+            var puffball = hud.Puffball.Rect;
+            var puffballRect = new Rect(puffball.anchoredPosition - puffball.sizeDelta / 2f, puffball.sizeDelta);
+            string T(string key) => GC26.Lines.UI.Texts.Get(key);
+            switch (shot.Special)
+            {
+                case 2:
+                    view.ShowAim(new Cell(4, 4));
+                    hud.Puffball.SetArmed(true);
+                    hud.Bubble.Show(T("aimTitle"), T("aimText"));
+                    break;
+                case 3:
+                    view.ShowAim(new Cell(4, 4));
+                    coach.Show(layout.Board, false, CellCentre(new Cell(4, 4)), T("coachAimTitle"), T("coachSuper2"), false, true, captionAbove: true);
+                    break;
+                case 4:
+                {
+                    var rt = hud.NextPieces[0].rectTransform;
+                    var hole = new Rect(layout.Hud.position + rt.anchoredPosition, rt.sizeDelta);
+                    coach.Show(hole, false, hole.center, T("coachRainbow"), "", true, false);
+                    break;
+                }
+                case 5:
+                    coach.Show(puffballRect, true, puffballRect.center, T("rescueNoMoves"), T("rescueSub"), false, true, T("endGame"));
+                    break;
+                case 6:
+                    hud.SetTimed(true);
+                    hud.SetClock(84f, running: true);
+                    view.SetPiecesHidden(true);
+                    hud.SetNextHidden(true);
+                    hud.Dialog.ShowSingle(T("paused"), T("pausedText"), T("resume"), null);
+                    break;
+                case 7:
+                    hud.Banner.Show();
+                    Tween.Tick(0.6f);
+                    hud.Bubble.Show(GC26.Lines.UI.Texts.PuffballIn(88), T("superRule"), 0.56f);
+                    break;
+                case 8:
+                    hud.ShowAlert(T("frozen"), T("frozenHint"));
+                    break;
+            }
         }
 
         static void Finish(Shot shot, Camera camera, string path)

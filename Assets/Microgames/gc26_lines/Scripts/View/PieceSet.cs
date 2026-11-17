@@ -11,12 +11,19 @@ namespace GC26.Lines.View
     /// </summary>
     public sealed class PieceSet
     {
-        public const int MushroomCount = 7;
+        public const int MushroomCount = 8; // the 7 colours and the rainbow (L14)
         const string MushroomFolder = "gc26_lines/Mushrooms/mushroom_";
         static readonly Sprite[] MushroomCache = new Sprite[MushroomCount];
 
         // Each mushroom's glow colour (the prototype's --c), for the burst particles. Index = color - 1.
-        static readonly int[] MushroomColors = { 0xFF3B5C, 0xFF8A1F, 0xFFD23F, 0x7ED957, 0xFF4FC3, 0x3FA0FF, 0xA35CFF };
+        static readonly int[] MushroomColors = { 0xFF3B5C, 0xFF8A1F, 0xFFD23F, 0x7ED957, 0xFF4FC3, 0x3FA0FF, 0xA35CFF, 0xFF9FF3 };
+
+        /// <summary>L14: the rainbow's sparkles take the colours of the rainbow, one after another.</summary>
+        public static readonly Color[] RainbowSparkles =
+        {
+            Palette.Hex(0xFF4D6D), Palette.Hex(0xFFB21C), Palette.Hex(0xFFE14D), Palette.Hex(0x4EE07A),
+            Palette.Hex(0x3CC8FF), Palette.Hex(0x6B7BFF), Palette.Hex(0xC36BFF),
+        };
 
         public bool UsesImages { get; }
 
@@ -45,7 +52,7 @@ namespace GC26.Lines.View
         public static bool MushroomsAvailable() => Mushroom(0) != null;
 
         public Sprite SpriteFor(BallColor color) =>
-            UsesImages && color != BallColor.None ? Mushroom((int)color - 1) : SpriteFactory.Ball(color);
+            UsesImages && color != BallColor.None ? Mushroom((int)color - 1) ?? SpriteFactory.Ball(color) : SpriteFactory.Ball(color);
 
         /// <summary>The color of the particles when a piece of <paramref name="color"/> bursts.</summary>
         public Color ParticleColor(BallColor color) =>

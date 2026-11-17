@@ -29,6 +29,8 @@ namespace GC26.Lines.UI
 
         public event Action Clicked;
         public string Text => label.text;
+        /// <summary>The label itself (the menu places the stopwatch next to Continue's time).</summary>
+        public TextMeshProUGUI Label => label;
 
         public bool Interactable
         {
@@ -92,6 +94,12 @@ namespace GC26.Lines.UI
         public bool HasIcon => icon != null;
         /// <summary>The icon's picture, or null for a text button.</summary>
         public Sprite IconSprite => icon != null ? icon.sprite : null;
+
+        /// <summary>Changes an icon button's picture (L19: How to play's house becomes a back arrow from the game).</summary>
+        public void SetIcon(Sprite sprite)
+        {
+            if (icon != null) icon.sprite = sprite;
+        }
         public bool HasLeadingIcon => leadingIcon != null;
 
         /// <summary>Shows <paramref name="iconSprite"/> in front of the label, like the prototype's Undo and Reset.</summary>

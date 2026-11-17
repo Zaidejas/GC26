@@ -159,7 +159,7 @@ namespace GC26.Lines.UI
             float labelH = LabelSize * 1.3f * u, fieldH = FieldHeight * u;
             hint.fontSize = HintSize * u;
             float hintH = hint.GetPreferredValues(hint.text, width - 2f * PadSide * u, 0f).y;
-            label.gameObject.SetActive(!zero);
+            label.gameObject.SetActive(false); // L19: no label above the field (the field keeps its pre-filled name)
             field.gameObject.SetActive(!zero);
             save.gameObject.SetActive(!zero);
             hint.gameObject.SetActive(zero);
@@ -167,7 +167,7 @@ namespace GC26.Lines.UI
             againButton.gameObject.SetActive(zero);
             // Title, 2u, "Final score", the number, 6u, (form pulled up 2u) label, 1.6u, the field row.
             // 0 points: ... the number, 4u, the hint, 3u, Menu and Play again.
-            float lower = zero ? hintH + HintGap * u + fieldH : labelH + LabelGap * u + fieldH;
+            float lower = zero ? hintH + HintGap * u + fieldH : fieldH;
             float height = PadTop * u + titleH + 2f * u + noteH + finalH + (6f - 2f) * u + lower + PadBottom * u;
             card.sizeDelta = new Vector2(width, height);
             cardGlow.rectTransform.sizeDelta = card.sizeDelta + Vector2.one * 2f * GlowSize * u;
@@ -189,8 +189,6 @@ namespace GC26.Lines.UI
                 againButton.Place(new Rect(PadSide * u + half + ZeroButtonGap * u, PadBottom * u, half, fieldH), u);
                 return;
             }
-            y -= (6f - 2f) * u + labelH;
-            Place(label.rectTransform, PadSide * u, y, inner, labelH);
 
             // The field takes what Save leaves (Save is as wide as its word plus 5 units each side, e.g. "Сохранить").
             float saveW = Mathf.Max(SaveWidth * u, save.WidthForText(u, 5f));
@@ -208,10 +206,12 @@ namespace GC26.Lines.UI
         }
 
         /// <summary>Opens the pop-up with the final score and the name field filled with <paramref name="defaultName"/>.</summary>
-        public void Show(int score, string defaultName)
+        public void Show(int score, string defaultName, bool noMovesLeft = false)
         {
             Score = score;
             zero = score <= 0;
+            this.noMovesLeft = noMovesLeft;
+            note.text = Texts.Get(noMovesLeft ? "noMovesNote" : "finalScore"); // L15: walled in by ice, not a full board
             final.text = score.ToString();
             input.text = defaultName ?? "";
             placeholder.text = defaultName ?? Texts.Get("player");
@@ -224,7 +224,7 @@ namespace GC26.Lines.UI
         public void RefreshTexts()
         {
             title.text = Texts.Get("gameOver");
-            note.text = Texts.Get("finalScore");
+            note.text = Texts.Get(noMovesLeft ? "noMovesNote" : "finalScore");
             label.text = Texts.Get("nameLabel");
             save.SetText(Texts.Get("save"));
             hint.text = Texts.Get("zeroHint");
@@ -234,6 +234,10 @@ namespace GC26.Lines.UI
         }
 
         public string TitleText => title.text;
+        bool noMovesLeft;
+        /// <summary>The line above the score ("Final score", or "No moves left. Final score").</summary>
+        public string NoteText => note.text;
+        public bool LabelShowing => label.gameObject.activeSelf;
         public string LabelText => label.text;
 
         public void Close()

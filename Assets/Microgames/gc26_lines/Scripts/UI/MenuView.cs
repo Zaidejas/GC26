@@ -149,6 +149,7 @@ namespace GC26.Lines.UI
                 y -= ButtonGap * u;
             }
             settings.Place(screen.SettingsButton, u);
+            clockPlaced = false; // Continue's stopwatch follows the new text size
             if (IsShowing) AdvanceFloating(0f);
         }
 
@@ -160,7 +161,9 @@ namespace GC26.Lines.UI
             modes.RefreshTexts();
             howTo.SetText(Texts.Get("howToPlay"));
             leaderboard.SetText(Texts.Get("leaderboard"));
-            string time = savedTimeLeft.HasValue ? " · " + ClockText(savedTimeLeft.Value) : "";
+            // L18: the time left gets the game clock's stopwatch icon (an image placed in the gap before it).
+            string time = savedTimeLeft.HasValue ? " · <space=0.95em>" + ClockText(savedTimeLeft.Value) : "";
+            clockPlaced = false;
             continueButton.SetText(savedScore.HasValue
                 ? $"{Texts.Get("continue")} <size=78%><alpha=#BF>· {Texts.Get("scoreShort")} {savedScore.Value}{time}<alpha=#FF></size>"
                 : Texts.Get("continue"));
@@ -181,7 +184,49 @@ namespace GC26.Lines.UI
             var colors = BallColors.All;
             for (int i = 0; i < deco.Count; i++) deco[i].sprite = pieces.SpriteFor(colors[i]);
             gameObject.SetActive(true);
+            PlaceContinueClock(); // L18: the stopwatch before the time
             StopFloating(); // start from the bottom
+        }
+
+        Image continueClock;
+        bool clockPlaced;
+
+        /// <summary>Whether Continue shows the stopwatch next to the time (tests).</summary>
+        public bool ContinueClockShowing => continueClock != null && continueClock.enabled;
+
+        void LateUpdate()
+        {
+            if (!clockPlaced) PlaceContinueClock();
+        }
+
+        // Puts the stopwatch right before the time's first digit, on the text's line.
+        void PlaceContinueClock()
+        {
+            clockPlaced = true;
+            if (continueClock == null)
+            {
+                continueClock = new GameObject("Stopwatch", typeof(RectTransform)).AddComponent<Image>();
+                continueClock.rectTransform.SetParent(continueButton.Label.rectTransform, false);
+                continueClock.sprite = SpriteFactory.StopwatchIcon();
+                continueClock.preserveAspect = true;
+                continueClock.raycastTarget = false;
+            }
+            var label = continueButton.Label;
+            continueClock.enabled = false;
+            if (!savedTimeLeft.HasValue) return;
+            label.ForceMeshUpdate();
+            string parsed = label.GetParsedText(), time = ClockText(savedTimeLeft.Value);
+            int index = parsed.LastIndexOf(time, System.StringComparison.Ordinal);
+            if (index < 0 || index >= label.textInfo.characterCount) return;
+            var c = label.textInfo.characterInfo[index];
+            float size = c.pointSize * 0.85f;
+            var rt = continueClock.rectTransform;
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(1f, 0.5f);
+            rt.sizeDelta = new Vector2(size, size);
+            rt.anchoredPosition = new Vector2(c.bottomLeft.x - 0.12f * size, (c.bottomLeft.y + c.topLeft.y) / 2f);
+            continueClock.color = label.color * new Color(1f, 1f, 1f, 0.75f);
+            continueClock.enabled = continueButton.Interactable;
         }
 
         /// <summary>The time left on a clock as m:ss, rounded up (1.2 s left shows 0:02).</summary>

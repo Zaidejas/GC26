@@ -44,7 +44,19 @@ namespace GC26.Lines.Game
         public event Action GameChanged;
         /// <summary>Timed mode: a turn's cleared lines added these seconds to the clock.</summary>
         public event Action<float> TimeAdded;
+        /// <summary>L16: a turn's points earned this many puffballs.</summary>
+        public event Action<int> PuffballsEarned;
+        /// <summary>L16: no ball can move, but a puffball is in stock: offer it (the game isn't over).</summary>
+        public event Action StuckWithPuffball;
+        /// <summary>L16: aiming a puffball started (true) or ended (false).</summary>
+        public event Action<bool> AimingChanged;
+        /// <summary>L15: the player tapped a frozen ball.</summary>
+        public event Action<Cell> FrozenTapped;
         MoveResult lastMove;
+
+        /// <summary>L16: a puffball is being aimed; <see cref="AimCell"/> is the middle of the 3×3 square.</summary>
+        public bool Aiming { get; private set; }
+        public Cell AimCell { get; private set; }
 
         public LinesGameController(GameState game, IBoardPresenter presenter)
         {
@@ -63,6 +75,22 @@ namespace GC26.Lines.Game
             if (!AcceptsInput) return false;
             if (!Game.Board.IsInside(cell)) return true;
 
+            if (Aiming)
+            {
+                // L16: a tap on the lit spot bursts it; a tap anywhere else moves the square there.
+                if (cell == AimCell) Burst();
+                else AimAt(cell);
+                return true;
+            }
+
+            if (!Game.Board.IsEmpty(cell) && Game.Board.IsFrozen(cell))
+            {
+                // L15: a frozen ball can't be picked up: it shakes; a selected ball stays selected.
+                presenter.ShowFrozen(cell);
+                FrozenTapped?.Invoke(cell);
+                return true;
+            }
+
             if (!Game.Board.IsEmpty(cell))
             {
                 // Tap a ball: select it, or switch to it. Tapping the selected ball again does nothing.
@@ -74,11 +102,72 @@ namespace GC26.Lines.Game
             return true;
         }
 
-        /// <summary>Drops the selection (when leaving the game screen).</summary>
+        /// <summary>Drops the selection and any aiming (when leaving the game screen, pausing, opening Settings).</summary>
         public void ClearSelection()
         {
+            CancelAiming();
             if (State != TurnState.BallSelected) return;
             Select(null);
+        }
+
+        /// <summary>
+        /// L16: the puffball button: starts aiming on the spot with the most balls. Returns false (nothing happens)
+        /// with no puffball in stock, during an animation or after game over.
+        /// </summary>
+        public bool StartAiming()
+        {
+            if (Aiming) return true;
+            if (!AcceptsInput || Game.Puffballs <= 0) return false;
+            if (Selected.HasValue) Select(null);
+            Aiming = true;
+            AimCell = Game.BestBurstCell();
+            presenter.ShowAim(AimCell);
+            AimingChanged?.Invoke(true);
+            return true;
+        }
+
+        /// <summary>L16: moves the aimed 3×3 square to <paramref name="cell"/> (a tap elsewhere, or a finger sliding).</summary>
+        public void AimAt(Cell cell)
+        {
+            if (!Aiming || !Game.Board.IsInside(cell) || cell == AimCell) return;
+            AimCell = cell;
+            presenter.ShowAim(cell);
+        }
+
+        /// <summary>L16: stops aiming without bursting (the puffball stays).</summary>
+        public void CancelAiming()
+        {
+            if (!Aiming) return;
+            Aiming = false;
+            presenter.ShowAim(null);
+            AimingChanged?.Invoke(false);
+        }
+
+        /// <summary>L16: bursts the aimed square. An empty square can't be burst (returns false, aiming goes on).</summary>
+        public bool Burst()
+        {
+            if (!Aiming || !AcceptsInput) return false;
+            var result = Game.Burst(AimCell);
+            if (result == null) return false;
+            Aiming = false;
+            presenter.ShowAim(null);
+            AimingChanged?.Invoke(false);
+            SetState(TurnState.Resolving);
+            presenter.PlayBurst(result, FinishTurn);
+            return true;
+        }
+
+        /// <summary>L16: stuck with a puffball, the player chose End game.</summary>
+        public void EndGame()
+        {
+            if (Game.IsOver) return;
+            CancelAiming();
+            Selected = null;
+            presenter.ShowSelected(null);
+            Game.EndGame();
+            SetState(TurnState.GameOver);
+            presenter.ShowGameOver(Game.Score);
+            GameChanged?.Invoke();
         }
 
         /// <summary>
@@ -89,6 +178,7 @@ namespace GC26.Lines.Game
         {
             if (!Game.Timed || !AcceptsInput) return false;
             if (!Game.AdvanceClock(seconds)) return false;
+            CancelAiming();
             Selected = null;
             presenter.ShowSelected(null);
             SetState(TurnState.GameOver);
@@ -106,6 +196,7 @@ namespace GC26.Lines.Game
         public bool Undo()
         {
             if (!CanUndo) return false;
+            CancelAiming();
             Selected = null;
             presenter.ShowSelected(null);
             Game.Undo();
@@ -150,7 +241,7 @@ namespace GC26.Lines.Game
             }
 
             SetState(TurnState.Spawning);
-            presenter.PlaySpawn(result.Spawned, result.SpawnedColors, () =>
+            presenter.PlaySpawn(result.Spawned, result.SpawnedColors, result.SpawnedFrozen, () =>
             {
                 if (result.LinesFromSpawn.Count > 0)
                 {
@@ -168,6 +259,7 @@ namespace GC26.Lines.Game
         {
             presenter.ShowState(Game);
             if (lastMove != null && lastMove.TimeAdded > 0f) TimeAdded?.Invoke(lastMove.TimeAdded);
+            int earned = lastMove != null ? lastMove.PuffballsEarned : 0;
             lastMove = null;
             if (Game.IsOver)
             {
@@ -179,6 +271,8 @@ namespace GC26.Lines.Game
                 SetState(TurnState.Idle);
             }
             GameChanged?.Invoke();
+            if (earned > 0) PuffballsEarned?.Invoke(earned);
+            if (Game.Stuck) StuckWithPuffball?.Invoke();
         }
 
         void SetState(TurnState state)

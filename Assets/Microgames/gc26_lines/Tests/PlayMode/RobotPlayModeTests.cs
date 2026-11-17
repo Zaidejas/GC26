@@ -45,7 +45,9 @@ namespace GC26.Lines.Tests
             {
                 turns++;
                 if (game.Controller.Game != watched) { watched = game.Controller.Game; watched.OnLinesCleared += countLines; }
-                yield return PlayOneTurn(game, random, turns, smart: turns - lastGameEnd < 50);
+                yield return HandleTutorials(game);
+                if (game.Controller.Game.IsOver) { yield return WaitUntilSettled(game); }
+                else yield return PlayOneTurn(game, random, turns, smart: turns - lastGameEnd < 50);
                 yield return WaitUntilSettled(game);
                 CheckScreenMatchesBoard(game, "turn " + turns);
 
@@ -83,9 +85,47 @@ namespace GC26.Lines.Tests
                     CheckScreenMatchesBoard(game, "new game");
                 }
             }
-            Debug.Log($"Lines robot: {turns} turns, {finished} games finished, {cleared} lines cleared");
+            Debug.Log($"Lines robot: {turns} turns, {finished} games finished, {cleared} lines cleared, {bursts} puffballs burst, {tutorials} tutorials");
             Assert.Greater(cleared, 0, "Lines were cleared along the way");
             Assert.AreEqual(2, finished, "Two whole games were played to the end");
+        }
+
+        static int bursts, tutorials;
+
+        static Vector2 Px(GameBootstrap game, Cell c) => game.Layout.WorldToScreen(game.Layout.BoardCenterWorld + (Vector2)BoardView.CellToLocal(c));
+
+        // L17: a tutorial covers the board until it's answered: Got it (rainbow, ice), or the puffball's steps (tap it,
+        // then tap the lit spot: a burst), or the rescue (tap the puffball, then burst).
+        static IEnumerator HandleTutorials(GameBootstrap game)
+        {
+            for (int guard = 0; guard < 6 && game.Coach.IsShowing; guard++)
+            {
+                tutorials++;
+                var coach = game.Coach;
+                int before = game.Controller.Game.Puffballs;
+                if (coach.GotItShowing) coach.GotItButton.Click();
+                else if (game.TutorialShowing == "super" && game.TutorialStep == 0)
+                {
+                    coach.TapAt(coach.Hole.center);
+                    Assert.IsTrue(game.Controller.Aiming, "Tapping the puffball in the tutorial starts aiming");
+                }
+                else if (game.TutorialShowing == "super")
+                {
+                    coach.TapAt(Px(game, game.Controller.AimCell));
+                    Assert.AreEqual(before - 1, game.Controller.Game.Puffballs, "Tapping the lit spot bursts");
+                    bursts++;
+                }
+                else if (game.TutorialShowing == "rescue")
+                {
+                    coach.TapAt(coach.Hole.center);
+                    yield return null;
+                    Assert.IsTrue(game.Controller.Aiming, "The rescue: aiming");
+                    game.Taps.HandlePress(Px(game, game.Controller.AimCell));
+                    Assert.AreEqual(before - 1, game.Controller.Game.Puffballs, "The rescue burst");
+                    bursts++;
+                }
+                yield return WaitUntilSettled(game);
+            }
         }
 
         static IEnumerator PlayOneTurn(GameBootstrap game, System.Random random, int turn, bool smart)
@@ -93,9 +133,29 @@ namespace GC26.Lines.Tests
             var controller = game.Controller;
             var board = controller.Game.Board;
             var cells = Enumerable.Range(0, board.CellCount).Select(i => new Cell(i % board.Size, i / board.Size)).ToList();
-            var balls = cells.Where(c => !board.IsEmpty(c)).ToList();
+            var balls = cells.Where(c => !board.IsEmpty(c) && !board.IsFrozen(c)).ToList(); // L15: frozen ones can't move
             var empty = cells.Where(c => board.IsEmpty(c)).ToList();
-            Vector2 Px(Cell c) => game.Layout.WorldToScreen(game.Layout.BoardCenterWorld + (Vector2)BoardView.CellToLocal(c));
+            Vector2 Px(Cell c) => RobotPlayModeTests.Px(game, c);
+
+            // L16: with a puffball and a crowded board, burst the busiest spot (tap the button, then the lit spot).
+            if (controller.Game.Puffballs > 0 && empty.Count < 12 && controller.AcceptsInput)
+            {
+                int before = controller.Game.Puffballs;
+                game.Hud.Puffball.Click();
+                Assert.IsTrue(controller.Aiming, "The puffball button starts aiming");
+                Assert.IsTrue(game.Taps.HandlePress(Px(controller.AimCell)));
+                Assert.AreEqual(before - 1, controller.Game.Puffballs, "...and a tap on the lit spot bursts it");
+                bursts++;
+                yield break;
+            }
+
+            // L15: now and then, tap a frozen one: nothing is selected.
+            var frozen = cells.Where(c => !board.IsEmpty(c) && board.IsFrozen(c)).ToList();
+            if (turn % 3 == 0 && frozen.Count > 0 && controller.State == TurnState.Idle)
+            {
+                game.Taps.HandlePress(Px(frozen[random.Next(frozen.Count)]));
+                Assert.AreEqual(TurnState.Idle, controller.State, "A frozen mushroom can't be selected");
+            }
 
             // Sometimes Undo instead of a move.
             if (turn % 7 == 0 && controller.CanUndo)
@@ -200,6 +260,7 @@ namespace GC26.Lines.Tests
                     Assert.IsNotNull(ball, $"{when}: {cell} has a mushroom on the board but not on screen");
                     Assert.AreEqual(board.Get(cell), ball.Color, $"{when}: {cell} shows the wrong mushroom");
                     Assert.AreEqual((Vector3)(Vector2)BoardView.CellToLocal(cell), (Vector3)(Vector2)ball.transform.localPosition, $"{when}: {cell} is out of place");
+                    Assert.AreEqual(board.IsFrozen(cell), ball.Frozen, $"{when}: {cell} shows the wrong ice");
                 }
             }
             Assert.AreEqual(81 - board.EmptyCount, game.BoardView.BallCount, when + ": no extra mushrooms");

@@ -18,9 +18,11 @@ namespace GC26.Lines.Tests
                     throw new ArgumentException($"Row {row} has {rows[row].Length} cells, expected {rows.Length}.");
                 for (int column = 0; column < rows.Length; column++)
                 {
-                    var color = ToColor(rows[row][column]);
+                    char ch = rows[row][column];
+                    // Lower-case letters are frozen balls (L15); '*' is a rainbow (L14).
+                    var color = ToColor(char.IsLower(ch) ? char.ToUpperInvariant(ch) : ch);
                     if (color != BallColor.None)
-                        board.Place(new Cell(column, row), color);
+                        board.Place(new Cell(column, row), color, char.IsLower(ch));
                 }
             }
             return board;
@@ -38,6 +40,7 @@ namespace GC26.Lines.Tests
                 case 'C': return BallColor.Cyan;
                 case 'B': return BallColor.Blue;
                 case 'P': return BallColor.Purple;
+                case '*': return BallColor.Rainbow;
                 default: throw new ArgumentException($"Unknown board symbol '{c}'.");
             }
         }

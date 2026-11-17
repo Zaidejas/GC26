@@ -23,6 +23,7 @@ namespace GC26.Lines.UI
         RectTransform area;
         TextMeshProUGUI scoreLabel, scoreText, gainText, nextLabel;
         readonly Image[] next = new Image[GameConfig.BallsPerTurn];
+        readonly Image[] nextIce = new Image[GameConfig.BallsPerTurn]; // L15: a frozen next mushroom shows its ice
         float unit = 10f;
         TweenHandle gainTween;
         // L04: the gold crown next to the score above the best, and the "New best!" that pops up over the board.
@@ -40,7 +41,20 @@ namespace GC26.Lines.UI
         TextMeshProUGUI newBest;
         TweenHandle newBestTween;
         AlertToast alert;
-        PillButton undo, reset;
+        PillButton undo, reset, pause;
+        // L16: the puffball button in the middle of the bottom row, its bubble, and the "A puffball for you!" banner.
+        PuffballButton puffball;
+        HintBubble bubble;
+        RewardBanner banner;
+        /// <summary>The player pressed the puffball button.</summary>
+        public event System.Action PuffballClicked;
+        /// <summary>L18: the player pressed Pause (Timed mode).</summary>
+        public event System.Action PauseClicked;
+        public PuffballButton Puffball => puffball;
+        public HintBubble Bubble => bubble;
+        public RewardBanner Banner => banner;
+        public PillButton PauseButton => pause;
+        public bool PauseShowing => pause.gameObject.activeSelf;
         ConfirmDialog dialog;
         GameOverDialog gameOver;
 
@@ -134,6 +148,14 @@ namespace GC26.Lines.UI
             reset = PillButton.Create((RectTransform)transform, "");
             reset.SetLeadingIcon(SpriteFactory.ResetIcon());
             reset.Clicked += () => ResetClicked?.Invoke();
+            pause = PillButton.Create((RectTransform)transform, "");
+            pause.SetLeadingIcon(SpriteFactory.PauseIcon());
+            pause.Clicked += () => PauseClicked?.Invoke();
+            pause.gameObject.SetActive(false); // Timed mode only, in Undo's place
+            puffball = PuffballButton.Create((RectTransform)transform);
+            puffball.Clicked += () => PuffballClicked?.Invoke();
+            bubble = HintBubble.Create((RectTransform)transform);
+            banner = RewardBanner.Create((RectTransform)transform);
             back = PillButton.CreateIcon((RectTransform)transform, SpriteFactory.HomeIcon(), "Home");
             back.MakePlain(); // just the house, no ring or disc (teacher's feedback, prototype)
             back.Clicked += () => BackClicked?.Invoke();
@@ -157,6 +179,11 @@ namespace GC26.Lines.UI
                 next[i] = NewRect("Next " + i, area).gameObject.AddComponent<Image>();
                 next[i].preserveAspect = true;
                 next[i].raycastTarget = false;
+                nextIce[i] = NewRect("Ice", next[i].rectTransform).gameObject.AddComponent<Image>();
+                nextIce[i].sprite = SpecialArt.Ice();
+                nextIce[i].preserveAspect = true;
+                nextIce[i].raycastTarget = false;
+                nextIce[i].enabled = false;
             }
             RefreshTexts();
         }
@@ -168,6 +195,7 @@ namespace GC26.Lines.UI
             nextLabel.text = Texts.Get("next");
             undo.SetText(Texts.Get("undo"));
             reset.SetText(Texts.Get("reset"));
+            pause.SetText(Texts.Get("pause"));
             dialog.RefreshTexts();
             gameOver.RefreshTexts();
             settings.RefreshTexts();
@@ -196,6 +224,8 @@ namespace GC26.Lines.UI
             {
                 float x = right - (next.Length - i) * PieceSize * u - (next.Length - 1 - i) * PieceGap * u;
                 Place(next[i].rectTransform, x, 0, PieceSize * u, PieceSize * u);
+                // The ice cube is 14 % bigger than the mushroom (prototype: inset −7 %).
+                Place(nextIce[i].rectTransform, -0.07f * PieceSize * u, -0.07f * PieceSize * u, 1.14f * PieceSize * u, 1.14f * PieceSize * u);
             }
             Place(nextLabel.rectTransform, right - 40 * u, (PieceSize + 1.4f) * u, 40 * u, LabelSize * 1.4f * u);
             nextLabel.fontSize = LabelSize * u;
@@ -211,13 +241,18 @@ namespace GC26.Lines.UI
             back.Place(layout.BackButton, u);
             settingsButton.Place(layout.SettingsButton, u);
 
-            // Buttons under the board: Undo on the left half, Reset on the right, 4 units apart.
+            // Buttons under the board (L16, L18): Undo (Pause in Timed), the round puffball, Reset; 3 units apart.
             var actions = layout.Actions;
-            float half = (actions.width - 4f * u) / 2f;
-            undo.Place(new Rect(actions.x, actions.y, half, actions.height), u);
-            // Timed mode has no Undo: Reset alone in the middle, the same size.
-            float resetX = timed ? actions.center.x - half / 2f : actions.x + half + 4f * u;
-            reset.Place(new Rect(resetX, actions.y, half, actions.height), u);
+            float round = PuffballButton.Size * u, gap = 3f * u;
+            float side = (actions.width - round - 2f * gap) / 2f;
+            undo.Place(new Rect(actions.x, actions.y, side, actions.height), u);
+            pause.Place(new Rect(actions.x, actions.y, side, actions.height), u);
+            reset.Place(new Rect(actions.xMax - side, actions.y, side, actions.height), u);
+            var puffballCentre = new Vector2(actions.center.x, actions.center.y);
+            puffball.Place(puffballCentre, u);
+            bubble.ApplyLayout(puffballCentre + new Vector2(0f, round / 2f), u);
+            // The banner a little above the board's middle (prototype: 30 % down the screen).
+            banner.ApplyLayout(new Vector2(layout.Board.center.x, layout.Board.center.y + layout.Board.height * 0.2f), u);
             PlaceClock(layout);
             dialog.ApplyLayout(u);
             gameOver.ApplyLayout(u);
@@ -237,8 +272,17 @@ namespace GC26.Lines.UI
         /// <summary>Enables or greys out the Undo button.</summary>
         public void SetUndoEnabled(bool enabled) => undo.Interactable = enabled;
 
-        /// <summary>Shows a short message over the board ("No path").</summary>
-        public void ShowAlert(string text) => alert.Show(text);
+        /// <summary>Shows a short message over the board ("No path"); <paramref name="secondLine"/>: a smaller line under it.</summary>
+        public void ShowAlert(string text, string secondLine = null) => alert.Show(text, secondLine);
+
+        /// <summary>L16: the puffballs in stock and how far the next one is (0–1).</summary>
+        public void SetPuffballs(int ready, float progress) => puffball.Set(ready, progress);
+
+        /// <summary>L18: Pause and, in Timed mode, Settings hide the NEXT mushrooms (the board hides them on its side).</summary>
+        public void SetNextHidden(bool hidden)
+        {
+            foreach (var image in next) image.gameObject.SetActive(!hidden);
+        }
 
         public AlertToast Alert => alert;
 
@@ -310,16 +354,24 @@ namespace GC26.Lines.UI
             }).OnComplete(() => gainText.rectTransform.anchoredPosition = start);
         }
 
-        /// <summary>Shows the colors of the next pieces, drawn with <paramref name="pieces"/>.</summary>
-        public void SetPreview(IReadOnlyList<BallColor> colors, PieceSet pieces)
+        /// <summary>Shows the colors of the next pieces, drawn with <paramref name="pieces"/>; <paramref name="frozen"/>: L15.</summary>
+        public void SetPreview(IReadOnlyList<BallColor> colors, IReadOnlyList<bool> frozen, PieceSet pieces)
         {
             for (int i = 0; i < next.Length; i++)
             {
                 bool show = i < colors.Count;
                 next[i].enabled = show;
                 if (show) next[i].sprite = pieces.SpriteFor(colors[i]);
+                bool ice = show && frozen != null && i < frozen.Count && frozen[i];
+                nextIce[i].enabled = ice;
+                next[i].color = ice ? new Color(0.86f, 0.95f, 1f) : Color.white;
             }
         }
+
+        public void SetPreview(IReadOnlyList<BallColor> colors, PieceSet pieces) => SetPreview(colors, null, pieces);
+
+        /// <summary>Which NEXT pieces show ice (tests).</summary>
+        public bool NextFrozen(int index) => nextIce[index].enabled;
 
         /// <summary>Whether the crown is shown next to the score (tests).</summary>
         public bool CrownShowing => crown.enabled;
@@ -348,12 +400,13 @@ namespace GC26.Lines.UI
 
         // ---- L09: the clock ----
 
-        /// <summary>Timed mode on the game screen: the clock shows, Undo goes and Reset moves to the middle.</summary>
+        /// <summary>Timed mode on the game screen: the clock shows, and Pause takes Undo's place (L18).</summary>
         public void SetTimed(bool on)
         {
             timed = on;
             clockIcon.enabled = clockText.enabled = on;
             undo.gameObject.SetActive(!on);
+            pause.gameObject.SetActive(on);
             if (!on) { timeGainTween?.Kill(); timeGain.alpha = 0f; }
             if (hasLayout) ApplyLayout(lastLayout);
         }

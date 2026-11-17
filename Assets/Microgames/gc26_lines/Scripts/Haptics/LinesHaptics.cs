@@ -19,6 +19,10 @@ namespace GC26.Lines.Haptics
         Success,
         /// <summary>One heavy thump: game over.</summary>
         GameOver,
+        /// <summary>L16: a puffball bursts: one heavy thump.</summary>
+        Burst,
+        /// <summary>L16: a puffball earned: a light then a firmer tap ("reward").</summary>
+        Reward,
     }
 
     /// <summary>
@@ -110,9 +114,9 @@ namespace GC26.Lines.Haptics
                 {
                     AndroidJavaObject effect;
                     // Predefined effects (Android 10+): EFFECT_CLICK 0, EFFECT_DOUBLE_CLICK 1, EFFECT_TICK 2, EFFECT_HEAVY_CLICK 5.
-                    if (sdk >= 29 && feel != LinesFeel.Success && feel != LinesFeel.GameOver)
+                    if (sdk >= 29 && feel != LinesFeel.Success && feel != LinesFeel.GameOver && feel != LinesFeel.Reward)
                         effect = effects.CallStatic<AndroidJavaObject>("createPredefined",
-                            feel == LinesFeel.Tick ? 2 : feel == LinesFeel.Clear ? 0 : feel == LinesFeel.ClearBig ? 5 : 1);
+                            feel == LinesFeel.Tick ? 2 : feel == LinesFeel.Clear ? 0 : feel == LinesFeel.ClearBig || feel == LinesFeel.Burst ? 5 : 1);
                     else
                     {
                         long[] times; int[] strengths;
@@ -123,6 +127,7 @@ namespace GC26.Lines.Haptics
                             case LinesFeel.ClearBig: times = new long[] { 35 }; strengths = new[] { 255 }; break;
                             case LinesFeel.Error: times = new long[] { 14, 60, 14 }; strengths = new[] { 140, 0, 140 }; break;
                             case LinesFeel.Success: times = new long[] { 12, 70, 12, 70, 28 }; strengths = new[] { 110, 0, 160, 0, 230 }; break;
+                            case LinesFeel.Reward: times = new long[] { 14, 60, 30 }; strengths = new[] { 110, 0, 220 }; break;
                             default: times = new long[] { 70 }; strengths = new[] { 255 }; break; // game over
                         }
                         effect = effects.CallStatic<AndroidJavaObject>("createWaveform", times, strengths, -1);

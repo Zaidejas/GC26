@@ -62,8 +62,118 @@ namespace GC26.Lines.Game
             if (hud != null)
             {
                 hud.SetScore(game.Score);
-                hud.SetPreview(game.Preview.Colors, board.Pieces);
+                hud.SetPreview(game.Preview.Colors, game.Preview.Frozen, board.Pieces);
                 hud.SetUndoEnabled(game.CanUndo);
+                hud.SetPuffballs(game.Puffballs, game.PuffballProgress);
+            }
+        }
+
+        /// <summary>
+        /// L15: a frozen ball was tapped: it shakes with a small ice crack and "Frozen — can't move" / "Make a line
+        /// through it to break the ice" (a light tick). A selected ball stays selected.
+        /// </summary>
+        public void ShowFrozen(Cell cell)
+        {
+            hud?.ShowAlert(UI.Texts.Get("frozen"), UI.Texts.Get("frozenHint"));
+            Sound(LinesSound.Crack);
+            Haptics?.Play(GC26.Lines.Haptics.LinesFeel.Tick);
+            var ball = board.BallAt(cell);
+            if (ball == null) return;
+            Tween.Kill(ball.transform);
+            Tween.Shake(ball.transform, ShakeStrength, ShakeSeconds);
+        }
+
+        /// <summary>L16: the aimed 3×3 square (or none).</summary>
+        public void ShowAim(Cell? centre) => board.ShowAim(centre);
+
+        // ---- L16: the puffball's burst: a flash and a cloud of golden-green spores; the balls pop, ice shatters ----
+        public const int SporeCount = 24;
+        public const float BurstSeconds = 0.3f, SporeSeconds = 1f;
+        static readonly Color[] SporeColors = { Palette.Hex(0xFFF4C2), Palette.Hex(0xE8F59A), Palette.Hex(0xC8E86A), Palette.Hex(0xFFE08A) };
+
+        public void PlayBurst(BurstResult burst, Action done)
+        {
+            Sound(LinesSound.Boom);
+            Haptics?.Play(GC26.Lines.Haptics.LinesFeel.Burst);
+            var centre = BoardView.CellToLocal(burst.Centre);
+            Flash(centre);
+            for (int k = 0; k < SporeCount; k++) Spore(centre, SporeColors[k % SporeColors.Length]);
+            for (int i = 0; i < burst.Cells.Count; i++)
+            {
+                var cell = burst.Cells[i];
+                var ball = board.BallAt(cell);
+                if (ball == null) continue;
+                Burst(cell, board.Pieces.ParticleColor(ball.Color), ball.Color == BallColor.Rainbow);
+                if (burst.WasFrozen[i]) Shards(cell);
+                Pop(ball);
+            }
+            Tween.Delay(BurstSeconds, () =>
+            {
+                foreach (var cell in burst.Cells) board.RemoveBall(cell);
+                done();
+            });
+        }
+
+        void Flash(Vector3 centre)
+        {
+            var flash = TakeParticle();
+            var sr = flash.Glow;
+            sr.sprite = SpriteFactory.SoftDisc();
+            var t = sr.transform;
+            t.localPosition = centre;
+            Tween.To(t, 0.55f, p =>
+            {
+                float size = p < 0.4f ? Mathf.Lerp(0.6f, 3.4f, p / 0.4f) : Mathf.Lerp(3.4f, 4.2f, (p - 0.4f) / 0.6f);
+                t.localScale = Vector3.one * size;
+                sr.color = new Color(1f, 0.97f, 0.8f, p < 0.4f ? 1f : 1f - (p - 0.4f) / 0.6f);
+            }, Ease.OutQuad).OnComplete(() => { sr.sprite = SpriteFactory.Disc(); Release(particlePool, flash); });
+        }
+
+        void Spore(Vector3 centre, Color color)
+        {
+            var spark = TakeDust();
+            var glow = spark.Glow;
+            var core = spark.Core;
+            var t = glow.transform;
+            // Prototype: 1.4–3.6 % of the width, flying 7–19 % out (a little upwards), 1 s, starting within 0.12 s.
+            float size = 0.14f + UnityEngine.Random.value * 0.22f, angle = UnityEngine.Random.value * Mathf.PI * 2f;
+            float distance = 0.7f + UnityEngine.Random.value * 1.2f, delay = UnityEngine.Random.value * 0.12f;
+            var drift = new Vector3(Mathf.Cos(angle) * distance, Mathf.Sin(angle) * distance + 0.2f, 0f);
+            t.localPosition = centre;
+            glow.enabled = core.enabled = false;
+            Tween.To(t, SporeSeconds + delay, p =>
+            {
+                float q = Mathf.Clamp01((p * (SporeSeconds + delay) - delay) / SporeSeconds);
+                glow.enabled = core.enabled = true;
+                float eased = Easing.Evaluate(Ease.OutQuad, q);
+                t.localPosition = centre + drift * eased;
+                t.localScale = Vector3.one * (size * Mathf.Lerp(0.5f, 1.5f, eased));
+                glow.color = new Color(color.r, color.g, color.b, 1f - q);
+                core.color = new Color(1f, 1f, 1f, 1f - q);
+            }).OnComplete(() => Release(dustPool, spark));
+        }
+
+        // L15: breaking ice throws a few pale shards.
+        void Shards(Cell cell)
+        {
+            var centre = BoardView.CellToLocal(cell);
+            for (int k = 0; k < 6; k++)
+            {
+                var spark = TakeParticle();
+                var sr = spark.Glow;
+                sr.color = new Color(0.85f, 0.95f, 1f);
+                var t = sr.transform;
+                t.localPosition = centre;
+                t.localRotation = Quaternion.Euler(0f, 0f, 45f);
+                const float size = 0.18f;
+                float angle = k / 6f * Mathf.PI * 2f + UnityEngine.Random.value * 0.8f, distance = 0.4f + UnityEngine.Random.value * 0.5f;
+                var direction = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f);
+                Tween.To(t, ParticleSeconds, p =>
+                {
+                    t.localPosition = centre + direction * (distance * p);
+                    t.localScale = Vector3.one * (size * (1f - 0.8f * p));
+                    sr.color = new Color(0.85f, 0.95f, 1f, 1f - p);
+                }, Ease.OutQuad).OnComplete(() => { t.localRotation = Quaternion.identity; Release(particlePool, spark); });
             }
         }
 
@@ -273,17 +383,25 @@ namespace GC26.Lines.Game
         public const int ParticlesPerPiece = 7;
 
         /// <summary>New pieces grow in from nothing; their preview dots go away.</summary>
-        public void PlaySpawn(IReadOnlyList<Cell> cells, IReadOnlyList<BallColor> colors, Action done)
+        public void PlaySpawn(IReadOnlyList<Cell> cells, IReadOnlyList<BallColor> colors, Action done) => PlaySpawn(cells, colors, null, done);
+
+        public void PlaySpawn(IReadOnlyList<Cell> cells, IReadOnlyList<BallColor> colors, IReadOnlyList<bool> frozen, Action done)
         {
+            bool rainbow = false, ice = false;
             for (int i = 0; i < cells.Count; i++)
             {
                 board.HideDotAt(cells[i]);
-                var ball = board.AddBall(cells[i], colors[i]);
+                bool isFrozen = frozen != null && i < frozen.Count && frozen[i];
+                rainbow |= colors[i] == BallColor.Rainbow;
+                ice |= isFrozen;
+                var ball = board.AddBall(cells[i], colors[i], isFrozen);
                 var full = ball.FullScale;
                 ball.transform.localScale = Vector3.zero;
                 Tween.Scale(ball.transform, full, GrowSeconds, Ease.OutQuad);
             }
             if (cells.Count > 0) Sound(LinesSound.Spawn);
+            if (rainbow) Sound(LinesSound.Rainbow); // L14: a shimmer
+            if (ice) Sound(LinesSound.Frost);       // L15: a frosty chime
             Tween.Delay(SpawnSeconds, done);
         }
 
@@ -299,13 +417,16 @@ namespace GC26.Lines.Game
                 Sound(LinesSound.Clear, longest);
                 Haptics?.Play(GC26.Lines.Haptics.LinesHaptics.ForLine(longest), LineCount(cells)); // one tap per line
             }
+            bool ice = false;
             foreach (var cell in cells)
             {
                 var ball = board.BallAt(cell);
                 if (ball == null) continue;
-                Burst(cell, board.Pieces.ParticleColor(ball.Color));
+                Burst(cell, board.Pieces.ParticleColor(ball.Color), ball.Color == BallColor.Rainbow);
+                if (ball.Frozen) { Shards(cell); ice = true; }
                 Pop(ball);
             }
+            if (ice) Sound(LinesSound.Shatter); // L15: the ice breaks
             Tween.Delay(ClearSeconds, () =>
             {
                 foreach (var cell in cells) board.RemoveBall(cell);
@@ -361,14 +482,15 @@ namespace GC26.Lines.Game
             }, Ease.InQuad);
         }
 
-        void Burst(Cell cell, Color color)
+        void Burst(Cell cell, Color color, bool rainbow = false)
         {
             var centre = BoardView.CellToLocal(cell);
             for (int k = 0; k < ParticlesPerPiece; k++)
             {
                 var spark = TakeParticle();
                 var sr = spark.Glow;
-                sr.color = color;
+                var tint = rainbow ? PieceSet.RainbowSparkles[k % PieceSet.RainbowSparkles.Length] : color; // L14: rainbow sparkles
+                sr.color = tint;
                 var t = sr.transform;
                 t.localPosition = centre;
                 const float size = 0.22f; // prototype: 2.2 % of the width ≈ a fifth of a cell
@@ -382,7 +504,7 @@ namespace GC26.Lines.Game
                 {
                     t.localPosition = centre + direction * (distance * p);
                     t.localScale = Vector3.one * (size * (1f - 0.8f * p));
-                    sr.color = new Color(color.r, color.g, color.b, 1f - p);
+                    sr.color = new Color(tint.r, tint.g, tint.b, 1f - p);
                 }, Ease.OutQuad).OnComplete(() => Release(particlePool, spark));
             }
         }

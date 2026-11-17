@@ -18,7 +18,10 @@ namespace GC26.Lines.UI
     /// </summary>
     public sealed class HowToPlayView : MonoBehaviour
     {
-        /// <summary>A card: its mini board ("0"–"6" piece, "a"–"g" preview dot, "*" path step, "o" target, "." empty).</summary>
+        /// <summary>
+        /// A card: its mini board ("0"–"6" piece, "7" rainbow, "A"–"G" frozen piece, "a"–"g" preview dot, "*" path step,
+        /// "o" target, "S" the puffball, "x" a burst, "." empty).
+        /// </summary>
         /// Its title and text come from <see cref="Texts"/> in the current language.
         public readonly struct Card
         {
@@ -33,7 +36,10 @@ namespace GC26.Lines.UI
             new Card("0****o", "howto1Title", "howto1Text"),
             new Card(".22222", "howto2Title", "howto2Text"),
             new Card("a.4.bc", "howto3Title", "howto3Text"),
-            new Card("*3333o", "howto4Title", "howto4Text"), // L09: Timed mode
+            new Card("33733.", "howto5Title", "howto5Text"), // L14: the rainbow mushroom (7: the rainbow)
+            new Card("11B11.", "howto6Title", "howto6Text"), // L15: frozen mushrooms (A–G: a frozen piece)
+            new Card("S.xxx.", "howto7Title", "howto7Text"), // L16: the puffball bomb (S: the puffball, x: a burst)
+            new Card("*3333o", "howto4Title", "howto4Text"), // L09: Timed mode (last)
         };
 
         // Prototype sizes (cqw).
@@ -60,6 +66,9 @@ namespace GC26.Lines.UI
         readonly List<Image> cellImages = new List<Image>();
         readonly List<Image> cellInner = new List<Image>();
         readonly List<Image> cellContent = new List<Image>();
+        readonly List<Image> cellIce = new List<Image>(); // L15: the ice over a frozen piece
+        /// <summary>L19: the top-left button is a back arrow (opened from the game), not the house.</summary>
+        public bool BackIsArrow { get; private set; }
         readonly List<Image> pageDots = new List<Image>();
         TextMeshProUGUI title, text;
         PillButton back, previous, next;
@@ -122,9 +131,13 @@ namespace GC26.Lines.UI
                 inner.color = MiniCell;
                 var content = NewRect("Content", cell.rectTransform).gameObject.AddComponent<Image>();
                 content.preserveAspect = true;
+                var ice = NewRect("Ice", cell.rectTransform).gameObject.AddComponent<Image>();
+                ice.sprite = SpecialArt.Ice();
+                ice.preserveAspect = true;
                 cellImages.Add(cell);
                 cellInner.Add(inner);
                 cellContent.Add(content);
+                cellIce.Add(ice);
             }
 
             title = NewText("Title", Palette.Text, true);
@@ -160,9 +173,14 @@ namespace GC26.Lines.UI
             if (IsShowing) Draw();
         }
 
-        /// <summary>Opens on the first card, drawing pieces with <paramref name="pieceSet"/>.</summary>
-        public void Show(PieceSet pieceSet)
+        /// <summary>
+        /// Opens on the first card, drawing pieces with <paramref name="pieceSet"/>. <paramref name="fromGame"/>: opened
+        /// from Settings during a game, so the top-left button is a back arrow (it returns to the game), not the house.
+        /// </summary>
+        public void Show(PieceSet pieceSet, bool fromGame = false)
         {
+            BackIsArrow = fromGame;
+            back.SetIcon(fromGame ? SpriteFactory.BackIcon() : SpriteFactory.HomeIcon());
             pieces = pieceSet ?? PieceSet.Balls();
             Step = 0;
             ResetCard();
@@ -339,12 +357,21 @@ namespace GC26.Lines.UI
                 content.enabled = true;
                 content.color = Color.white;
                 float size;
+                bool frozen = ch >= 'A' && ch <= 'G';
                 if (ch >= '0' && ch <= '6') { content.sprite = pieces.SpriteFor(BallColors.All[ch - '0']); size = pieces.SizeInCell; }
+                else if (ch == '7') { content.sprite = pieces.SpriteFor(BallColor.Rainbow); size = pieces.SizeInCell; }
+                else if (frozen) { content.sprite = pieces.SpriteFor(BallColors.All[ch - 'A']); content.color = new Color(0.86f, 0.95f, 1f); size = pieces.SizeInCell; }
+                else if (ch == 'S') { content.sprite = SpecialArt.Puffball(); size = 0.86f; }
+                else if (ch == 'x') { content.sprite = SpriteFactory.SoftDisc(); content.color = new Color(1f, 0.9f, 0.6f); size = 0.8f; }
                 else if (ch >= 'a' && ch <= 'g') { content.sprite = pieces.SpriteFor(BallColors.All[ch - 'a']); content.color = PieceSet.GhostColor; size = pieces.DotSizeInCell; }
                 else if (ch == '*') { content.sprite = SpriteFactory.Disc(); content.color = new Color(Palette.SoftText.r, Palette.SoftText.g, Palette.SoftText.b, 0.5f); size = 0.22f; }
                 else { content.enabled = false; size = 0f; }
                 float s = cellPx * size;
                 Place(content.rectTransform, (cellPx - s) / 2f, (cellPx - s) / 2f, s, s);
+                var ice = cellIce[i];
+                ice.enabled = frozen;
+                float iceSize = s * 1.14f; // the ice cube is 14 % bigger than the mushroom
+                Place(ice.rectTransform, (cellPx - iceSize) / 2f, (cellPx - iceSize) / 2f, iceSize, iceSize);
             }
         }
 
@@ -352,7 +379,9 @@ namespace GC26.Lines.UI
         public string CellKind(int index)
         {
             char ch = Cards[Step].Mini[index];
-            if (ch >= '0' && ch <= '6') return "piece";
+            if ((ch >= '0' && ch <= '7') || (ch >= 'A' && ch <= 'G')) return "piece";
+            if (ch == 'S') return "puffball";
+            if (ch == 'x') return "burst";
             if (ch >= 'a' && ch <= 'g') return "dot";
             if (ch == '*') return "step";
             if (ch == 'o') return "target";

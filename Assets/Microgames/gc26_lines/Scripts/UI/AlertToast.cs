@@ -19,7 +19,8 @@ namespace GC26.Lines.UI
         RectTransform rect;
         CanvasGroup group;
         Image background;
-        TextMeshProUGUI label;
+        TextMeshProUGUI label, sub;
+        const float SubSize = 3.4f, SubSeconds = 2f; // L15: a smaller second line ("Make a line through it…"), shown longer
         float unit = 10f;
         TweenHandle showTween;
         TweenHandle hideTimer;
@@ -64,7 +65,23 @@ namespace GC26.Lines.UI
             label.alignment = TextAlignmentOptions.Center;
             label.textWrappingMode = TextWrappingModes.NoWrap;
             label.raycastTarget = false;
+
+            var subGo = new GameObject("Second line", typeof(RectTransform));
+            var subRect = (RectTransform)subGo.transform;
+            subRect.SetParent(rect, false);
+            subRect.anchorMin = subRect.anchorMax = subRect.pivot = new Vector2(0.5f, 0f);
+            sub = subGo.AddComponent<TextMeshProUGUI>();
+            sub.color = Palette.Text;
+            sub.alpha = 0.85f;
+            UiFonts.UseBody(sub);
+            sub.alignment = TextAlignmentOptions.Center;
+            sub.textWrappingMode = TextWrappingModes.NoWrap;
+            sub.raycastTarget = false;
+            sub.gameObject.SetActive(false);
         }
+
+        /// <summary>The second line, or "" (tests).</summary>
+        public string SecondLine => sub.gameObject.activeSelf ? sub.text : "";
 
         /// <summary>Centres the label on <paramref name="centre"/> (pixels, origin bottom-left) and sizes it for the screen.</summary>
         public void ApplyLayout(Vector2 centre, float unitPixels)
@@ -72,16 +89,17 @@ namespace GC26.Lines.UI
             unit = unitPixels;
             rect.anchoredPosition = centre;
             label.fontSize = FontSize * unit;
-            // A pill: corners as round as half the height.
-            float height = label.fontSize * 1.25f + 2f * PaddingY * unit;
-            UiShapes.MakePill(background, height);
+            sub.fontSize = SubSize * unit;
             Resize();
         }
 
         /// <summary>Shows <paramref name="text"/>; showing again while visible restarts the timer.</summary>
-        public void Show(string text)
+        public void Show(string text, string secondLine = null)
         {
             label.text = text;
+            bool two = !string.IsNullOrEmpty(secondLine);
+            sub.gameObject.SetActive(two);
+            if (two) sub.text = secondLine;
             Resize();
             IsShowing = true;
             showTween?.Kill();
@@ -92,7 +110,7 @@ namespace GC26.Lines.UI
                 group.alpha = Mathf.Lerp(startAlpha, 1f, p);
                 rect.localScale = Vector3.one * Mathf.Lerp(0.9f, 1f, p);
             });
-            hideTimer = Tween.Delay(VisibleSeconds, Hide);
+            hideTimer = Tween.Delay(two ? SubSeconds : VisibleSeconds, Hide);
         }
 
         void Hide()
@@ -109,7 +127,26 @@ namespace GC26.Lines.UI
         void Resize()
         {
             var size = label.GetPreferredValues(label.text);
-            rect.sizeDelta = new Vector2(size.x + 2f * PaddingX * unit, label.fontSize * 1.25f + 2f * PaddingY * unit);
+            float lineH = label.fontSize * 1.25f;
+            bool two = sub.gameObject.activeSelf;
+            float subH = two ? sub.fontSize * 1.3f : 0f;
+            float width = Mathf.Max(size.x, two ? sub.GetPreferredValues(sub.text).x : 0f);
+            float height = lineH + subH + 2f * PaddingY * unit;
+            rect.sizeDelta = new Vector2(width + 2f * PaddingX * unit, height);
+            // One line: a pill. Two lines: a rounded card (corners as round as one line's pill).
+            UiShapes.MakePill(background, two ? lineH + 2f * PaddingY * unit : height);
+            var labelRect = label.rectTransform;
+            labelRect.anchorMin = new Vector2(0f, two ? 1f : 0f);
+            labelRect.anchorMax = Vector2.one;
+            labelRect.pivot = new Vector2(0.5f, 1f);
+            labelRect.offsetMin = new Vector2(0f, two ? -(PaddingY * unit + lineH) : 0f);
+            labelRect.offsetMax = Vector2.zero;
+            if (two)
+            {
+                labelRect.offsetMax = new Vector2(0f, -PaddingY * unit * 0.6f);
+                sub.rectTransform.anchoredPosition = new Vector2(0f, PaddingY * unit * 0.9f);
+                sub.rectTransform.sizeDelta = new Vector2(width, subH);
+            }
         }
     }
 }

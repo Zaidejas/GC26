@@ -11,6 +11,8 @@ namespace GC26.Lines.Core
         Cyan,
         Blue,
         Purple,
+        /// <summary>L14: the rainbow mushroom, a joker that counts as every colour (never one of the 7 plain ones).</summary>
+        Rainbow,
     }
 
     public static class BallColors
@@ -21,5 +23,8 @@ namespace GC26.Lines.Core
             BallColor.Red, BallColor.Orange, BallColor.Yellow, BallColor.Green,
             BallColor.Cyan, BallColor.Blue, BallColor.Purple,
         };
+
+        /// <summary>One of the 7 plain colours (not empty, not the rainbow).</summary>
+        public static bool IsPlain(BallColor color) => color >= BallColor.Red && color <= BallColor.Purple;
     }
 }

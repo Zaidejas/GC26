@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using GC26.Lines.Audio;
 using GC26.Lines.Core;
@@ -54,8 +55,21 @@ namespace GC26.Lines.Game
         public bool HasUnfinishedGame => Controller != null && !Controller.Game.IsOver;
         public InputHandler Taps { get; private set; }
 
-        /// <summary>True when board taps must be ignored: a pop-up is open, or the menu is showing.</summary>
-        public bool InputBlocked => !GameScreenShowing || (hud != null && (hud.Dialog.IsOpen || hud.GameOver.IsOpen || hud.Settings.IsOpen));
+        /// <summary>True when board taps must be ignored: a pop-up or a tutorial is open, or the menu is showing.</summary>
+        public bool InputBlocked => !GameScreenShowing || (hud != null && (hud.Dialog.IsOpen || hud.GameOver.IsOpen || hud.Settings.IsOpen))
+            || (coach != null && coach.IsShowing);
+
+        /// <summary>L17: the tutorials on the board (coach marks).</summary>
+        public CoachMarks Coach => coach;
+        CoachMarks coach;
+        /// <summary>L18: the timed game is paused (the board and NEXT are hidden).</summary>
+        public bool Paused { get; private set; }
+        bool hiddenBySettings;
+        float celebrateUntil;  // "New best!" and its fireworks play first; the puffball's banner or tutorial waits
+        int aimStartPuffballs; // to tell a burst from a cancelled aim
+        readonly List<string> tutorialQueue = new List<string>();
+        string tutorial;       // the tutorial showing now ("rainbow", "ice", "super", "rescue"), or null
+        int tutorialStep;
 
         BoardPresenter presenter;
         SaveService classicSaves, timedSaves;
@@ -102,6 +116,7 @@ namespace GC26.Lines.Game
             menu = MenuView.Create(mainCamera);
             howToPlay = HowToPlayView.Create(mainCamera);
             leaderboardView = LeaderboardView.Create(mainCamera);
+            coach = CoachMarks.Create(mainCamera);
             presenter = new BoardPresenter(boardView, hud);
             // Sounds and music (made from code in the background), following the Settings switches.
             Sounds = LinesAudio.Create(transform, Settings.music, Settings.sounds);
@@ -134,6 +149,12 @@ namespace GC26.Lines.Game
             if (EventSystem.current == null)
                 new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
             hud.UndoClicked += () => Controller.Undo();
+            hud.PuffballClicked += OnPuffballButton;
+            hud.PauseClicked += Pause;
+            coach.GotItClicked += CloseTutorial;
+            coach.SkipClicked += SkipTutorial;
+            coach.Tapped += OnCoachTap;
+            coach.Dragged += OnCoachDrag;
             hud.ResetClicked += AskToReset;
             hud.BackClicked += BackToMenu;
             menu.ContinueClicked += Continue;
@@ -152,7 +173,7 @@ namespace GC26.Lines.Game
             leaderboardView.PlayAgainClicked += () => { StartNewGame(); ShowGame(); };
             menu.SetSecondaryScreensAvailable(howToPlay: true, leaderboardScreen: true);
             // Every button ticks softly when tapped (all screens and pop-ups are built by now).
-            Sounds.AddTapSounds(new Component[] { menu, hud, hud.Dialog, hud.GameOver, hud.Settings, howToPlay, leaderboardView }
+            Sounds.AddTapSounds(new Component[] { menu, hud, hud.Dialog, hud.GameOver, hud.Settings, howToPlay, leaderboardView, coach }
                 .SelectMany(view => view.GetComponentsInChildren<UnityEngine.UI.Button>(true)));
             ShowMenu();
             StartCoroutine(UiFonts.WarmUp()); // all letters ready before they're needed, without a hitch
@@ -176,6 +197,7 @@ namespace GC26.Lines.Game
         /// <summary>The app opens here. Continue shows the saved game's score, or is greyed out.</summary>
         public void ShowMenu()
         {
+            LeaveGameScreen();
             forest.Show(menu: true);
             GameScreenShowing = false;
             boardView.gameObject.SetActive(false);
@@ -219,6 +241,7 @@ namespace GC26.Lines.Game
                 Controller?.ClearSelection();
                 SaveGame();
             }
+            LeaveGameScreen();
             forest.Show(menu: false);
             GameScreenShowing = false;
             boardView.gameObject.SetActive(false);
@@ -226,7 +249,7 @@ namespace GC26.Lines.Game
             hud.SetVisible(false);
             menu.Hide();
             leaderboardView.Hide();
-            howToPlay.Show(boardView.Pieces);
+            howToPlay.Show(boardView.Pieces, fromGame);
         }
 
         void CloseHowToPlay()
@@ -243,7 +266,15 @@ namespace GC26.Lines.Game
         {
             if (hud.Dialog.IsOpen || hud.GameOver.IsOpen || hud.Settings.IsOpen || timeUpPending) return;
             if (GameScreenShowing && Controller != null && !Controller.AcceptsInput && Controller.State != TurnState.GameOver) return;
+            if (coach.IsShowing) return;
+            Controller?.CancelAiming();
             hud.Settings.Show(Settings);
+            // L18: in Timed mode the clock stops behind Settings, so the board and NEXT hide too (no free thinking time).
+            if (GameScreenShowing && Controller != null && Controller.Game.Timed && !Controller.Game.IsOver)
+            {
+                hiddenBySettings = true;
+                SetPiecesHidden(true);
+            }
         }
 
         /// <summary>A switch or the language changed in Settings: remember it, and switch the language at once.</summary>
@@ -278,6 +309,7 @@ namespace GC26.Lines.Game
         public void ShowLeaderboard(string result = null, bool afterGame = false, bool? timed = null)
         {
             bool tab = timed ?? Timed;
+            LeaveGameScreen();
             forest.Show(menu: false);
             GameScreenShowing = false;
             boardView.gameObject.SetActive(false);
@@ -299,6 +331,20 @@ namespace GC26.Lines.Game
             GameScreenShowing = true;
             if (Controller != null) { hud.SetTimed(Controller.Game.Timed); UpdateClock(false); }
             boardView.PlayEntrance(); // the board fades in, the mushrooms pop up one by one
+            var game = Controller?.Game;
+            Tween.Delay(0.9f, () => { if (Controller != null && Controller.Game == game) CheckTutorials(); }); // after the entrance
+        }
+
+        // Leaving the game screen (menu, How to play, Leaderboard): no aiming, tutorial, bubble, banner or pause stays.
+        void LeaveGameScreen()
+        {
+            Controller?.CancelAiming();
+            coach.Hide();
+            tutorial = null;
+            hud.Bubble.Hide();
+            hud.Banner.Stop();
+            if (Paused) Resume();
+            if (hiddenBySettings) { hiddenBySettings = false; SetPiecesHidden(false); }
         }
 
         /// <summary>Menu → Continue: back to the saved game, exactly where it was.</summary>
@@ -318,7 +364,7 @@ namespace GC26.Lines.Game
         /// <summary>The back arrow: saves the game and returns to the menu (not while an animation plays).</summary>
         public void BackToMenu()
         {
-            if (!GameScreenShowing || hud.Dialog.IsOpen || hud.Settings.IsOpen || timeUpPending) return;
+            if (!GameScreenShowing || hud.Dialog.IsOpen || hud.Settings.IsOpen || timeUpPending || coach.IsShowing) return;
             if (Controller != null && !Controller.AcceptsInput && Controller.State != TurnState.GameOver) return;
             Controller?.ClearSelection();
             SaveGame();
@@ -341,7 +387,17 @@ namespace GC26.Lines.Game
             controller.GameChanged += SaveGame;
             controller.GameChanged += CheckBest;
             controller.TimeAdded += seconds => hud.ShowTimeAdded(seconds);
+            controller.PuffballsEarned += OnPuffballsEarned;
+            controller.StuckWithPuffball += OfferRescue;
+            controller.AimingChanged += OnAimingChanged;
+            controller.GameChanged += CheckTutorials;
             hud.SetTimed(controller.Game.Timed);
+            tutorialQueue.Clear();
+            tutorial = null;
+            coach.Hide();
+            hud.Bubble.Hide();
+            hud.Banner.Stop();
+            celebrateUntil = 0f;
             lastClockSecond = -1;
             timeUpPending = false;
             // L04: the best is the top finished game of this mode. A continued game already above it gets the crown without fireworks.
@@ -365,6 +421,7 @@ namespace GC26.Lines.Game
             if (above && !celebrated)
             {
                 celebrated = true;
+                celebrateUntil = Time.time + 2.2f; // the puffball's banner or tutorial waits for this
                 hud.SetCrown(true, pop: true);
                 hud.ShowNewBest();
                 fireworks.Play();
@@ -394,7 +451,10 @@ namespace GC26.Lines.Game
             SaveGame();
             hud.Dialog.Close();
             hud.Settings.Close();
-            hud.GameOver.Show(score, Scores.DefaultName);
+            coach.Hide();
+            tutorial = null;
+            hud.Bubble.Hide();
+            hud.GameOver.Show(score, Scores.DefaultName, Controller != null && Controller.Game.EndedWithNoMoves);
             Sounds.Play(LinesSound.GameOver);
             Haptics.Play(GC26.Lines.Haptics.LinesFeel.GameOver);
         }
@@ -445,13 +505,19 @@ namespace GC26.Lines.Game
         }
 
         // The game also saves when the app goes to the background or closes (GDD → Saving).
-        void OnApplicationPause(bool paused) { if (paused) SaveGame(); }
+        void OnApplicationPause(bool paused)
+        {
+            if (!paused) return;
+            SaveGame();
+            Pause(); // L18: a timed game comes back paused (nothing happens in Classic)
+        }
         void OnApplicationQuit() => SaveGame();
 
         /// <summary>Reset: asks "Start a new game?" first (not while an animation plays).</summary>
         public void AskToReset()
         {
             if (InputBlocked || timeUpPending) return;
+            Controller.CancelAiming();
             if (!Controller.AcceptsInput && Controller.State != TurnState.GameOver) return;
             hud.Dialog.Show(ResetTitle, ResetMessage, Texts.Get("yes"), () => { StartNewGame(); boardView.PlayEntrance(); });
         }
@@ -459,9 +525,278 @@ namespace GC26.Lines.Game
         void Update()
         {
             TickClock(Mathf.Min(Time.deltaTime, 0.1f));
+            if (hiddenBySettings && !hud.Settings.IsOpen) { hiddenBySettings = false; SetPiecesHidden(false); } // Settings closed
             // The editor's Game view can be resized, and phones can report a new safe area.
             if (new Vector2(Screen.width, Screen.height) != lastScreenSize || Screen.safeArea != lastSafeArea)
                 Relayout();
+        }
+
+        // ---- L16: the puffball ----
+
+        /// <summary>
+        /// The puffball button: starts aiming (the burst lights up on the busiest spot), or cancels it; with none ready,
+        /// a bubble says how far the next one is ("Puffball in 40 points" and a progress bar).
+        /// </summary>
+        public void OnPuffballButton()
+        {
+            if (Controller == null || InputBlocked || timeUpPending || Controller.Game.IsOver || !Controller.AcceptsInput) return;
+            if (Controller.Aiming) { Controller.CancelAiming(); return; }
+            if (Controller.Game.Puffballs > 0) { Controller.StartAiming(); return; }
+            var game = Controller.Game;
+            hud.Bubble.Show(Texts.PuffballIn(game.NextPuffballAt - game.Score), Texts.Get("superRule"), game.PuffballProgress, 2.6f);
+        }
+
+        void OnAimingChanged(bool on)
+        {
+            hud.Puffball.SetArmed(on);
+            if (on)
+            {
+                aimStartPuffballs = Controller.Game.Puffballs;
+                if (!coach.IsShowing) hud.Bubble.Show(Texts.Get("aimTitle"), Texts.Get("aimText"));
+                Sounds.Play(LinesSound.Arm);
+                Haptics.Play(GC26.Lines.Haptics.LinesFeel.Tick);
+                return;
+            }
+            hud.Bubble.Hide();
+            bool burst = Controller.Game.Puffballs < aimStartPuffballs;
+            if (burst) return;
+            Sounds.Play(LinesSound.Disarm);
+            // Still stuck after cancelling: offer the puffball again.
+            if (Controller.Game.Stuck && tutorial == null) Tween.Delay(0.25f, OfferRescue);
+        }
+
+        // A turn's points earned puffballs: the button pops, a bell arpeggio and the "reward" feel; then the banner
+        // (after "New best!" if that plays too), or, the first time in a game, the tutorial instead.
+        void OnPuffballsEarned(int count)
+        {
+            hud.Puffball.Pop();
+            Sounds.Play(LinesSound.PuffballGot);
+            Haptics.Play(GC26.Lines.Haptics.LinesFeel.Reward);
+            if (tutorial == "super" || tutorialQueue.Contains("super")) return;
+            var game = Controller.Game;
+            Tween.Delay(Mathf.Max(0f, celebrateUntil - Time.time), () =>
+            {
+                if (Controller != null && Controller.Game == game && GameScreenShowing && !game.IsOver) hud.Banner.Show();
+            });
+        }
+
+        /// <summary>
+        /// L16: no ball can move but a puffball is in stock: the screen dims, the hand points at the puffball,
+        /// "The board is full!" (or "No moves left!") / "Use your puffball to keep going", and End game.
+        /// </summary>
+        void OfferRescue()
+        {
+            if (Controller == null || !Controller.Game.Stuck || !GameScreenShowing || coach.IsShowing || Paused) return;
+            if (!Controller.AcceptsInput || Controller.Aiming || hud.Dialog.IsOpen || hud.Settings.IsOpen) return;
+            tutorial = "rescue";
+            tutorialStep = 0;
+            ShowTutorialStep();
+            Sounds.Play(LinesSound.Coach);
+        }
+
+        // ---- L17: the tutorials on the board ----
+
+        /// <summary>
+        /// The first rainbow, the first frozen mushroom and the first puffball of a game get a tutorial, once per game
+        /// (remembered in the game's save). Called after every turn and when the game screen opens.
+        /// </summary>
+        public void CheckTutorials()
+        {
+            if (Controller == null) return;
+            var game = Controller.Game;
+            if (game.IsOver) return;
+            if (game.Stuck) { OfferRescue(); return; }
+            bool rainbow = game.Preview.Colors.Contains(BallColor.Rainbow);
+            bool ice = game.Board.FrozenCount > 0 || game.Preview.Frozen.Contains(true);
+            for (int row = 0; row < game.Board.Size && !rainbow; row++)
+            for (int column = 0; column < game.Board.Size; column++)
+                if (game.Board.Get(new Cell(column, row)) == BallColor.Rainbow) { rainbow = true; break; }
+            if (rainbow) Queue("rainbow");
+            if (ice) Queue("ice");
+            if (game.Puffballs > 0) Queue("super");
+            ShowNextTutorial();
+        }
+
+        void Queue(string key)
+        {
+            if (!Controller.Game.TutorialsShown.Contains(key) && !tutorialQueue.Contains(key) && tutorial != key) tutorialQueue.Add(key);
+        }
+
+        void ShowNextTutorial()
+        {
+            if (Controller == null || tutorialQueue.Count == 0 || tutorial != null || coach.IsShowing) return;
+            if (!GameScreenShowing || Paused || timeUpPending || Controller.Game.IsOver || !Controller.AcceptsInput) return;
+            if (hud.Dialog.IsOpen || hud.Settings.IsOpen || hud.GameOver.IsOpen) return;
+            float wait = celebrateUntil - Time.time;
+            if (wait > 0f)
+            {
+                var game = Controller.Game;
+                Tween.Delay(wait + 0.1f, () => { if (Controller != null && Controller.Game == game) ShowNextTutorial(); });
+                return;
+            }
+            tutorial = tutorialQueue[0];
+            tutorialQueue.RemoveAt(0);
+            if (tutorial == "super" && Controller.Game.Puffballs <= 0) { tutorial = null; ShowNextTutorial(); return; }
+            Controller.ClearSelection();
+            Controller.Game.TutorialsShown.Add(tutorial);
+            SaveGame();
+            tutorialStep = 0;
+            hud.Bubble.Hide();
+            ShowTutorialStep();
+            Sounds.Play(LinesSound.Coach);
+        }
+
+        /// <summary>The tutorial showing now ("rainbow", "ice", "super", "rescue"), or null (tests).</summary>
+        public string TutorialShowing => tutorial;
+        public int TutorialStep => tutorialStep;
+
+        void ShowTutorialStep()
+        {
+            if (tutorial == null || Controller == null) return;
+            var game = Controller.Game;
+            switch (tutorial)
+            {
+                case "rainbow":
+                case "ice":
+                {
+                    bool ice = tutorial == "ice";
+                    var hole = SpotOf(game, ice);
+                    if (!hole.HasValue) { tutorial = null; ShowNextTutorial(); return; }
+                    coach.Show(hole.Value, false, hole.Value.center, Texts.Get(ice ? "coachIce" : "coachRainbow"), "", showGotIt: true, showSkip: false);
+                    break;
+                }
+                case "super" when tutorialStep == 0:
+                    coach.Show(PuffballRect(), true, PuffballRect().center, Texts.Get("coachSuper1"), Texts.Get("coachSuper1b"), false, true);
+                    break;
+                case "super":
+                    coach.Show(Layout.Board, false, CellRect(Controller.AimCell).center, Texts.Get("coachAimTitle"), Texts.Get("coachSuper2"),
+                        false, true, captionAbove: true);
+                    break;
+                case "rescue":
+                    coach.Show(PuffballRect(), true, PuffballRect().center, Texts.Get(game.Board.IsFull ? "rescueFull" : "rescueNoMoves"),
+                        Texts.Get("rescueSub"), false, true, Texts.Get("endGame"));
+                    break;
+            }
+        }
+
+        // Where the first rainbow (or frozen mushroom) is: on the board if one is there already, else in NEXT.
+        Rect? SpotOf(GameState game, bool ice)
+        {
+            for (int row = 0; row < game.Board.Size; row++)
+            for (int column = 0; column < game.Board.Size; column++)
+            {
+                var cell = new Cell(column, row);
+                if (game.Board.IsEmpty(cell)) continue;
+                if (ice ? game.Board.IsFrozen(cell) : game.Board.Get(cell) == BallColor.Rainbow) return CellRect(cell);
+            }
+            for (int i = 0; i < game.Preview.Colors.Count && i < hud.NextPieces.Count; i++)
+                if (ice ? game.Preview.IsFrozen(i) : game.Preview.Colors[i] == BallColor.Rainbow)
+                {
+                    var rt = hud.NextPieces[i].rectTransform;
+                    return new Rect(Layout.Hud.position + rt.anchoredPosition, rt.sizeDelta);
+                }
+            return null;
+        }
+
+        Rect CellRect(Cell cell)
+        {
+            var centre = Layout.WorldToScreen(Layout.BoardCenterWorld + (Vector2)BoardView.CellToLocal(cell));
+            float size = Layout.CellPitch;
+            return new Rect(centre - Vector2.one * size / 2f, Vector2.one * size);
+        }
+
+        Rect PuffballRect()
+        {
+            var rt = hud.Puffball.Rect;
+            return new Rect(rt.anchoredPosition - rt.sizeDelta / 2f, rt.sizeDelta);
+        }
+
+        // Got it (rainbow, ice): the next tutorial, if any, follows.
+        void CloseTutorial()
+        {
+            coach.Hide();
+            tutorial = null;
+            Tween.Delay(0.3f, ShowNextTutorial);
+        }
+
+        // Skip (the puffball's tutorial: the puffball stays for later) or End game (the rescue).
+        void SkipTutorial()
+        {
+            string was = tutorial;
+            coach.Hide();
+            tutorial = null;
+            if (was == "rescue") { Controller?.EndGame(); return; }
+            Controller?.CancelAiming();
+            Tween.Delay(0.3f, ShowNextTutorial);
+        }
+
+        // A tap while a tutorial shows: only the lit spot does something.
+        void OnCoachTap(Vector2 position)
+        {
+            if (Controller == null) return;
+            if ((tutorial == "super" && tutorialStep == 0) || tutorial == "rescue")
+            {
+                if (!coach.Hole.Contains(position)) return;
+                if (tutorial == "rescue") { coach.Hide(); tutorial = null; Controller.StartAiming(); return; }
+                tutorialStep = 1;
+                Controller.StartAiming();
+                hud.Bubble.Hide();
+                ShowTutorialStep();
+                return;
+            }
+            if (tutorial == "super" && Layout.TryGetCell(position, out var cell))
+            {
+                if (cell == Controller.AimCell)
+                {
+                    coach.Hide();
+                    tutorial = null;
+                    if (!Controller.Burst()) { tutorial = "super"; ShowTutorialStep(); } // an empty square can't burst
+                    return;
+                }
+                Controller.AimAt(cell);
+                ShowTutorialStep();
+            }
+        }
+
+        void OnCoachDrag(Vector2 position)
+        {
+            if (tutorial != "super" || tutorialStep != 1 || Controller == null || !Layout.TryGetCell(position, out var cell)) return;
+            if (cell == Controller.AimCell) return;
+            Controller.AimAt(cell);
+            ShowTutorialStep();
+        }
+
+        // ---- L18: Pause (Timed mode) ----
+
+        /// <summary>
+        /// Pause: the clock stops and a "Paused" card with Resume opens; the board's mushrooms and NEXT are hidden, so a
+        /// pause gives no free thinking time. Also when the app goes to the background during a timed game.
+        /// </summary>
+        public void Pause()
+        {
+            if (Paused || Controller == null || !GameScreenShowing || !Controller.Game.Timed || Controller.Game.IsOver || timeUpPending) return;
+            if (hud.Dialog.IsOpen || hud.GameOver.IsOpen || hud.Settings.IsOpen || coach.IsShowing || !Controller.AcceptsInput) return;
+            Controller.ClearSelection();
+            hud.Bubble.Hide();
+            Paused = true;
+            SetPiecesHidden(true);
+            hud.Dialog.ShowSingle(Texts.Get("paused"), Texts.Get("pausedText"), Texts.Get("resume"), Resume);
+        }
+
+        /// <summary>Resume: the board comes back and the clock runs again.</summary>
+        public void Resume()
+        {
+            if (!Paused) return;
+            Paused = false;
+            if (hud.Dialog.IsOpen) hud.Dialog.Close();
+            if (!hiddenBySettings) SetPiecesHidden(false);
+            CheckTutorials();
+        }
+
+        void SetPiecesHidden(bool hidden)
+        {
+            boardView.SetPiecesHidden(hidden);
+            hud.SetNextHidden(hidden);
         }
 
         // ---- L09: the clock ----
@@ -474,7 +809,7 @@ namespace GC26.Lines.Game
         public void TickClock(float seconds)
         {
             if (!GameScreenShowing || Controller == null || !Controller.Game.Timed || Controller.Game.IsOver) return;
-            if (hud.Dialog.IsOpen || hud.Settings.IsOpen || hud.GameOver.IsOpen) return;
+            if (hud.Dialog.IsOpen || hud.Settings.IsOpen || hud.GameOver.IsOpen || coach.IsShowing) return;
             bool ranOut = Controller.AdvanceClock(seconds);
             UpdateClock(true);
             if (ranOut) TimeUp();
@@ -519,6 +854,8 @@ namespace GC26.Lines.Game
             menu.ApplyLayout(Layout);
             howToPlay.ApplyLayout(Layout);
             leaderboardView.ApplyLayout(Layout);
+            coach.ApplyLayout(lastScreenSize, Layout.Unit);
+            if (tutorial != null) ShowTutorialStep(); // the lit spot follows the new layout
         }
     }
 }

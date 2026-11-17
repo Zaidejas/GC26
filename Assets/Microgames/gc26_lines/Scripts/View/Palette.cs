@@ -60,6 +60,7 @@ namespace GC26.Lines.View
                 case BallColor.Cyan: return (Hex(0x1FB6CC), Hex(0x85E6F2), Hex(0x0B7686));
                 case BallColor.Blue: return (Hex(0x3A6EE0), Hex(0x93B2FF), Hex(0x1D3F98));
                 case BallColor.Purple: return (Hex(0x8B4FD1), Hex(0xC7A3F3), Hex(0x572893));
+                case BallColor.Rainbow: return (Hex(0xFF9FF3), Hex(0xFFFFFF), Hex(0x8B4FD1)); // L14 (fallback ball only)
                 default: return (Color.clear, Color.clear, Color.clear);
             }
         }

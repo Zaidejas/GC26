@@ -4,7 +4,12 @@ using System.Collections.Generic;
 namespace GC26.Lines.Audio
 {
     /// <summary>The game's moments that make a sound (GDD → Sounds and music).</summary>
-    public enum LinesSound { Tap, Select, Step, Land, Clear, Spawn, Blocked, GameOver, Record, Tick }
+    public enum LinesSound
+    {
+        Tap, Select, Step, Land, Clear, Spawn, Blocked, GameOver, Record, Tick,
+        // The special mushrooms (GDD → Sounds and music, tasks L14–L17)
+        Rainbow, Frost, Crack, Shatter, PuffballGot, Arm, Disarm, Boom, Coach,
+    }
 
     /// <summary>
     /// Every sound and the music, made by <see cref="Synth"/> from the recipes picked on the Forest Sounds page
@@ -98,6 +103,44 @@ namespace GC26.Lines.Audio
                     s.Noise(0, 0.02f, (urgent ? 0.22f : 0.12f) * g, 0.001f, Synth.FilterType.BandPass, urgent ? 3200 : 1900, 4);
                     s.Tone(Synth.Wave.Sine, urgent ? 1800 : 1150, 0, 0.025f, (urgent ? 0.09f : 0.05f) * g, 0.001f);
                     break;
+                case LinesSound.Rainbow: // L14: a rainbow arrives: a quick rising shimmer of seven bells
+                    for (int i = 0; i < 7; i++) s.Bell(Synth.Midi(Pentatonic[3 + i]), 0.05f + i * 0.035f, 0.5f, 0.04f * g);
+                    break;
+                case LinesSound.Frost: // L15: a frozen one arrives: a soft frosty chime with a breath of air
+                    s.Bell(Synth.Midi(98), 0.04f, 0.9f, 0.045f * g);
+                    s.Bell(Synth.Midi(93), 0.1f, 0.8f, 0.035f * g);
+                    s.Noise(0, 0.3f, 0.05f * g, 0.02f, Synth.FilterType.HighPass, 6000);
+                    break;
+                case LinesSound.Crack: // L15: a tap on a frozen one: a small ice crack
+                    s.Noise(0, 0.06f, 0.28f * g, 0.001f, Synth.FilterType.HighPass, 2800, 1);
+                    s.Tone(Synth.Wave.Sine, 2600, 0, 0.06f, 0.06f * g, 0.001f, glide: new[] { (0f, 2600f), (0.05f, 1700f) });
+                    break;
+                case LinesSound.Shatter: // L15: a line breaks the ice: a glassy shatter
+                    s.Noise(0, 0.2f, 0.3f * g, 0.001f, Synth.FilterType.HighPass, 3500, 0.8f);
+                    int[] glass = { 100, 95, 98, 93 };
+                    for (int i = 0; i < glass.Length; i++) s.Bell(Synth.Midi(glass[i]), 0.02f + i * 0.04f, 0.35f, 0.04f * g);
+                    break;
+                case LinesSound.PuffballGot: // L16: a puffball earned: a rising bell arpeggio
+                    int[] up = { 74, 78, 81, 86 };
+                    for (int i = 0; i < up.Length; i++) s.Bell(Synth.Midi(up[i]), i * 0.07f, 0.8f, 0.08f * g);
+                    break;
+                case LinesSound.Arm: // L16: the puffball gets ready to aim: a rising swoosh
+                    s.Tone(Synth.Wave.Triangle, 300, 0, 0.3f, 0.12f * g, 0.02f, glide: new[] { (0f, 300f), (0.25f, 900f) });
+                    break;
+                case LinesSound.Disarm: // ...and is put away: a falling swoosh
+                    s.Tone(Synth.Wave.Triangle, 700, 0, 0.24f, 0.1f * g, 0.02f, glide: new[] { (0f, 700f), (0.2f, 260f) });
+                    break;
+                case LinesSound.Boom: // L16: the burst: a deep boom with a puff of air and three bells
+                    s.Tone(Synth.Wave.Sine, 170, 0, 0.45f, 0.5f * g, 0.003f, glide: new[] { (0f, 170f), (0.3f, 42f) });
+                    s.Noise(0, 0.4f, 0.32f * g, 0.002f, Synth.FilterType.LowPass, 900);
+                    s.Noise(0.02f, 0.7f, 0.14f * g, 0.06f, Synth.FilterType.BandPass, 1300, 0.5f);
+                    int[] bells = { 81, 86, 90 };
+                    for (int i = 0; i < bells.Length; i++) s.Bell(Synth.Midi(bells[i]), 0.14f + i * 0.07f, 0.7f, 0.05f * g);
+                    break;
+                case LinesSound.Coach: // L17: a tutorial on the board: a two-note chime
+                    s.Bell(Synth.Midi(86), 0, 0.9f, 0.08f * g);
+                    s.Bell(Synth.Midi(93), 0.12f, 1.1f, 0.07f * g);
+                    break;
                 case LinesSound.Record: // Warm swell
                     s.Pad(new[] { 62, 66, 69, 74 }, 0, 1.9f, 0.22f * g, 1800);
                     int[] top = { 86, 90, 93 };
@@ -115,6 +158,7 @@ namespace GC26.Lines.Audio
                 case LinesSound.Clear: return variant * 0.055f + 0.7f;
                 case LinesSound.GameOver: return 5 * 0.22f + 1.6f;
                 case LinesSound.Record: return 1.9f;
+                case LinesSound.Frost: case LinesSound.PuffballGot: case LinesSound.Boom: case LinesSound.Coach: return 1.3f;
                 default: return 0.5f;
             }
         }

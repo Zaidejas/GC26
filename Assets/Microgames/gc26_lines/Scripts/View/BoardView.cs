@@ -15,9 +15,16 @@ namespace GC26.Lines.View
         // The mushrooms stand on a foot about 38 % of their height below the middle (prototype: transform-origin 50% 85–88%).
         const float FootBelowCentre = 0.38f;
 
-        SpriteRenderer spriteRenderer;
+        SpriteRenderer spriteRenderer, ice, aimGlow;
         Transform hinge;
         public BallColor Color { get; private set; }
+
+        /// <summary>L15: the ball is frozen: an ice cube over it, a cooler colour, and it doesn't sway.</summary>
+        public bool Frozen { get; private set; }
+        /// <summary>L16: the ball is inside the aimed 3×3 square: it glows and trembles.</summary>
+        public bool Trembling { get; set; }
+        /// <summary>The ice cube over a frozen ball (tests).</summary>
+        public SpriteRenderer Ice => ice;
 
         /// <summary>The picture (a child of the ball, on its foot hinge).</summary>
         public SpriteRenderer Renderer => spriteRenderer;
@@ -38,7 +45,47 @@ namespace GC26.Lines.View
             view.spriteRenderer = new GameObject("Picture").AddComponent<SpriteRenderer>();
             view.spriteRenderer.transform.SetParent(view.hinge, false);
             view.spriteRenderer.sortingOrder = BoardView.BallOrder;
+            view.aimGlow = new GameObject("Aim glow").AddComponent<SpriteRenderer>();
+            view.aimGlow.transform.SetParent(go.transform, false);
+            view.aimGlow.sprite = SpriteFactory.SoftDisc();
+            view.aimGlow.color = new UnityEngine.Color(1f, 0.75f, 0.35f, 0.75f);
+            view.aimGlow.sortingOrder = BoardView.BallOrder - 1;
+            view.aimGlow.enabled = false;
+            view.ice = new GameObject("Ice").AddComponent<SpriteRenderer>();
+            view.ice.transform.SetParent(go.transform, false); // on the ball, not the hinge: frozen balls don't sway
+            view.ice.sortingOrder = BoardView.BallOrder + 1;
+            view.ice.enabled = false;
             return view;
+        }
+
+        // Prototype: the ice cube is 14 % bigger than the mushroom (inset −7 %); the mushroom is a little cooler under it.
+        const float IceScale = 1.14f;
+        static readonly UnityEngine.Color FrozenTint = new UnityEngine.Color(0.86f, 0.95f, 1f);
+
+        /// <summary>L15: puts the ice cube on (or takes it off) the ball.</summary>
+        public void SetFrozen(bool frozen)
+        {
+            Frozen = frozen;
+            ice.enabled = frozen;
+            if (frozen)
+            {
+                ice.sprite = SpecialArt.Ice();
+                float picture = spriteRenderer.sprite != null ? Mathf.Max(spriteRenderer.sprite.bounds.size.x, spriteRenderer.sprite.bounds.size.y) : 1f;
+                float iceSize = Mathf.Max(ice.sprite.bounds.size.x, ice.sprite.bounds.size.y);
+                ice.transform.localScale = Vector3.one * (picture * IceScale / iceSize);
+                ice.color = UnityEngine.Color.white;
+            }
+            spriteRenderer.color = frozen ? FrozenTint : UnityEngine.Color.white;
+            if (frozen) SetSway(0f);
+        }
+
+        /// <summary>L16: the gold glow behind a ball in the aimed square (sized like the ball's picture).</summary>
+        public void SetAimGlow(bool on)
+        {
+            aimGlow.enabled = on;
+            if (!on) return;
+            float picture = spriteRenderer.sprite != null ? Mathf.Max(spriteRenderer.sprite.bounds.size.x, spriteRenderer.sprite.bounds.size.y) : 1f;
+            aimGlow.transform.localScale = Vector3.one * picture * 1.25f;
         }
 
         /// <summary>Leans the picture by <paramref name="degrees"/> around its foot.</summary>
@@ -51,6 +98,10 @@ namespace GC26.Lines.View
             var sprite = pieces.SpriteFor(color);
             spriteRenderer.sprite = sprite;
             spriteRenderer.color = UnityEngine.Color.white;
+            Frozen = false;
+            ice.enabled = false;
+            Trembling = false;
+            aimGlow.enabled = false;
             var size = sprite.bounds.size;
             float foot = FootBelowCentre * size.y; // in the ball's own units (its scale applies on top)
             hinge.localPosition = new Vector3(0f, -foot, 0f);
@@ -63,7 +114,12 @@ namespace GC26.Lines.View
         /// <summary>The scale at which the piece fills its spot in the cell.</summary>
         public Vector3 FullScale { get; private set; } = Vector3.one;
 
-        public void SetAlpha(float alpha) => spriteRenderer.color = new UnityEngine.Color(1f, 1f, 1f, alpha);
+        public void SetAlpha(float alpha)
+        {
+            var c = Frozen ? FrozenTint : UnityEngine.Color.white;
+            spriteRenderer.color = new UnityEngine.Color(c.r, c.g, c.b, alpha);
+            if (ice.enabled) ice.color = new UnityEngine.Color(1f, 1f, 1f, alpha);
+        }
     }
 
     /// <summary>
@@ -85,6 +141,7 @@ namespace GC26.Lines.View
 
         // ---- Sway: every ball rocks gently on its foot, each at its own rhythm (teacher's feedback, prototype) ----
         public const float SwayDegrees = 3f, SwayHalfPeriod = 3f, SwayStagger = 0.37f;
+        public const float TrembleDegrees = 3.5f, TrembleHalfPeriod = 0.09f;
 
         /// <summary>The selected ball (it bounces instead of swaying), or null.</summary>
         public Cell? Held { get; set; }
@@ -106,7 +163,14 @@ namespace GC26.Lines.View
             foreach (var pair in balls)
             {
                 var ball = pair.Value;
-                if (!ball.Swaying || Held == pair.Key) { ball.SetSway(0f); continue; }
+                if (ball.Trembling)
+                {
+                    // L16: inside the aimed square: a quick tremble (prototype: ±3°, 0.18 s each way).
+                    float t = Mathf.PingPong(swayClock / TrembleHalfPeriod, 1f) * 2f - 1f;
+                    ball.SetSway(TrembleDegrees * t);
+                    continue;
+                }
+                if (!ball.Swaying || ball.Frozen || Held == pair.Key) { ball.SetSway(0f); continue; }
                 float phase = (swayClock + (pair.Key.Row * 9 + pair.Key.Column) * SwayStagger) % (2f * SwayHalfPeriod) / SwayHalfPeriod;
                 ball.SetSway(-SwayDegrees * Mathf.Cos(Mathf.PI * phase)); // eases in and out at each end, like the prototype
             }
@@ -262,7 +326,7 @@ namespace GC26.Lines.View
             var kept = new Dictionary<Cell, BallView>();
             foreach (var pair in balls)
             {
-                if (board.Get(pair.Key) == pair.Value.Color) kept[pair.Key] = pair.Value;
+                if (board.Get(pair.Key) == pair.Value.Color && board.IsFrozen(pair.Key) == pair.Value.Frozen) kept[pair.Key] = pair.Value;
                 else Release(pair.Value);
             }
             balls.Clear();
@@ -272,8 +336,12 @@ namespace GC26.Lines.View
                 var cell = new Cell(column, row);
                 var color = board.Get(cell);
                 if (color == BallColor.None) continue;
-                balls[cell] = kept.TryGetValue(cell, out var ball) ? ball : Take(cell, color);
+                if (kept.TryGetValue(cell, out var ball)) { balls[cell] = ball; continue; }
+                ball = Take(cell, color);
+                ball.SetFrozen(board.IsFrozen(cell));
+                balls[cell] = ball;
             }
+            RefreshAim();
         }
 
         public BallView BallAt(Cell cell) => balls.TryGetValue(cell, out var ball) ? ball : null;
@@ -281,7 +349,8 @@ namespace GC26.Lines.View
         // ---- Preview dots: small pieces in the cells where the next balls will appear ----
 
         readonly List<SpriteRenderer> dots = new List<SpriteRenderer>();
-        readonly List<(Cell cell, BallColor color)> dotData = new List<(Cell, BallColor)>();
+        readonly List<SpriteRenderer> dotIce = new List<SpriteRenderer>();
+        readonly List<(Cell cell, BallColor color, bool frozen)> dotData = new List<(Cell, BallColor, bool)>();
 
         /// <summary>Shows a small piece in each preview cell that is still empty.</summary>
         public void ShowPreviewDots(Preview preview, Board board)
@@ -289,7 +358,7 @@ namespace GC26.Lines.View
             dotData.Clear();
             for (int k = 0; k < preview.Cells.Count && k < preview.Colors.Count; k++)
                 if (board.IsEmpty(preview.Cells[k]))
-                    dotData.Add((preview.Cells[k], preview.Colors[k]));
+                    dotData.Add((preview.Cells[k], preview.Colors[k], preview.IsFrozen(k)));
             RedrawDots();
         }
 
@@ -305,6 +374,55 @@ namespace GC26.Lines.View
             get { foreach (var d in dotData) yield return d.cell; }
         }
 
+        /// <summary>The preview dots that show ice (tests).</summary>
+        public IEnumerable<Cell> FrozenDotCells
+        {
+            get { foreach (var d in dotData) if (d.frozen) yield return d.cell; }
+        }
+
+        // ---- L16: the aimed 3×3 square: a soft gold fill under the balls, a gold outline over them ----
+
+        SpriteRenderer aimFill, aimRing;
+        Cell? aim;
+
+        /// <summary>The middle of the aimed square, or null (tests).</summary>
+        public Cell? Aim => aim;
+
+        /// <summary>Shows the 3×3 square around <paramref name="centre"/> (cut at the board's edge), or hides it.</summary>
+        public void ShowAim(Cell? centre)
+        {
+            aim = centre;
+            if (aimFill == null)
+            {
+                aimFill = NewSprite("Aim fill", transform, new Color(1f, 0.78f, 0.35f, 0.14f), DotOrder);
+                aimRing = NewSprite("Aim ring", transform, new Color(1f, 0.84f, 0.42f, 0.95f), BallOrder + 3);
+                aimRing.sprite = SpriteFactory.AimRing();
+            }
+            aimFill.gameObject.SetActive(centre.HasValue);
+            aimRing.gameObject.SetActive(centre.HasValue);
+            if (centre is Cell c)
+            {
+                int n = GameConfig.BoardSize;
+                int c0 = Mathf.Max(0, c.Column - 1), c1 = Mathf.Min(n - 1, c.Column + 1), r0 = Mathf.Max(0, c.Row - 1), r1 = Mathf.Min(n - 1, c.Row + 1);
+                var middle = (CellToLocal(new Cell(c0, r0)) + CellToLocal(new Cell(c1, r1))) / 2f;
+                var size = new Vector2(c1 - c0 + 1, r1 - r0 + 1) - Vector2.one * 0.04f;
+                aimFill.transform.localPosition = aimRing.transform.localPosition = middle;
+                aimFill.size = aimRing.size = size;
+            }
+            RefreshAim();
+        }
+
+        // The balls inside the aimed square glow and tremble; the others are still.
+        void RefreshAim()
+        {
+            foreach (var pair in balls)
+            {
+                bool inside = aim is Cell c && Mathf.Abs(pair.Key.Column - c.Column) <= 1 && Mathf.Abs(pair.Key.Row - c.Row) <= 1;
+                pair.Value.Trembling = inside;
+                pair.Value.SetAimGlow(inside);
+            }
+        }
+
         void RedrawDots()
         {
             while (dots.Count < dotData.Count)
@@ -313,27 +431,51 @@ namespace GC26.Lines.View
                 sr.transform.SetParent(transform, false);
                 sr.sortingOrder = DotOrder;
                 dots.Add(sr);
+                var ice = new GameObject("Ice").AddComponent<SpriteRenderer>(); // L15: a frozen ghost shows its ice too
+                ice.transform.SetParent(sr.transform, false);
+                ice.sortingOrder = DotOrder;
+                dotIce.Add(ice);
             }
             for (int i = 0; i < dots.Count; i++)
             {
                 bool show = i < dotData.Count;
                 dots[i].gameObject.SetActive(show);
                 if (!show) continue;
-                var (cell, color) = dotData[i];
+                var (cell, color, frozen) = dotData[i];
                 var sprite = pieces.SpriteFor(color);
                 dots[i].sprite = sprite;
                 dots[i].color = PieceSet.GhostColor;
                 dots[i].transform.localPosition = CellToLocal(cell);
                 var size = sprite.bounds.size;
                 dots[i].transform.localScale = Vector3.one * (pieces.DotSizeInCell / Mathf.Max(size.x, size.y));
+                dotIce[i].enabled = frozen;
+                if (frozen)
+                {
+                    dotIce[i].sprite = SpecialArt.Ice();
+                    dotIce[i].color = PieceSet.GhostColor;
+                    var iceSize = dotIce[i].sprite.bounds.size;
+                    dotIce[i].transform.localScale = Vector3.one * (Mathf.Max(size.x, size.y) * 1.14f / Mathf.Max(iceSize.x, iceSize.y));
+                }
             }
         }
 
-        /// <summary>Puts one new ball into <paramref name="cell"/> (used by the spawn animation).</summary>
-        public BallView AddBall(Cell cell, BallColor color)
+        /// <summary>L18: Pause (and Settings in Timed mode) hides the mushrooms and the ghosts; the board itself stays.</summary>
+        public void SetPiecesHidden(bool hidden)
+        {
+            PiecesHidden = hidden;
+            ballRoot.gameObject.SetActive(!hidden);
+            for (int i = 0; i < dots.Count; i++) dots[i].gameObject.SetActive(!hidden && i < dotData.Count);
+            if (aimFill != null) { aimFill.gameObject.SetActive(!hidden && aim.HasValue); aimRing.gameObject.SetActive(!hidden && aim.HasValue); }
+        }
+
+        public bool PiecesHidden { get; private set; }
+
+        /// <summary>Puts one new ball into <paramref name="cell"/> (used by the spawn animation); <paramref name="frozen"/>: L15.</summary>
+        public BallView AddBall(Cell cell, BallColor color, bool frozen = false)
         {
             if (balls.TryGetValue(cell, out var existing)) Release(existing);
             var ball = Take(cell, color);
+            ball.SetFrozen(frozen);
             balls[cell] = ball;
             return ball;
         }
@@ -371,6 +513,9 @@ namespace GC26.Lines.View
             Tween.Kill(ball.transform);
             Tween.Kill(ball); // a landing pulse must not follow the ball into its next cell
             ball.Swaying = true;
+            ball.SetFrozen(false);
+            ball.Trembling = false;
+            ball.SetAimGlow(false);
             ball.transform.SetParent(poolRoot, false);
             pool.Push(ball);
         }

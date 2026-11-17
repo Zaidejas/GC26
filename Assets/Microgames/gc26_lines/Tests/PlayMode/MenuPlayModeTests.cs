@@ -141,12 +141,11 @@ namespace GC26.Lines.Tests
             Assert.IsTrue(game.InputBlocked);
             Assert.AreEqual(0, game.HowToPlay.Step);
 
-            game.HowToPlay.NextButton.Click();
-            yield return new WaitForSeconds(0.5f); // the cards slide
-            game.HowToPlay.NextButton.Click();
-            yield return new WaitForSeconds(0.5f);
-            game.HowToPlay.NextButton.Click(); // L09: a fourth card, Timed mode
-            yield return new WaitForSeconds(0.5f);
+            for (int i = 0; i < GC26.Lines.UI.HowToPlayView.Cards.Length - 1; i++) // 7 cards (L14–L16: the specials; L09: Timed mode last)
+            {
+                game.HowToPlay.NextButton.Click();
+                yield return new WaitForSeconds(0.5f); // the cards slide
+            }
             Assert.AreEqual("Got it", game.HowToPlay.NextButton.Text);
             game.HowToPlay.NextButton.Click();
             Assert.IsTrue(game.Menu.IsShowing, "Got it returns to the menu");

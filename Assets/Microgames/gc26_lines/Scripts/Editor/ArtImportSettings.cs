@@ -12,6 +12,8 @@ namespace GC26.Lines.EditorTools
     {
         public const string Folder = "Assets/Microgames/gc26_lines/";
         public const string MushroomFolder = Folder + "Resources/gc26_lines/Mushrooms/";
+        // L14–L17: the ice cube, the puffball (and its spark) and the tutorial hand, exported from the prototype like the mushrooms.
+        public const string SpecialsFolder = Folder + "Resources/gc26_lines/Specials/";
         public const string BackgroundFolder = Folder + "Resources/gc26_lines/Backgrounds/";
         public const string AppIconFolder = Folder + "Art/AppIcon/";
 
@@ -29,7 +31,7 @@ namespace GC26.Lines.EditorTools
                 icon.textureCompression = TextureImporterCompression.Uncompressed;
                 return;
             }
-            bool mushroom = assetPath.StartsWith(MushroomFolder), background = assetPath.StartsWith(BackgroundFolder);
+            bool mushroom = assetPath.StartsWith(MushroomFolder) || assetPath.StartsWith(SpecialsFolder), background = assetPath.StartsWith(BackgroundFolder);
             if (!mushroom && !background) return;
             var importer = (TextureImporter)assetImporter;
             importer.textureType = TextureImporterType.Sprite;

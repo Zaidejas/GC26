@@ -55,10 +55,18 @@ namespace GC26.Lines.Tests
             Assert.AreEqual("Next", view.NextButton.Text);
             view.NextButton.Click();
             Settle();
-            Assert.AreEqual("Race the clock", view.Title, "L09: the fourth card, Timed mode");
-            Assert.AreEqual("Got it", view.NextButton.Text);
-            view.PreviousButton.Click();
+            Assert.AreEqual("Rainbow mushroom", view.Title, "L14–L16: then the three special mushrooms");
+            view.NextButton.Click();
             Settle();
+            Assert.AreEqual("Frozen mushrooms", view.Title);
+            view.NextButton.Click();
+            Settle();
+            Assert.AreEqual("Puffball bomb", view.Title);
+            view.NextButton.Click();
+            Settle();
+            Assert.AreEqual("Race the clock", view.Title, "L09: the last card, Timed mode");
+            Assert.AreEqual("Got it", view.NextButton.Text);
+            for (int i = 0; i < 4; i++) { view.PreviousButton.Click(); Settle(); }
             view.PreviousButton.Click();
             Settle();
             Assert.AreEqual(1, view.Step);

@@ -137,7 +137,7 @@ namespace GC26.Lines.Tests
         }
 
         [Test]
-        public void Clock_AtTheTopBetweenTheButtons_UndoGoes_ResetInTheMiddle()
+        public void Clock_AtTheTopBetweenTheButtons_PauseTakesUndosPlace()
         {
             var h = MakeHud(out var layout);
             Assert.IsFalse(h.ClockShowing, "Classic: no clock");
@@ -145,12 +145,16 @@ namespace GC26.Lines.Tests
             h.SetTimed(true);
             Assert.IsTrue(h.ClockShowing);
             Assert.IsFalse(h.UndoShowing, "Timed: no Undo");
-            Assert.AreEqual(layout.Actions.center.x, h.ResetCentre.x, 0.5f, "Reset alone in the middle");
+            Assert.IsTrue(h.PauseShowing, "L18: Pause in Undo's place");
+            Assert.AreEqual(((RectTransform)h.UndoButton.transform).anchoredPosition, ((RectTransform)h.PauseButton.transform).anchoredPosition);
+            Assert.Greater(h.ResetCentre.x, layout.Actions.center.x, "Reset stays on the right; the puffball is in the middle");
+            Assert.AreEqual(layout.Actions.center.x, h.Puffball.Rect.anchoredPosition.x, 0.5f);
             Assert.AreEqual(layout.BackButton.center.y, h.ClockCentre.y, 0.5f, "On the house and gear's line");
             Assert.AreEqual(layout.Board.center.x, h.ClockCentre.x, 0.5f, "...in the middle");
             Assert.LessOrEqual(h.ClockCentre.y, layout.SafeArea.yMax, "Inside the safe area (clear of the camera cut-out)");
             h.SetTimed(false);
             Assert.IsTrue(h.UndoShowing, "Back to Classic: Undo returns");
+            Assert.IsFalse(h.PauseShowing);
         }
 
         [Test]
@@ -191,6 +195,17 @@ namespace GC26.Lines.Tests
             dialog.Show(40, "Player1");
             Assert.IsFalse(dialog.IsZero);
             Assert.IsTrue(dialog.NameField.gameObject.activeSelf, "Points: the name field is back");
+        }
+
+        [Test]
+        public void GameOver_WalledInByIce_SaysNoMovesLeft_AndHasNoLabel()
+        {
+            var h = MakeHud(out _);
+            h.GameOver.Show(40, "Player1", noMovesLeft: true);
+            Assert.AreEqual("No moves left. Final score", h.GameOver.NoteText);
+            Assert.IsFalse(h.GameOver.LabelShowing, "L19: no label above the name field");
+            h.GameOver.Show(40, "Player1");
+            Assert.AreEqual("Final score", h.GameOver.NoteText);
         }
 
         [Test]
