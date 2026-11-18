@@ -42,6 +42,18 @@ namespace GC26.Tanki.EditorTools
                 return;
             }
 
+            if (Mine && assetPath.StartsWith(Root + "Icons/"))
+            {
+                // Button icons for the HUD: white shapes tinted in code, drawn small and smooth.
+                var icon = (TextureImporter)assetImporter;
+                icon.alphaIsTransparency = true;
+                icon.mipmapEnabled = false;
+                icon.wrapMode = TextureWrapMode.Clamp;
+                icon.filterMode = FilterMode.Bilinear;
+                icon.textureCompression = TextureImporterCompression.Uncompressed;
+                return;
+            }
+
             if (!IsGameArt) return;
             var importer = (TextureImporter)assetImporter;
             importer.alphaIsTransparency = true;

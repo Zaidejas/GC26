@@ -20,6 +20,7 @@ with a menu shell. Read `RULES.md` at the repo root before changing anything.
   - `TankiGame.cs`: the `IMicrogame` the shell calls; creates `GameRunner` in `Begin`, or in `Start` when the scene runs alone
   - `GameRunner.cs`: pages and flow; `Quit()` calls the shell's exit. Restores frame rate, sleep and orientation in `OnDestroy`
   - `GameHud.cs`: IMGUI HUD and all menus, with panel and button textures made in code
+  - `HudPointer.cs`: menu buttons read taps through the Input System; plain `GUI.Button` gets no clicks in the editor's Device Simulator, so don't use it. Button icons are in `Resources/gc26_tanki/Icons` (made by `Art~/build_ui_icons.py`). The title has no exit button: Esc / phone back leaves for the GC26 menu
   - `WorldView*.cs`: models and effects; `CameraRig.cs` makes its own camera (depth 10) and sun
   - `Controls.cs`: touch, mouse and keyboard through the new Input System
   - `SaveData.cs`: save, as JSON in PlayerPrefs key `gc26_tanki_save`

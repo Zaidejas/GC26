@@ -122,6 +122,8 @@ namespace GC26.Tanki.Game
 
             bool escape = Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
             if (escape && Page == Page.Game && Sim.Phase == GamePhase.Playing) TogglePause();
+            // The title has no exit button any more: Esc, which is also the phone's back button, leaves for the GC26 menu.
+            if (escape && Page == Page.Menu) Quit();
 
             if (OnTitle || Paused)
             {

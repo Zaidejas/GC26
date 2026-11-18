@@ -78,4 +78,5 @@ python build_tiles.py ../Resources/gc26_tanki/Tiles ../Web~/tiles
 python build_bonuses.py ../Resources/gc26_tanki/Bonuses ../Web~/bonuses
 python build_backgrounds.py ../Web~/bg
 python build_icon.py
+python build_ui_icons.py   # иконки кнопок для Unity из иконок браузерной версии (нужен Edge или Chrome)
 ```

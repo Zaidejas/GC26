@@ -203,7 +203,7 @@ namespace GC26.Tanki.Game
             Fill(new Rect(0f, 0f, Screen.width, y + height * 2f), new Color(0.1f, 0.07f, 0.14f, 0.72f));
 
             if (sim.Phase == GamePhase.Playing &&
-                GUI.Button(new Rect(safe.x + 6f * unit, y, size, size), game.Paused ? ">" : "II", button))
+                Button(new Rect(safe.x + 6f * unit, y, size, size), game.Paused ? ">" : "II", button))
             {
                 game.TogglePause();
             }
@@ -537,24 +537,128 @@ namespace GC26.Tanki.Game
             }
         }
 
-        void DrawChips(float y, params string[] texts)
+        /// <summary>Small rounded plates with an icon, a number and an optional muted word, like the browser version.</summary>
+        void DrawChips(float y, params (string icon, string value, string word)[] items)
         {
             float gap = 8f * unit;
             float height = 28f * unit;
-            var widths = new float[texts.Length];
+            float size = 16f * unit;
+            float inner = 5f * unit;
+            float pad = 10f * unit;
+            GUIStyle text = BareText(chip, Paper);
+            var widths = new float[items.Length];
             float total = -gap;
-            for (int i = 0; i < texts.Length; i++)
+            for (int i = 0; i < items.Length; i++)
             {
-                widths[i] = chip.CalcSize(new GUIContent(texts[i])).x + 8f * unit;
+                widths[i] = pad + size + inner + text.CalcSize(new GUIContent(items[i].value)).x + pad;
+                if (!string.IsNullOrEmpty(items[i].word)) widths[i] += inner + text.CalcSize(new GUIContent(items[i].word)).x;
                 total += widths[i] + gap;
             }
             float x = (Screen.width - total) / 2f;
-            for (int i = 0; i < texts.Length; i++)
+            for (int i = 0; i < items.Length; i++)
             {
-                GUI.Box(new Rect(x, y, widths[i], height), texts[i], chip);
+                var box = new Rect(x, y, widths[i], height);
+                GUI.Box(box, GUIContent.none, chip);
+                float at = box.x + pad;
+                DrawIcon(new Rect(at, box.center.y - size / 2f, size, size), items[i].icon, Paper);
+                at += size + inner;
+                text.normal.textColor = Paper;
+                float valueWidth = text.CalcSize(new GUIContent(items[i].value)).x;
+                GUI.Label(new Rect(at, box.y, valueWidth + 2f, height), items[i].value, text);
+                if (!string.IsNullOrEmpty(items[i].word))
+                {
+                    at += valueWidth + inner;
+                    text.normal.textColor = Muted;
+                    GUI.Label(new Rect(at, box.y, widths[i], height), items[i].word, text);
+                }
                 x += widths[i] + gap;
             }
         }
+
+        // ---------- Icons (drawn by Art~/build_ui_icons.py from the browser version's icons) ----------
+
+        readonly System.Collections.Generic.Dictionary<string, Texture2D> icons = new System.Collections.Generic.Dictionary<string, Texture2D>();
+        readonly System.Collections.Generic.Dictionary<GUIStyle, GUIStyle> bareTexts = new System.Collections.Generic.Dictionary<GUIStyle, GUIStyle>();
+
+        Texture2D Icon(string name)
+        {
+            if (!icons.TryGetValue(name, out Texture2D picture))
+            {
+                picture = Resources.Load<Texture2D>("gc26_tanki/Icons/" + name);
+                icons[name] = picture;
+            }
+            return picture;
+        }
+
+        /// <summary>White icons take the given colour; the gold and medal ones keep their own.</summary>
+        void DrawIcon(Rect area, string name, Color tint)
+        {
+            Texture2D picture = Icon(name);
+            if (picture == null) return;
+            bool coloured = name == "part" || name == "trophy" || name == "medal" || name == "star";
+            Color previous = GUI.color;
+            if (!coloured) GUI.color = new Color(tint.r, tint.g, tint.b, tint.a * previous.a);
+            GUI.DrawTexture(area, picture, ScaleMode.ScaleToFit);
+            GUI.color = previous;
+        }
+
+        /// <summary>The style's font and size with no background or padding, for text placed by hand.</summary>
+        GUIStyle BareText(GUIStyle from, Color colour)
+        {
+            if (!bareTexts.TryGetValue(from, out GUIStyle bare))
+            {
+                bare = new GUIStyle { alignment = TextAnchor.MiddleLeft, wordWrap = false, clipping = TextClipping.Overflow };
+                bareTexts[from] = bare;
+            }
+            bare.font = from.font;
+            bare.fontSize = from.fontSize;
+            bare.fontStyle = from.fontStyle;
+            bare.normal.textColor = colour;
+            return bare;
+        }
+
+        /// <summary>A button with an icon before its text, both centred together.</summary>
+        bool IconButton(Rect rect, string text, string icon, GUIStyle style)
+        {
+            bool pressed = HudPointer.Button(rect, GUIContent.none, style);
+            if (Event.current.type != EventType.Repaint) return pressed;
+            GUIStyle bare = BareText(style, style.normal.textColor);
+            var content = new GUIContent(text);
+            float textWidth = bare.CalcSize(content).x;
+            float size = style.fontSize * 1.15f;
+            float gap = size * 0.45f;
+            float x = rect.center.x - (size + gap + textWidth) / 2f;
+            DrawIcon(new Rect(x, rect.center.y - size / 2f, size, size), icon, style == primary ? Color.white : Sand);
+            GUI.Label(new Rect(x + size + gap, rect.y, textWidth + 2f, rect.height), content, bare);
+            return pressed;
+        }
+
+        /// <summary>A menu button with the icon its label calls for, or plain text if none fits.</summary>
+        bool LabelButton(Rect rect, string text, GUIStyle style)
+        {
+            string icon = IconFor(text);
+            return icon == null ? Button(rect, text, style) : IconButton(rect, text, icon, style);
+        }
+
+        static string IconFor(string label)
+        {
+            switch (label)
+            {
+                case "НАЗАД": return "back";
+                case "В МЕНЮ": return "home";
+                case "ЕЩЁ РАЗ": case "НАЧАТЬ ЗАНОВО": return "retry";
+                case "ДАЛЬШЕ": return "next";
+                case "ПРОДОЛЖИТЬ": case "КАМПАНИЯ": return "play";
+                case "НАСТРОЙКИ": return "gear";
+                case "ГАРАЖ": return "tank";
+                case "ШТУРМ": return "assault";
+                case "ВЫЖИВАНИЕ": return "wave";
+            }
+            return null;
+        }
+
+        bool Button(Rect rect, string text, GUIStyle style) => HudPointer.Button(rect, new GUIContent(text), style);
+        bool Button(Rect rect, GUIContent content, GUIStyle style) => HudPointer.Button(rect, content, style);
 
         float PlateWidth => Mathf.Min(Screen.width - 32f * unit, 390f * unit);
         float PlateLeft => (Screen.width - PlateWidth) / 2f;
@@ -576,7 +680,7 @@ namespace GC26.Tanki.Game
             float x = inner.x + (inner.width - width) / 2f;
             int pressed = -1;
             for (int i = 0; i < labels.Length; i++)
-                if (GUI.Button(new Rect(x, y + i * (ButtonHeight + gap), width, ButtonHeight), labels[i], i == main ? primary : quiet)) pressed = i;
+                if (LabelButton(new Rect(x, y + i * (ButtonHeight + gap), width, ButtonHeight), labels[i], i == main ? primary : quiet)) pressed = i;
             return pressed;
         }
 
@@ -587,8 +691,8 @@ namespace GC26.Tanki.Game
         {
             float gap = 10f * unit;
             float width = (inner.width - gap) / 2f;
-            if (GUI.Button(new Rect(inner.x, y, width, ButtonHeight), first, primary)) return 0;
-            if (GUI.Button(new Rect(inner.x + width + gap, y, width, ButtonHeight), second, quiet)) return 1;
+            if (LabelButton(new Rect(inner.x, y, width, ButtonHeight), first, primary)) return 0;
+            if (LabelButton(new Rect(inner.x + width + gap, y, width, ButtonHeight), second, quiet)) return 1;
             return -1;
         }
 
@@ -598,33 +702,38 @@ namespace GC26.Tanki.Game
         {
             DrawArt(Art.Menu);
             float logo = 20f * unit + 56f * unit * 2f + 22f * unit;
-            float buttons = ColumnHeight(6, ButtonHeight, 10f * unit);
+            float buttons = ColumnHeight(5, ButtonHeight, 10f * unit);
             float total = logo + 14f * unit + 28f * unit + 16f * unit + buttons + Pad * 2f;
             float y = Mathf.Max(SafeRect().y + 12f * unit, (Screen.height - total) / 2f - 20f * unit);
 
             DrawLogo(y);
             y += logo + 14f * unit;
-            string records = "Рекорд " + game.Save.BestScore;
-            string stars = "★ " + game.Save.TotalStars;
-            if (game.Save.BestWave > 0) DrawChips(y, "Детали " + game.Save.Parts, records, "Волна " + game.Save.BestWave, stars);
-            else DrawChips(y, "Детали " + game.Save.Parts, records, stars);
+            string parts = game.Save.Parts.ToString();
+            string record = game.Save.BestScore.ToString();
+            string stars = game.Save.TotalStars.ToString();
+            if (game.Save.BestWave > 0)
+                DrawChips(y, ("part", parts, "деталей"), ("trophy", record, "рекорд"), ("wave", game.Save.BestWave.ToString(), null), ("star", stars, null));
+            else
+                DrawChips(y, ("part", parts, "деталей"), ("trophy", record, "рекорд"), ("star", stars, "звёзд"));
             y += 28f * unit + 16f * unit;
 
-            // The campaign on its own line, the other six in pairs, the exit at the bottom.
+            // The campaign and the settings each fill a whole line, the other six go in pairs.
+            // There is no exit button: Esc (the phone's back button) on this page leaves for the GC26 menu.
             Rect inner = DrawPlate(y, buttons);
             float gap = 10f * unit;
             float width = Mathf.Min(inner.width, 320f * unit);
             float x = inner.x + (inner.width - width) / 2f;
             float half = (width - gap) / 2f;
             float rowY = inner.y;
-            if (GUI.Button(new Rect(x, rowY, width, ButtonHeight), "КАМПАНИЯ", primary)) game.Open(Page.LevelSelect);
-            string[] pairs = { "ШТУРМ", "ВЫЖИВАНИЕ", "ГАРАЖ", "МАСТЕРСКАЯ", "НАГРАДЫ", "НАСТРОЙКИ", "ОБУЧЕНИЕ", "ВЫХОД" };
+            if (IconButton(new Rect(x, rowY, width, ButtonHeight), "КАМПАНИЯ", "play", primary)) game.Open(Page.LevelSelect);
+            string[] pairs = { "ШТУРМ", "ВЫЖИВАНИЕ", "ГАРАЖ", "МАСТЕРСКАЯ", "НАГРАДЫ", "ОБУЧЕНИЕ" };
+            string[] pairIcons = { "assault", "wave", "tank", "wrench", "medal", "star" };
             int font = quiet.fontSize;
             quiet.fontSize = Mathf.RoundToInt(15 * unit);
             for (int i = 0; i < pairs.Length; i++)
             {
                 var box = new Rect(x + (i % 2) * (half + gap), rowY + (ButtonHeight + gap) * (1 + i / 2), half, ButtonHeight);
-                if (!GUI.Button(box, pairs[i], quiet)) continue;
+                if (!IconButton(box, pairs[i], pairIcons[i], quiet)) continue;
                 switch (i)
                 {
                     case 0: game.Open(Page.Assault); break;
@@ -632,12 +741,12 @@ namespace GC26.Tanki.Game
                     case 2: game.Open(Page.Garage); break;
                     case 3: game.Open(Page.Workshop); break;
                     case 4: awardsPage = 0; game.Open(Page.Awards); break;
-                    case 5: game.Open(Page.Settings); break;
-                    case 6: game.StartTutorial(); break;
-                    case 7: game.Quit(); break;
+                    case 5: game.StartTutorial(); break;
                 }
             }
             quiet.fontSize = font;
+            var settings = new Rect(x, rowY + (ButtonHeight + gap) * 4, width, ButtonHeight);
+            if (IconButton(settings, "НАСТРОЙКИ", "gear", quiet)) game.Open(Page.Settings);
         }
 
         static string StarLine(int stars) => new string('★', stars) + new string('☆', 3 - stars);
@@ -675,7 +784,7 @@ namespace GC26.Tanki.Game
                     continue;
                 }
                 if (box.Contains(Event.current.mousePosition)) shown = i;
-                if (GUI.Button(box, (i + 1).ToString(), i == unlocked ? nextTile : bossTile)) game.StartAssault(i);
+                if (Button(box, (i + 1).ToString(), i == unlocked ? nextTile : bossTile)) game.StartAssault(i);
                 captionText.normal.textColor = i == unlocked ? Ink : new Color(1f, 0.85f, 0.4f);
                 GUI.Label(new Rect(box.x, box.yMax - 18f * unit, box.width, 14f * unit), StarLine(game.Save.AssaultStars[i]), captionText);
                 captionText.normal.textColor = Muted;
@@ -712,7 +821,7 @@ namespace GC26.Tanki.Game
 
             DrawHeading(y, "Гараж", Paper);
             y += 84f * unit;
-            DrawChips(y, "Детали " + game.Save.Parts);
+            DrawChips(y, ("part", game.Save.Parts.ToString(), "деталей"));
             y += 28f * unit + 12f * unit;
             Rect area = DrawPlate(y, inner);
             GUI.Label(new Rect(area.x, area.y, area.width, 22f * unit), "У каждого танка своя способность", plateText);
@@ -751,7 +860,7 @@ namespace GC26.Tanki.Game
                 if (owned)
                 {
                     quiet.fontSize = Mathf.RoundToInt(14 * unit);
-                    if (GUI.Button(buy, "Выбрать", quiet)) game.ChooseTank(tank);
+                    if (Button(buy, "Выбрать", quiet)) game.ChooseTank(tank);
                     quiet.fontSize = Mathf.RoundToInt(18 * unit);
                     continue;
                 }
@@ -760,7 +869,7 @@ namespace GC26.Tanki.Game
                 font = buyStyle.fontSize;
                 buyStyle.fontSize = Mathf.RoundToInt(14 * unit);
                 GUI.enabled = affordable;
-                if (GUI.Button(buy, "Купить\n" + def.Price + " дет.", buyStyle)) game.BuyTank(tank);
+                if (Button(buy, "Купить\n" + def.Price + " дет.", buyStyle)) game.BuyTank(tank);
                 GUI.enabled = true;
                 buyStyle.fontSize = font;
             }
@@ -785,7 +894,7 @@ namespace GC26.Tanki.Game
 
             DrawHeading(y, "Награды", Paper);
             y += 84f * unit;
-            DrawChips(y, "Получено " + game.Save.Awards.Count + "/" + all.Length, "★ " + game.Save.TotalStars);
+            DrawChips(y, ("medal", game.Save.Awards.Count + "/" + all.Length, "наград"), ("star", game.Save.TotalStars.ToString(), "звёзд"));
             y += 28f * unit + 12f * unit;
             Rect area = DrawPlate(y, inner);
 
@@ -815,11 +924,11 @@ namespace GC26.Tanki.Game
             float pagerY = area.y + AwardsPerPage * rowHeight + (AwardsPerPage - 1) * gap + 12f * unit;
             float third = (area.width - 20f * unit) / 3f;
             GUI.enabled = awardsPage > 0;
-            if (GUI.Button(new Rect(area.x, pagerY, third, ButtonHeight), "<", quiet)) awardsPage--;
+            if (Button(new Rect(area.x, pagerY, third, ButtonHeight), "<", quiet)) awardsPage--;
             GUI.enabled = true;
             GUI.Label(new Rect(area.x + third + 10f * unit, pagerY, third, ButtonHeight), (awardsPage + 1) + " / " + pages, plateText);
             GUI.enabled = awardsPage < pages - 1;
-            if (GUI.Button(new Rect(area.x + (third + 10f * unit) * 2f, pagerY, third, ButtonHeight), ">", quiet)) awardsPage++;
+            if (Button(new Rect(area.x + (third + 10f * unit) * 2f, pagerY, third, ButtonHeight), ">", quiet)) awardsPage++;
             GUI.enabled = true;
             if (ButtonColumn(area, pagerY + ButtonHeight + 10f * unit, new[] { "НАЗАД" }) == 0) game.Open(Page.Menu);
         }
@@ -857,7 +966,7 @@ namespace GC26.Tanki.Game
                 }
                 if (box.Contains(Event.current.mousePosition)) shown = i;
                 GUIStyle style = i == unlocked ? nextTile : boss ? bossTile : tile;
-                if (GUI.Button(box, (i + 1).ToString(), style)) game.StartLevel(i);
+                if (Button(box, (i + 1).ToString(), style)) game.StartLevel(i);
                 captionText.normal.textColor = i == unlocked ? Ink : boss ? new Color(1f, 0.82f, 0.78f) : new Color(1f, 0.85f, 0.4f);
                 string caption = StarLine(game.Save.Stars[i]) + (boss ? " БОСС" : "");
                 GUI.Label(new Rect(box.x, box.yMax - 17f * unit, box.width, 14f * unit), caption, captionText);
@@ -882,7 +991,7 @@ namespace GC26.Tanki.Game
 
             DrawHeading(y, "Мастерская", Paper);
             y += 84f * unit;
-            DrawChips(y, "Детали " + game.Save.Parts);
+            DrawChips(y, ("part", game.Save.Parts.ToString(), "деталей"));
             y += 28f * unit + 12f * unit;
             Rect area = DrawPlate(y, inner);
             GUI.Label(new Rect(area.x, area.y, area.width, 22f * unit), "Детали дают за врагов и пройденные уровни", plateText);
@@ -917,7 +1026,7 @@ namespace GC26.Tanki.Game
                 int font = buyStyle.fontSize;
                 buyStyle.fontSize = Mathf.RoundToInt(14 * unit);
                 GUI.enabled = affordable;
-                if (GUI.Button(buy, "Улучшить\n" + cost + " дет.", buyStyle)) game.Buy(stat);
+                if (Button(buy, "Улучшить\n" + cost + " дет.", buyStyle)) game.Buy(stat);
                 GUI.enabled = true;
                 buyStyle.fontSize = font;
             }
@@ -969,7 +1078,7 @@ namespace GC26.Tanki.Game
                 bool chosen = (int)game.ChosenDifficulty == i;
                 var box = new Rect(area.x + i * (width + gap), y, width, 44f * unit);
                 quiet.fontSize = Mathf.RoundToInt(13 * unit);
-                if (GUI.Button(box, names[i], chosen ? chosenTile : quiet)) game.ChooseDifficulty((Difficulty)i);
+                if (Button(box, names[i], chosen ? chosenTile : quiet)) game.ChooseDifficulty((Difficulty)i);
                 quiet.fontSize = Mathf.RoundToInt(18 * unit);
             }
         }
@@ -1122,7 +1231,7 @@ namespace GC26.Tanki.Game
             {
                 RunUpgrade upgrade = sim.Choices[i];
                 var box = new Rect(area.x, area.y + 32f * unit + i * (height + gap), area.width, height);
-                if (GUI.Button(box, GUIContent.none, choice))
+                if (Button(box, GUIContent.none, choice))
                 {
                     game.ChooseUpgrade(upgrade);
                     return;
