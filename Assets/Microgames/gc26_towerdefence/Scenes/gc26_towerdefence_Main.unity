@@ -404,6 +404,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   level: {fileID: 100000044}
   path: {fileID: 100000023}
+  art: {fileID: 100000053}
   waves:
   - {fileID: 11400000, guid: 817f45e0ecfa40639a5e327438606f44, type: 2}
   - {fileID: 11400000, guid: d9dde053424847068f53a54b4764097c, type: 2}

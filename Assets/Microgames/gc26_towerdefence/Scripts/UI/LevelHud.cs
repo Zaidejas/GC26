@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
@@ -11,7 +12,8 @@ namespace GC26.Towerdefence
     /// gold and lives top left, wave X/10 top center, pause top right,
     /// a "start wave" play button with the build timer bottom right,
     /// and a big result line in the middle when the level is won or lost.
-    /// Pause opens a small menu: Resume, Restart level, Main menu.
+    /// Pause opens a small menu: Resume, Restart level, Main menu. Next to pause, a 1x/2x speed toggle.
+    /// Keys: Esc pauses / resumes, Space starts the next wave. A hint line at the bottom says what to do next.
     /// Built from code with plain uGUI: works with touches (Input System) and stays inside the safe area.
     /// Final look and icons come later (W5-W6).
     /// </summary>
@@ -46,6 +48,9 @@ namespace GC26.Towerdefence
         Sprite _playSprite;
         Texture2D _playTexture;
         bool _paused;
+        float _speed = 1f;
+        TMP_Text _speedLabel;
+        TMP_Text _hint;
 
         public bool IsPaused => _paused;
 
@@ -72,8 +77,8 @@ namespace GC26.Towerdefence
 
         void OnDisable()
         {
-            // Rule 6: never leave the shell paused.
-            if (_paused) Time.timeScale = 1f;
+            // Rule 6: never leave the shell paused or sped up.
+            Time.timeScale = 1f;
             _paused = false;
         }
 
@@ -88,6 +93,7 @@ namespace GC26.Towerdefence
         {
             if (_gold == null) return;
             ApplyScreen();
+            HandleKeys();
 
             _gold.text = $"Gold  <b>{economy.Gold}</b>";
             _lives.text = $"Lives  <b>{level.Lives}</b>";
@@ -114,6 +120,30 @@ namespace GC26.Towerdefence
                 _ => "",
             };
             _result.color = level.State == LevelState.Won ? new Color(0.6f, 0.9f, 0.48f) : Heart;
+
+            _speedLabel.text = _speed > 1f ? "2x" : "1x";
+            _hint.text = level.State switch
+            {
+                LevelState.Build when level.CurrentWave == 0 => "Tap a grey square to build a tower, then press the green play button",
+                LevelState.Build => "Tap a tower to upgrade or sell it. Start early for bonus gold",
+                LevelState.Wave => "Tap a tower to change its target",
+                LevelState.Won or LevelState.Lost => "Open pause and choose Restart level to play again",
+                _ => "",
+            };
+        }
+
+        void HandleKeys()
+        {
+            var keyboard = Keyboard.current;
+            if (keyboard == null) return;
+            if (keyboard.escapeKey.wasPressedThisFrame) SetPaused(!_paused);
+            if (keyboard.spaceKey.wasPressedThisFrame && !_paused) level.StartNextWave();
+        }
+
+        void ToggleSpeed()
+        {
+            _speed = _speed > 1f ? 1f : 2f;
+            if (!_paused) Time.timeScale = _speed;
         }
 
         // ---------- actions ----------
@@ -121,7 +151,7 @@ namespace GC26.Towerdefence
         void SetPaused(bool paused)
         {
             _paused = paused;
-            Time.timeScale = paused ? 0f : 1f;
+            Time.timeScale = paused ? 0f : _speed;
             _pauseMenu.SetActive(paused);
         }
 
@@ -186,6 +216,18 @@ namespace GC26.Towerdefence
             pause.onClick.AddListener(() => SetPaused(true));
             Bar(pause.transform, -16f);
             Bar(pause.transform, 16f);
+
+            // Left of pause: game speed 1x / 2x.
+            var speed = NewButton("Speed", _safeArea, new Vector2(1f, 1f), new Vector2(-m - 110f - 16f, -m), new Vector2(130f, 110f), Grey);
+            speed.onClick.AddListener(ToggleSpeed);
+            _speedLabel = Label("Label", speed.transform, 52f, TextAlignmentOptions.Center, Color.white);
+            _speedLabel.fontStyle = FontStyles.Bold;
+            Stretch(_speedLabel.rectTransform);
+
+            // Bottom: what to do next (left of the start button).
+            _hint = Label("Hint", _safeArea, 38f, TextAlignmentOptions.Center, new Color(1f, 1f, 1f, 0.85f));
+            _hint.textWrappingMode = TextWrappingModes.Normal;
+            Place(_hint.rectTransform, Vector2.zero, new Vector2(1f, 0f), new Vector2(m, m), new Vector2(-m - 200f - 24f, m + 110f));
 
             // Bottom right: start wave (play triangle) with the build timer above it.
             _startButton = NewButton("StartWave", _safeArea, new Vector2(1f, 0f), new Vector2(-m, m), new Vector2(200f, 200f), Green);

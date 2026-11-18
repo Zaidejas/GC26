@@ -37,6 +37,9 @@ namespace GC26.Towerdefence
 
         PathLine _line;
         float _slowUntil;
+        float _healGlowUntil;
+        SpriteRenderer _body;
+        static readonly Color HealGlow = new(0.65f, 1f, 0.7f);
 
         /// <summary>
         /// Slows the enemy by `amount` (0.4 = 40% slower) for `seconds`. A new slow replaces the old one,
@@ -51,9 +54,9 @@ namespace GC26.Towerdefence
 
         /// <summary>
         /// Creates an enemy at the start of its path. Uses data.prefab if set, otherwise a colored circle.
-        /// hpMultiplier covers per-wave scaling and the boss's reduced HP.
+        /// hpMultiplier covers per-wave scaling and the boss's reduced HP. Adds the HP (and shield) bar.
         /// </summary>
-        public static EnemyUnit Spawn(EnemyData data, EnemyPath path, Transform parent, float hpMultiplier, Sprite placeholder)
+        public static EnemyUnit Spawn(EnemyData data, EnemyPath path, Transform parent, float hpMultiplier, PlaceholderArt art)
         {
             GameObject go;
             if (data.prefab != null)
@@ -65,7 +68,7 @@ namespace GC26.Towerdefence
                 go = new GameObject();
                 go.transform.SetParent(parent, false);
                 var sr = go.AddComponent<SpriteRenderer>();
-                sr.sprite = placeholder;
+                sr.sprite = art.Circle;
                 sr.color = data.color;
                 sr.sortingOrder = data.flying ? 20 : 10;
                 // The placeholder sprite is 1 unit wide, size is a radius.
@@ -76,6 +79,8 @@ namespace GC26.Towerdefence
             var unit = go.GetComponent<EnemyUnit>();
             if (unit == null) unit = go.AddComponent<EnemyUnit>();
             unit.Init(data, path, hpMultiplier);
+            unit._body = go.GetComponent<SpriteRenderer>(); // placeholder circle; null for a prefab
+            EnemyHealthBar.Attach(unit, art);
             return unit;
         }
 
@@ -88,6 +93,7 @@ namespace GC26.Towerdefence
             Distance = 0f;
             SpeedMultiplier = 1f;
             _slowUntil = 0f;
+            _healGlowUntil = 0f;
             _line = path.For(data.flying);
             transform.position = _line.Start;
             IsAlive = true;
@@ -137,11 +143,23 @@ namespace GC26.Towerdefence
             }
         }
 
-        /// <summary>Restores HP up to the maximum (Shaman).</summary>
+        /// <summary>Restores HP up to the maximum (Shaman). A wounded enemy being healed glows green.</summary>
         public void Heal(float amount)
         {
-            if (!IsAlive || amount <= 0f) return;
+            if (!IsAlive || amount <= 0f || Hp >= MaxHp) return;
             Hp = Mathf.Min(MaxHp, Hp + amount);
+            _healGlowUntil = Time.time + 0.15f;
+        }
+
+        /// <summary>True while a healer is restoring this enemy's HP (for the green glow).</summary>
+        public bool IsBeingHealed => IsAlive && Time.time < _healGlowUntil;
+
+        void LateUpdate()
+        {
+            if (_body == null) return;
+            // Pulse towards light green while healed, back to the normal color otherwise.
+            float pulse = IsBeingHealed ? 0.55f + 0.25f * Mathf.Sin(Time.time * 18f) : 0f;
+            _body.color = Color.Lerp(Data.color, HealGlow, pulse);
         }
 
         void Finish()

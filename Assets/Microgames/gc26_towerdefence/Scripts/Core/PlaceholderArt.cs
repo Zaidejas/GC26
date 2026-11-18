@@ -14,7 +14,11 @@ namespace GC26.Towerdefence
         Sprite _circle;
         Sprite _square;
         Sprite _ring;
+        Sprite _rect;
         readonly List<Object> _owned = new();
+
+        /// <summary>A plain square with sharp corners (bars).</summary>
+        public Sprite Rect => _rect != null ? _rect : _rect = Make((x, y) => 1f);
 
         public Sprite Circle => _circle != null ? _circle : _circle = Make((x, y) => Mathf.Clamp01(Size / 2f - Dist(x, y)));
 

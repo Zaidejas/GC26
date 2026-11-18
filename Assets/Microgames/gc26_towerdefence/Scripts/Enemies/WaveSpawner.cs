@@ -12,6 +12,7 @@ namespace GC26.Towerdefence
     {
         [SerializeField] LevelFlow level;
         [SerializeField] EnemyPath path;
+        [SerializeField] PlaceholderArt art;
         [Tooltip("In play order. The count should match Total Waves on LevelFlow.")]
         [SerializeField] WaveData[] waves;
         [Tooltip("Enemy HP x (1 + this x (wave - 1)). Prototype: 0.08.")]
@@ -35,9 +36,6 @@ namespace GC26.Towerdefence
         int _wave;
         bool _running;
 
-        Sprite _circle;
-        Texture2D _circleTexture;
-
         public IReadOnlyList<EnemyUnit> Alive => _alive;
 
         void OnEnable()
@@ -58,12 +56,6 @@ namespace GC26.Towerdefence
         {
             if (level != null && waves != null && waves.Length != level.TotalWaves)
                 Debug.LogWarning($"[{TowerdefenceGame.Id}] WaveSpawner has {waves.Length} waves, LevelFlow expects {level.TotalWaves}", this);
-        }
-
-        void OnDestroy()
-        {
-            if (_circle != null) Destroy(_circle);
-            if (_circleTexture != null) Destroy(_circleTexture);
         }
 
         void OnWaveStarted(int wave)
@@ -118,6 +110,7 @@ namespace GC26.Towerdefence
             }
 
             _alive.RemoveAll(u => u == null || !u.IsAlive);
+            HealAroundHealers();
             if (debugDamagePerSecond > 0f)
                 foreach (var unit in _alive.ToArray())
                     unit.TakeDamage(debugDamagePerSecond * Time.deltaTime);
@@ -125,30 +118,38 @@ namespace GC26.Towerdefence
 
         void Spawn(EnemyData enemy, float hpMultiplier)
         {
-            var unit = EnemyUnit.Spawn(enemy, path, transform, hpMultiplier, Circle());
+            var unit = EnemyUnit.Spawn(enemy, path, transform, hpMultiplier, art);
             level.RegisterEnemy(unit);
             _alive.Add(unit);
+
+            // Healers (Shaman) show their healing radius as a faint green ring.
+            if (enemy.healPerSecond > 0f && enemy.healRadius > 0f && enemy.prefab == null)
+            {
+                var ring = art.NewShape("HealRadius", art.Ring, unit.transform, unit.transform.position, 1f,
+                    new Color(0.4f, 0.9f, 0.6f, 0.45f), 9);
+                ring.transform.localScale = Vector3.one * (enemy.healRadius * 2f / unit.transform.localScale.x);
+            }
         }
 
-        /// <summary>A white circle sprite, 1 unit wide, for enemies that have no prefab yet.</summary>
-        Sprite Circle()
+        /// <summary>
+        /// Every living healer restores healPerSecond HP per second to every other enemy within its healRadius
+        /// (not to itself), as in the prototype. Several healers stack.
+        /// </summary>
+        void HealAroundHealers()
         {
-            if (_circle != null) return _circle;
-
-            const int size = 64;
-            _circleTexture = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
-            var pixels = new Color32[size * size];
-            float r = size / 2f;
-            for (int y = 0; y < size; y++)
-            for (int x = 0; x < size; x++)
+            foreach (var healer in _alive)
             {
-                float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(r, r));
-                pixels[y * size + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(r - d) * 255));
+                var d = healer.Data;
+                if (d.healPerSecond <= 0f || !healer.IsAlive) continue;
+                float r2 = d.healRadius * d.healRadius;
+                float amount = d.healPerSecond * Time.deltaTime;
+                foreach (var e in _alive)
+                {
+                    if (e == healer || !e.IsAlive) continue;
+                    if ((e.transform.position - healer.transform.position).sqrMagnitude <= r2)
+                        e.Heal(amount);
+                }
             }
-            _circleTexture.SetPixels32(pixels);
-            _circleTexture.Apply();
-            _circle = Sprite.Create(_circleTexture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
-            return _circle;
         }
     }
 }

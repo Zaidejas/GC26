@@ -22,6 +22,8 @@ namespace GC26.Towerdefence
         [Min(0f)] public float shield;
         [Tooltip("HP per second given to other enemies within the healing radius (Shaman).")]
         [Min(0f)] public float healPerSecond;
+        [Tooltip("Tiles. Other enemies this close are healed (prototype CONFIG.shamanRadius).")]
+        [Min(0f)] public float healRadius = 1.5f;
         [Tooltip("Flies straight to the castle; only towers that hit air can shoot it.")]
         public bool flying;
 
