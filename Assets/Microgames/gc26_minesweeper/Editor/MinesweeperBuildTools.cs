@@ -44,6 +44,7 @@ namespace GC26.Minesweeper.EditorTools
 
             // Remember the shared settings, change them for this build only, then put them back.
             string productName = PlayerSettings.productName;
+            string bundleVersion = PlayerSettings.bundleVersion;
             FullScreenMode mode = PlayerSettings.fullScreenMode;
             int width = PlayerSettings.defaultScreenWidth, height = PlayerSettings.defaultScreenHeight;
             bool resizable = PlayerSettings.resizableWindow;
@@ -51,6 +52,7 @@ namespace GC26.Minesweeper.EditorTools
             try
             {
                 PlayerSettings.productName = "Red Flags";
+                PlayerSettings.bundleVersion = MinesweeperVersion.Number;   // Application.version in the build
                 PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
                 PlayerSettings.defaultScreenWidth = 540;
                 PlayerSettings.defaultScreenHeight = 960;
@@ -67,13 +69,14 @@ namespace GC26.Minesweeper.EditorTools
             finally
             {
                 PlayerSettings.productName = productName;
+                PlayerSettings.bundleVersion = bundleVersion;
                 PlayerSettings.fullScreenMode = mode;
                 PlayerSettings.defaultScreenWidth = width;
                 PlayerSettings.defaultScreenHeight = height;
                 PlayerSettings.resizableWindow = resizable;
             }
 
-            Debug.Log($"[{MinesweeperGame.Id}] build {report.summary.result}: {BuildPath}, {report.summary.totalSize / (1024 * 1024)} MB, {report.summary.totalErrors} error(s)");
+            Debug.Log($"[{MinesweeperGame.Id}] build {report.summary.result}: v{MinesweeperVersion.Number}, {BuildPath}, {report.summary.totalSize / (1024 * 1024)} MB, {report.summary.totalErrors} error(s)");
             if (Application.isBatchMode && report.summary.result != BuildResult.Succeeded) EditorApplication.Exit(1);
         }
     }

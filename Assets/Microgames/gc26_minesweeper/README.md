@@ -23,5 +23,13 @@
 | `Editor/` | `GC26 → Minesweeper → Create Main Scene` and `Build Windows Player` |
 | `Tests/EditMode/` | Unit tests for the rules (Test Runner → EditMode) |
 
+## Version
+The version is shown at the bottom of every screen. It lives in `Scripts/MinesweeperVersion.cs`: bump it with every change (MAJOR.MINOR.PATCH: PATCH = fixes and small tweaks, MINOR = new features, MAJOR = big redesigns) and add a line below.
+
+| Version | Changes |
+|---|---|
+| 0.1.1 | Version number at the bottom of the screen; used for the Windows build |
+| 0.1.0 | First playable version: levels, tutorial, How to play, pause, loss lines, Windows build |
+
 ## Windows build for other PCs
 `GC26 → Minesweeper → Build Windows Player` makes `Builds/RedFlags_Windows/` (not committed). Copy the whole folder (or its zip) to any Windows PC and run `RedFlags.exe` — nothing to install.

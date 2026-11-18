@@ -503,6 +503,7 @@ namespace GC26.Minesweeper
 
             BuildMenu(app);
             BuildGame(app);
+            BuildVersionLabel(app);       // before the pop-ups, so they dim it too
             BuildHelp(app);
             BuildPause(app);
         }
@@ -679,6 +680,19 @@ namespace GC26.Minesweeper
             endPanel.SetActive(false);
 
             gameScreen.SetActive(false);
+        }
+
+        // Small version number at the very bottom of every screen. It sits in the bottom padding of the
+        // level screen and the bottom bar, so it never covers a button.
+        void BuildVersionLabel(RectTransform app)
+        {
+            RectTransform v = NewRect("Version", app);
+            v.anchorMin = new Vector2(0, 0);
+            v.anchorMax = new Vector2(1, 0);
+            v.pivot = new Vector2(0.5f, 0);
+            v.sizeDelta = new Vector2(0, 40);
+            v.anchoredPosition = Vector2.zero;
+            AddText(v, "v" + MinesweeperVersion.Number, 26, new Color(TextColor.r, TextColor.g, TextColor.b, 0.5f), FontStyle.Normal);
         }
 
         // "How to play" (GDD 6.6): OK or a tap anywhere closes it; the tap never reaches the board.
