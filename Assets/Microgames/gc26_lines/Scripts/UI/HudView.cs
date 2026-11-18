@@ -412,8 +412,21 @@ namespace GC26.Lines.UI
         }
 
         public bool ClockShowing => clockText.enabled;
-        public string ClockReading => clockText.text;
+        public string ClockReading => MenuView.ClockText(clockSeconds); // the plain time, e.g. "2:50"
         public Color ClockColor => clockText.color;
+        /// <summary>
+        /// Where the time's last digit slot ends (tests: the same for every time with the same number of digits,
+        /// so nothing shifts as the numbers change).
+        /// </summary>
+        public float ClockTextWidth
+        {
+            get
+            {
+                clockText.ForceMeshUpdate();
+                var info = clockText.textInfo;
+                return info.characterCount > 0 ? info.characterInfo[info.characterCount - 1].xAdvance : 0f;
+            }
+        }
         public bool UndoShowing => undo.gameObject.activeSelf;
         /// <summary>The middle of the clock (icon and time together) and of Reset, in the HUD's pixels (tests).</summary>
         public Vector2 ClockCentre { get; private set; }
@@ -422,7 +435,8 @@ namespace GC26.Lines.UI
         /// <summary>Shows <paramref name="seconds"/> left: yellow from 0:30, red from 0:10 (while the game runs).</summary>
         public void SetClock(float seconds, bool running)
         {
-            clockText.text = MenuView.ClockText(seconds);
+            clockSeconds = seconds;
+            clockText.text = ClockMarkup(seconds);
             var colour = !running || seconds <= 0f ? Palette.Text
                 : seconds <= Core.GameConfig.TimeLow ? ClockLow
                 : seconds <= Core.GameConfig.TimeWarn ? ClockWarn : Palette.Text;
@@ -457,12 +471,39 @@ namespace GC26.Lines.UI
 
         public bool TimeAddedShowing => timeGain.alpha > 0.01f;
 
+        // Every digit gets the width of the widest one (like a stopwatch's display), so the time doesn't
+        // shift as the numbers change: the font's own digits have different widths ("1" is narrow).
+        // The strings are made once per layout and reused, so the clock makes no garbage while it runs.
+        float clockSeconds = Core.GameConfig.TimedStart;
+        string[] clockStrings;
+        string digitSpace;
+
+        string ClockMarkup(float seconds)
+        {
+            int s = Mathf.Clamp(Mathf.CeilToInt(Mathf.Max(0f, seconds) - 1e-4f), 0, 5999);
+            if (clockStrings == null) clockStrings = new string[600];
+            if (s >= clockStrings.Length || digitSpace == null) return MenuView.ClockText(seconds);
+            return clockStrings[s] ?? (clockStrings[s] = Monospaced(MenuView.ClockText(s)));
+        }
+
+        string Monospaced(string time)
+        {
+            var b = new System.Text.StringBuilder();
+            foreach (char c in time)
+                b.Append(char.IsDigit(c) ? "<mspace=" + digitSpace + ">" + c + "</mspace>" : c.ToString());
+            return b.ToString();
+        }
+
         // The stopwatch icon and the time, centred together between the house and the gear.
         void PlaceClock(BoardLayout layout)
         {
             float u = layout.Unit;
             clockText.fontSize = ClockSize * u;
-            float textW = clockText.GetPreferredValues("0:00").x;
+            float widest = 0f;
+            for (char c = '0'; c <= '9'; c++) widest = Mathf.Max(widest, clockText.GetPreferredValues(c.ToString()).x);
+            string space = (widest / clockText.fontSize).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "em";
+            if (space != digitSpace) { digitSpace = space; clockStrings = null; }
+            float textW = clockText.GetPreferredValues(Monospaced("0:00")).x;
             float total = ClockIconSize * u + ClockIconGap * u + textW;
             var centre = new Vector2(layout.Board.center.x, layout.BackButton.center.y);
             ClockCentre = centre;
@@ -471,6 +512,7 @@ namespace GC26.Lines.UI
             var ct = clockText.rectTransform;
             ct.anchoredPosition = new Vector2(left + (ClockIconSize + ClockIconGap) * u, centre.y);
             ct.sizeDelta = new Vector2(textW * 1.4f, ClockSize * 1.3f * u);
+            if (clockText.enabled) clockText.text = ClockMarkup(clockSeconds);
             timeGain.fontSize = TimeGainSize * u;
             Place(timeGain.rectTransform, left + total + 2f * u, centre.y - TimeGainSize * 0.65f * u, 20f * u, TimeGainSize * 1.3f * u);
         }

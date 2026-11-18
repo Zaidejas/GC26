@@ -158,6 +158,20 @@ namespace GC26.Lines.Tests
         }
 
         [Test]
+        public void Clock_DigitsAllTheSameWidth_SoTheTimeDoesNotShift()
+        {
+            var h = MakeHud(out _);
+            h.SetTimed(true);
+            h.SetClock(71f, running: true); // 1:11, the narrowest digits
+            float narrow = h.ClockTextWidth;
+            Assert.AreEqual("1:11", h.ClockReading);
+            h.SetClock(178f, running: true); // 2:58
+            Assert.AreEqual(narrow, h.ClockTextWidth, 0.5f);
+            h.SetClock(40f, running: true); // 0:40
+            Assert.AreEqual(narrow, h.ClockTextWidth, 0.5f);
+        }
+
+        [Test]
         public void Clock_TurnsYellowAt30_AndRedAt10()
         {
             var h = MakeHud(out _);
