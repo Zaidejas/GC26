@@ -160,7 +160,6 @@ namespace GC26._2048
             storage.Language = loc.Language;
             foreach (var (label, text) in bound)
                 if (label != null) label.text = text();
-            boardView.Relabel();
             RefreshTitle();
             if (sheets[Results].gameObject.activeSelf) FillResults();
             sound.Play(CheeseSound.Chime, 2);
@@ -534,7 +533,7 @@ namespace GC26._2048
             fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
             fit.aspectRatio = 1f;
             boardView = area.gameObject.AddComponent<BoardView>();
-            boardView.Init(field, art, level => loc.ItemName(level));
+            boardView.Init(field, art);
 
             var hint = Bind(CheeseUi.Label(s, "", 36f, CheeseArt.Light, TextAlignmentOptions.Left, true), "hint");
             hint.enableAutoSizing = true;

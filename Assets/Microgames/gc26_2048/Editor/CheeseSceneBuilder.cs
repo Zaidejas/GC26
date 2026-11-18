@@ -61,6 +61,35 @@ namespace GC26._2048.EditorTools
             Debug.Log($"[gc26_2048] preview build: {report.summary.result} -> {output}");
         }
 
+        /// <summary>
+        /// Builds a player with only gc26_2048_Main, without touching Build Settings or Player Settings.
+        /// Batch mode: -executeMethod GC26._2048.EditorTools.CheeseSceneBuilder.BuildRelease
+        ///             -cheeseTarget windows|android -cheeseOut &lt;folder&gt;
+        /// </summary>
+        public static void BuildRelease()
+        {
+            string target = "windows", output = "Builds/gc26_2048";
+            var args = System.Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length - 1; i++)
+            {
+                if (args[i] == "-cheeseTarget") target = args[i + 1].ToLowerInvariant();
+                if (args[i] == "-cheeseOut") output = args[i + 1];
+            }
+
+            bool android = target == "android";
+            if (android) EditorUserBuildSettings.buildAppBundle = false; // a plain APK to install on a phone
+            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            {
+                scenes = new[] { ScenePath },
+                locationPathName = Path.Combine(output, android ? "gc26_2048.apk" : "gc26_2048.exe"),
+                target = android ? BuildTarget.Android : BuildTarget.StandaloneWindows64,
+                options = BuildOptions.None
+            });
+            var s = report.summary;
+            Debug.Log($"[gc26_2048] {target} build: {s.result}, {s.totalSize / (1024 * 1024)} MB, {s.totalErrors} error(s) -> {output}");
+            if (Application.isBatchMode) EditorApplication.Exit(s.result == UnityEditor.Build.Reporting.BuildResult.Succeeded ? 0 : 1);
+        }
+
         static void ImportArt()
         {
             foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { Folder + "/Resources/gc26_2048" }))

@@ -1,11 +1,10 @@
 using System.Collections;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace GC26._2048
 {
-    /// <summary>One item on the field: tinted box, sprite, short name and level badge.</summary>
+    /// <summary>One item on the field: tinted box with the item icon only (names live in the rules window).</summary>
     public class TileView : MonoBehaviour
     {
         const float Gap = 0.03f;
@@ -14,8 +13,6 @@ namespace GC26._2048
         RectTransform rect;
         Image box;
         Image icon;
-        TextMeshProUGUI label;
-        TextMeshProUGUI badge;
         CanvasGroup group;
 
         public int Level { get; private set; }
@@ -34,25 +31,15 @@ namespace GC26._2048
             CheeseUi.AddShadow(rt.gameObject, 8f);
 
             view.icon = CheeseUi.Picture(rt, "Icon", null);
-            view.icon.rectTransform.Place(0.12f, 0.06f, 0.88f, 0.74f);
-            view.label = CheeseUi.Label(rt, "", 30f, CheeseArt.Ink, TextAlignmentOptions.Center, true);
-            view.label.rectTransform.Place(0.02f, 0.72f, 0.98f, 0.96f);
-            view.label.textWrappingMode = TextWrappingModes.NoWrap;
-            view.label.enableAutoSizing = true;
-            view.label.fontSizeMin = 18f;
-            view.label.fontSizeMax = 30f;
-            view.badge = CheeseUi.Label(rt, "", 26f, CheeseArt.InkDim, TextAlignmentOptions.TopLeft, true);
-            view.badge.rectTransform.Place(0.1f, 0.05f, 0.5f, 0.3f);
+            view.icon.rectTransform.Place(0.08f, 0.08f, 0.92f, 0.92f);
             return view;
         }
 
-        public void Show(int level, CheeseArt art, string name)
+        public void Show(int level, CheeseArt art)
         {
             Level = level;
             box.color = CheeseArt.TileColor(level);
             icon.sprite = art.Item(level);
-            label.text = name;
-            badge.text = level.ToString();
             rect.localScale = Vector3.one;
             group.alpha = 1f;
             gameObject.SetActive(true);
