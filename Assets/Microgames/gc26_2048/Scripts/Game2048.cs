@@ -478,6 +478,9 @@ namespace GC26._2048
             titleScreen = BuildTitle();
             gameScreen = BuildGame();
             overlay = BuildOverlay();
+
+            // last child of the frame: above every screen and window, clipped by the frame's edges
+            CheeseUi.Rect("MousePeek", frame).Fill().gameObject.AddComponent<MousePeek>().Init(art.MouseFace);
         }
 
         RectTransform BuildTitle()

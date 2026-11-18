@@ -48,6 +48,8 @@ namespace GC26._2048
         /// <summary>Rounded box without outline.</summary>
         public Sprite Soft { get; }
         public Sprite Mouse { get; }
+        /// <summary>Mouse head and paws, cut flat at the bottom: peeks in from a screen edge when the player is idle.</summary>
+        public Sprite MouseFace { get; }
 
         public CheeseArt(string gameId)
         {
@@ -55,6 +57,7 @@ namespace GC26._2048
             for (int level = 1; level <= CheeseRules.CheeseLevel; level++)
                 items[level] = LoadSprite($"{gameId}/item_{level}");
             Mouse = LoadSprite($"{gameId}/mouse_hole");
+            MouseFace = LoadSprite($"{gameId}/mouse_face");
             Box = MakeRounded(96, 30, 7, true);
             Soft = MakeRounded(96, 30, 0, false);
         }
