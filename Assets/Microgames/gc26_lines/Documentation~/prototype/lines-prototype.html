@@ -334,17 +334,25 @@ body {
 .subhead .mode-pick .badge svg { width: 5cqw; height: 5cqw; }
 .subhead .mode-pick .badges { gap: 5cqw; }
 .subhead .mode-pick .badge { flex-direction: row; gap: 1.6cqw; }
-/* The clock: on top of the board, the time and a bar that empties as it runs out (full at 3:00 and above).
-   Yellow from 0:30, red from 0:10. */
-.time-row { display: flex; align-items: center; gap: 3cqw; padding: 0 1cqw; margin-bottom: 2.6cqw; }
-.time-row .timer { flex: none; }
-.time-bar { flex: 1; height: 1.8cqw; border-radius: 999px; background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 0.25cqw rgba(255, 255, 255, 0.06); }
-.time-bar i { display: block; height: 100%; width: 100%; border-radius: inherit; background: linear-gradient(90deg, #fff2c2, #ffc35a); box-shadow: 0 0 1.6cqw rgba(255, 195, 90, 0.45); }
-.timer.warn + .time-bar i { background: #ffd56b; box-shadow: 0 0 2cqw rgba(255, 213, 107, 0.7); }
-.timer.low + .time-bar i { background: linear-gradient(90deg, #ff9a9a, #ff5a5a); box-shadow: 0 0 2cqw rgba(255, 90, 90, 0.75); }
+/* The clock (Timed mode): in the middle of the SCORE / NEXT row, like a game number. Yellow from 0:30, red from 0:10. */
+.hud { position: relative; }
+.time-stat { position: absolute; left: 50%; top: 0; transform: translateX(-50%); text-align: center; } /* "TIME" in line with SCORE and NEXT */
+.time-stat .label { margin-bottom: 0.6cqw; }
+.time-stat .timer { justify-content: center; }
+/* The ring empties like a clock face as time runs out (full at 3:00 and above), around a small stopwatch. */
+.timer .ring { position: relative; flex: none; width: 8.4cqw; height: 8.4cqw; display: grid; place-items: center; }
+.timer .ring::before { content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(currentColor calc(var(--p) * 360deg), rgba(255, 255, 255, 0.12) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 0.75cqw), #000 calc(100% - 0.7cqw)); mask: radial-gradient(farthest-side, transparent calc(100% - 0.75cqw), #000 calc(100% - 0.7cqw)); }
+.timer .ring svg { width: 4.2cqw; height: 4.2cqw; }
+.timer.got .ring { animation: ring-got 0.5s ease-out; }
+@keyframes ring-got { 0% { scale: 1.25; filter: drop-shadow(0 0 2cqw #9cf5b0); } 100% { scale: 1; } }
+/* "+5s" flies from the cleared line into the timer. */
+.fly-gain { position: absolute; left: 0; top: 0; z-index: 6; pointer-events: none; white-space: nowrap; translate: -50% -50%;
+  font-family: var(--font-display); font-size: 5.4cqw; color: #9cf5b0; text-shadow: 0 0 2cqw rgba(140, 255, 170, 0.7); }
 .timer { position: relative; display: flex; align-items: center; gap: 1.6cqw; color: var(--text); }
-.timer svg { width: 4.6cqw; height: 4.6cqw; }
-.timer .tnum { font-family: var(--font-display); font-weight: 600; font-size: 6cqw; line-height: 1; font-variant-numeric: tabular-nums; }
+.timer svg { width: 4.2cqw; height: 4.2cqw; }
+.timer .tnum { font-family: var(--font-display); font-weight: 600; font-size: 7.5cqw; line-height: 1; font-variant-numeric: tabular-nums; }
 .phone.forest .timer .tnum { text-shadow: 0 0 3cqw rgba(255, 214, 120, 0.3); }
 .timer.warn { color: #ffd56b; }
 .timer.warn .tnum { text-shadow: 0 0 3cqw rgba(255, 213, 107, 0.6); }
@@ -352,9 +360,6 @@ body {
 .timer.low .tnum { text-shadow: 0 0 3cqw rgba(255, 90, 90, 0.7); }
 .timer .tnum.beat { animation: clock-pulse 0.5s ease-out; }
 @keyframes clock-pulse { 0% { scale: 1.12; } 100% { scale: 1; } }
-.time-gain { position: absolute; left: 100%; top: 50%; margin-left: 2cqw; transform: translateY(-50%); opacity: 0; pointer-events: none;
-  font-family: var(--font-display); font-size: 4.6cqw; color: #9cf5b0; text-shadow: 0 0 2cqw rgba(140, 255, 170, 0.6); white-space: nowrap; }
-.time-gain.show { animation: gain 0.9s ease-out; }
 /* Timed mode has no Undo: Reset alone, in the middle, the same size. */
 /* Timed: Pause takes Undo's place. While paused the board and NEXT are hidden, so the pause gives no free thinking time. */
 .phone.forest .modal.paused { background: rgba(6, 8, 20, 0.92); }
@@ -663,6 +668,10 @@ body {
               <span class="num-row"><span class="num" id="score">0</span><span class="crown" id="crown" hidden aria-label="Above your best score"><svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="crown-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2c2"/><stop offset="0.6" stop-color="#ffc35a"/><stop offset="1" stop-color="#ff9a3c"/></linearGradient></defs><path d="M4 11l6 5 6-9 6 9 6-5-2.5 13h-19z" fill="url(#crown-gold)" stroke="#fff4cf" stroke-width="1" stroke-linejoin="round"/><rect x="6.5" y="25" width="19" height="3" rx="1.2" fill="url(#crown-gold)"/><circle cx="4" cy="10" r="2" fill="#fff2c2"/><circle cx="16" cy="6" r="2.2" fill="#fff2c2"/><circle cx="28" cy="10" r="2" fill="#fff2c2"/><circle cx="16" cy="19" r="1.8" fill="#7ff0e0"/></svg></span></span>
               <span class="gain" id="gain"></span>
             </div>
+            <div class="time-stat" id="time-row" hidden>
+              <span class="label" data-i18n="time">Time</span>
+              <div class="timer" id="timer" aria-label="Time left"><span class="ring" id="time-ring" style="--p: 1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 10v3.5l2.2 2.2"/><path d="M10 2.8h4"/><path d="M12 2.8V6"/></svg></span><span class="tnum" id="clock-time">3:00</span></div>
+            </div>
             <div class="next">
               <span class="label" data-i18n="next">Next</span>
               <div class="next-balls" id="next"></div>
@@ -670,10 +679,6 @@ body {
           </div>
 
           <div class="board-wrap">
-            <div class="time-row" id="time-row" hidden>
-              <div class="timer" id="timer" aria-label="Time left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 10v3.5l2.2 2.2"/><path d="M10 2.8h4"/><path d="M12 2.8V6"/></svg><span class="tnum" id="clock-time">3:00</span><span class="time-gain" id="time-gain"></span></div>
-              <div class="time-bar" aria-hidden="true"><i id="time-fill"></i></div>
-            </div>
             <div class="board">
               <div class="grid" id="grid"></div>
               <div class="balls" id="balls"></div>
@@ -1244,7 +1249,7 @@ body {
     const live = !S.over && S.timeLeft > 0;
     $("#timer").classList.toggle("warn", live && S.timeLeft <= WARN_MS);
     $("#timer").classList.toggle("low", live && S.timeLeft <= LOW_MS);
-    $("#time-fill").style.width = (Math.min(1, S.timeLeft / TIME_MS) * 100).toFixed(2) + "%"; // full at 3:00 (and above)
+    $("#time-ring").style.setProperty("--p", Math.min(1, S.timeLeft / TIME_MS).toFixed(4)); // full at 3:00 (and above)
   }
   // From 0:30 the clock ticks softly each second and its digits pulse; from 0:10 the tick is sharper.
   function tickClock() {
@@ -1598,10 +1603,28 @@ body {
     await wait(260);
     cells.forEach((i) => { S.board[i] = -1; S.ice[i] = false; });
     S.score += pts; bump(pts);
-    if (S.timed) { S.timeLeft += BONUS_MS * lines.length; $("#time-gain").textContent = "+" + (BONUS_MS * lines.length / 1000) + "s"; playOnce($("#time-gain"), "show"); }
+    if (S.timed) { S.timeLeft += BONUS_MS * lines.length; flyTimeGain(cells, "+" + (BONUS_MS * lines.length / 1000) + "s"); }
     render();
     checkBest();
     earnSupers();
+  }
+  // Timed: the "+5s" rises from the cleared line and flies into the timer, which flashes green as it lands.
+  function flyTimeGain(cells, text) {
+    const screen = document.querySelector(".screen").getBoundingClientRect();
+    const rects = cells.map((i) => slotOf(i)).filter(Boolean).map((el) => el.getBoundingClientRect());
+    if (!rects.length) return;
+    const from = { x: rects.reduce((a, r) => a + r.left + r.width / 2, 0) / rects.length - screen.left,
+                   y: rects.reduce((a, r) => a + r.top + r.height / 2, 0) / rects.length - screen.top };
+    const ring = $("#time-ring").getBoundingClientRect();
+    const to = { x: ring.left + ring.width / 2 - screen.left, y: ring.top + ring.height / 2 - screen.top };
+    const el = document.createElement("div");
+    el.className = "fly-gain"; el.textContent = text;
+    document.querySelector(".screen").appendChild(el);
+    const at = (p, s, o) => ({ transform: "translate(" + p.x + "px," + p.y + "px) scale(" + s + ")", opacity: o });
+    const rise = { x: from.x, y: from.y - screen.width * 0.06 };
+    const a = el.animate([at(from, 0.7, 0), Object.assign(at(rise, 1.15, 1), { offset: 0.3 }), Object.assign(at(to, 0.6, 1), { offset: 0.9 }), at(to, 0.5, 0)],
+      { duration: 900, easing: "ease-in-out" });
+    a.onfinish = () => { el.remove(); playOnce($("#timer"), "got"); };
   }
   async function spawn() {
     const placed = [];
