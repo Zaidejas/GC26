@@ -1,207 +1,207 @@
 # Emo Party — Game Design Document
 
-**ID игры в репозитории:** `gc26_findepair` · **Версия документа:** 2.0 (11.11.2026) · заменяет `GDD_Emo_Party.pdf`, `Plan_Emo_Party.pdf`, `plan.html`, README и старые версии «Лесная пара».
+**Game ID in the repository:** `gc26_findepair` · **Document version:** 2.1 (2026-11-18) · replaces `GDD_Emo_Party.pdf`, `Plan_Emo_Party.pdf`, `plan.html`, the README and the old "Lesnaya para" (Forest Pair) versions.
 
-Emo Party — казуальная мобильная игра на память («Найди пару»): игрок находит 6 пар карточек с оригинальными неоновыми иллюстрациями в стиле эмо-культуры 2000-х. Игра — одна из 11 мини-игр сборника **GC26** и запускается из общего меню.
+Emo Party is a casual mobile memory game ("Find the Pair"): the player finds 6 pairs of cards with original neon illustrations in the style of 2000s emo culture. The game is one of the 11 mini-games in the **GC26** collection and is launched from the shared menu.
 
-Технические детали — в [TDD_findepair.md](TDD_findepair.md). Играбельный прототип — [prototype_findepair/index.html](prototype_findepair/index.html).
+Technical details are in [TDD_findepair.md](TDD_findepair.md). The playable prototype is [prototype_findepair/index.html](prototype_findepair/index.html).
 
 ---
 
-## 1. Общие сведения
+## 1. Overview
 
-| Параметр | Значение |
+| Parameter | Value |
 |---|---|
-| Название | Emo Party |
-| Жанр | Казуальная головоломка на память (memory / «Найди пару») |
-| Платформа | Android (основная), iOS (по возможности) |
-| Движок и язык | Unity 6 (6000.5), C# |
-| Ориентация | Портретная, поле 3 × 4 (в ландшафте — раскладка 4 × 3, см. TDD) |
-| Аудитория | Подростки 12+ и взрослые 25–35 лет с ностальгией по 2000-м |
-| Длина сессии | 1–3 минуты |
-| Монетизация | Нет (учебный проект), без рекламы |
-| Язык интерфейса | Русский |
-| Срок | 8 недель |
+| Title | Emo Party |
+| Genre | Casual memory puzzle (memory / "Find the Pair") |
+| Platform | Android (main), iOS (if possible) |
+| Engine and language | Unity 6 (6000.5), C# |
+| Orientation | Portrait, 3 × 4 board (in landscape, a 4 × 3 layout — see TDD) |
+| Audience | Teens 12+ and adults 25–35 nostalgic for the 2000s |
+| Session length | 1–3 minutes |
+| Monetization | None (student project), no ads |
+| UI language | English |
+| Timeline | 8 weeks |
 
-## 2. Концепция
+## 2. Concept
 
-Игра тренирует зрительную память через короткую спокойную партию с узнаваемыми вещами из эмо-культуры 2000-х. Главная ценность — авторские неоновые иллюстрации и приятный отклик на каждое действие.
+The game trains visual memory through a short, calm round with recognizable items from 2000s emo culture. Its main value is the original neon illustrations and satisfying feedback on every action.
 
-- **Цель игрока:** открыть все 6 пар за минимум ходов и времени.
-- **Цель проекта:** за 8 недель сделать готовую игру, которая запускается из меню сборника GC26.
-- **Настроение:** доброе, уютное, без стресса — эмо с самоиронией, без мрачности. Проиграть нельзя, можно только побить свой рекорд.
+- **Player goal:** turn over all 6 pairs in as few moves and as little time as possible.
+- **Project goal:** in 8 weeks, deliver a finished game that launches from the GC26 collection menu.
+- **Mood:** kind, cozy, stress-free — emo with self-irony, not gloom. You can't lose, only beat your record.
 
-## 3. Игровой процесс
+## 3. Gameplay
 
-Поле — 12 карточек рубашкой вверх, сетка 3 × 4. Перед каждой партией карточки перемешиваются случайно.
+The board is 12 face-down cards in a 3 × 4 grid. The cards are shuffled randomly before each round.
 
-1. Игрок нажимает на карточку — она переворачивается.
-2. Нажимает на вторую — это считается **одним ходом**.
-3. Картинки совпали — играет звук успеха; через 1 с пара взрывается розовыми искрами и исчезает с поля, на её месте остаётся пустое место. Пока пара ждёт взрыва, можно открывать другие карточки.
-4. Не совпали — через 0,8 с обе закрываются; пока идёт проверка, нажатия блокируются.
-5. Все 6 пар найдены и исчезли — победа: окно с ходами, временем, звёздами и рекордом.
+1. The player taps a card and it turns over.
+2. They tap a second one — this counts as **one move**.
+3. The pictures match — a success sound plays; 1 s later the pair bursts into pink sparkles and vanishes from the board, leaving an empty slot. While the pair waits to burst, other cards can be turned.
+4. No match — after 0.8 s both cards turn back over; taps are blocked while the check is running.
+5. All 6 pairs found and vanished — win: a window with moves, time, stars and the record.
 
-**Управление:** одиночное касание (tap). Нет свайпов и долгих нажатий.
+**Controls:** single tap. No swipes or long presses.
 
-**Нельзя:** нажать на уже открытую или найденную карточку; открыть третью карточку во время проверки; нажимать на поле во время паузы.
+**Not allowed:** tapping a card that is already face-up or found; turning a third card during a check; tapping the board while paused.
 
-### Счёт и результат
+### Score and result
 
-- Считаются **ходы** и **время** (таймер останавливается на паузе).
-- **Рекорд** = меньше ходов, при равенстве — меньше время. Хранится между запусками.
-- **Звёзды за партию** (минимум возможных ходов — 6):
+- **Moves** and **time** are counted (the timer stops while paused).
+- **Record** = fewer moves; on a tie, less time. It is kept between launches.
+- **Stars per round** (the minimum possible is 6 moves):
 
-| Звёзды | Ходов |
+| Stars | Moves |
 |---|---|
-| ★★★ | до 9 |
+| ★★★ | up to 9 |
 | ★★ | 10–13 |
-| ★ | больше 13 |
+| ★ | more than 13 |
 
-## 4. Карточки и иллюстрации
+## 4. Cards and illustrations
 
-Все 7 изображений (6 лицевых сторон + рубашка) рисуются с нуля. Каждая карточка — узнаваемая вещь эмо-подростка середины 2000-х; карточки различаются **силуэтом и основным цветом**, а не только деталями: на телефоне карточка около 3 см.
+All 7 images (6 card faces + the card back) are drawn from scratch. Each card is a recognizable item of a mid-2000s emo teen; cards differ by **silhouette and main color**, not only by details: on a phone a card is about 3 cm tall.
 
-| Карточка | Отсылка к трендам 2000-х | Основной цвет | Отличительная деталь |
+| Card | 2000s trend reference | Main color | Distinctive detail |
 |---|---|---|---|
-| Эмо-котик | Косая чёлка на один глаз | Чёрный + неоновый розовый | Чёлка с розовой прядью, подводка |
-| Эмо-мишка | Плюшевый мишка в эмо-образе | Светло-розовый | Косая чёлка, заплатка-сердце, полосатый шарф |
-| Полароид | Мгновенная камера и селфи «сверху» | Фуксия | Из камеры выезжает снимок с сердечком |
-| MP3-плеер | Плеер с проводными наушниками и плейлистом | Неоновый голубой | Провод наушников в форме сердца |
-| Банка энергетика | Энергетик — топливо ночных переписок | Неоновый фиолетовый | Кислотно-зелёная молния, без логотипа бренда |
-| Череп с бантиком | Розовый черепок — милый символ эмо-стиля | Белый + розовый | Большой бант, глаза-сердечки |
-| **Рубашка** | Шахматная клетка | Чёрный + неоновый розовый | Сердце с молнией в центре |
+| Emo kitty | Side-swept fringe over one eye | Black + neon pink | Fringe with a pink streak, eyeliner |
+| Emo bear | Teddy bear in an emo look | Light pink | Side fringe, heart patch, striped scarf |
+| Polaroid | Instant camera and "from above" selfies | Fuchsia | A photo with a heart slides out of the camera |
+| MP3 player | Player with wired earphones and a playlist | Neon cyan | Heart-shaped earphone cable |
+| Energy drink can | Energy drinks — fuel for late-night chats | Neon violet | Acid-green lightning bolt, no brand logo |
+| Bow skull | Pink skull — a cute emo-style symbol | White + pink | Big bow, heart eyes |
+| **Card back** | Checkerboard | Black + neon pink | Heart with a lightning bolt in the center |
 
-Рубашка одинакова для всех карт и не намекает на содержимое.
+The card back is the same for all cards and gives no hint of the face. Card faces have no names or text — the picture alone identifies the card.
 
-**Запасные идеи:** клетчатые кеды, телефон-раскладушка, сумка со значками, кассета-микстейп, заколка-звезда, полосатые гетры, гитара с наклейками, аська-статус «в сети».
+**Backup ideas:** checkered sneakers, flip phone, bag covered in pins, mixtape cassette, star hair clip, striped leg warmers, guitar with stickers, ICQ "online" status.
 
-### Стиль
+### Style
 
-- Плоская иллюстрация с неоновым свечением, толстый светлый контур на тёмном фоне, одинаковая рамка у всех карточек.
-- Палитра — неон, преимущественно розовый:
+- Flat illustration with a neon glow, thick light outline on a dark background, the same frame on every card.
+- Palette — neon, mostly pink:
 
-| Роль | Цвет |
+| Role | Color |
 |---|---|
-| Розовый (основной) | `#FF2FB3` |
-| Светло-розовый | `#FF7AD9` |
-| Фиолетовый | `#9B5CFF` |
-| Голубой | `#2DE2E6` |
-| Акцент, кислотно-зелёный | `#39FF88` |
-| Фон, почти чёрный | `#15101C` |
-| Контур | `#FCEBFF` |
+| Pink (main) | `#FF2FB3` |
+| Light pink | `#FF7AD9` |
+| Violet | `#9B5CFF` |
+| Cyan | `#2DE2E6` |
+| Accent, acid green | `#39FF88` |
+| Background, near-black | `#15101C` |
+| Outline | `#FCEBFF` |
 
-### Фоны
+### Backgrounds
 
-- **Главное меню** — кирпичная стена с неоновыми граффити (надпись Emo Party, сердечки, звёзды) и обклеенными объявлениями.
-- **Игровое поле** — пробковая доска объявлений с флаерами игр и концертов, наклейками и полароидами; карточки выглядят как приколотые к доске заметки.
-- Фон затемнён и слегка размыт, чтобы неоновые карточки читались лучше.
+- **Main menu** — a brick wall with neon graffiti (the Emo Party logo, hearts, stars) and posted flyers.
+- **Game board** — a cork notice board with flyers for games and gigs, stickers and Polaroids; the cards look like notes pinned to the board.
+- The background is darkened and slightly blurred so the neon cards read better.
 
-### Требования к файлам
+### File requirements
 
-Формат карточки 3:4, PNG 900 × 1200 px (минимум 600 × 800), все спрайты в одном Sprite Atlas. Инструменты: Krita, Figma или Inkscape.
+Card format 3:4, PNG 900 × 1200 px (minimum 600 × 800), all sprites in one Sprite Atlas. Tools: Krita, Figma or Inkscape.
 
-## 5. Экраны и интерфейс
+## 5. Screens and UI
 
 ```mermaid
 flowchart LR
-    Shell([Меню GC26]) --> Splash[Заставка]
-    Splash --> Menu[Главное меню]
-    Menu --> Game[Игровое поле]
-    Game --> Win[Окно победы]
-    Win -- играть снова --> Game
-    Win -- в меню игры --> Menu
-    Menu <--> Settings[Настройки]
-    Settings <--> Rules[Правила игры]
-    Game <--> Pause[Пауза]
-    Menu -- выход --> Shell
-    Pause -- выход --> Shell
-    Win -- выход --> Shell
+    Shell([GC26 menu]) --> Splash[Splash]
+    Splash --> Menu[Main menu]
+    Menu --> Game[Game board]
+    Game --> Win[Win screen]
+    Win -- play again --> Game
+    Win -- to game menu --> Menu
+    Menu <--> Settings[Settings]
+    Settings <--> Rules[How to play]
+    Game <--> Pause[Pause]
+    Menu -- exit --> Shell
+    Pause -- exit --> Shell
+    Win -- exit --> Shell
 ```
 
-Семь экранов игры: заставка, главное меню, игровое поле, пауза, окно победы, настройки, правила игры.
+The game has seven screens: splash, main menu, game board, pause, win screen, settings, how to play.
 
-- Из главного меню в игру — одно касание; из любого экрана до игры — не больше двух.
-- На игровом поле сверху — счётчик ходов, таймер и кнопка паузы.
-- Кнопки не меньше 48 × 48 dp; учитываются вырезы экрана (Safe Area).
-- **Выход в меню сборника GC26** — кнопка «Выйти» в главном меню, в паузе и в окне победы. Перед выходом сохраняются рекорд и настройки.
+- From the main menu to the game is one tap; from any screen, no more than two.
+- At the top of the game board: the move counter, the timer and the pause button.
+- Buttons are at least 48 × 48 dp; screen cutouts are respected (Safe Area).
+- **Exit to the GC26 collection menu** — the "Exit" button in the main menu, the pause screen and the win screen. The record and settings are saved before exiting.
 
-| Экран | Содержимое |
+| Screen | Contents |
 |---|---|
-| Заставка | Мерцающий неоновый логотип EMO PARTY; переход в меню сам или по касанию |
-| Главное меню | Логотип «EMO PARTY — найди пару», «Играть», «Настройки», «Выйти», строка с рекордом |
-| Игровое поле | HUD (ходы, время, пауза) + сетка карточек |
-| Пауза | «Продолжить», «Заново», «В меню», «Выйти» |
-| Окно победы | «Все пары найдены!», звёзды, значок «Новый рекорд!», ходы, время, рекорд, «Играть снова», «В меню», «Выйти» |
-| Настройки | «Назад», переключатели «Звуки», «Музыка», «Вибрация», «Правила игры», «Сбросить рекорд» |
-| Правила игры | Текст правил, кнопка «Понятно» |
+| Splash | Flickering neon EMO PARTY logo; goes to the menu by itself or on tap |
+| Main menu | Logo "EMO PARTY — find the pair", "Play", "Settings", "Exit", record line |
+| Game board | HUD (moves, time, pause) + card grid |
+| Pause | "Resume", "Restart", "Menu", "Exit" |
+| Win screen | "All pairs found!", stars, "New record!" badge, moves, time, record, "Play again", "Menu", "Exit" |
+| Settings | "Back", toggles "Sound", "Music", "Vibration", "How to play", "Reset record" |
+| How to play | Rules text, "Got it" button |
 
-Кнопка «Выйти» (в меню сборника GC26) — новая по сравнению с HTML-прототипом; остальное в прототипе уже есть.
+The "Exit" button (to the GC26 collection menu) is new compared with the HTML prototype; everything else is already in the prototype.
 
-### Текст окна «Правила игры»
+### "How to play" window text
 
-1. Нажми на карточку — она откроется.
-2. Открой вторую: если картинки совпали, пара взорвётся искрами и исчезнет.
-3. Не совпали — запомни, где они лежат: карточки закроются.
-4. Найди все 6 пар за наименьшее число ходов; ход — это две открытые карточки.
-5. Звёзды: 3★ — до 9 ходов, 2★ — 10–13, 1★ — больше 13. Проиграть нельзя — можно только побить свой рекорд.
+1. Tap a card to turn it over.
+2. Turn over a second one: if the pictures match, the pair bursts into sparkles and vanishes.
+3. No match? Remember where they are: the cards turn back over.
+4. Find all 6 pairs in as few moves as you can; one move is two turned cards.
+5. Stars: 3★ — up to 9 moves, 2★ — 10–13, 1★ — more than 13. You can't lose — only beat your record.
 
-## 6. Звук и анимация
+## 6. Sound and animation
 
-| Событие | Анимация | Звук | Вибрация |
+| Event | Animation | Sound | Vibration |
 |---|---|---|---|
-| Нажатие на карточку | Переворот, 0,25 с | Щелчок затвора полароида | — |
-| Пара найдена | «Пульс» и розовая неоновая вспышка | Гитарный аккорд | Короткая (40 мс) |
-| Через 1 с после совпадения | Взрыв розовых искр, карточки увеличиваются и гаснут (0,25 с), остаётся пустое место | — | — |
-| Пара не совпала | Покачивание, затем обратный переворот | Мягкий низкий тон | — |
-| Победа | Окно с конфетти из сердечек и звёзд | Короткий поп-панк-рифф | Двойная |
-| Фон | Мерцание неоновых граффити | Спокойная инди / поп-панк мелодия (петля) | — |
+| Tap on a card | Flip, 0.25 s | Polaroid shutter click | — |
+| Pair found | "Pulse" and a pink neon flash | Guitar chord | Short (40 ms) |
+| 1 s after the match | Bright pink sparkle burst with a white-pink flash, the cards grow and fade out (0.25 s), an empty slot remains | — | — |
+| No match | Shake, then flip back | Soft low tone | — |
+| Win | Window with confetti of hearts and stars | Short pop-punk riff | Double |
+| Background | Flickering neon graffiti | Calm indie / pop-punk tune (loop) | — |
 
-Звуки — из бесплатных библиотек с лицензией CC0 (Kenney, freesound.org). Звук, музыку и вибрацию можно выключить в настройках.
+Sounds come from free CC0 libraries (Kenney, freesound.org). Sound, music and vibration can be turned off in the settings.
 
-## 7. План разработки (8 недель, ≈160–200 часов)
+## 7. Development plan (8 weeks, ≈160–200 hours)
 
-| Неделя | Этап | Задачи | Результат |
+| Week | Stage | Tasks | Result |
 |---|---|---|---|
-| 1 | Подготовка | Тема и аудитория, GDD, референсы и палитра, установка Unity, ветка в репозитории GC26, папка игры | Концепция и стиль утверждены |
-| 2 | Прототип и скетчи | Скрипты карточки, данных и правил; временная графика (цветные квадраты); скетчи 6 карточек и рубашки по 2–3 варианта | **Прототип**, который можно пройти до конца |
-| 3 | Иллюстрации I | Чистовые эмо-котик, эмо-мишка, полароид; рубашка; проверка читаемости на телефоне; в коде — анимации переворота и совпадения | 3 карточки + рубашка |
-| 4 | Иллюстрации II + UI | MP3-плеер, банка энергетика, череп с бантиком; фоны, кнопки, шрифт с кириллицей, окно победы; экспорт PNG, Sprite Atlas | **Вся графика в игре** |
-| 5 | Доработка геймплея | HUD, звуки, вибрация, сохранение рекорда, звёзды | **Альфа** |
-| 6 | Меню и экраны | Главное меню, пауза, настройки, окно правил, Safe Area, подгонка сетки, иконка, заставка, выход в меню GC26 | **Бета** |
-| 7 | Тестирование | 3–5 реальных устройств, 5+ игроков из целевой аудитории, исправление багов (быстрые нажатия, двойной клик, перезапуск), оптимизация | Release Candidate |
-| 8 | Сдача | Финальное слияние в `main`, проверка запуска из меню GC26, отчёт / презентация | **Релиз** |
+| 1 | Preparation | Theme and audience, GDD, references and palette, Unity install, branch in the GC26 repository, game folder | Concept and style approved |
+| 2 | Prototype and sketches | Card, data and rules scripts; placeholder art (colored squares); sketches of the 6 cards and the back, 2–3 variants each | **Prototype** playable to the end |
+| 3 | Illustrations I | Final emo kitty, emo bear, Polaroid; card back; readability check on a phone; in code — flip and match animations | 3 cards + back |
+| 4 | Illustrations II + UI | MP3 player, energy drink can, bow skull; backgrounds, buttons, font, win screen; PNG export, Sprite Atlas | **All art in the game** |
+| 5 | Gameplay polish | HUD, sounds, vibration, record saving, stars | **Alpha** |
+| 6 | Menus and screens | Main menu, pause, settings, rules window, Safe Area, grid fitting, icon, splash, exit to the GC26 menu | **Beta** |
+| 7 | Testing | 3–5 real devices, 5+ players from the target audience, bug fixing (fast taps, double tap, restart), optimization | Release Candidate |
+| 8 | Delivery | Final merge into `main`, check launching from the GC26 menu, report / presentation | **Release** |
 
-Иллюстрации — самая долгая часть, поэтому их начинают на 2-й неделе, параллельно с прототипом. Недели 5–7 содержат резерв по ~2 дня.
+Illustrations are the longest part, so they start in week 2, in parallel with the prototype. Weeks 5–7 each include ~2 days of buffer.
 
-| Направление | Доля времени |
+| Area | Share of time |
 |---|---|
-| Иллюстрации и графика интерфейса | ~35% |
-| Программирование на C# | ~30% |
-| Тестирование и исправления | ~15% |
-| Документация, звук, сдача | ~20% |
+| Illustrations and UI art | ~35% |
+| C# programming | ~30% |
+| Testing and fixes | ~15% |
+| Documentation, sound, delivery | ~20% |
 
-### Риски
+### Risks
 
-| Риск | Что делать |
+| Risk | What to do |
 |---|---|
-| Иллюстрации занимают дольше плана | Начинать на неделе 2. Если не успеваете — упростить меню и настройки, но не сокращать тестирование |
-| Карточки плохо различаются на маленьком экране | Разные силуэты и основные цвета; проверка на телефоне на неделе 3 |
-| Конфликты при слиянии с `main` | Работать только в своей папке, раз в неделю подтягивать `main` (см. TDD) |
-| Потеря работы | Коммиты в Git каждый день, пуш в свою ветку |
-| Публикация в Google Play отдельным приложением | Аккаунт разработчика 25 $; для новых личных аккаунтов — закрытое тестирование (~12 тестировщиков, 14 дней). Решить с организатором, публикуется ли сборник целиком |
+| Illustrations take longer than planned | Start in week 2. If behind, simplify the menus and settings, but don't cut testing |
+| Cards are hard to tell apart on a small screen | Different silhouettes and main colors; check on a phone in week 3 |
+| Conflicts when merging with `main` | Work only in your own folder, pull `main` once a week (see TDD) |
+| Losing work | Commit to Git every day, push to your branch |
+| Publishing to Google Play as a separate app | Developer account $25; new personal accounts need closed testing (~12 testers, 14 days). Agree with the organizer whether the whole collection is published instead |
 
-## 8. Идеи для развития
+## 8. Ideas for later
 
-- Уровни сложности: 4 / 6 / 8 пар (код рассчитан на любое число пар).
-- Новые наборы иллюстраций — другие субкультуры 2000-х: панк, рейв, скейт.
-- Режим на время и ежедневный вызов с одинаковой раскладкой.
+- Difficulty levels: 4 / 6 / 8 pairs (the code supports any number of pairs).
+- New illustration sets — other 2000s subcultures: punk, rave, skate.
+- Time-attack mode and a daily challenge with the same layout for everyone.
 
-## 9. Ссылки
+## 9. Links
 
-| Что | Где |
+| What | Where |
 |---|---|
-| Репозиторий | https://github.com/Zaidejas/GC26 |
-| Доска задач | https://github.com/users/Zaidejas/projects/12 |
-| Правила репозитория GC26 | [RULES.md](../RULES.md) |
-| Технический дизайн | [TDD_findepair.md](TDD_findepair.md) |
-| HTML-прототип | [prototype_findepair/index.html](prototype_findepair/index.html) |
+| Repository | https://github.com/Zaidejas/GC26 |
+| Task board | https://github.com/users/Zaidejas/projects/12 |
+| GC26 repository rules | [RULES.md](../RULES.md) |
+| Technical design | [TDD_findepair.md](TDD_findepair.md) |
+| HTML prototype | [prototype_findepair/index.html](prototype_findepair/index.html) |

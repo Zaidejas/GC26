@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#15101C">
-<title>Emo Party — прототип</title>
+<title>Emo Party — prototype</title>
 <style>
   :root {
     --pink: #FF2FB3;
@@ -16,6 +16,15 @@
     --ink: #FCEBFF;
     --muted: #C9B3D3;
     --cw: 90px;
+    --img-emo_cat: none;
+    --img-emo_bear: none;
+    --img-polaroid: none;
+    --img-mp3_player: none;
+    --img-energy_drink: none;
+    --img-bow_skull: none;
+    --img-card_back: none;
+    --img-menu_wall: none;
+    --img-board_cork: none;
     --ch: 120px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -24,7 +33,7 @@
     -webkit-tap-highlight-color: transparent; user-select: none; }
   body { display: flex; justify-content: center; align-items: center; }
 
-  /* Телефон: на ПК — вертикальная рамка 9:19.5, на телефоне — весь экран */
+  /* Phone: a 9:19.5 portrait frame on desktop, full screen on a phone */
   #phone { position: relative; height: 100dvh; width: min(100vw, calc(100dvh * 0.4615));
     overflow: hidden; background: var(--bg); }
   @media (min-width: 700px) {
@@ -48,12 +57,13 @@
 
   .neon { color: #fff; text-shadow: 0 0 4px #fff, 0 0 10px var(--pink), 0 0 22px var(--pink), 0 0 40px var(--pink); }
 
-  /* ---------- Фон меню: кирпичная стена с граффити и объявлениями ---------- */
+  /* ---------- Menu background: brick wall with graffiti and flyers ---------- */
   .wall {
     background:
       radial-gradient(ellipse at 50% 35%, rgba(255, 47, 179, .18), transparent 60%),
       linear-gradient(rgba(21, 16, 28, .45), rgba(21, 16, 28, .8)),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='112' height='56'%3E%3Crect width='112' height='56' fill='%23301f2b'/%3E%3Cg fill='%23472c3c'%3E%3Crect x='2' y='2' width='52' height='24' rx='2'/%3E%3Crect x='58' y='2' width='52' height='24' rx='2'/%3E%3Crect x='-26' y='30' width='52' height='24' rx='2'/%3E%3Crect x='30' y='30' width='52' height='24' rx='2'/%3E%3Crect x='86' y='30' width='52' height='24' rx='2'/%3E%3C/g%3E%3C/svg%3E");
+      var(--img-menu_wall) center / cover no-repeat,
+      #301f2b;
   }
   .decor { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
   .graf { position: absolute; font-weight: 900; font-style: italic; opacity: .85; }
@@ -75,12 +85,11 @@
   #splash .logo { font-size: 60px; font-weight: 900; font-style: italic; transform: rotate(-6deg); animation: flicker 1.4s ease-in; }
   @keyframes flicker { 0%, 18%, 22%, 40% { opacity: .1 } 20%, 45%, 100% { opacity: 1 } }
 
-  /* ---------- Игровое поле: пробковая доска объявлений ---------- */
+  /* ---------- Game board: cork notice board ---------- */
   .cork {
     background:
       linear-gradient(rgba(21, 16, 28, .6), rgba(21, 16, 28, .72)),
-      radial-gradient(circle at 30% 30%, #b08657 0 1px, transparent 1.6px) 0 0 / 7px 7px,
-      radial-gradient(circle at 70% 70%, #5e4127 0 1px, transparent 1.8px) 0 0 / 9px 9px,
+      var(--img-board_cork) center / cover no-repeat,
       #8a6640;
     box-shadow: inset 0 0 0 10px #3b2718, inset 0 0 0 12px #5a3d26, inset 0 0 40px rgba(0, 0, 0, .7);
   }
@@ -100,9 +109,9 @@
   #board { position: relative; z-index: 1; flex: 1; display: grid; place-content: center; padding: 12px 0 20px;
     grid-template-columns: repeat(3, var(--cw)); grid-auto-rows: var(--ch); gap: 12px; }
 
-  /* ---------- Карточка ---------- */
+  /* ---------- Card ---------- */
   .card { position: relative; width: var(--cw); height: var(--ch); perspective: 700px; padding: 0; }
-  .card::after { /* кнопка-булавка: карточка «приколота» к доске */
+  .card::after { /* push pin: the card is "pinned" to the board */
     content: ""; position: absolute; z-index: 3; top: -5px; left: 50%; width: 12px; height: 12px; margin-left: -6px;
     border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, var(--pink) 45%, #8a0f5e);
     box-shadow: 0 2px 3px rgba(0, 0, 0, .6); }
@@ -111,19 +120,36 @@
   .face { position: absolute; inset: 0; border-radius: 12px; overflow: hidden; backface-visibility: hidden;
     -webkit-backface-visibility: hidden; }
   .face.back { border: 2px solid var(--pink); box-shadow: 0 0 10px rgba(255, 47, 179, .6);
-    background: repeating-conic-gradient(#2a1630 0 25%, #15101C 0 50%) 0 0 / 18px 18px; display: grid; place-items: center; }
-  .face.back svg { width: 58%; }
+    background: var(--img-card_back) center / cover no-repeat, #15101C; }
   .face.front { transform: rotateY(180deg); background: var(--bg); border: 2px solid var(--c);
     box-shadow: 0 0 10px var(--c), inset 0 0 14px color-mix(in srgb, var(--c) 35%, transparent); }
-  .face.front svg { width: 100%; height: 100%; display: block; }
+  .face.front { background-image: var(--face); background-position: center; background-size: contain;
+    background-repeat: no-repeat; background-color: var(--bg); }
   .card.matched .inner { animation: pulse .3s ease; }
   .card.matched .front { animation: flash .7s ease; }
   .card.miss .front { animation: shake .3s ease; }
   @keyframes pulse { 0%, 100% { transform: rotateY(180deg) scale(1); } 50% { transform: rotateY(180deg) scale(1.12); } }
   @keyframes flash { 30% { box-shadow: 0 0 26px 6px var(--pink), inset 0 0 30px var(--pink); } }
   @keyframes shake { 25% { translate: -3px 0; } 75% { translate: 3px 0; } }
+  /* Pair vanish: the card grows and fades out, its grid slot stays empty */
+  .card.gone { pointer-events: none; animation: vanish .25s ease-in forwards; }
+  @keyframes vanish { to { transform: scale(1.2); opacity: 0; visibility: hidden; } }
+  /* Pink sparkle burst */
+  .spark { position: absolute; z-index: 5; pointer-events: none; line-height: 1; translate: -50% -50%;
+    mix-blend-mode: screen; animation: spark var(--life) cubic-bezier(.15, .7, .35, 1) forwards; }
+  @keyframes spark {
+    from { transform: translate(0, 0) rotate(0) scale(1.3); opacity: 1; }
+    65% { opacity: 1; }
+    to { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0); opacity: 0; }
+  }
+  /* Bright flash at the card center when the burst starts */
+  .spark-flash { position: absolute; z-index: 5; pointer-events: none; border-radius: 50%; translate: -50% -50%;
+    mix-blend-mode: screen; background: radial-gradient(circle, #fff 0%, #FFC2F0 22%, rgba(255, 47, 179, .75) 45%, rgba(255, 47, 179, 0) 70%);
+    animation: spark-flash .32s ease-out forwards; }
+  @keyframes spark-flash { from { transform: scale(.3); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+  #game.paused .spark, #game.paused .spark-flash, #game.paused .card.gone { animation-play-state: paused; }
 
-  /* ---------- Оверлеи: пауза и победа ---------- */
+  /* ---------- Overlays: pause and win ---------- */
   .overlay { position: absolute; inset: 0; z-index: 10; display: none; flex-direction: column; align-items: center;
     justify-content: center; gap: 14px; padding: 24px; text-align: center; background: rgba(11, 8, 14, .82); backdrop-filter: blur(3px); }
   .overlay.active { display: flex; }
@@ -139,7 +165,7 @@
   .confetti { position: absolute; top: -30px; font-size: 22px; pointer-events: none; animation: fall linear forwards; }
   @keyframes fall { to { transform: translateY(110dvh) rotate(540deg); } }
 
-  /* ---------- Настройки ---------- */
+  /* ---------- Settings ---------- */
   #settings { gap: 14px; padding-top: calc(env(safe-area-inset-top) + 20px); }
   #settings .top { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
   #settings h2 { font-size: 28px; font-weight: 900; font-style: italic; }
@@ -154,7 +180,7 @@
   #settings .reset { margin-top: auto; margin-bottom: 28px; align-self: center; }
   .toggle .chev { font-size: 26px; line-height: 1; color: var(--pink2); }
 
-  /* Окно «Правила игры» */
+  /* "How to play" window */
   .rules-card { width: 100%; max-width: 360px; padding: 22px 20px 20px; border-radius: 20px; text-align: left;
     background: rgba(21, 16, 28, .95); border: 2px solid var(--pink); box-shadow: 0 0 18px rgba(255, 47, 179, .45); }
   .rules-card h2 { font-size: 26px; text-align: center; margin-bottom: 14px; }
@@ -165,7 +191,7 @@
     background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
   .rules-card .btn { display: block; margin: 0 auto; }
 
-  /* Подсказка: игра только в вертикальной ориентации */
+  /* Hint: the game is portrait only */
   #rotate { display: none; position: fixed; inset: 0; z-index: 50; background: var(--bg); align-items: center;
     justify-content: center; flex-direction: column; gap: 12px; font-size: 18px; text-align: center; padding: 24px; }
   #rotate .ico { font-size: 52px; animation: turn 1.6s ease-in-out infinite; }
@@ -176,195 +202,161 @@
 <body>
 <div id="phone">
 
-  <!-- Заставка -->
-  <section id="splash" class="screen active" aria-label="Заставка">
+  <!-- Splash -->
+  <section id="splash" class="screen active" aria-label="Splash">
     <div class="logo neon">EMO PARTY</div>
   </section>
 
-  <!-- Главное меню: стена с граффити и объявлениями -->
-  <section id="menu" class="screen wall" aria-label="Главное меню">
+  <!-- Main menu: wall with graffiti and flyers -->
+  <section id="menu" class="screen wall" aria-label="Main menu">
     <div class="decor" aria-hidden="true">
       <div class="graf" style="top:6%;left:6%;font-size:40px;color:var(--cyan);text-shadow:0 0 12px var(--cyan);transform:rotate(-18deg)">★</div>
       <div class="graf" style="top:10%;right:10%;font-size:46px;color:var(--pink);text-shadow:0 0 14px var(--pink);transform:rotate(14deg)">♥</div>
       <div class="graf" style="bottom:22%;left:8%;font-size:38px;color:var(--acid);text-shadow:0 0 12px var(--acid);transform:rotate(-8deg)">⚡</div>
       <div class="graf" style="top:30%;left:4%;font-size:15px;color:var(--violet);text-shadow:0 0 8px var(--violet);transform:rotate(-80deg)">XOXO 2006</div>
       <div class="graf" style="bottom:9%;right:6%;font-size:16px;color:var(--pink2);text-shadow:0 0 8px var(--pink2);transform:rotate(-6deg)">never grow up</div>
-      <div class="flyer" style="top:19%;right:6%;transform:rotate(7deg)"><b>Ищу группу</b>барабанщик со своей чёлкой</div>
-      <div class="flyer dark" style="bottom:26%;right:5%;transform:rotate(-5deg)"><b>Концерт</b>в пятницу, гараж №3</div>
-      <div class="flyer" style="bottom:5%;left:6%;transform:rotate(-9deg)"><b>Mixtape</b>обменяю диск на кассету</div>
+      <div class="flyer" style="top:19%;right:6%;transform:rotate(7deg)"><b>Band wanted</b>drummer, own fringe a must</div>
+      <div class="flyer dark" style="bottom:26%;right:5%;transform:rotate(-5deg)"><b>Gig</b>Friday, garage #3</div>
+      <div class="flyer" style="bottom:5%;left:6%;transform:rotate(-9deg)"><b>Mixtape</b>will swap CD for a tape</div>
     </div>
-    <div class="logo neon">EMO<br>PARTY<small>найди пару</small></div>
-    <button class="btn" data-action="play">Играть</button>
-    <button class="btn alt" data-action="settings">Настройки</button>
+    <div class="logo neon">EMO<br>PARTY<small>find the pair</small></div>
+    <button class="btn" data-action="play">Play</button>
+    <button class="btn alt" data-action="settings">Settings</button>
     <div class="best" id="menuBest"></div>
   </section>
 
-  <!-- Игровое поле: доска объявлений -->
-  <section id="game" class="screen cork" aria-label="Игровое поле">
+  <!-- Game board: notice board -->
+  <section id="game" class="screen cork" aria-label="Game board">
     <div class="decor" aria-hidden="true">
-      <div class="note p" style="top:13%;left:4%;transform:rotate(-8deg)">Турнир по мемори</div>
-      <div class="note c" style="top:44%;right:3%;transform:rotate(6deg)">Игра недели</div>
-      <div class="note g" style="bottom:6%;left:8%;transform:rotate(5deg)">Не забудь зарядку для MP3</div>
+      <div class="note p" style="top:13%;left:4%;transform:rotate(-8deg)">Memory tournament</div>
+      <div class="note c" style="top:44%;right:3%;transform:rotate(6deg)">Game of the week</div>
+      <div class="note g" style="bottom:6%;left:8%;transform:rotate(5deg)">Don't forget the MP3 charger</div>
       <div class="polaroid-deco" style="bottom:10%;right:10%;transform:rotate(-10deg)"><i></i></div>
       <div class="polaroid-deco" style="top:52%;left:2%;transform:rotate(8deg)"><i></i></div>
     </div>
     <div class="hud">
-      <div class="stat"><span>Ходы</span><b id="moves">0</b></div>
-      <div class="stat"><span>Время</span><b id="time">00:00</b></div>
-      <button class="icon-btn" data-action="pause" aria-label="Пауза">II</button>
+      <div class="stat"><span>Moves</span><b id="moves">0</b></div>
+      <div class="stat"><span>Time</span><b id="time">00:00</b></div>
+      <button class="icon-btn" data-action="pause" aria-label="Pause">II</button>
     </div>
     <div id="board"></div>
 
-    <div id="pause" class="overlay" aria-label="Пауза">
-      <h2 class="neon">Пауза</h2>
-      <button class="btn" data-action="resume">Продолжить</button>
-      <button class="btn alt" data-action="restart">Заново</button>
-      <button class="btn alt" data-action="menu">В меню</button>
+    <div id="pause" class="overlay" aria-label="Pause">
+      <h2 class="neon">Paused</h2>
+      <button class="btn" data-action="resume">Resume</button>
+      <button class="btn alt" data-action="restart">Restart</button>
+      <button class="btn alt" data-action="menu">Menu</button>
     </div>
 
-    <div id="win" class="overlay" aria-label="Окно победы">
-      <h2 class="neon">Все пары найдены!</h2>
+    <div id="win" class="overlay" aria-label="Win screen">
+      <h2 class="neon">All pairs found!</h2>
       <div class="stars" id="stars"></div>
-      <div class="badge" id="badge">Новый рекорд!</div>
+      <div class="badge" id="badge">New record!</div>
       <div class="result" id="result"></div>
       <div class="best-line" id="bestLine"></div>
-      <button class="btn" data-action="restart">Играть снова</button>
-      <button class="btn alt" data-action="menu">В меню</button>
+      <button class="btn" data-action="restart">Play again</button>
+      <button class="btn alt" data-action="menu">Menu</button>
     </div>
   </section>
 
-  <!-- Настройки -->
-  <section id="settings" class="screen wall" aria-label="Настройки">
+  <!-- Settings -->
+  <section id="settings" class="screen wall" aria-label="Settings">
     <div class="top">
-      <button class="icon-btn" data-action="menu" aria-label="Назад">←</button>
-      <h2 class="neon">Настройки</h2>
+      <button class="icon-btn" data-action="menu" aria-label="Back">←</button>
+      <h2 class="neon">Settings</h2>
     </div>
-    <button class="toggle" data-toggle="sound">Звуки <i></i></button>
-    <button class="toggle" data-toggle="music">Музыка <i></i></button>
-    <button class="toggle" data-toggle="vibro">Вибрация <i></i></button>
-    <button class="toggle" data-action="rules">Правила игры <span class="chev">›</span></button>
-    <button class="btn alt reset" data-action="resetBest">Сбросить рекорд</button>
+    <button class="toggle" data-toggle="sound">Sound <i></i></button>
+    <button class="toggle" data-toggle="music">Music <i></i></button>
+    <button class="toggle" data-toggle="vibro">Vibration <i></i></button>
+    <button class="toggle" data-action="rules">How to play <span class="chev">›</span></button>
+    <button class="btn alt reset" data-action="resetBest">Reset record</button>
 
     <div id="rules" class="overlay" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
       <div class="rules-card">
-        <h2 class="neon" id="rulesTitle">Правила игры</h2>
+        <h2 class="neon" id="rulesTitle">How to play</h2>
         <ol>
-          <li>Нажми на карточку — она откроется.</li>
-          <li>Открой вторую: если картинки совпали, пара остаётся открытой.</li>
-          <li>Не совпали — запомни, где они лежат: карточки закроются.</li>
-          <li>Найди все 6 пар за наименьшее число ходов; ход — это две открытые карточки.</li>
-          <li>Звёзды: 3★ — до 9 ходов, 2★ — 10–13, 1★ — больше 13. Проиграть нельзя — можно только побить свой рекорд.</li>
+          <li>Tap a card to turn it over.</li>
+          <li>Turn over a second one: if the pictures match, the pair bursts into sparkles and vanishes.</li>
+          <li>No match? Remember where they are: the cards turn back over.</li>
+          <li>Find all 6 pairs in as few moves as you can; one move is two turned cards.</li>
+          <li>Stars: 3★ — up to 9 moves, 2★ — 10–13, 1★ — more than 13. You can't lose — only beat your record.</li>
         </ol>
-        <button class="btn" data-action="closeRules">Понятно</button>
+        <button class="btn" data-action="closeRules">Got it</button>
       </div>
     </div>
   </section>
 </div>
 
-<div id="rotate"><div class="ico">📱</div>Поверните телефон вертикально</div>
+<div id="rotate"><div class="ico">📱</div>Turn your phone upright</div>
 
 <script>
 'use strict';
 
-// ---------- Данные пар (как CardData в Unity): 6 карточек из GDD ----------
-const heart = (x, y, s, fill) =>
-  `<path transform="translate(${x} ${y}) scale(${s})" d="M0,6 L-6,0 A3.7,3.7 0 0 1 0,-4 A3.7,3.7 0 0 1 6,0 Z" fill="${fill}"/>`;
-const label = (text, color) =>
-  `<text x="50" y="123" text-anchor="middle" font-size="8.5" font-weight="800" letter-spacing=".6" fill="${color}">${text}</text>`;
-const O = 'stroke="#FCEBFF" stroke-width="2.4" stroke-linejoin="round"';
+// ---------- Pair data (like CardData in Unity): the 6 cards from the GDD ----------
 
 const CARDS = [
-  { id: 'EmoCat', color: '#FF2FB3', svg: `
-    <polygon points="22,50 29,20 45,40" fill="#1d1a24" ${O}/>
-    <polygon points="78,50 71,20 55,40" fill="#1d1a24" ${O}/>
-    <ellipse cx="50" cy="66" rx="34" ry="30" fill="#1d1a24" ${O}/>
-    <path d="M17,62 Q26,32 78,40 Q63,46 57,70 Q44,58 17,62Z" fill="#0e0c12" ${O}/>
-    <path d="M38,44 Q52,45 58,62" stroke="#FF2FB3" stroke-width="5" fill="none" stroke-linecap="round"/>
-    <ellipse cx="66" cy="69" rx="6" ry="6.5" fill="#39FF88"/><ellipse cx="66" cy="69" rx="1.8" ry="5" fill="#0e0c12"/>
-    <path d="M58,63 Q66,58 73,62 L77,59" stroke="#FCEBFF" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-    <path d="M47,79 L53,79 L50,83Z" fill="#FF2FB3"/>
-    <path d="M50,83 Q46,88 42,86 M50,83 Q54,88 58,86 M30,80 H16 M31,85 L18,89 M70,80 H84 M69,85 L82,89"
-      stroke="#FCEBFF" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-    ${label('ЭМО-КОТИК', '#FF2FB3')}` },
-
-  { id: 'EmoBear', color: '#FF7AD9', svg: `
-    <circle cx="26" cy="36" r="12" fill="#FF7AD9" ${O}/><circle cx="26" cy="36" r="5" fill="#15101C"/>
-    <circle cx="74" cy="36" r="12" fill="#FF7AD9" ${O}/><circle cx="74" cy="36" r="5" fill="#15101C"/>
-    <circle cx="50" cy="60" r="30" fill="#FF7AD9" ${O}/>
-    <path d="M22,54 Q30,28 74,36 Q61,42 55,60 Q42,50 22,54Z" fill="#15101C" ${O}/>
-    <circle cx="63" cy="60" r="4.2" fill="#15101C"/><circle cx="64.4" cy="58.6" r="1.3" fill="#fff"/>
-    <ellipse cx="50" cy="74" rx="13" ry="9.5" fill="#FFD3F0" ${O}/>
-    <ellipse cx="50" cy="70" rx="4.5" ry="3.2" fill="#15101C"/>
-    <path d="M50,73 V77 M50,77 Q46,80 43,78 M50,77 Q54,80 57,78" stroke="#15101C" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-    ${heart(32, 70, 0.75, '#9B5CFF')}
-    <path d="M27,67 l2,2 M35,66 l-1,2.5 M30,76 l1.5,-2" stroke="#FCEBFF" stroke-width="1" />
-    <rect x="22" y="88" width="56" height="12" rx="6" fill="#15101C" ${O}/>
-    <path d="M30,88 v12 M40,88 v12 M50,88 v12 M60,88 v12 M70,88 v12" stroke="#FF2FB3" stroke-width="5"/>
-    <rect x="60" y="96" width="10" height="16" rx="3" fill="#FF2FB3" ${O}/>
-    ${label('ЭМО-МИШКА', '#FF7AD9')}` },
-
-  { id: 'Polaroid', color: '#FF2FB3', svg: `
-    <rect x="29" y="70" width="42" height="38" rx="2" fill="#FCEBFF" stroke="#FF2FB3" stroke-width="2"/>
-    <rect x="33" y="80" width="34" height="22" fill="#15101C"/>
-    ${heart(50, 91, 1.05, '#FF2FB3')}
-    <rect x="14" y="26" width="72" height="50" rx="9" fill="#FF2FB3" ${O}/>
-    <rect x="14" y="26" width="72" height="13" rx="9" fill="#C8188A"/>
-    <rect x="14" y="33" width="72" height="6" fill="#C8188A"/>
-    <rect x="66" y="30" width="12" height="7" rx="2" fill="#FCEBFF"/>
-    <circle cx="25" cy="33" r="3" fill="#39FF88"/>
-    <circle cx="50" cy="56" r="15" fill="#15101C" ${O}/>
-    <circle cx="50" cy="56" r="7.5" fill="#2DE2E6"/><circle cx="46.5" cy="52.5" r="2.4" fill="#fff"/>
-    <rect x="22" y="74" width="56" height="3" rx="1.5" fill="#15101C"/>
-    ${label('ПОЛАРОИД', '#FF2FB3')}` },
-
-  { id: 'Mp3Player', color: '#2DE2E6', svg: `
-    <path d="M50,80 V88 C40,78 18,88 32,102 L50,112 L68,102 C82,88 60,78 50,88"
-      stroke="#FF2FB3" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-    <rect x="32" y="20" width="36" height="60" rx="7" fill="#2DE2E6" ${O}/>
-    <rect x="37" y="26" width="26" height="19" rx="2" fill="#15101C"/>
-    <path d="M41,41 v-4 M45,41 v-9 M49,41 v-6 M53,41 v-11 M57,41 v-5" stroke="#FF2FB3" stroke-width="2.4" stroke-linecap="round"/>
-    <circle cx="50" cy="63" r="11.5" fill="#FCEBFF"/><circle cx="50" cy="63" r="4.5" fill="#2DE2E6"/>
-    <path d="M50,53.5 v2.5 M50,70 v2.5 M40.5,63 h2.5 M57,63 h2.5" stroke="#15101C" stroke-width="1.6"/>
-    ${label('MP3-ПЛЕЕР', '#2DE2E6')}` },
-
-  { id: 'EnergyCan', color: '#9B5CFF', svg: `
-    <rect x="46" y="13" width="10" height="5" rx="2" fill="#D9D2E5"/>
-    <rect x="33" y="17" width="34" height="9" rx="3" fill="#D9D2E5" ${O}/>
-    <rect x="30" y="23" width="40" height="80" rx="8" fill="#9B5CFF" ${O}/>
-    <rect x="33" y="98" width="34" height="7" rx="3" fill="#D9D2E5" ${O}/>
-    <polygon points="55,33 37,65 49,65 43,92 64,56 52,56 59,33" fill="#39FF88" stroke="#15101C" stroke-width="2" stroke-linejoin="round"/>
-    <ellipse cx="37" cy="40" rx="1.6" ry="2.6" fill="#fff" opacity=".7"/>
-    <ellipse cx="63" cy="78" rx="1.6" ry="2.6" fill="#fff" opacity=".7"/>
-    <ellipse cx="36" cy="86" rx="1.3" ry="2.1" fill="#fff" opacity=".6"/>
-    ${label('ЭНЕРГЕТИК', '#9B5CFF')}` },
-
-  { id: 'BowSkull', color: '#FCEBFF', svg: `
-    <path d="M50,26 C28,26 20,42 22,57 C23,65 28,69 32,71 L32,84 L68,84 L68,71 C72,69 77,65 78,57 C80,42 72,26 50,26Z"
-      fill="#FCEBFF" stroke="#FF7AD9" stroke-width="2.4" stroke-linejoin="round"/>
-    ${heart(38, 55, 1.15, '#FF2FB3')}
-    ${heart(62, 55, 1.15, '#FF2FB3')}
-    <path d="M50,63 l-4,7 h8z" fill="#15101C"/>
-    <path d="M37,77 H63 M44,73 V84 M50,73 V84 M56,73 V84" stroke="#15101C" stroke-width="2"/>
-    <polygon points="66,27 52,16 54,36" fill="#FF2FB3" ${O}/>
-    <polygon points="66,27 80,16 79,36" fill="#FF2FB3" ${O}/>
-    <circle cx="66" cy="27" r="4.5" fill="#FF7AD9" ${O}/>
-    ${label('ЧЕРЕП С БАНТОМ', '#FCEBFF')}` },
+  { id: 'EmoCat', color: '#FF2FB3', img: 'emo_cat' },
+  { id: 'EmoBear', color: '#FF7AD9', img: 'emo_bear' },
+  { id: 'Polaroid', color: '#FF2FB3', img: 'polaroid' },
+  { id: 'Mp3Player', color: '#2DE2E6', img: 'mp3_player' },
+  { id: 'EnergyCan', color: '#9B5CFF', img: 'energy_drink' },
+  { id: 'BowSkull', color: '#FCEBFF', img: 'bow_skull' },
 ];
 
-const BACK_SVG = `<svg viewBox="0 0 60 60" aria-hidden="true">
-  <circle cx="30" cy="30" r="27" fill="#15101C" stroke="#FF2FB3" stroke-width="2.5"/>
-  <path transform="translate(30 31) scale(2.6)" d="M0,6 L-6,0 A3.7,3.7 0 0 1 0,-4 A3.7,3.7 0 0 1 6,0 Z" fill="#FF2FB3"/>
-  <polygon points="33,15 24,32 30,32 26,46 37,27 31,27 35,15" fill="#39FF88" stroke="#15101C" stroke-width="1.5" stroke-linejoin="round"/>
-</svg>`;
 
-// ---------- Настройки и рекорд (как PlayerPrefs) ----------
+// ---------- Images ----------
+// Every picture lives in images/<path>.svg. To replace one, edit that file or put <path>.png
+// next to it. At startup each image is picked in this order: .png, then .svg, then the
+// built-in copy below (used only when the files can't be read, e.g. in a sandboxed preview).
+const IMAGE_PATHS = {
+  emo_cat: 'cards/emo_cat',
+  emo_bear: 'cards/emo_bear',
+  polaroid: 'cards/polaroid',
+  mp3_player: 'cards/mp3_player',
+  energy_drink: 'cards/energy_drink',
+  bow_skull: 'cards/bow_skull',
+  card_back: 'cards/card_back',
+  menu_wall: 'backgrounds/menu_wall',
+  board_cork: 'backgrounds/board_cork',
+};
+// Built-in copies of the original SVGs (base64). Not used when the files above load.
+const BUILT_IN_IMAGES = {
+  emo_cat: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MDAiIGhlaWdodD0iMTIwMCIgdmlld0JveD0iMCAtMS42NjcgMTAwIDEzMy4zMzMiPg0KICA8cG9seWdvbiBwb2ludHM9IjIyLDUwIDI5LDIwIDQ1LDQwIiBmaWxsPSIjMWQxYTI0IiBzdHJva2U9IiNGQ0VCRkYiIHN0cm9rZS13aWR0aD0iMi40IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+DQogIDxwb2x5Z29uIHBvaW50cz0iNzgsNTAgNzEsMjAgNTUsNDAiIGZpbGw9IiMxZDFhMjQiIHN0cm9rZT0iI0ZDRUJGRiIgc3Ryb2tlLXdpZHRoPSIyLjQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4NCiAgPGVsbGlwc2UgY3g9IjUwIiBjeT0iNjYiIHJ4PSIzNCIgcnk9IjMwIiBmaWxsPSIjMWQxYTI0IiBzdHJva2U9IiNGQ0VCRkYiIHN0cm9rZS13aWR0aD0iMi40IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+DQogIDxwYXRoIGQ9Ik0xNyw2MiBRMjYsMzIgNzgsNDAgUTYzLDQ2IDU3LDcwIFE0NCw1OCAxNyw2MloiIGZpbGw9IiMwZTBjMTIiIHN0cm9rZT0iI0ZDRUJGRiIgc3Ryb2tlLXdpZHRoPSIyLjQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4NCiAgPHBhdGggZD0iTTM4LDQ0IFE1Miw0NSA1OCw2MiIgc3Ryb2tlPSIjRkYyRkIzIiBzdHJva2Utd2lkdGg9IjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KICA8ZWxsaXBzZSBjeD0iNjYiIGN5PSI2OSIgcng9IjYiIHJ5PSI2LjUiIGZpbGw9IiMzOUZGODgiLz48ZWxsaXBzZSBjeD0iNjYiIGN5PSI2OSIgcng9IjEuOCIgcnk9IjUiIGZpbGw9IiMwZTBjMTIiLz4NCiAgPHBhdGggZD0iTTU4LDYzIFE2Niw1OCA3Myw2MiBMNzcsNTkiIHN0cm9rZT0iI0ZDRUJGRiIgc3Ryb2tlLXdpZHRoPSIxLjgiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KICA8cGF0aCBkPSJNNDcsNzkgTDUzLDc5IEw1MCw4M1oiIGZpbGw9IiNGRjJGQjMiLz4NCiAgPHBhdGggZD0iTTUwLDgzIFE0Niw4OCA0Miw4NiBNNTAsODMgUTU0LDg4IDU4LDg2IE0zMCw4MCBIMTYgTTMxLDg1IEwxOCw4OSBNNzAsODAgSDg0IE02OSw4NSBMODIsODkiDQogIHN0cm9rZT0iI0ZDRUJGRiIgc3Ryb2tlLXdpZHRoPSIxLjUiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPg0KPC9zdmc+DQo=',
+  emo_bear: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MDAiIGhlaWdodD0iMTIwMCIgdmlld0JveD0iMCAtMS42NjcgMTAwIDEzMy4zMzMiPg0KICA8Y2lyY2xlIGN4PSIyNiIgY3k9IjM2IiByPSIxMiIgZmlsbD0iI0ZGN0FEOSIgc3Ryb2tlPSIjRkNFQkZGIiBzdHJva2Utd2lkdGg9IjIuNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjI2IiBjeT0iMzYiIHI9IjUiIGZpbGw9IiMxNTEwMUMiLz4NCiAgPGNpcmNsZSBjeD0iNzQiIGN5PSIzNiIgcj0iMTIiIGZpbGw9IiNGRjdBRDkiIHN0cm9rZT0iI0ZDRUJGRiIgc3Ryb2tlLXdpZHRoPSIyLjQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48Y2lyY2xlIGN4PSI3NCIgY3k9IjM2IiByPSI1IiBmaWxsPSIjMTUxMDFDIi8+DQogIDxjaXJjbGUgY3g9IjUwIiBjeT0iNjAiIHI9IjMwIiBmaWxsPSIjRkY3QUQ5IiBzdHJva2U9IiNGQ0VCRkYiIHN0cm9rZS13aWR0aD0iMi40IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+DQogIDxwYXRoIGQ9Ik0yMiw1NCBRMzAsMjggNzQsMzYgUTYxLDQyIDU1LDYwIFE0Miw1MCAyMiw1NFoiIGZpbGw9IiMxNTEwMUMiIHN0cm9rZT0iI0ZDRUJGRiIgc3Ryb2tlLXdpZHRoPSIyLjQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4NCiAgPGNpcmNsZSBjeD0iNjMiIGN5PSI2MCIgcj0iNC4yIiBmaWxsPSIjMTUxMDFDIi8+PGNpcmNsZSBjeD0iNjQuNCIgY3k9IjU4LjYiIHI9IjEuMyIgZmlsbD0iI2ZmZiIvPg0KICA8ZWxsaXBzZSBjeD0iNTAiIGN5PSI3NCIgcng9IjEzIiByeT0iOS41IiBmaWxsPSIjRkZEM0YwIiBzdHJva2U9IiNGQ0VCRkYiIHN0cm9rZS13aWR0aD0iMi40IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+DQogIDxlbGxpcHNlIGN4PSI1MCIgY3k9IjcwIiByeD0iNC41IiByeT0iMy4yIiBmaWxsPSIjMTUxMDFDIi8+DQogIDxwYXRoIGQ9Ik01MCw3MyBWNzcgTTUwLDc3IFE0Niw4MCA0Myw3OCBNNTAsNzcgUTU0LDgwIDU3LDc4IiBzdHJva2U9IiMxNTEwMUMiIHN0cm9rZS13aWR0aD0iMS42IiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4NCiAgPHBhdGggdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzIgNzApIHNjYWxlKDAuNzUpIiBkPSJNMCw2IEwtNiwwIEEzLjcsMy43IDAgMCAxIDAsLTQgQTMuNywzLjcgMCAwIDEgNiwwIFoiIGZpbGw9IiM5QjVDRkYiLz4NCiAgPHBhdGggZD0iTTI3LDY3IGwyLDIgTTM1LDY2IGwtMSwyLjUgTTMwLDc2IGwxLjUsLTIiIHN0cm9rZT0iI0ZDRUJGRiIgc3Ryb2tlLXdpZHRoPSIxIiAvPg0KICA8cmVjdCB4PSIyMiIgeT0iODgiIHdpZHRoPSI1NiIgaGVpZ2h0PSIxMiIgcng9IjYiIGZpbGw9IiMxNTEwMUMiIHN0cm9rZT0iI0ZDRUJGRiIgc3Ryb2tlLXdpZHRoPSIyLjQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4NCiAgPHBhdGggZD0iTTMwLDg4IHYxMiBNNDAsODggdjEyIE01MCw4OCB2MTIgTTYwLDg4IHYxMiBNNzAsODggdjEyIiBzdHJva2U9IiNGRjJGQjMiIHN0cm9rZS13aWR0aD0iNSIvPg0KICA8cmVjdCB4PSI2MCIgeT0iOTYiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxNiIgcng9IjMiIGZpbGw9IiNGRjJGQjMiIHN0cm9rZT0iI0ZDRUJGRiIgc3Ryb2tlLXdpZHRoPSIyLjQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4NCjwvc3ZnPg0K',
+  polaroid: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MDAiIGhlaWdodD0iMTIwMCIgdmlld0JveD0iMCAtMS42NjcgMTAwIDEzMy4zMzMiPg0KICA8cmVjdCB4PSIyOSIgeT0iNzAiIHdpZHRoPSI0MiIgaGVpZ2h0PSIzOCIgcng9IjIiIGZpbGw9IiNGQ0VCRkYiIHN0cm9rZT0iI0ZGMkZCMyIgc3Ryb2tlLXdpZHRoPSIyIi8+DQogIDxyZWN0IHg9IjMzIiB5PSI4MCIgd2lkdGg9IjM0IiBoZWlnaHQ9IjIyIiBmaWxsPSIjMTUxMDFDIi8+DQogIDxwYXRoIHRyYW5zZm9ybT0idHJhbnNsYXRlKDUwIDkxKSBzY2FsZSgxLjA1KSIgZD0iTTAsNiBMLTYsMCBBMy43LDMuNyAwIDAgMSAwLC00IEEzLjcsMy43IDAgMCAxIDYsMCBaIiBmaWxsPSIjRkYyRkIzIi8+DQogIDxyZWN0IHg9IjE0IiB5PSIyNiIgd2lkdGg9IjcyIiBoZWlnaHQ9IjUwIiByeD0iOSIgZmlsbD0iI0ZGMkZCMyIgc3Ryb2tlPSIjRkNFQkZGIiBzdHJva2Utd2lkdGg9IjIuNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPg0KICA8cmVjdCB4PSIxNCIgeT0iMjYiIHdpZHRoPSI3MiIgaGVpZ2h0PSIxMyIgcng9IjkiIGZpbGw9IiNDODE4OEEiLz4NCiAgPHJlY3QgeD0iMTQiIHk9IjMzIiB3aWR0aD0iNzIiIGhlaWdodD0iNiIgZmlsbD0iI0M4MTg4QSIvPg0KICA8cmVjdCB4PSI2NiIgeT0iMzAiIHdpZHRoPSIxMiIgaGVpZ2h0PSI3IiByeD0iMiIgZmlsbD0iI0ZDRUJGRiIvPg0KICA8Y2lyY2xlIGN4PSIyNSIgY3k9IjMzIiByPSIzIiBmaWxsPSIjMzlGRjg4Ii8+DQogIDxjaXJjbGUgY3g9IjUwIiBjeT0iNTYiIHI9IjE1IiBmaWxsPSIjMTUxMDFDIiBzdHJva2U9IiNGQ0VCRkYiIHN0cm9rZS13aWR0aD0iMi40IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+DQogIDxjaXJjbGUgY3g9IjUwIiBjeT0iNTYiIHI9IjcuNSIgZmlsbD0iIzJERTJFNiIvPjxjaXJjbGUgY3g9IjQ2LjUiIGN5PSI1Mi41IiByPSIyLjQiIGZpbGw9IiNmZmYiLz4NCiAgPHJlY3QgeD0iMjIiIHk9Ijc0IiB3aWR0aD0iNTYiIGhlaWdodD0iMyIgcng9IjEuNSIgZmlsbD0iIzE1MTAxQyIvPg0KPC9zdmc+DQo=',
+  mp3_player: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MDAiIGhlaWdodD0iMTIwMCIgdmlld0JveD0iMCAtMS42NjcgMTAwIDEzMy4zMzMiPg0KICA8cGF0aCBkPSJNNTAsODAgVjg4IEM0MCw3OCAxOCw4OCAzMiwxMDIgTDUwLDExMiBMNjgsMTAyIEM4Miw4OCA2MCw3OCA1MCw4OCINCiAgc3Ryb2tlPSIjRkYyRkIzIiBzdHJva2Utd2lkdGg9IjIuNiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+DQogIDxyZWN0IHg9IjMyIiB5PSIyMCIgd2lkdGg9IjM2IiBoZWlnaHQ9IjYwIiByeD0iNyIgZmlsbD0iIzJERTJFNiIgc3Ryb2tlPSIjRkNFQkZGIiBzdHJva2Utd2lkdGg9IjIuNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPg0KICA8cmVjdCB4PSIzNyIgeT0iMjYiIHdpZHRoPSIyNiIgaGVpZ2h0PSIxOSIgcng9IjIiIGZpbGw9IiMxNTEwMUMiLz4NCiAgPHBhdGggZD0iTTQxLDQxIHYtNCBNNDUsNDEgdi05IE00OSw0MSB2LTYgTTUzLDQxIHYtMTEgTTU3LDQxIHYtNSIgc3Ryb2tlPSIjRkYyRkIzIiBzdHJva2Utd2lkdGg9IjIuNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+DQogIDxjaXJjbGUgY3g9IjUwIiBjeT0iNjMiIHI9IjExLjUiIGZpbGw9IiNGQ0VCRkYiLz48Y2lyY2xlIGN4PSI1MCIgY3k9IjYzIiByPSI0LjUiIGZpbGw9IiMyREUyRTYiLz4NCiAgPHBhdGggZD0iTTUwLDUzLjUgdjIuNSBNNTAsNzAgdjIuNSBNNDAuNSw2MyBoMi41IE01Nyw2MyBoMi41IiBzdHJva2U9IiMxNTEwMUMiIHN0cm9rZS13aWR0aD0iMS42Ii8+DQo8L3N2Zz4NCg==',
+  energy_drink: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MDAiIGhlaWdodD0iMTIwMCIgdmlld0JveD0iMCAtMS42NjcgMTAwIDEzMy4zMzMiPg0KICA8cmVjdCB4PSI0NiIgeT0iMTMiIHdpZHRoPSIxMCIgaGVpZ2h0PSI1IiByeD0iMiIgZmlsbD0iI0Q5RDJFNSIvPg0KICA8cmVjdCB4PSIzMyIgeT0iMTciIHdpZHRoPSIzNCIgaGVpZ2h0PSI5IiByeD0iMyIgZmlsbD0iI0Q5RDJFNSIgc3Ryb2tlPSIjRkNFQkZGIiBzdHJva2Utd2lkdGg9IjIuNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPg0KICA8cmVjdCB4PSIzMCIgeT0iMjMiIHdpZHRoPSI0MCIgaGVpZ2h0PSI4MCIgcng9IjgiIGZpbGw9IiM5QjVDRkYiIHN0cm9rZT0iI0ZDRUJGRiIgc3Ryb2tlLXdpZHRoPSIyLjQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4NCiAgPHJlY3QgeD0iMzMiIHk9Ijk4IiB3aWR0aD0iMzQiIGhlaWdodD0iNyIgcng9IjMiIGZpbGw9IiNEOUQyRTUiIHN0cm9rZT0iI0ZDRUJGRiIgc3Ryb2tlLXdpZHRoPSIyLjQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4NCiAgPHBvbHlnb24gcG9pbnRzPSI1NSwzMyAzNyw2NSA0OSw2NSA0Myw5MiA2NCw1NiA1Miw1NiA1OSwzMyIgZmlsbD0iIzM5RkY4OCIgc3Ryb2tlPSIjMTUxMDFDIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4NCiAgPGVsbGlwc2UgY3g9IjM3IiBjeT0iNDAiIHJ4PSIxLjYiIHJ5PSIyLjYiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii43Ii8+DQogIDxlbGxpcHNlIGN4PSI2MyIgY3k9Ijc4IiByeD0iMS42IiByeT0iMi42IiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIuNyIvPg0KICA8ZWxsaXBzZSBjeD0iMzYiIGN5PSI4NiIgcng9IjEuMyIgcnk9IjIuMSIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjYiLz4NCjwvc3ZnPg0K',
+  bow_skull: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MDAiIGhlaWdodD0iMTIwMCIgdmlld0JveD0iMCAtMS42NjcgMTAwIDEzMy4zMzMiPg0KICA8cGF0aCBkPSJNNTAsMjYgQzI4LDI2IDIwLDQyIDIyLDU3IEMyMyw2NSAyOCw2OSAzMiw3MSBMMzIsODQgTDY4LDg0IEw2OCw3MSBDNzIsNjkgNzcsNjUgNzgsNTcgQzgwLDQyIDcyLDI2IDUwLDI2WiINCiAgZmlsbD0iI0ZDRUJGRiIgc3Ryb2tlPSIjRkY3QUQ5IiBzdHJva2Utd2lkdGg9IjIuNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPg0KICA8cGF0aCB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzOCA1NSkgc2NhbGUoMS4xNSkiIGQ9Ik0wLDYgTC02LDAgQTMuNywzLjcgMCAwIDEgMCwtNCBBMy43LDMuNyAwIDAgMSA2LDAgWiIgZmlsbD0iI0ZGMkZCMyIvPg0KICA8cGF0aCB0cmFuc2Zvcm09InRyYW5zbGF0ZSg2MiA1NSkgc2NhbGUoMS4xNSkiIGQ9Ik0wLDYgTC02LDAgQTMuNywzLjcgMCAwIDEgMCwtNCBBMy43LDMuNyAwIDAgMSA2LDAgWiIgZmlsbD0iI0ZGMkZCMyIvPg0KICA8cGF0aCBkPSJNNTAsNjMgbC00LDcgaDh6IiBmaWxsPSIjMTUxMDFDIi8+DQogIDxwYXRoIGQ9Ik0zNyw3NyBINjMgTTQ0LDczIFY4NCBNNTAsNzMgVjg0IE01Niw3MyBWODQiIHN0cm9rZT0iIzE1MTAxQyIgc3Ryb2tlLXdpZHRoPSIyIi8+DQogIDxwb2x5Z29uIHBvaW50cz0iNjYsMjcgNTIsMTYgNTQsMzYiIGZpbGw9IiNGRjJGQjMiIHN0cm9rZT0iI0ZDRUJGRiIgc3Ryb2tlLXdpZHRoPSIyLjQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4NCiAgPHBvbHlnb24gcG9pbnRzPSI2NiwyNyA4MCwxNiA3OSwzNiIgZmlsbD0iI0ZGMkZCMyIgc3Ryb2tlPSIjRkNFQkZGIiBzdHJva2Utd2lkdGg9IjIuNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPg0KICA8Y2lyY2xlIGN4PSI2NiIgY3k9IjI3IiByPSI0LjUiIGZpbGw9IiNGRjdBRDkiIHN0cm9rZT0iI0ZDRUJGRiIgc3Ryb2tlLXdpZHRoPSIyLjQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4NCjwvc3ZnPg0K',
+  card_back: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MDAiIGhlaWdodD0iMTIwMCIgdmlld0JveD0iMCAwIDMwMCA0MDAiPg0KICA8ZGVmcz4NCiAgICA8cGF0dGVybiBpZD0iY2hlY2siIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+DQogICAgICA8cmVjdCB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIGZpbGw9IiMxNTEwMUMiLz4NCiAgICAgIDxyZWN0IHdpZHRoPSIzMCIgaGVpZ2h0PSIzMCIgZmlsbD0iIzJhMTYzMCIvPg0KICAgICAgPHJlY3QgeD0iMzAiIHk9IjMwIiB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIGZpbGw9IiMyYTE2MzAiLz4NCiAgICA8L3BhdHRlcm4+DQogIDwvZGVmcz4NCiAgPHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSI0MDAiIGZpbGw9InVybCgjY2hlY2spIi8+DQogIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDYzIDExMykgc2NhbGUoMi45KSI+DQogICAgPGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMjciIGZpbGw9IiMxNTEwMUMiIHN0cm9rZT0iI0ZGMkZCMyIgc3Ryb2tlLXdpZHRoPSIyLjUiLz4NCiAgICA8cGF0aCB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMCAzMSkgc2NhbGUoMi42KSIgZD0iTTAsNiBMLTYsMCBBMy43LDMuNyAwIDAgMSAwLC00IEEzLjcsMy43IDAgMCAxIDYsMCBaIiBmaWxsPSIjRkYyRkIzIi8+DQogICAgPHBvbHlnb24gcG9pbnRzPSIzMywxNSAyNCwzMiAzMCwzMiAyNiw0NiAzNywyNyAzMSwyNyAzNSwxNSIgZmlsbD0iIzM5RkY4OCIgc3Ryb2tlPSIjMTUxMDFDIiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPg0KICA8L2c+DQo8L3N2Zz4NCg==',
+  menu_wall: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MDAiIGhlaWdodD0iMTk1MCIgdmlld0JveD0iMCAwIDkwMCAxOTUwIj4NCiAgPGRlZnM+DQogICAgPHBhdHRlcm4gaWQ9ImJyaWNrcyIgd2lkdGg9IjExMiIgaGVpZ2h0PSI1NiIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgcGF0dGVyblRyYW5zZm9ybT0ic2NhbGUoMi4yNSkiPg0KICAgICAgPHJlY3Qgd2lkdGg9IjExMiIgaGVpZ2h0PSI1NiIgZmlsbD0iIzMwMWYyYiIvPg0KICAgICAgPGcgZmlsbD0iIzQ3MmMzYyI+DQogICAgICAgIDxyZWN0IHg9IjIiIHk9IjIiIHdpZHRoPSI1MiIgaGVpZ2h0PSIyNCIgcng9IjIiLz48cmVjdCB4PSI1OCIgeT0iMiIgd2lkdGg9IjUyIiBoZWlnaHQ9IjI0IiByeD0iMiIvPg0KICAgICAgICA8cmVjdCB4PSItMjYiIHk9IjMwIiB3aWR0aD0iNTIiIGhlaWdodD0iMjQiIHJ4PSIyIi8+PHJlY3QgeD0iMzAiIHk9IjMwIiB3aWR0aD0iNTIiIGhlaWdodD0iMjQiIHJ4PSIyIi8+DQogICAgICAgIDxyZWN0IHg9Ijg2IiB5PSIzMCIgd2lkdGg9IjUyIiBoZWlnaHQ9IjI0IiByeD0iMiIvPg0KICAgICAgPC9nPg0KICAgIDwvcGF0dGVybj4NCiAgPC9kZWZzPg0KICA8cmVjdCB3aWR0aD0iOTAwIiBoZWlnaHQ9IjE5NTAiIGZpbGw9InVybCgjYnJpY2tzKSIvPg0KPC9zdmc+DQo=',
+  board_cork: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MDAiIGhlaWdodD0iMTk1MCIgdmlld0JveD0iMCAwIDkwMCAxOTUwIj4NCiAgPGRlZnM+DQogICAgPHBhdHRlcm4gaWQ9ImxpZ2h0IiB3aWR0aD0iNyIgaGVpZ2h0PSI3IiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIiBwYXR0ZXJuVHJhbnNmb3JtPSJzY2FsZSgyLjI1KSI+DQogICAgICA8Y2lyY2xlIGN4PSIyLjEiIGN5PSIyLjEiIHI9IjEuMiIgZmlsbD0iI2IwODY1NyIvPg0KICAgIDwvcGF0dGVybj4NCiAgICA8cGF0dGVybiBpZD0iZGFyayIgd2lkdGg9IjkiIGhlaWdodD0iOSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgcGF0dGVyblRyYW5zZm9ybT0ic2NhbGUoMi4yNSkiPg0KICAgICAgPGNpcmNsZSBjeD0iNi4zIiBjeT0iNi4zIiByPSIxLjMiIGZpbGw9IiM1ZTQxMjciLz4NCiAgICA8L3BhdHRlcm4+DQogIDwvZGVmcz4NCiAgPHJlY3Qgd2lkdGg9IjkwMCIgaGVpZ2h0PSIxOTUwIiBmaWxsPSIjOGE2NjQwIi8+DQogIDxyZWN0IHdpZHRoPSI5MDAiIGhlaWdodD0iMTk1MCIgZmlsbD0idXJsKCNsaWdodCkiLz4NCiAgPHJlY3Qgd2lkdGg9IjkwMCIgaGVpZ2h0PSIxOTUwIiBmaWxsPSJ1cmwoI2RhcmspIi8+DQo8L3N2Zz4NCg==',
+};
+const tryImage = (src) => new Promise((ok) => {
+  const img = new Image();
+  img.onload = () => ok(img.naturalWidth > 0);
+  img.onerror = () => ok(false);
+  img.src = src;
+});
+async function loadImages() {
+  await Promise.all(Object.entries(IMAGE_PATHS).map(async ([name, path]) => {
+    let src = BUILT_IN_IMAGES[name];
+    for (const ext of ['png', 'svg']) {
+      const file = `images/${path}.${ext}`;
+      if (await tryImage(file)) { src = file; break; }
+    }
+    document.documentElement.style.setProperty(`--img-${name}`, `url("${src}")`);
+  }));
+}
+loadImages();
+
+// ---------- Settings and record (like PlayerPrefs) ----------
 const STORE_KEY = 'emoParty.v1';
 const store = (() => {
   let data = { sound: true, music: true, vibro: true, bestMoves: null, bestTime: null };
-  try { Object.assign(data, JSON.parse(localStorage.getItem(STORE_KEY) || '{}')); } catch (e) { /* хранилище недоступно */ }
+  try { Object.assign(data, JSON.parse(localStorage.getItem(STORE_KEY) || '{}')); } catch (e) { /* storage unavailable */ }
   return {
     data,
-    save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch (e) { /* хранилище недоступно */ } },
+    save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch (e) { /* storage unavailable */ } },
   };
 })();
 
@@ -374,9 +366,9 @@ const fmt = (ms) => {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 };
 const bestText = () => store.data.bestMoves == null ? ''
-  : `Рекорд: ${store.data.bestMoves} ходов, ${fmt(store.data.bestTime)}`;
+  : `Record: ${store.data.bestMoves} moves, ${fmt(store.data.bestTime)}`;
 
-// ---------- Звук: синтез через Web Audio, без файлов ----------
+// ---------- Sound: synthesized with Web Audio, no files ----------
 const audio = (() => {
   let ctx = null, musicTimer = null, step = 0;
   const ensure = () => {
@@ -408,19 +400,19 @@ const audio = (() => {
     src.connect(f).connect(g).connect(c.destination); src.start(t);
   };
   const sfx = {
-    // переворот — щелчок затвора полароида
+    // flip: Polaroid shutter click
     flip() { noise(0, .045, .35); tone(1800, 0, .03, { type: 'square', vol: .05 }); noise(.06, .03, .2); },
-    // пара найдена — гитарный аккорд (ми мажор, «перебор»)
+    // pair found: guitar chord (E major, arpeggiated)
     match() { [164.8, 246.9, 329.6, 415.3, 493.9].forEach((f, i) => tone(f, i * .018, .7, { type: 'sawtooth', vol: .06, cutoff: 1900 })); },
-    // не совпала — мягкий низкий тон
+    // no match: soft low tone
     miss() { tone(170, 0, .32, { vol: .14, glide: 110 }); },
-    // победа — короткий поп-панк-рифф
+    // win: short pop-punk riff
     win() {
       [[329.6, .0], [392, .14], [440, .28], [493.9, .42], [440, .56], [587.3, .7], [659.3, .84]]
         .forEach(([f, t]) => { tone(f, t, .2, { type: 'square', vol: .07, cutoff: 2600 }); tone(f / 2, t, .2, { type: 'sawtooth', vol: .05, cutoff: 900 }); });
     },
   };
-  // фон — спокойная петля из четырёх аккордов: Em – C – G – D
+  // background: calm four-chord loop, Em – C – G – D
   const CHORDS = [[164.8, 196, 246.9], [130.8, 164.8, 196], [196, 246.9, 293.7], [146.8, 185, 220]];
   const playBar = () => {
     CHORDS[step % 4].forEach((f, i) => tone(f, i * .12, 1.9, { type: 'triangle', vol: .025, cutoff: 1200 }));
@@ -438,14 +430,14 @@ const audio = (() => {
 })();
 const vibrate = (ms) => { if (store.data.vibro && navigator.vibrate) navigator.vibrate(ms); };
 
-// ---------- Экраны ----------
+// ---------- Screens ----------
 function show(id) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === id));
   if (id === 'menu') $('#menuBest').textContent = bestText();
   if (id === 'game') requestAnimationFrame(fitBoard);
 }
 
-// ---------- Подгонка сетки 3 × 4 (как BoardFitter.cs) ----------
+// ---------- Fit the 3 × 4 grid (like BoardFitter.cs) ----------
 const COLS = 3, ROWS = 4, ASPECT = 0.75, GAP = 12;
 function fitBoard() {
   const board = $('#board');
@@ -459,18 +451,20 @@ function fitBoard() {
 }
 new ResizeObserver(fitBoard).observe($('#board'));
 
-// ---------- Правила игры (как GameManager.cs) ----------
+// ---------- Game rules (like FindepairBoard.cs) ----------
 const FLIP_MS = 250, MISMATCH_MS = 800, WIN_MS = 500;
 const game = { cards: [], first: null, second: null, locked: false, running: false, paused: false,
   moves: 0, matches: 0, elapsed: 0, last: 0, timer: null };
 
-function shuffle(a) { // Фишер — Йетс
+function shuffle(a) { // Fisher–Yates
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 }
 
 function newGame() {
   clearInterval(game.timer);
+  clearTimers();
+  $('#game').classList.remove('paused');
   $('#win').classList.remove('active');
   $('#pause').classList.remove('active');
   document.querySelectorAll('.confetti').forEach((c) => c.remove());
@@ -481,10 +475,10 @@ function newGame() {
   game.cards = deck.map((data) => {
     const el = document.createElement('button');
     el.className = 'card';
-    el.setAttribute('aria-label', 'Закрытая карточка');
+    el.setAttribute('aria-label', 'Face-down card');
     el.innerHTML = `<div class="inner">
-        <div class="face back">${BACK_SVG}</div>
-        <div class="face front" style="--c:${data.color}"><svg viewBox="0 0 100 130" aria-hidden="true">${data.svg}</svg></div>
+        <div class="face back"></div>
+        <div class="face front" style="--c:${data.color}; --face:var(--img-${data.img})"></div>
       </div>`;
     const card = { data, el, up: false, matched: false };
     el.addEventListener('click', () => onCardClick(card));
@@ -510,7 +504,7 @@ function updateHud() { $('#moves').textContent = game.moves; $('#time').textCont
 function flip(card, up) {
   card.up = up;
   card.el.classList.toggle('up', up);
-  card.el.setAttribute('aria-label', up ? card.data.id : 'Закрытая карточка');
+  card.el.setAttribute('aria-label', up ? card.data.id : 'Face-down card');
 }
 
 function onCardClick(card) {
@@ -534,13 +528,17 @@ function checkPair() {
     vibrate(40);
     game.matches++;
     game.first = game.second = null;
-    if (game.matches === CARDS.length) {
-      game.running = false;
+    const last = game.matches === CARDS.length;
+    if (last) {
+      game.running = false; // the clock stops on the last match
       tick();
-      setTimeout(win, WIN_MS);
     } else {
-      game.locked = false;
+      game.locked = false; // other cards can be turned while the pair waits to burst
     }
+    later(VANISH_DELAY_MS, () => {
+      vanish(first); vanish(second);
+      if (last) later(VANISH_MS + WIN_MS, win);
+    });
     return;
   }
   audio.play('miss');
@@ -551,7 +549,70 @@ function checkPair() {
   }, MISMATCH_MS);
 }
 
-// Звёзды из GDD: 3★ — до 9 ходов, 2★ — 10–13, 1★ — больше 13 (минимум — 6)
+// ---------- Pair vanish and sparkle burst ----------
+const VANISH_DELAY_MS = 1000, VANISH_MS = 250, SPARKS_PER_CARD = 16;
+const SPARK_COLORS = ['#FF4FC4', '#FF8FE0', '#FFC2F0', '#FF4FC4', '#FFFFFF'];
+
+// Game-time timers: they stop while paused; Restart and Menu cancel them
+const timers = new Set();
+function later(ms, fn) {
+  const t = { left: ms, start: performance.now(), id: 0, fn };
+  const run = () => { timers.delete(t); fn(); };
+  t.run = run;
+  if (!game.paused) t.id = setTimeout(run, ms);
+  timers.add(t);
+}
+function pauseTimers(p) {
+  const now = performance.now();
+  timers.forEach((t) => {
+    if (p) { clearTimeout(t.id); t.left -= now - t.start; }
+    else { t.start = now; t.id = setTimeout(t.run, Math.max(0, t.left)); }
+  });
+}
+function clearTimers() { timers.forEach((t) => clearTimeout(t.id)); timers.clear(); }
+
+function vanish(card) {
+  card.gone = true;
+  card.el.classList.add('gone');
+  card.el.disabled = true;
+  card.el.setAttribute('aria-label', 'Pair found');
+  sparkle(card.el);
+}
+
+function sparkle(el) {
+  const board = $('#board');
+  const b = board.getBoundingClientRect(), r = el.getBoundingClientRect();
+  const x = r.left - b.left + r.width / 2, y = r.top - b.top + r.height / 2;
+  const reach = r.width * 1.1;
+  const flash = document.createElement('span');
+  flash.className = 'spark-flash';
+  flash.style.left = `${x}px`;
+  flash.style.top = `${y}px`;
+  flash.style.width = flash.style.height = `${r.width * 1.3}px`;
+  flash.addEventListener('animationend', () => flash.remove());
+  board.appendChild(flash);
+  for (let i = 0; i < SPARKS_PER_CARD; i++) {
+    const s = document.createElement('span');
+    const angle = (i / SPARKS_PER_CARD) * Math.PI * 2 + Math.random() * .5;
+    const dist = reach * (.45 + Math.random() * .7);
+    const color = SPARK_COLORS[i % SPARK_COLORS.length];
+    s.className = 'spark';
+    s.textContent = '✦';
+    s.style.left = `${x}px`;
+    s.style.top = `${y}px`;
+    s.style.color = color;
+    s.style.textShadow = `0 0 2px #fff, 0 0 6px ${color}, 0 0 12px ${color}, 0 0 22px #FF2FB3, 0 0 34px #FF2FB3`;
+    s.style.fontSize = `${14 + Math.random() * 16}px`;
+    s.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+    s.style.setProperty('--dy', `${Math.sin(angle) * dist + reach * .25}px`); // slight downward "gravity"
+    s.style.setProperty('--rot', `${Math.random() * 360 - 180}deg`);
+    s.style.setProperty('--life', `${500 + Math.random() * 200}ms`);
+    s.addEventListener('animationend', () => s.remove());
+    board.appendChild(s);
+  }
+}
+
+// Stars from the GDD: 3★ up to 9 moves, 2★ 10–13, 1★ more than 13 (minimum is 6)
 const starsFor = (moves) => moves <= 9 ? 3 : moves <= 13 ? 2 : 1;
 
 function win() {
@@ -565,7 +626,7 @@ function win() {
 
   const n = starsFor(game.moves);
   $('#stars').innerHTML = [1, 2, 3].map((i) => `<span class="${i <= n ? 'on' : 'off'}">★</span>`).join('');
-  $('#result').innerHTML = `Ходов: <b>${game.moves}</b><br>Время: <b>${fmt(game.elapsed)}</b>`;
+  $('#result').innerHTML = `Moves: <b>${game.moves}</b><br>Time: <b>${fmt(game.elapsed)}</b>`;
   $('#bestLine').textContent = bestText();
   $('#badge').classList.toggle('show', isRecord);
   $('#win').classList.add('active');
@@ -589,24 +650,30 @@ function confetti() {
 }
 
 function setPaused(p) {
-  if (!game.running) return;
+  if (!game.running || game.paused === p) return;
   game.paused = p;
   game.last = performance.now();
+  pauseTimers(p);
+  $('#game').classList.toggle('paused', p);
   $('#pause').classList.toggle('active', p);
 }
 
-// ---------- Кнопки ----------
+// ---------- Buttons ----------
 const actions = {
   play: newGame,
   restart: newGame,
   settings: () => { renderToggles(); show('settings'); },
-  menu: () => { clearInterval(game.timer); game.running = false; $('#pause').classList.remove('active'); show('menu'); },
+  menu: () => {
+    clearInterval(game.timer); clearTimers(); game.running = false; game.paused = false;
+    document.querySelectorAll('.spark, .spark-flash').forEach((e) => e.remove());
+    $('#game').classList.remove('paused'); $('#pause').classList.remove('active'); show('menu');
+  },
   rules: () => $('#rules').classList.add('active'),
   closeRules: () => $('#rules').classList.remove('active'),
   pause: () => setPaused(true),
   resume: () => setPaused(false),
   resetBest: () => {
-    if (!confirm('Сбросить рекорд?')) return;
+    if (!confirm('Reset your record?')) return;
     store.data.bestMoves = store.data.bestTime = null; store.save();
   },
 };
@@ -625,10 +692,10 @@ document.addEventListener('click', (e) => {
     if (key === 'music') audio.music(store.data.music);
   }
 });
-// Свернули вкладку — ставим на паузу, как мобильная игра
+// Tab hidden: pause, like a mobile game
 document.addEventListener('visibilitychange', () => { if (document.hidden && game.running) setPaused(true); });
 
-// ---------- Заставка → меню ----------
+// ---------- Splash → menu ----------
 const toMenu = () => { if ($('#splash').classList.contains('active')) show('menu'); };
 $('#splash').addEventListener('click', toMenu);
 setTimeout(toMenu, 1500);
