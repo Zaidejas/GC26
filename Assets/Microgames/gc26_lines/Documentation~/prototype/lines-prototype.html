@@ -247,8 +247,8 @@ body {
 /* Screens */
 .view { position: absolute; inset: 0; }
 #screen-game .content { padding-top: 15cqw; }
-.topbar { position: absolute; top: 3.5cqw; left: 4cqw; right: 4cqw; display: flex; justify-content: space-between; z-index: 2; }
-#settings-menu { position: absolute; top: 3.5cqw; right: 4cqw; z-index: 2; padding: 0; }
+.topbar { position: absolute; top: 2.5cqw; left: 3cqw; right: 3cqw; display: flex; justify-content: space-between; z-index: 2; }
+#settings-menu { position: absolute; top: 2.5cqw; right: 3cqw; z-index: 2; padding: 0; }
 .icon-btn.gear { padding: 0; }
 .icon-btn.gear svg { width: 6cqw; height: 6cqw; }
 
@@ -295,7 +295,10 @@ body {
 .icon-btn.home { padding: 0; } /* the house is symmetric, so no nudge */
 .phone.forest .icon-btn.home, .phone.forest .icon-btn.gear { /* house and gear: just the icon, no ring or disc behind it */
   background: none; border-color: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none;
+  width: 12cqw; height: 12cqw; /* about 47 pt on a phone: Apple asks for at least 44 pt, Google for 48 dp */
 }
+.phone.forest .icon-btn.home svg { width: 7cqw; height: 7cqw; } /* about 27 pt */
+.phone.forest .icon-btn.gear svg { width: 7.6cqw; height: 7.6cqw; } /* a little larger: its thin teeth look smaller than the house */
 .icon-btn:focus-visible { outline: 0.7cqw solid var(--focus); outline-offset: 0.6cqw; }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 3cqw; }
 
@@ -316,6 +319,7 @@ body {
 
 .subview { display: flex; flex-direction: column; gap: 5cqw; padding: 3.5cqw 5cqw 7cqw; }
 .subhead { display: flex; align-items: center; gap: 4cqw; position: relative; }
+.subview .subhead { margin: -1cqw 0 0 -2cqw; } /* the house in exactly the same spot as on the game screen */
 /* L09 Timed mode. The Classic | Timed choice: two round badges (a mushroom, a stopwatch); the chosen one glows gold.
    On the menu it sits right above Continue; on the leaderboard it's the tabs, smaller, beside the house. */
 .mode-pick { display: flex; justify-content: center; }
