@@ -131,7 +131,8 @@ Longer lines are worth much more than short ones, which rewards the player for t
   - Only finished games count: a game abandoned with Reset or New game never reaches the leaderboard.
   - A game that ends with 0 points never goes on the leaderboard: the game-over pop-up then has no name field, only "Clear a line to get on the leaderboard." and two buttons, Menu and Play again.
   - **Ties:** the older score keeps its place. A new score must be higher than the 10th place to get in.
-  - After saving, the leaderboard says "New best score, Anna!", "You're #3, Anna!" or "120 points didn't make the top 10".
+  - A score that can't get in (10 scores already, and it isn't higher than the 10th) isn't asked for a name either: the game-over pop-up shows "Not enough for the top 10: 10th place has 340 points." (the goal for next time) and the same Menu and Play again buttons as a 0-point game. Nothing is saved.
+  - After saving, the leaderboard says "New best score, Anna!" or "You're #3, Anna!".
 - **Passing the best score during play** (task L04): the best is the top of the leaderboard (finished games only). When the score of the game in progress passes it, fireworks burst over the game screen (about 1.5 s of gold, turquoise, pink and lilac sparks), a glowing "New best!" appears in the middle of the board, and the "New record" sound and the "success" vibration play. Then a small glowing gold crown sits next to the score number, its middle level with the middle of the digits, for the rest of the game. It happens once per game; if Undo takes the score back below the best, the crown quietly disappears. A continued game that is already above the best shows the crown without fireworks. With no finished games yet there is no best, so nothing happens. (A plain "Best 412" number next to the score was tried and dropped.) If the same move also earns a puffball, "New best!" and the fireworks play first, and the puffball's message or tutorial follows about 2 seconds later, so they never cover each other.
 
 ## Preview modes
@@ -276,6 +277,7 @@ The game has four screens and four pop-ups (Pause, only in Timed mode, is the fo
 - **New game** starts right away when there's no unfinished game; otherwise it asks for confirmation first.
 - The game screen, How to play and Leaderboard all have the same house icon in the top-left corner (just the white icon, no ring or disc behind it). It returns to the main menu, except How to play opened from Settings during a game: there the button is a back arrow (←, "Back to the game") and returns to the game, so the icon always says where it goes (task L19). Leaving the game saves it, so Continue picks it up exactly where it was (Undo included).
 - How to play and Leaderboard have no title at the top, only the house button.
+- While a pop-up is open (game over, the Reset or New game question, Pause, Settings), its dim covers the whole screen, the house and the gear included: they can't be tapped until it closes.
 - On shorter screens (16:9) the leaderboard rows get a little shorter, so all 10 places fit without scrolling when it's opened from the menu. Right after a game the result line and Play again take some room, so the list may scroll a little; it opens on the game just finished.
 
 **Settings** (teacher's feedback, pulled forward from the later features)

@@ -235,7 +235,7 @@ body {
 .screen button.btn:focus-visible { outline: 0.7cqw solid var(--focus); outline-offset: 0.6cqw; }
 
 /* Pop-ups */
-.modal { position: absolute; inset: 0; background: rgba(58, 52, 44, 0.45); display: grid; place-items: center; }
+.modal { position: absolute; inset: 0; z-index: 3; background: rgba(58, 52, 44, 0.45); display: grid; place-items: center; } /* above the house and gear (2): they dim and can't be tapped */
 .card { background: #ffffff; width: 78cqw; border-radius: 5cqw; padding: 7cqw 6cqw 6cqw; text-align: center; box-shadow: 0 2cqw 6cqw rgba(0, 0, 0, 0.2); }
 .card h2 { font-family: var(--font-display); font-weight: 600; font-size: 7cqw; margin: 0 0 2cqw; }
 .card p { margin: 0 0 6cqw; font-size: 4.4cqw; color: var(--soft); }
@@ -769,7 +769,7 @@ body {
               </div>
             </form>
             <div class="zero" id="over-zero" hidden>
-              <p class="fine" data-i18n="zeroHint">Clear a line to get on the leaderboard.</p>
+              <p class="fine" id="over-hint">Clear a line to get on the leaderboard.</p>
               <div class="row">
                 <button type="button" class="btn" id="over-menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 3.8l8.5 7.2"/><path d="M5.8 9.6V19a1.2 1.2 0 0 0 1.2 1.2h3.4v-5.4h3.2v5.4H17a1.2 1.2 0 0 0 1.2-1.2V9.6"/></svg><span data-i18n="menuButton">Menu</span></button>
                 <button type="button" class="btn primary" id="over-again"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span data-i18n="playAgain">Play again</span></button>
@@ -1669,10 +1669,13 @@ body {
   function showOver() {
     $("#final").textContent = S.score;
     $("#over-note").textContent = S.noMoves ? t("noMovesNote") : t("finalScore"); // walled in by ice, not a full board
-    // 0 points never go on the leaderboard: no name to ask, just Menu or Play again.
-    const zero = S.score <= 0;
-    $("#over-form").hidden = zero; $("#over-zero").hidden = !zero;
-    if (zero) { S.pendingScore = null; save(); $("#over").hidden = false; Sound.play("gameOver"); buzz("gameOver"); return; }
+    // 0 points never go on the leaderboard, and neither does a score that can't beat 10th place (older scores win
+    // ties): no name to ask, just a line saying why (with 10th place's score as the goal), and Menu or Play again.
+    const list = loadScores(playMode());
+    const zero = S.score <= 0, short = !zero && list.length >= 10 && S.score <= list[9].score;
+    $("#over-form").hidden = zero || short; $("#over-zero").hidden = !(zero || short);
+    $("#over-hint").textContent = zero ? t("zeroHint") : short ? t("notTopHint", list[9].score) : "";
+    if (zero || short) { S.pendingScore = null; save(); $("#over").hidden = false; Sound.play("gameOver"); buzz("gameOver"); return; }
     S.pendingScore = S.score; save();
     $("#player-name").value = defaultName();
     $("#over").hidden = false;
@@ -1767,6 +1770,7 @@ body {
       pause: "Pause", paused: "Paused", pausedText: "The clock is stopped and the board is hidden.", resume: "Resume",
       frozen: "Frozen — can't move", frozenHint: "Make a line through it to break the ice",
       superName: "Puffball", superGot: "A puffball for you!", superGotText: "Tap it below the board to use it", superNothing: "Nothing to burst here",
+      notTopHint: (n) => "Not enough for the top 10: 10th place has " + n + (n === 1 ? " point." : " points."),
       superIn: (n) => "Puffball in " + n + (n === 1 ? " point" : " points"), superRule: "You get one every 200 points and can keep 2",
       aimTitle: "Where to burst?", aimText: "Tap another cell to move it, tap the lit spot to burst. The puffball button cancels.",
       coachRainbow: "A rainbow mushroom: it fits any line", coachIce: "Frozen: it can't move. Make a line through it to break the ice",
@@ -1798,6 +1802,7 @@ body {
       pause: "Пауза", paused: "Пауза", pausedText: "Часы остановлены, а поле скрыто.", resume: "Продолжить",
       frozen: "Замёрз — не двигается", frozenHint: "Собери через него линию, чтобы разбить лёд",
       superName: "Дождевик", superGot: "Тебе дождевик!", superGotText: "Нажми на него под полем, чтобы применить", superNothing: "Здесь нечего взрывать",
+      notTopHint: (n) => "Не хватило для топ-10: у 10-го места " + n + " " + (n % 10 === 1 && n % 100 !== 11 ? "очко." : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "очка." : "очков."),
       superIn: (n) => "Дождевик через " + n + " " + (n % 10 === 1 && n % 100 !== 11 ? "очко" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? "очка" : "очков"),
       superRule: "Он даётся каждые 200 очков, можно хранить 2",
       aimTitle: "Где взорвать?", aimText: "Нажми другую клетку, чтобы передвинуть; нажми на отмеченное место, чтобы взорвать. Кнопка дождевика — отмена.",
