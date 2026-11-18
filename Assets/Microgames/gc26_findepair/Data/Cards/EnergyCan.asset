@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc8e6bfaed685ed4d9edb89f4d325b37, type: 3}
+  m_Name: EnergyCan
+  m_EditorClassIdentifier: GC26.Findepair::GC26.Findepair.CardData
+  id: EnergyCan
+  displayName: Energy drink
+  front: {fileID: 21300000, guid: 974444e414891234591a642870703357, type: 3}
+  glow: {r: 0.60784316, g: 0.36078432, b: 1, a: 1}

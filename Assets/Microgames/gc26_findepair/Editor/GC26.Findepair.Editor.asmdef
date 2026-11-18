@@ -1,0 +1,12 @@
+{
+  "name": "GC26.Findepair.Editor",
+  "rootNamespace": "GC26.Findepair.Editor",
+  "references": [
+    "GC26.Findepair",
+    "GC26.Core"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "autoReferenced": false
+}

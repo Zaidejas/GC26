@@ -1,0 +1,7 @@
+{
+  "id": "gc26_findepair",
+  "title": "Emo Party",
+  "description": "Find 6 pairs of neon cards from the emo 2000s",
+  "entry_scene": "gc26_findepair_Main",
+  "authors": []
+}

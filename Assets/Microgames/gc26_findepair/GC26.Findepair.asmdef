@@ -1,0 +1,11 @@
+{
+  "name": "GC26.Findepair",
+  "rootNamespace": "GC26.Findepair",
+  "references": [
+    "GC26.Core",
+    "Unity.TextMeshPro",
+    "Unity.InputSystem",
+    "UnityEngine.UI"
+  ],
+  "autoReferenced": false
+}

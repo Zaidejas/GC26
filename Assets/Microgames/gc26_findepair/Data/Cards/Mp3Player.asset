@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc8e6bfaed685ed4d9edb89f4d325b37, type: 3}
+  m_Name: Mp3Player
+  m_EditorClassIdentifier: GC26.Findepair::GC26.Findepair.CardData
+  id: Mp3Player
+  displayName: MP3 player
+  front: {fileID: 21300000, guid: e7d17d8b69d41bd45b1af36577e1929e, type: 3}
+  glow: {r: 0.1764706, g: 0.8862745, b: 0.9019608, a: 1}
