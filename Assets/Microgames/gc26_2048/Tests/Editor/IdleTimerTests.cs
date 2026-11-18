@@ -5,9 +5,9 @@ namespace GC26._2048.Tests
     public class IdleTimerTests
     {
         [Test]
-        public void DefaultIntervalIsTenSeconds()
+        public void DefaultIntervalIsFifteenSeconds()
         {
-            Assert.AreEqual(10f, new IdleTimer().Interval);
+            Assert.AreEqual(15f, new IdleTimer().Interval);
         }
 
         [Test]

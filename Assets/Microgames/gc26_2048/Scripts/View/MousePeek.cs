@@ -10,12 +10,13 @@ namespace GC26._2048
     /// <summary>
     /// "The game is alive" hint: after <see cref="IdleTimer.DefaultInterval"/> seconds without input the mouse's face
     /// peeks in from a random edge of the frame, stays <see cref="ShowSeconds"/> s and hides again; repeats every
-    /// interval while the player stays idle. Any key, click or touch resets the timer and sends the mouse back.
+    /// interval while the player stays idle. Any key, click or touch resets the timer and sends the mouse back;
+    /// so does a move on the field (<see cref="Shoo"/>), so the mouse never hangs over a merge.
     /// Lives on a full-frame rect above everything else and never blocks clicks.
     /// </summary>
     public class MousePeek : MonoBehaviour
     {
-        public const float ShowSeconds = 2f;
+        public const float ShowSeconds = 3f;
         const float RiseSeconds = 0.35f, HideSeconds = 0.3f, QuickHideSeconds = 0.15f;
         const float FaceWidth = 300f;
         /// <summary>How far the cut-off bottom of the face stays behind the edge when fully out.</summary>
@@ -57,11 +58,17 @@ namespace GC26._2048
             if (face == null) return;
             if (PlayerActed())
             {
-                timer.Reset();
-                if (running != null && !hiding) Restart(Hide(QuickHideSeconds));
+                Shoo();
                 return;
             }
             if (timer.Tick(Time.unscaledDeltaTime) && running == null) Restart(Peek());
+        }
+
+        /// <summary>The player did something (a move started, a merge is coming): hide right away and count again.</summary>
+        public void Shoo()
+        {
+            timer.Reset();
+            if (running != null && !hiding) Restart(Hide(QuickHideSeconds));
         }
 
         static bool PlayerActed()

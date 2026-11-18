@@ -2,12 +2,12 @@ namespace GC26._2048
 {
     /// <summary>
     /// Counts time without player input. <see cref="Tick"/> returns true once per <see cref="Interval"/> seconds
-    /// of idling (at 10 s, 20 s, 30 s…); any input calls <see cref="Reset"/> and the count starts over.
+    /// of idling (at 15 s, 30 s, 45 s…); any input calls <see cref="Reset"/> and the count starts over.
     /// </summary>
     public sealed class IdleTimer
     {
         /// <summary>Seconds without input between two mouse peeks.</summary>
-        public const float DefaultInterval = 10f;
+        public const float DefaultInterval = 15f;
 
         public float Interval { get; }
         public float Idle { get; private set; }

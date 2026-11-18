@@ -33,6 +33,7 @@ namespace GC26._2048
         CheeseAudio sound;
         CheeseLocale loc;
         BoardView boardView;
+        MousePeek mousePeek;
 
         RectTransform frame, titleScreen, gameScreen, overlay;
         readonly Dictionary<string, RectTransform> sheets = new Dictionary<string, RectTransform>();
@@ -223,6 +224,7 @@ namespace GC26._2048
             var result = session.Move(dir);
             if (!result.Changed) return;
             lastScore = session.Score;
+            mousePeek.Shoo(); // a move (and its merges) starts: the mouse hides before its time is up
             sound.Play(CheeseSound.Rustle);
             boardView.Play(result, () => AfterMove(result));
         }
@@ -480,7 +482,8 @@ namespace GC26._2048
             overlay = BuildOverlay();
 
             // last child of the frame: above every screen and window, clipped by the frame's edges
-            CheeseUi.Rect("MousePeek", frame).Fill().gameObject.AddComponent<MousePeek>().Init(art.MouseFace);
+            mousePeek = CheeseUi.Rect("MousePeek", frame).Fill().gameObject.AddComponent<MousePeek>();
+            mousePeek.Init(art.MouseFace);
         }
 
         RectTransform BuildTitle()
