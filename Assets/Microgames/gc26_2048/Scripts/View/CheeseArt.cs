@@ -39,7 +39,9 @@ namespace GC26._2048
         };
 
         readonly Sprite[] items = new Sprite[CheeseRules.CheeseLevel + 1];
+        readonly Dictionary<string, Sprite> icons = new Dictionary<string, Sprite>();
         readonly List<Object> owned = new List<Object>();
+        readonly string gameId;
 
         /// <summary>Rounded box with a dark outline, 9-sliced; tint it with Image.color.</summary>
         public Sprite Box { get; }
@@ -49,6 +51,7 @@ namespace GC26._2048
 
         public CheeseArt(string gameId)
         {
+            this.gameId = gameId;
             for (int level = 1; level <= CheeseRules.CheeseLevel; level++)
                 items[level] = LoadSprite($"{gameId}/item_{level}");
             Mouse = LoadSprite($"{gameId}/mouse_hole");
@@ -57,6 +60,18 @@ namespace GC26._2048
         }
 
         public Sprite Item(int level) => level > 0 && level < items.Length ? items[level] : null;
+
+        /// <summary>Button icon from Resources/gc26_2048/icons/icon_&lt;name&gt; (play, plus, restart, rules, settings,
+        /// exit, home, menu, close, check, sound_on, sound_off, language).</summary>
+        public Sprite Icon(string name)
+        {
+            if (!icons.TryGetValue(name, out var sprite))
+            {
+                sprite = LoadSprite($"{gameId}/icons/icon_{name}");
+                icons[name] = sprite;
+            }
+            return sprite;
+        }
 
         public static Color TileColor(int level) => TileColors[Mathf.Clamp(level, 0, TileColors.Length - 1)];
 

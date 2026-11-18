@@ -147,9 +147,26 @@ namespace GC26._2048
 
         TextMeshProUGUI Bind(TextMeshProUGUI label, string key) => Bind(label, () => loc[key]);
 
+        // Button text key → icon, so every button with the same meaning shows the same picture.
+        static readonly Dictionary<string, string> ButtonIcons = new Dictionary<string, string>
+        {
+            ["play"] = "play", ["continue"] = "play", ["resume"] = "play",
+            ["new_game"] = "plus",
+            ["restart"] = "restart", ["confirm_yes"] = "restart",
+            ["rules"] = "rules",
+            ["settings"] = "settings",
+            ["exit"] = "exit",
+            ["main_menu"] = "home",
+            ["menu"] = "menu",
+            ["close"] = "close", ["cancel"] = "close",
+            ["got_it"] = "check",
+        };
+
+        Sprite IconFor(string key) => ButtonIcons.TryGetValue(key, out var name) ? art.Icon(name) : null;
+
         Button LocButton(Transform parent, string key, bool primary, Action onClick, float fontSize = 46f)
         {
-            var b = CheeseUi.Button(parent, loc[key], primary, art, onClick, fontSize);
+            var b = CheeseUi.Button(parent, loc[key], primary, art, onClick, fontSize, IconFor(key));
             Bind(b.GetComponentInChildren<TextMeshProUGUI>(), key);
             return b;
         }
@@ -262,6 +279,7 @@ namespace GC26._2048
             bool hasGame = storage.HasGame;
             continueButton.gameObject.SetActive(hasGame);
             playButton.SetText(loc[hasGame ? "new_game" : "play"]);
+            playButton.SetIcon(IconFor(hasGame ? "new_game" : "play"));
             playButton.SetPrimary(!hasGame);
             menuBestText.text = storage.Best.ToString();
             int bestLevel = storage.BestLevel;
@@ -351,8 +369,11 @@ namespace GC26._2048
         {
             settingsReturn = from;
             soundButton.SetPrimary(sound.Enabled);
+            soundButton.SetIcon(SoundIcon());
             Show(Settings);
         }
+
+        Sprite SoundIcon() => art.Icon(sound.Enabled ? "sound_on" : "sound_off");
 
         void OpenRules(string from)
         {
@@ -366,6 +387,7 @@ namespace GC26._2048
             storage.Sound = sound.Enabled;
             soundButton.SetText(loc[sound.Enabled ? "on" : "off"]);
             soundButton.SetPrimary(sound.Enabled);
+            soundButton.SetIcon(SoundIcon());
             if (sound.Enabled) sound.Play(CheeseSound.Chime, 3);
         }
 
@@ -485,7 +507,7 @@ namespace GC26._2048
             continueButton = LocButton(s, "continue", true, () => { sound.Play(CheeseSound.Chime, 2); ContinueGame(); }, 56f);
             ((RectTransform)continueButton.transform).Place(0.06f, 0.655f, 0.94f, 0.72f);
             // its text switches between "Play" and "New game" in RefreshTitle
-            playButton = CheeseUi.Button(s, loc["play"], true, art, () => { sound.Play(CheeseSound.Chime, 2); NewGame(); }, 56f);
+            playButton = CheeseUi.Button(s, loc["play"], true, art, () => { sound.Play(CheeseSound.Chime, 2); NewGame(); }, 56f, IconFor("play"));
             ((RectTransform)playButton.transform).Place(0.06f, 0.737f, 0.94f, 0.802f);
 
             var row = CheeseUi.Rect("Row", s).Place(0.06f, 0.82f, 0.94f, 0.872f);
@@ -567,8 +589,8 @@ namespace GC26._2048
             Btn(pause, "main_menu", false, ShowTitle);
 
             var settings = Sheet(o, Settings, "settings");
-            soundButton = SettingRow(settings, "sound", () => loc[sound.Enabled ? "on" : "off"], ToggleSound);
-            SettingRow(settings, "language", () => loc["language_name"], SwitchLanguage);
+            soundButton = SettingRow(settings, "sound", () => loc[sound.Enabled ? "on" : "off"], ToggleSound, SoundIcon());
+            SettingRow(settings, "language", () => loc["language_name"], SwitchLanguage, art.Icon("language"));
             Btn(settings, "rules", false, () => OpenRules(Settings));
             Btn(settings, "close", true, () => Show(settingsReturn));
             Bind(CheeseUi.Label(settings, "", 30f, CheeseArt.InkDim, TextAlignmentOptions.Center),
@@ -675,14 +697,14 @@ namespace GC26._2048
             LocButton(sheet, key, primary, onClick).Size(124f);
 
         /// <summary>"Caption ........ [value button]" row in Settings; the button shows the current value.</summary>
-        Button SettingRow(Transform sheet, string captionKey, Func<string> value, Action onClick)
+        Button SettingRow(Transform sheet, string captionKey, Func<string> value, Action onClick, Sprite icon)
         {
             var row = CheeseUi.Rect(captionKey, sheet);
             var h = CheeseUi.RowGroup(row.gameObject, 20f);
             h.childForceExpandWidth = false;
             row.Size(120f);
             Bind(CheeseUi.Label(row, "", 48f, CheeseArt.Ink, TextAlignmentOptions.Left, true), captionKey).Size(120f, -1f, 1f);
-            var button = CheeseUi.Button(row, value(), true, art, onClick);
+            var button = CheeseUi.Button(row, value(), true, art, onClick, 46f, icon);
             Bind(button.GetComponentInChildren<TextMeshProUGUI>(), value);
             button.Size(120f, 300f, 0f);
             return button;

@@ -71,7 +71,9 @@ namespace GC26._2048
             return t;
         }
 
-        public static Button Button(Transform parent, string text, bool primary, CheeseArt art, Action onClick, float fontSize = 46f)
+        /// <summary>Rounded button; with an <paramref name="icon"/> the icon sits left of the text, both centred.</summary>
+        public static Button Button(Transform parent, string text, bool primary, CheeseArt art, Action onClick,
+            float fontSize = 46f, Sprite icon = null)
         {
             var img = Box(parent, text, art.Box, primary ? (Color)CheeseArt.Cheese : CheeseArt.Panel, true);
             img.raycastTarget = true;
@@ -80,14 +82,40 @@ namespace GC26._2048
             colors.pressedColor = new Color(0.85f, 0.85f, 0.85f);
             button.colors = colors;
             button.onClick.AddListener(() => onClick());
-            var label = Label(img.transform, text, fontSize, CheeseArt.Ink, TextAlignmentOptions.Center, true);
-            label.rectTransform.Fill();
-            label.textWrappingMode = TextWrappingModes.NoWrap;
+
+            if (icon == null)
+            {
+                var label = Label(img.transform, text, fontSize, CheeseArt.Ink, TextAlignmentOptions.Center, true);
+                label.rectTransform.Fill();
+                label.textWrappingMode = TextWrappingModes.NoWrap;
+                return button;
+            }
+
+            var content = Rect("Content", img.transform).Fill();
+            var row = content.gameObject.AddComponent<HorizontalLayoutGroup>();
+            row.childAlignment = TextAnchor.MiddleCenter;
+            row.spacing = fontSize * 0.3f;
+            row.childControlWidth = true;
+            row.childControlHeight = true;
+            row.childForceExpandWidth = false;
+            row.childForceExpandHeight = false;
+            var pic = Picture(content, "Icon", icon);
+            var le = pic.gameObject.AddComponent<LayoutElement>();
+            le.preferredWidth = le.preferredHeight = le.minWidth = le.minHeight = fontSize * 1.2f;
+            var text2 = Label(content, text, fontSize, CheeseArt.Ink, TextAlignmentOptions.Center, true);
+            text2.textWrappingMode = TextWrappingModes.NoWrap;
             return button;
         }
 
         public static void SetText(this Button button, string text) =>
             button.GetComponentInChildren<TextMeshProUGUI>().text = text;
+
+        /// <summary>Changes the icon of a button made with an icon (no effect on a text-only button).</summary>
+        public static void SetIcon(this Button button, Sprite icon)
+        {
+            var t = button.transform.Find("Content/Icon");
+            if (t != null) t.GetComponent<Image>().sprite = icon;
+        }
 
         public static void SetPrimary(this Button button, bool primary) =>
             button.GetComponent<Image>().color = primary ? (Color)CheeseArt.Cheese : CheeseArt.Panel;
