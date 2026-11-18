@@ -62,7 +62,11 @@ namespace GC26._2048
             ["chain_first"] = new[] { "appears on the field", "появляется на поле" },
             ["chain_to_hole"] = new[] { " → the mouse takes it home", " → мышка уносит в норку" },
             ["confirm_title"] = new[] { "Start over?", "Начать заново?" },
-            ["confirm_text"] = new[] { "Your current game will be lost.", "Текущая партия будет потеряна." },
+            ["confirm_text"] = new[]
+            {
+                "Your current game will be lost.\nAll points scored in this game will be lost.",
+                "Текущая партия будет потеряна.\nВсе набранные в партии очки будут потеряны."
+            },
             ["confirm_yes"] = new[] { "Start a new game", "Начать новую партию" },
             ["cancel"] = new[] { "Cancel", "Отмена" },
             ["out_of_moves"] = new[] { "Out of moves", "Ходы закончились" },
