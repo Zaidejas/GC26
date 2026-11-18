@@ -31,6 +31,7 @@ In Unity: **GC26 → Minesweeper → Version → Bump Version...** — describe 
 
 | Version | Changes |
 |---|---|
+| 0.3.0 | "Are you sure you want to leave and lose your progress?" before restart, Change level, Exit to menu or Back during a game in progress |
 | 0.2.2 | Class rules (tools/): tutorial state is no longer static (rule 6), docs moved into the game folder as `Docs~/` (rule 1), branch `game/gc26_minesweeper` |
 | 0.2.1 | About 4% of boards need a guess again, on every level (MinesweeperBoard.GuessChance); measured 3.9% |
 | 0.2.0 | No-guess boards: every board can be solved by logic from the first tap (MinesweeperSolver). Before: 11.5% / 33.8% / 89.3% of Beginner / Intermediate / Expert boards needed a guess |

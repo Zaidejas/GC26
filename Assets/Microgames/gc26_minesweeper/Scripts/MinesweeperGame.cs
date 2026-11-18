@@ -47,7 +47,9 @@ namespace GC26.Minesweeper
 
         // ---- UI references
         Canvas canvas;
-        GameObject menuScreen, gameScreen, tutorialBox, endPanel, helpOverlay, pauseOverlay;
+        GameObject menuScreen, gameScreen, tutorialBox, endPanel, helpOverlay, pauseOverlay, confirmOverlay;
+        Text confirmTitle, confirmYesLabel;
+        Action confirmYes;                      // what "Yes" does in the "Are you sure?" dialog
         readonly List<Text> levelLabels = new List<Text>();
         RectTransform boardArea, boardRect, highlightFrame;
         GridLayoutGroup grid;
@@ -69,7 +71,8 @@ namespace GC26.Minesweeper
 
         bool IsOver => state == MinesweeperState.Won || state == MinesweeperState.Lost;
         bool InGame => gameScreen != null && gameScreen.activeSelf;
-        bool OverlayOpen => (helpOverlay != null && helpOverlay.activeSelf) || (pauseOverlay != null && pauseOverlay.activeSelf);
+        bool OverlayOpen => (helpOverlay != null && helpOverlay.activeSelf) || (pauseOverlay != null && pauseOverlay.activeSelf)
+                            || (confirmOverlay != null && confirmOverlay.activeSelf);
 
         // =====================================================================
         // Connection to the GC26 shell
@@ -151,11 +154,46 @@ namespace GC26.Minesweeper
         // Android Back / Escape: close a pop-up first, then game -> level screen -> exit.
         void OnBack()
         {
+            if (confirmOverlay.activeSelf) { ConfirmNo(); return; }       // Back = "Keep playing"
             if (helpOverlay.activeSelf) { HideHelp(); return; }
             if (pauseOverlay.activeSelf) { pauseOverlay.SetActive(false); return; }
-            if (InGame) { ShowMenu(); return; }
+            if (InGame) { ConfirmIfGameInProgress("Are you sure you want to leave and lose your progress?", "Leave", ShowMenu); return; }
             ExitToMenu(0);
         }
+
+        // =====================================================================
+        // "Are you sure?" (GDD 6.7): before anything that throws away a game in progress
+        // =====================================================================
+
+        // A game is in progress once the first cell is opened and until it is won or lost.
+        // Without one (no tap yet, or the round is over) there is nothing to lose, so the action runs at once.
+        void ConfirmIfGameInProgress(string question, string yesLabel, Action onYes)
+        {
+            pauseOverlay.SetActive(false);
+            if (!InGame || state != MinesweeperState.Playing) { onYes(); return; }
+            SetPressedCell(null);
+            confirmTitle.text = question;
+            confirmYesLabel.text = yesLabel;
+            confirmYes = onYes;
+            confirmOverlay.SetActive(true);
+        }
+
+        void ConfirmYes()
+        {
+            Action action = confirmYes;
+            confirmYes = null;
+            confirmOverlay.SetActive(false);
+            action?.Invoke();
+        }
+
+        void ConfirmNo()
+        {
+            confirmYes = null;
+            confirmOverlay.SetActive(false);     // back to the same game; the timer continues
+        }
+
+        void RequestNewRound() =>
+            ConfirmIfGameInProgress("Are you sure you want to start a new game and lose your progress?", "New game", NewRound);
 
         // =====================================================================
         // Screens
@@ -166,6 +204,7 @@ namespace GC26.Minesweeper
             EndTutorial();
             helpOverlay.SetActive(false);
             pauseOverlay.SetActive(false);
+            confirmOverlay.SetActive(false);
             endPanel.SetActive(false);
             gameScreen.SetActive(false);
             ClearBoard();
@@ -509,6 +548,7 @@ namespace GC26.Minesweeper
             BuildVersionLabel(app);       // before the pop-ups, so they dim it too
             BuildHelp(app);
             BuildPause(app);
+            BuildConfirm(app);            // last, so it draws on top of everything
         }
 
         // Level screen (the first screen): title, three levels with best times, Exit.
@@ -576,7 +616,7 @@ namespace GC26.Minesweeper
             Button menuButton = MakeIconButton(top, "Pause", sprites.MenuIcon, ShowPause, out _);
             Layout(menuButton, w: 130);
             counterText = MakeDigits(top, "Counter");
-            Button faceButton = MakeIconButton(top, "Face", sprites.FaceSmile, NewRound, out faceImage);
+            Button faceButton = MakeIconButton(top, "Face", sprites.FaceSmile, RequestNewRound, out faceImage);
             Layout(faceButton, w: 150);
             timerText = MakeDigits(top, "Timer");
             Button helpButton = MakeButton(top, "Help", "?", 72, ButtonColor, TextColor, ShowHelp, out _);
@@ -722,9 +762,22 @@ namespace GC26.Minesweeper
             RectTransform dialog = MakeOverlay(app, "Pause", out pauseOverlay, closeOnTap: false);
             AddText(NewRect("Title", dialog), "Paused", 64, TextColor, FontStyle.Bold);
             Layout(MakeButton(dialog, "Resume", "Resume", 50, YellowColor, DarkText, () => pauseOverlay.SetActive(false), out _), h: 130);
-            Layout(MakeButton(dialog, "ChangeLevel", "Change level", 50, ButtonColor, TextColor, ShowMenu, out _), h: 130);
-            Layout(MakeButton(dialog, "ExitToMenu", "Exit to menu", 50, ButtonColor, TextColor, () => ExitToMenu(0), out _), h: 130);
+            Layout(MakeButton(dialog, "ChangeLevel", "Change level", 50, ButtonColor, TextColor,
+                () => ConfirmIfGameInProgress("Are you sure you want to change the level and lose your progress?", "Change level", ShowMenu), out _), h: 130);
+            Layout(MakeButton(dialog, "ExitToMenu", "Exit to menu", 50, ButtonColor, TextColor,
+                () => ConfirmIfGameInProgress("Are you sure you want to leave and lose your progress?", "Exit to menu", () => ExitToMenu(0)), out _), h: 130);
             pauseOverlay.SetActive(false);
+        }
+
+        // "Are you sure?" dialog. Only its buttons close it, so a stray tap can't decide for the player.
+        // "Keep playing" is the big yellow button: the safe choice is the easy one.
+        void BuildConfirm(RectTransform app)
+        {
+            RectTransform dialog = MakeOverlay(app, "Confirm", out confirmOverlay, closeOnTap: false);
+            confirmTitle = AddText(NewRect("Question", dialog), "", 52, TextColor, FontStyle.Bold);
+            Layout(MakeButton(dialog, "KeepPlaying", "Keep playing", 50, YellowColor, DarkText, ConfirmNo, out _), h: 130);
+            Layout(MakeButton(dialog, "Yes", "", 50, RedColor, Color.white, ConfirmYes, out confirmYesLabel), h: 130);
+            confirmOverlay.SetActive(false);
         }
 
         // ---- small UI helpers
@@ -906,10 +959,25 @@ namespace GC26.Minesweeper
                 OnLongPress(safe.Value.x, safe.Value.y);
                 log.Add($"long press placed a yellow flag: {board.GetCell(safe.Value.x, safe.Value.y).IsFlagged}, counter {counterText.text}");
             }
+
+            // Restart during a game must ask first; "Keep playing" keeps everything.
+            RequestNewRound();
+            yield return null;
+            log.Add($"restart during a game asks first: {confirmOverlay.activeSelf} ('{confirmTitle.text}')");
+            yield return Screenshot(folder, "5a_confirm");
+            ConfirmNo();
+            log.Add($"after 'Keep playing': state {state}, yellow flag kept {(safe.HasValue && board.GetCell(safe.Value.x, safe.Value.y).IsFlagged)}");
+            ShowPause();
+            ConfirmIfGameInProgress("Are you sure you want to leave and lose your progress?", "Exit to menu", () => log.Add("ERROR: left without asking"));
+            log.Add($"pause -> Exit to menu asks first: {confirmOverlay.activeSelf}, pause closed: {!pauseOverlay.activeSelf}");
+            ConfirmNo();
             OnTap(mine.Value.x, mine.Value.y);
             yield return null; yield return null;
             log.Add($"after tapping a red flag: state {state}, panel '{endTitle.text}', line '{endLine.text}'");
             yield return Screenshot(folder, "5_loss");
+            bool ranAtOnce = false;
+            ConfirmIfGameInProgress("test", "Yes", () => ranAtOnce = true);
+            log.Add($"after the round is over, leaving doesn't ask: {ranAtOnce && !confirmOverlay.activeSelf}");
 
             ShowPause();
             yield return null;

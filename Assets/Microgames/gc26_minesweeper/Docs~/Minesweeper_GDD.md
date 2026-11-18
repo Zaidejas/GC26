@@ -188,10 +188,10 @@ Rules for flags:
 | Finger held on the board | — | Tile looks pressed; face changes to 😮 |
 | One-finger drag | Board | Pan the view |
 | Two-finger pinch | Board | Zoom in or out |
-| Tap face button | Top bar | Restart with the same difficulty |
+| Tap face button | Top bar | Restart with the same difficulty (asks first during a game in progress, 6.7) |
 | Tap **?** button | Top bar (right) | Open the "How to play" pop-up; OK or a tap anywhere closes it |
 | Tap ⛏/🚩 button | Bottom bar | Switch between reveal and flag mode |
-| Tap Menu button / Android **Back** | Game screen | Back to the main menu |
+| Tap Menu button / Android **Back** | Game screen | Back to the main menu (asks first during a game in progress, 6.7) |
 | Android **Back** | Main menu | Close the app |
 
 All buttons are at least 48 dp (about 9 mm) so they're easy to hit with a thumb. The flag-mode button is at the bottom, within thumb reach.
@@ -386,6 +386,20 @@ Opened any time during a game with the **?** button at the right end of the top 
 - Android **Back** closes the pop-up first; a second Back goes to the menu.
 - The pop-up doesn't change the round in any way and can be opened as often as the player wants, also during the tutorial or after the round ends.
 
+### 6.7 "Are you sure?" before losing progress
+Anything that would throw away a **game in progress** asks first. A game is in progress from the first opened cell until the round is won or lost; before the first tap, or after the round ends, there is nothing to lose and the action happens at once.
+
+| Action | Question | "Yes" button |
+|---|---|---|
+| Face button (restart) | Are you sure you want to start a new game and lose your progress? | New game |
+| Pause → Change level | Are you sure you want to change the level and lose your progress? | Change level |
+| Pause → Exit to menu | Are you sure you want to leave and lose your progress? | Exit to menu |
+| Android Back / Escape in the game | Are you sure you want to leave and lose your progress? | Leave |
+
+- Two buttons: **Keep playing** (big, yellow, on top: the safe choice) and the red "Yes" button.
+- Only the buttons close it; a tap next to the dialog does nothing, so a stray tap can't decide for the player. Android Back means **Keep playing**.
+- **Keep playing** returns to the same game exactly as it was. The timer is paused while the question is shown.
+
 ## 7. Feedback: audio, vibration and visuals
 
 | Event | Visual | Sound | Vibration |
@@ -440,6 +454,8 @@ No account, internet connection or special permissions are needed. Uninstalling 
 | App closed and opened again | The tutorial shows again in the first game |
 | Player taps the board area to close "How to play" | The pop-up closes; no cell is opened or flagged |
 | Android Back while "How to play" is open | The pop-up closes; the game stays open |
+| Restart, Change level, Exit or Back before the first tap, or after a win or loss | Happens at once, no question (nothing to lose) |
+| Android Back while "Are you sure?" is shown | Same as **Keep playing** |
 | Very narrow phone (320 px wide) | The top bar's digits get slightly smaller so all five items (menu, counter, face, timer, ?) fit |
 ## 10. Out of scope
 
