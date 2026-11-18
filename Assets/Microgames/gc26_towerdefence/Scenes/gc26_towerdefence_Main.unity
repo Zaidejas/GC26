@@ -402,12 +402,91 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: da2888901d1d421ea293231f230f93c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  game: {fileID: 100000013}
+  level: {fileID: 100000044}
   path: {fileID: 100000023}
   enemy: {fileID: 11400000, guid: f441898c5003432c84ccf61f00d46241, type: 2}
   count: 8
   interval: 1
   testDamagePerSecond: 0
+--- !u!1 &100000041
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 100000042}
+  - component: {fileID: 100000043}
+  - component: {fileID: 100000044}
+  - component: {fileID: 100000045}
+  m_Layer: 0
+  m_Name: LevelFlow
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &100000042
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000041}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &100000043
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000041}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47b3b0712f9e4655af53286094d969d5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  startGold: 250
+--- !u!114 &100000044
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000041}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b70dec4c9b224ec09776bc75d5cc5266, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  game: {fileID: 100000013}
+  economy: {fileID: 100000043}
+  startLives: 20
+  totalWaves: 10
+  buildCountdown: 20
+--- !u!114 &100000045
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000041}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 614a1be078a44201a0857a33bd9f491d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  game: {fileID: 100000013}
+  level: {fileID: 100000044}
+  economy: {fileID: 100000043}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -416,3 +495,4 @@ SceneRoots:
   - {fileID: 100000012}
   - {fileID: 100000022}
   - {fileID: 100000032}
+  - {fileID: 100000042}

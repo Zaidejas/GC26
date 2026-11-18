@@ -4,13 +4,13 @@ using UnityEngine;
 namespace GC26.Towerdefence
 {
     /// <summary>
-    /// TEMPORARY: sends a few enemies down the path to check EnemyPath and EnemyUnit.
+    /// TEMPORARY: on every wave LevelFlow starts, sends `count` enemies down the path.
     /// Remove it from the scene once WaveSpawner exists.
     /// Set Test Damage Per Second above 0 to see enemies die (Grunt has 50 HP).
     /// </summary>
     public class EnemyTestSpawner : MonoBehaviour
     {
-        [SerializeField] TowerdefenceGame game;
+        [SerializeField] LevelFlow level;
         [SerializeField] EnemyPath path;
         [SerializeField] EnemyData enemy;
         [SerializeField, Min(1)] int count = 8;
@@ -25,14 +25,24 @@ namespace GC26.Towerdefence
 
         void OnEnable()
         {
-            if (game == null) return;
-            game.Started += OnGameStarted;
-            if (game.IsStarted) OnGameStarted();
+            if (level == null) return;
+            level.WaveStarted += OnWaveStarted;
+            level.StateChanged += OnStateChanged;
+        }
+
+        // Restart or game over: stop sending the rest of the wave.
+        void OnStateChanged(LevelState state)
+        {
+            if (state != LevelState.Wave) StopAllCoroutines();
         }
 
         void OnDisable()
         {
-            if (game != null) game.Started -= OnGameStarted;
+            if (level != null)
+            {
+                level.WaveStarted -= OnWaveStarted;
+                level.StateChanged -= OnStateChanged;
+            }
             StopAllCoroutines();
         }
 
@@ -42,7 +52,7 @@ namespace GC26.Towerdefence
             if (_circleTexture != null) Destroy(_circleTexture);
         }
 
-        void OnGameStarted()
+        void OnWaveStarted(int wave)
         {
             if (path == null || enemy == null)
             {
@@ -56,11 +66,14 @@ namespace GC26.Towerdefence
         {
             for (int i = 0; i < count; i++)
             {
+                if (level.IsOver) yield break;
                 var unit = EnemyUnit.Spawn(enemy, path, transform, 1f, GetCircle());
+                level.RegisterEnemy(unit);
                 unit.Died += u => Debug.Log($"[{TowerdefenceGame.Id}] {u.Data.displayName} died, +{u.Data.gold} gold (kills: {++_kills})");
                 unit.ReachedCastle += u => Debug.Log($"[{TowerdefenceGame.Id}] {u.Data.displayName} reached the castle, -{u.Data.livesLost} lives (total: {_livesLost += u.Data.livesLost})");
-                yield return new WaitForSeconds(interval);
+                if (i < count - 1) yield return new WaitForSeconds(interval);
             }
+            level.FinishSpawning();
         }
 
         void Update()
