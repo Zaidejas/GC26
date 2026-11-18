@@ -1,0 +1,10 @@
+{
+  "name": "GC26.Minesweeper",
+  "rootNamespace": "GC26.Minesweeper",
+  "references": [
+    "GC26.Core",
+    "UnityEngine.UI",
+    "Unity.InputSystem"
+  ],
+  "autoReferenced": false
+}

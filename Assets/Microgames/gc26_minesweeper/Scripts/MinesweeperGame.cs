@@ -1,0 +1,921 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using GC26.Core;
+using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.UI;
+using UnityEngine.UI;
+
+namespace GC26.Minesweeper
+{
+    /// <summary>
+    /// Red Flags (Minesweeper): the only IMicrogame in gc26_minesweeper_Main.
+    /// Builds its whole UI from code when it begins, so the scene needs only this component
+    /// (plus a camera for running the scene on its own). Rules: see docs/Minesweeper_GDD.md.
+    /// </summary>
+    public class MinesweeperGame : MonoBehaviour, IMicrogame
+    {
+        public const string Id = "gc26_minesweeper";
+
+        [SerializeField] float longPressSeconds = 0.4f;
+        public float LongPressSeconds => longPressSeconds;
+
+        // Colours, the same as the browser prototype.
+        static readonly Color BgColor = Hex(0x1F2430);
+        static readonly Color OuterColor = Hex(0x12151C);
+        static readonly Color PanelColor = Hex(0x2B3242);
+        static readonly Color ButtonColor = Hex(0x3A4256);
+        static readonly Color TextColor = Hex(0xF1F3F7);
+        static readonly Color RedColor = Hex(0xE0302B);
+        static readonly Color YellowColor = Hex(0xF2C418);
+        static readonly Color DarkText = Hex(0x222222);
+
+        // The tutorial runs in the first game each time the app is opened (GDD 6.5). Not saved on purpose.
+        static bool tutorialSeen;
+
+        Action<int> exit;
+        bool started;
+        MinesweeperSprites sprites;
+        Font font;
+        readonly System.Random random = new System.Random();
+        string[] lossLines;
+
+        // ---- UI references
+        Canvas canvas;
+        GameObject menuScreen, gameScreen, tutorialBox, endPanel, helpOverlay, pauseOverlay;
+        readonly List<Text> levelLabels = new List<Text>();
+        RectTransform boardArea, boardRect, highlightFrame;
+        GridLayoutGroup grid;
+        Text counterText, timerText, tutorialText, endTitle, endLine;
+        Image faceImage;
+        GameObject tutorialOkButton;
+        Outline revealOutline, flagOutline;
+
+        // ---- game state
+        MinesweeperBoard board;
+        MinesweeperDifficulty level;
+        MinesweeperCellView[,] cells;
+        MinesweeperState state;
+        bool flagMode, appPaused;
+        float elapsed;
+        int tutorialStep;                       // 0 = off, 1 = waiting for the first tap, 2 = showing the number
+        MinesweeperCellView tutorialTarget, pressedCell;
+        Vector2 lastAreaSize;
+
+        bool IsOver => state == MinesweeperState.Won || state == MinesweeperState.Lost;
+        bool InGame => gameScreen != null && gameScreen.activeSelf;
+        bool OverlayOpen => (helpOverlay != null && helpOverlay.activeSelf) || (pauseOverlay != null && pauseOverlay.activeSelf);
+
+        // =====================================================================
+        // Connection to the GC26 shell
+        // =====================================================================
+
+        public void Begin(Action<int> exitCallback)
+        {
+            started = true;
+            exit = exitCallback;
+            if (canvas == null) BuildUI();
+            ShowMenu();
+        }
+
+        void Start()
+        {
+            // Scene opened on its own (no shell): run it, e.g. in the Editor or in the Windows build.
+            if (started || MicrogameRunner.IsRunning) return;
+#if UNITY_STANDALONE && !UNITY_EDITOR
+            // Portrait window that fits the screen.
+            int h = Mathf.Min(960, Screen.currentResolution.height - 120);
+            Screen.SetResolution(h * 9 / 16, h, FullScreenMode.Windowed);
+#endif
+            Begin(score =>
+            {
+                Debug.Log($"[{Id}] exit, score = {score}");
+#if !UNITY_EDITOR
+                Application.Quit();       // standalone build: "Exit" closes the app
+#endif
+            });
+
+            string testDir = SelfTestFolder();
+            if (testDir != null) StartCoroutine(SelfTest(testDir));
+        }
+
+        /// <summary>Called by "Exit to menu" (pause) and by "Exit" on the level screen.</summary>
+        public void ExitToMenu(int score)
+        {
+            var e = exit;
+            exit = null;
+            e?.Invoke(score);
+        }
+
+        void OnApplicationPause(bool paused) => appPaused = paused;
+
+        // =====================================================================
+        // Per-frame: timer, face, Back button, board layout, tutorial highlight
+        // =====================================================================
+
+        void Update()
+        {
+            if (canvas == null) return;
+
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) OnBack();
+
+            if (!InGame) return;
+            if (state == MinesweeperState.Playing && !appPaused && !OverlayOpen)
+                elapsed = Mathf.Min(999f, elapsed + Time.unscaledDeltaTime);
+            UpdateHud();
+        }
+
+        void LateUpdate()
+        {
+            if (!InGame || board == null) return;
+            if (boardArea.rect.size != lastAreaSize) LayoutBoard();   // e.g. the tutorial box appeared or closed
+
+            if (tutorialTarget != null)
+            {
+                // Keep the pulsing frame on top of the highlighted cell.
+                RectTransform t = tutorialTarget.Rect;
+                highlightFrame.anchorMin = t.anchorMin;
+                highlightFrame.anchorMax = t.anchorMax;
+                highlightFrame.pivot = t.pivot;
+                highlightFrame.anchoredPosition = t.anchoredPosition;
+                float pad = 8f + 6f * Mathf.PingPong(Time.unscaledTime * 2f, 1f);
+                highlightFrame.sizeDelta = t.rect.size + Vector2.one * (pad * 2f);
+            }
+        }
+
+        // Android Back / Escape: close a pop-up first, then game -> level screen -> exit.
+        void OnBack()
+        {
+            if (helpOverlay.activeSelf) { HideHelp(); return; }
+            if (pauseOverlay.activeSelf) { pauseOverlay.SetActive(false); return; }
+            if (InGame) { ShowMenu(); return; }
+            ExitToMenu(0);
+        }
+
+        // =====================================================================
+        // Screens
+        // =====================================================================
+
+        void ShowMenu()
+        {
+            EndTutorial();
+            helpOverlay.SetActive(false);
+            pauseOverlay.SetActive(false);
+            endPanel.SetActive(false);
+            gameScreen.SetActive(false);
+            ClearBoard();
+            board = null;
+
+            for (int i = 0; i < MinesweeperDifficulty.All.Length; i++)
+            {
+                var lv = MinesweeperDifficulty.All[i];
+                int best = PlayerPrefs.GetInt(BestKey(lv), -1);
+                levelLabels[i].text = $"<b>{lv.Name}</b>\n<size=40>{lv.Width}×{lv.Height} · {lv.Mines} red flags · Best: {(best >= 0 ? best + " s" : "—")}</size>";
+            }
+            menuScreen.SetActive(true);
+        }
+
+        void StartGame(MinesweeperDifficulty difficulty)
+        {
+            level = difficulty;
+            menuScreen.SetActive(false);
+            gameScreen.SetActive(true);
+            NewRound();
+        }
+
+        // A new board: every cell hidden, nothing opened until the player taps (GDD 3.1).
+        void NewRound()
+        {
+            board = new MinesweeperBoard(level.Width, level.Height, level.Mines);
+            state = MinesweeperState.Ready;
+            elapsed = 0f;
+            SetFlagMode(false);
+            endPanel.SetActive(false);
+            pauseOverlay.SetActive(false);
+            EndTutorial();
+            BuildCells();
+            RefreshAll(false, null);
+            UpdateHud();
+            StartTutorialIfNeeded();
+        }
+
+        // =====================================================================
+        // Player actions (called by MinesweeperCellView)
+        // =====================================================================
+
+        public void OnTap(int x, int y)
+        {
+            if (IsOver || OverlayOpen) return;
+            if (tutorialStep == 2) EndTutorial();                 // any next move closes the tutorial
+
+            MinesweeperCell c = board.GetCell(x, y);
+            if (c.IsRevealed) { AfterOpen(board.Chord(x, y)); return; }   // tap a number = chord
+            if (flagMode) { ToggleFlag(x, y); return; }
+            if (c.IsFlagged) return;
+
+            bool firstReveal = !board.MinesPlaced;
+            if (firstReveal)
+            {
+                board.PlaceMines(x, y);                           // the first tap is always safe
+                state = MinesweeperState.Playing;
+            }
+            AfterOpen(board.Reveal(x, y));
+            if (firstReveal) TutorialAfterFirstReveal();
+        }
+
+        public void OnLongPress(int x, int y)
+        {
+            if (IsOver || OverlayOpen) return;
+            if (tutorialStep == 2) EndTutorial();
+            if (!board.GetCell(x, y).IsRevealed && ToggleFlag(x, y)) Vibrate();
+        }
+
+        public void OnSecondaryClick(int x, int y)
+        {
+            if (IsOver || OverlayOpen) return;
+            if (tutorialStep == 2) EndTutorial();
+            ToggleFlag(x, y);
+        }
+
+        public void SetPressedCell(MinesweeperCellView cell)
+        {
+            if (pressedCell != null) pressedCell.SetPressed(false);
+            pressedCell = null;
+            if (cell == null || IsOver || OverlayOpen || board.GetCell(cell.X, cell.Y).IsRevealed) return;
+            pressedCell = cell;
+            cell.SetPressed(true);
+        }
+
+        bool ToggleFlag(int x, int y)
+        {
+            if (!board.ToggleFlag(x, y)) return false;
+            cells[x, y].Show(board.GetCell(x, y), false, false, sprites);
+            UpdateHud();
+            return true;
+        }
+
+        void AfterOpen(List<Vector2Int> changed)
+        {
+            foreach (var p in changed) cells[p.x, p.y].Show(board.GetCell(p.x, p.y), false, false, sprites);
+            foreach (var p in changed)
+                if (board.GetCell(p.x, p.y).IsMine) { Lose(p); return; }
+            if (board.IsWon) Win();
+            UpdateHud();
+        }
+
+        void Lose(Vector2Int hit)
+        {
+            state = MinesweeperState.Lost;
+            RefreshAll(true, hit);
+            Vibrate();
+            UpdateHud();
+            ShowEnd("You hit a red flag!", MinesweeperLossLines.PickRandom(lossLines, random));
+        }
+
+        void Win()
+        {
+            state = MinesweeperState.Won;
+            // Cover the remaining red flags with yellow flags.
+            for (int x = 0; x < board.Width; x++)
+                for (int y = 0; y < board.Height; y++)
+                {
+                    MinesweeperCell c = board.GetCell(x, y);
+                    if (c.IsMine && !c.IsFlagged) c.IsFlagged = true;
+                }
+            RefreshAll(false, null);
+
+            int time = Mathf.FloorToInt(elapsed);
+            int best = PlayerPrefs.GetInt(BestKey(level), -1);
+            bool record = best < 0 || time < best;
+            if (record) { PlayerPrefs.SetInt(BestKey(level), time); PlayerPrefs.Save(); }
+            UpdateHud();
+            ShowEnd("You won!", $"Time: {time} s{(record ? " · New record!" : "")}");
+        }
+
+        void RefreshAll(bool gameOver, Vector2Int? hit)
+        {
+            for (int x = 0; x < board.Width; x++)
+                for (int y = 0; y < board.Height; y++)
+                    cells[x, y].Show(board.GetCell(x, y), gameOver, hit.HasValue && hit.Value == new Vector2Int(x, y), sprites);
+        }
+
+        void ShowEnd(string title, string line)
+        {
+            endTitle.text = title;
+            endLine.text = line;
+            endLine.gameObject.SetActive(!string.IsNullOrEmpty(line));
+            endPanel.SetActive(true);
+        }
+
+        void SetFlagMode(bool on)
+        {
+            flagMode = on;
+            revealOutline.enabled = !on;
+            flagOutline.enabled = on;
+        }
+
+        void UpdateHud()
+        {
+            if (board == null) return;
+            counterText.text = state == MinesweeperState.Won ? "000" : Digits(board.MineCount - board.FlagCount);
+            timerText.text = Digits(Mathf.FloorToInt(elapsed));
+            faceImage.sprite = state == MinesweeperState.Won ? sprites.FaceCool
+                             : state == MinesweeperState.Lost ? sprites.FaceDead
+                             : pressedCell != null ? sprites.FaceOh
+                             : sprites.FaceSmile;
+        }
+
+        static string Digits(int n) =>
+            n < 0 ? "-" + Mathf.Min(99, -n).ToString("00") : Mathf.Min(999, n).ToString("000");
+
+        static string BestKey(MinesweeperDifficulty lv) => MicrogameSave.Key(Id, "best_" + lv.Name);
+
+        static void Vibrate()
+        {
+#if UNITY_ANDROID || UNITY_IOS
+            if (PlayerPrefs.GetInt(MicrogameSave.Key(Id, "vibration"), 1) == 1) Handheld.Vibrate();
+#endif
+        }
+
+        // =====================================================================
+        // First-game tutorial (GDD 6.5): above the board, once per app launch
+        // =====================================================================
+
+        void StartTutorialIfNeeded()
+        {
+            if (tutorialSeen) return;
+            tutorialStep = 1;
+            ShowTutorial("Tap any cell to start. Your first tap is always safe.", false);
+        }
+
+        void TutorialAfterFirstReveal()
+        {
+            if (tutorialStep != 1 || IsOver) { EndTutorial(); return; }
+
+            // The opened cell with the biggest number (the first one found if several are equal).
+            MinesweeperCellView best = null;
+            int bestNumber = 0;
+            for (int y = 0; y < board.Height; y++)
+                for (int x = 0; x < board.Width; x++)
+                {
+                    MinesweeperCell c = board.GetCell(x, y);
+                    if (c.IsRevealed && !c.IsMine && c.AdjacentMines > bestNumber) { best = cells[x, y]; bestNumber = c.AdjacentMines; }
+                }
+            if (best == null) { EndTutorial(); return; }
+
+            tutorialStep = 2;
+            tutorialSeen = true;
+            tutorialTarget = best;
+            highlightFrame.gameObject.SetActive(true);
+            highlightFrame.SetAsLastSibling();
+            ShowTutorial($"This cell has {bestNumber} red flag{(bestNumber == 1 ? "" : "s")} around it — be careful!", true);
+        }
+
+        void ShowTutorial(string text, bool withButton)
+        {
+            tutorialText.text = text;
+            tutorialOkButton.SetActive(withButton);
+            tutorialBox.SetActive(true);
+        }
+
+        void EndTutorial()
+        {
+            tutorialStep = 0;
+            tutorialTarget = null;
+            if (tutorialBox != null) tutorialBox.SetActive(false);
+            if (highlightFrame != null) highlightFrame.gameObject.SetActive(false);
+        }
+
+        // =====================================================================
+        // Pop-ups
+        // =====================================================================
+
+        void ShowHelp() { SetPressedCell(null); helpOverlay.SetActive(true); }
+        void HideHelp() => helpOverlay.SetActive(false);
+        void ShowPause() { SetPressedCell(null); pauseOverlay.SetActive(true); }
+
+        // =====================================================================
+        // Board cells
+        // =====================================================================
+
+        void ClearBoard()
+        {
+            for (int i = boardRect.childCount - 1; i >= 0; i--)
+            {
+                Transform child = boardRect.GetChild(i);
+                if (child == highlightFrame) continue;
+                child.SetParent(null);
+                Destroy(child.gameObject);
+            }
+            cells = null;
+            pressedCell = null;
+        }
+
+        void BuildCells()
+        {
+            ClearBoard();
+            grid.constraintCount = board.Width;
+            cells = new MinesweeperCellView[board.Width, board.Height];
+
+            // Row by row from the top, so the grid fills left to right, top to bottom.
+            for (int y = 0; y < board.Height; y++)
+                for (int x = 0; x < board.Width; x++)
+                {
+                    RectTransform rt = NewRect($"Cell {x},{y}", boardRect);
+                    var bg = rt.gameObject.AddComponent<Image>();
+                    bg.type = Image.Type.Sliced;
+
+                    RectTransform iconRt = NewRect("Icon", rt);
+                    Stretch(iconRt, 0.12f);
+                    var icon = iconRt.gameObject.AddComponent<Image>();
+                    icon.raycastTarget = false;
+                    icon.preserveAspect = true;
+
+                    RectTransform labelRt = NewRect("Number", rt);
+                    Stretch(labelRt);
+                    Text label = AddText(labelRt, "", 30, DarkText, FontStyle.Bold);
+
+                    var view = rt.gameObject.AddComponent<MinesweeperCellView>();
+                    view.Init(this, x, y, bg, icon, label);
+                    cells[x, y] = view;
+                }
+            highlightFrame.SetAsLastSibling();
+            lastAreaSize = Vector2.zero;          // lay out again next frame
+        }
+
+        // Fits the board into the free space between the bars.
+        void LayoutBoard()
+        {
+            Vector2 area = boardArea.rect.size;
+            lastAreaSize = area;
+            if (cells == null || area.x <= 1f || area.y <= 1f) return;
+
+            float size = Mathf.Floor(Mathf.Min((area.x - 40f) / board.Width, (area.y - 40f) / board.Height, 130f));
+            size = Mathf.Max(size, 20f);
+            grid.cellSize = new Vector2(size, size);
+            boardRect.sizeDelta = new Vector2(size * board.Width, size * board.Height);
+            int fontSize = Mathf.RoundToInt(size * 0.62f);
+            foreach (var c in cells) c.SetFontSize(fontSize);
+        }
+
+        // =====================================================================
+        // Building the UI from code
+        // =====================================================================
+
+        void BuildUI()
+        {
+            sprites = MinesweeperSprites.Create();
+            font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var linesAsset = Resources.Load<TextAsset>(Id + "/loss_lines");
+            lossLines = MinesweeperLossLines.Parse(linesAsset != null ? linesAsset.text : "");
+
+            // Input for UI clicks and touches (the shell may already have one).
+            if (FindAnyObjectByType<EventSystem>() == null)
+            {
+                var es = new GameObject("MinesweeperEventSystem", typeof(EventSystem));
+                es.AddComponent<InputSystemUIInputModule>().AssignDefaultActions();
+            }
+
+            var canvasGo = new GameObject("MinesweeperCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            canvas = canvasGo.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 100;
+            var scaler = canvasGo.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080, 1920);
+            scaler.matchWidthOrHeight = 0.5f;
+
+            RectTransform outer = NewRect("Background", canvasGo.transform);
+            Stretch(outer);
+            AddImage(outer, OuterColor, null);
+
+            RectTransform safe = NewRect("SafeArea", canvasGo.transform);
+            Stretch(safe);
+            safe.gameObject.AddComponent<MinesweeperSafeArea>();
+
+            RectTransform app = NewRect("App", safe);
+            Stretch(app);
+            AddImage(app, BgColor, null);
+
+            BuildMenu(app);
+            BuildGame(app);
+            BuildHelp(app);
+            BuildPause(app);
+        }
+
+        // Level screen (the first screen): title, three levels with best times, Exit.
+        void BuildMenu(RectTransform app)
+        {
+            RectTransform menu = NewRect("Levels", app);
+            Stretch(menu);
+            menuScreen = menu.gameObject;
+            var col = menu.gameObject.AddComponent<VerticalLayoutGroup>();
+            col.padding = new RectOffset(80, 80, 180, 80);
+            col.spacing = 40;
+            col.childAlignment = TextAnchor.UpperCenter;
+            col.childControlWidth = col.childControlHeight = true;
+            col.childForceExpandWidth = true;
+            col.childForceExpandHeight = false;
+
+            RectTransform title = NewRect("Title", menu);
+            AddText(title, $"Avoid the\n<color=#{ColorUtility.ToHtmlStringRGB(RedColor)}>Red Flags</color>", 120, TextColor, FontStyle.Bold);
+            Layout(title, h: 340);
+
+            levelLabels.Clear();
+            foreach (var lv in MinesweeperDifficulty.All)
+            {
+                var chosen = lv;
+                Button b = MakeButton(menu, "Level " + lv.Name, "", 60, PanelColor, TextColor, () => StartGame(chosen), out Text label);
+                label.alignment = TextAnchor.MiddleLeft;
+                label.fontStyle = FontStyle.Normal;
+                RectTransform lrt = label.rectTransform;
+                lrt.offsetMin = new Vector2(50, 0);
+                lrt.offsetMax = new Vector2(-30, 0);
+                levelLabels.Add(label);
+                Layout(b, h: 230);
+            }
+
+            RectTransform spacer = NewRect("Spacer", menu);
+            Layout(spacer, h: 20, fh: 1);
+
+            Button exitButton = MakeButton(menu, "Exit", "Exit", 50, ButtonColor, TextColor, () => ExitToMenu(0), out _);
+            Layout(exitButton, h: 140);
+        }
+
+        // Game screen: top bar, tutorial, board, bottom bar, end-of-round panel.
+        void BuildGame(RectTransform app)
+        {
+            RectTransform g = NewRect("Game", app);
+            Stretch(g);
+            gameScreen = g.gameObject;
+            var v = g.gameObject.AddComponent<VerticalLayoutGroup>();
+            v.childControlWidth = v.childControlHeight = true;
+            v.childForceExpandWidth = true;
+            v.childForceExpandHeight = false;
+
+            // ---- top bar: menu, red flag counter, face, timer, help
+            RectTransform top = NewRect("TopBar", g);
+            AddImage(top, PanelColor, null);
+            Layout(top, h: 170, fh: 0);       // fh 0: fixed height, all spare height goes to the board
+            var h = top.gameObject.AddComponent<HorizontalLayoutGroup>();
+            h.padding = new RectOffset(30, 30, 25, 25);
+            h.spacing = 24;
+            h.childAlignment = TextAnchor.MiddleCenter;
+            h.childControlWidth = h.childControlHeight = true;
+            h.childForceExpandWidth = false;
+            h.childForceExpandHeight = true;
+
+            Button menuButton = MakeIconButton(top, "Pause", sprites.MenuIcon, ShowPause, out _);
+            Layout(menuButton, w: 130);
+            counterText = MakeDigits(top, "Counter");
+            Button faceButton = MakeIconButton(top, "Face", sprites.FaceSmile, NewRound, out faceImage);
+            Layout(faceButton, w: 150);
+            timerText = MakeDigits(top, "Timer");
+            Button helpButton = MakeButton(top, "Help", "?", 72, ButtonColor, TextColor, ShowHelp, out _);
+            Layout(helpButton, w: 130);
+
+            // ---- tutorial: between the top bar and the board, so it never covers the board
+            RectTransform tutWrap = NewRect("Tutorial", g);
+            Layout(tutWrap, fh: 0);
+            tutorialBox = tutWrap.gameObject;
+            var tw = tutWrap.gameObject.AddComponent<VerticalLayoutGroup>();
+            tw.padding = new RectOffset(30, 30, 24, 0);
+            tw.childControlWidth = tw.childControlHeight = true;
+            tw.childForceExpandWidth = true;
+            tw.childForceExpandHeight = false;
+
+            RectTransform tut = NewRect("Box", tutWrap);
+            AddImage(tut, PanelColor, sprites.Rounded);
+            var outline = tut.gameObject.AddComponent<Outline>();
+            outline.effectColor = YellowColor;
+            outline.effectDistance = new Vector2(4, -4);
+            var tv = tut.gameObject.AddComponent<VerticalLayoutGroup>();
+            tv.padding = new RectOffset(40, 40, 30, 30);
+            tv.spacing = 20;
+            tv.childAlignment = TextAnchor.UpperCenter;
+            tv.childControlWidth = tv.childControlHeight = true;
+            tv.childForceExpandWidth = false;
+            tv.childForceExpandHeight = false;
+
+            RectTransform tutTextRt = NewRect("Text", tut);
+            tutorialText = AddText(tutTextRt, "", 46, TextColor, FontStyle.Normal);
+            Layout(tutTextRt, fw: 1);
+            Button ok = MakeButton(tut, "GotIt", "Got it", 46, YellowColor, DarkText, EndTutorial, out _);
+            Layout(ok, w: 340, h: 110);
+            tutorialOkButton = ok.gameObject;
+            tutorialBox.SetActive(false);
+
+            // ---- board area (takes all remaining height)
+            boardArea = NewRect("BoardArea", g);
+            Layout(boardArea, fh: 1);
+            boardRect = NewRect("Board", boardArea);
+            boardRect.anchorMin = boardRect.anchorMax = boardRect.pivot = new Vector2(0.5f, 0.5f);
+            grid = boardRect.gameObject.AddComponent<GridLayoutGroup>();
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.spacing = Vector2.zero;
+            grid.childAlignment = TextAnchor.UpperLeft;
+
+            highlightFrame = NewRect("TutorialHighlight", boardRect);
+            highlightFrame.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+            Image frame = AddImage(highlightFrame, Color.white, sprites.Frame);
+            frame.raycastTarget = false;
+            highlightFrame.gameObject.SetActive(false);
+
+            // ---- bottom bar: Reveal / Flag mode
+            RectTransform bottom = NewRect("BottomBar", g);
+            AddImage(bottom, PanelColor, null);
+            Layout(bottom, h: 190, fh: 0);
+            var bh = bottom.gameObject.AddComponent<HorizontalLayoutGroup>();
+            bh.padding = new RectOffset(30, 30, 30, 40);
+            bh.spacing = 24;
+            bh.childControlWidth = bh.childControlHeight = true;
+            bh.childForceExpandWidth = bh.childForceExpandHeight = true;
+
+            Button reveal = MakeButton(bottom, "RevealMode", "Reveal", 52, ButtonColor, TextColor, () => SetFlagMode(false), out _);
+            revealOutline = AddModeOutline(reveal);
+            Button flag = MakeButton(bottom, "FlagMode", "    Flag", 52, ButtonColor, TextColor, () => SetFlagMode(true), out Text flagLabel);
+            flagOutline = AddModeOutline(flag);
+            RectTransform flagIcon = NewRect("Icon", flag.transform);
+            flagIcon.anchorMin = flagIcon.anchorMax = new Vector2(0.5f, 0.5f);
+            flagIcon.sizeDelta = new Vector2(70, 70);
+            flagIcon.anchoredPosition = new Vector2(-70, 0);
+            AddImage(flagIcon, Color.white, sprites.YellowFlag).raycastTarget = false;
+            flagLabel.alignment = TextAnchor.MiddleCenter;
+
+            // ---- end-of-round panel, above the bottom bar (outside the column layout)
+            RectTransform end = NewRect("EndPanel", g);
+            end.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+            end.anchorMin = new Vector2(0, 0);
+            end.anchorMax = new Vector2(1, 0);
+            end.pivot = new Vector2(0.5f, 0);
+            end.offsetMin = new Vector2(30, 0);
+            end.offsetMax = new Vector2(-30, 0);
+            end.anchoredPosition = new Vector2(0, 220);
+            AddImage(end, PanelColor, sprites.Rounded);
+            end.gameObject.AddComponent<Shadow>().effectDistance = new Vector2(0, -10);
+            var ev = end.gameObject.AddComponent<VerticalLayoutGroup>();
+            ev.padding = new RectOffset(40, 40, 40, 40);
+            ev.spacing = 24;
+            ev.childControlWidth = ev.childControlHeight = true;
+            ev.childForceExpandWidth = true;
+            ev.childForceExpandHeight = false;
+            end.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            endTitle = AddText(NewRect("Title", end), "", 64, TextColor, FontStyle.Bold);
+            endLine = AddText(NewRect("Line", end), "", 44, TextColor, FontStyle.Normal);
+            RectTransform row = NewRect("Buttons", end);
+            Layout(row, h: 120);
+            var rh = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            rh.spacing = 24;
+            rh.childControlWidth = rh.childControlHeight = true;
+            rh.childForceExpandWidth = rh.childForceExpandHeight = true;
+            MakeButton(row, "PlayAgain", "Play again", 46, YellowColor, DarkText, NewRound, out _);
+            MakeButton(row, "Levels", "Menu", 46, ButtonColor, TextColor, ShowMenu, out _);
+            endPanel = end.gameObject;
+            endPanel.SetActive(false);
+
+            gameScreen.SetActive(false);
+        }
+
+        // "How to play" (GDD 6.6): OK or a tap anywhere closes it; the tap never reaches the board.
+        void BuildHelp(RectTransform app)
+        {
+            RectTransform dialog = MakeOverlay(app, "HowToPlay", out helpOverlay, closeOnTap: true);
+            AddText(NewRect("Title", dialog), "How to play", 64, TextColor, FontStyle.Bold);
+            string red = ColorUtility.ToHtmlStringRGB(RedColor), yellow = ColorUtility.ToHtmlStringRGB(YellowColor);
+            Text body = AddText(NewRect("Rules", dialog),
+                "•  Tap cells to reveal them. <b>Avoid the <color=#" + red + ">red flags</color>!</b>\n\n" +
+                "•  A number shows how many red flags touch that cell, including diagonally.\n\n" +
+                "•  Long press (or right-click) a cell to mark it with a <color=#" + yellow + ">yellow flag</color> where you suspect a red flag. The Flag button at the bottom does the same with a normal tap.\n\n" +
+                "•  Open every cell without a red flag to win. Your first tap is always safe.",
+                42, TextColor, FontStyle.Normal);
+            body.alignment = TextAnchor.UpperLeft;
+            Button ok = MakeButton(dialog, "OK", "OK", 50, YellowColor, DarkText, HideHelp, out _);
+            Layout(ok, h: 120);
+            helpOverlay.SetActive(false);
+        }
+
+        // Pause (class rule: every game has a pause and "Exit to menu").
+        void BuildPause(RectTransform app)
+        {
+            RectTransform dialog = MakeOverlay(app, "Pause", out pauseOverlay, closeOnTap: false);
+            AddText(NewRect("Title", dialog), "Paused", 64, TextColor, FontStyle.Bold);
+            Layout(MakeButton(dialog, "Resume", "Resume", 50, YellowColor, DarkText, () => pauseOverlay.SetActive(false), out _), h: 130);
+            Layout(MakeButton(dialog, "ChangeLevel", "Change level", 50, ButtonColor, TextColor, ShowMenu, out _), h: 130);
+            Layout(MakeButton(dialog, "ExitToMenu", "Exit to menu", 50, ButtonColor, TextColor, () => ExitToMenu(0), out _), h: 130);
+            pauseOverlay.SetActive(false);
+        }
+
+        // ---- small UI helpers
+
+        RectTransform MakeOverlay(RectTransform parent, string name, out GameObject overlay, bool closeOnTap)
+        {
+            RectTransform o = NewRect(name, parent);
+            Stretch(o);
+            Image dim = AddImage(o, new Color(0, 0, 0, 0.6f), null);
+            overlay = o.gameObject;
+            if (closeOnTap)
+            {
+                var close = o.gameObject.AddComponent<Button>();
+                close.transition = Selectable.Transition.None;
+                close.targetGraphic = dim;
+                close.onClick.AddListener(HideHelp);
+            }
+
+            RectTransform d = NewRect("Dialog", o);
+            d.anchorMin = d.anchorMax = d.pivot = new Vector2(0.5f, 0.5f);
+            d.sizeDelta = new Vector2(920, 0);
+            Image bg = AddImage(d, PanelColor, sprites.Rounded);
+            bg.raycastTarget = !closeOnTap;      // for "tap anywhere closes", taps on the dialog go to the overlay
+            var dv = d.gameObject.AddComponent<VerticalLayoutGroup>();
+            dv.padding = new RectOffset(50, 50, 50, 50);
+            dv.spacing = 30;
+            dv.childControlWidth = dv.childControlHeight = true;
+            dv.childForceExpandWidth = true;
+            dv.childForceExpandHeight = false;
+            d.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            return d;
+        }
+
+        Text MakeDigits(RectTransform parent, string name)
+        {
+            RectTransform rt = NewRect(name, parent);
+            AddImage(rt, Color.black, sprites.Rounded);
+            Layout(rt, fw: 1);
+            RectTransform t = NewRect("Text", rt);
+            Stretch(t);
+            Text text = AddText(t, "000", 72, RedColor, FontStyle.Bold);
+            return text;
+        }
+
+        Button MakeButton(Transform parent, string name, string label, int fontSize, Color bg, Color fg, UnityAction onClick, out Text text)
+        {
+            RectTransform rt = NewRect(name, parent);
+            Image img = AddImage(rt, bg, sprites.Rounded);
+            var b = rt.gameObject.AddComponent<Button>();
+            b.targetGraphic = img;
+            ColorBlock colors = b.colors;
+            colors.pressedColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+            colors.highlightedColor = new Color(0.95f, 0.95f, 0.95f, 1f);
+            b.colors = colors;
+            b.onClick.AddListener(onClick);
+
+            RectTransform t = NewRect("Label", rt);
+            Stretch(t);
+            text = AddText(t, label, fontSize, fg, FontStyle.Bold);
+            return b;
+        }
+
+        Button MakeIconButton(Transform parent, string name, Sprite icon, UnityAction onClick, out Image iconImage)
+        {
+            Button b = MakeButton(parent, name, "", 10, ButtonColor, TextColor, onClick, out _);
+            RectTransform i = NewRect("Icon", b.transform);
+            Stretch(i, 0.15f);
+            iconImage = AddImage(i, Color.white, icon);
+            iconImage.preserveAspect = true;
+            iconImage.raycastTarget = false;
+            return b;
+        }
+
+        Outline AddModeOutline(Button b)
+        {
+            var o = b.gameObject.AddComponent<Outline>();
+            o.effectColor = YellowColor;
+            o.effectDistance = new Vector2(5, -5);
+            return o;
+        }
+
+        Text AddText(RectTransform rt, string s, int size, Color color, FontStyle style)
+        {
+            var t = rt.gameObject.AddComponent<Text>();
+            t.font = font;
+            t.text = s;
+            t.fontSize = size;
+            t.color = color;
+            t.fontStyle = style;
+            t.alignment = TextAnchor.MiddleCenter;
+            t.supportRichText = true;
+            t.raycastTarget = false;
+            t.horizontalOverflow = HorizontalWrapMode.Wrap;
+            t.verticalOverflow = VerticalWrapMode.Overflow;
+            return t;
+        }
+
+        static Image AddImage(RectTransform rt, Color color, Sprite sprite)
+        {
+            var img = rt.gameObject.AddComponent<Image>();
+            img.color = color;
+            img.sprite = sprite;
+            if (sprite != null && sprite.border != Vector4.zero) img.type = Image.Type.Sliced;
+            return img;
+        }
+
+        static RectTransform NewRect(string name, Transform parent)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            return (RectTransform)go.transform;
+        }
+
+        static void Stretch(RectTransform rt, float inset = 0f)
+        {
+            rt.anchorMin = new Vector2(inset, inset);
+            rt.anchorMax = new Vector2(1f - inset, 1f - inset);
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+        }
+
+        static void Layout(Component c, float w = -1, float h = -1, float fw = -1, float fh = -1)
+        {
+            var le = c.GetComponent<LayoutElement>();
+            if (le == null) le = c.gameObject.AddComponent<LayoutElement>();
+            le.preferredWidth = w;
+            le.preferredHeight = h;
+            le.flexibleWidth = fw;
+            le.flexibleHeight = fh;
+        }
+
+        static Color Hex(int rgb) =>
+            new Color32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
+
+        // =====================================================================
+        // Self-test for the standalone build: RedFlags.exe -minesweeperSelfTest <folder>
+        // Plays a short scripted round, saves screenshots and results, then quits.
+        // =====================================================================
+
+        static string SelfTestFolder()
+        {
+            string[] args = Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length - 1; i++)
+                if (args[i] == "-minesweeperSelfTest") return args[i + 1];
+            return null;
+        }
+
+        IEnumerator SelfTest(string folder)
+        {
+            Directory.CreateDirectory(folder);
+            var log = new List<string>();
+            yield return new WaitForSecondsRealtime(1.5f);
+            yield return Screenshot(folder, "1_levels");
+
+            StartGame(MinesweeperDifficulty.Beginner);
+            yield return null; yield return null; yield return null;
+            log.Add($"tutorial step 1 shown: {tutorialBox.activeSelf && tutorialStep == 1} ({tutorialText.text})");
+            yield return Screenshot(folder, "2_tutorial_step1");
+
+            OnTap(4, 4);
+            yield return null; yield return null; yield return null;
+            log.Add($"tutorial step 2 shown: {tutorialBox.activeSelf && tutorialStep == 2} ({tutorialText.text})");
+            yield return Screenshot(folder, "3_tutorial_step2");
+
+            ShowHelp();
+            yield return null;
+            yield return Screenshot(folder, "4_how_to_play");
+            HideHelp();
+
+            Vector2Int? mine = null, safe = null;
+            for (int x = 0; x < board.Width; x++)
+                for (int y = 0; y < board.Height; y++)
+                {
+                    MinesweeperCell c = board.GetCell(x, y);
+                    if (c.IsMine && mine == null) mine = new Vector2Int(x, y);
+                    if (!c.IsMine && !c.IsRevealed && safe == null) safe = new Vector2Int(x, y);
+                }
+            if (safe.HasValue)
+            {
+                OnLongPress(safe.Value.x, safe.Value.y);
+                log.Add($"long press placed a yellow flag: {board.GetCell(safe.Value.x, safe.Value.y).IsFlagged}, counter {counterText.text}");
+            }
+            OnTap(mine.Value.x, mine.Value.y);
+            yield return null; yield return null;
+            log.Add($"after tapping a red flag: state {state}, panel '{endTitle.text}', line '{endLine.text}'");
+            yield return Screenshot(folder, "5_loss");
+
+            ShowPause();
+            yield return null;
+            yield return Screenshot(folder, "6_pause");
+            pauseOverlay.SetActive(false);
+
+            StartGame(MinesweeperDifficulty.Expert);
+            yield return null; yield return null;
+            log.Add($"second game, tutorial shown again: {tutorialBox.activeSelf} (expected False)");
+            OnTap(8, 15);
+            yield return null; yield return null;
+            yield return Screenshot(folder, "7_expert");
+
+            File.WriteAllLines(Path.Combine(folder, "selftest.txt"), log);
+            Application.Quit();
+        }
+
+        static IEnumerator Screenshot(string folder, string name)
+        {
+            yield return new WaitForEndOfFrame();
+            Texture2D tex = ScreenCapture.CaptureScreenshotAsTexture();
+            File.WriteAllBytes(Path.Combine(folder, name + ".png"), tex.EncodeToPNG());
+            Destroy(tex);
+        }
+    }
+}

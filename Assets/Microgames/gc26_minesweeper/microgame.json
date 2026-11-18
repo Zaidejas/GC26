@@ -1,0 +1,7 @@
+{
+  "id": "gc26_minesweeper",
+  "title": "Red Flags",
+  "description": "Minesweeper with a twist: avoid the hidden red flags, mark suspicious cells with yellow flags. Portrait, touch controls.",
+  "entry_scene": "gc26_minesweeper_Main",
+  "authors": ["Tvareena"]
+}

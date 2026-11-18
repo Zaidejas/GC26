@@ -1,0 +1,7 @@
+# One line per entry. A random line is shown under "You hit a red flag!".
+# Empty lines and lines starting with # are not shown.
+That red flag was not a suggestion.
+Next time, trust the numbers.
+Red flags are easier to see from a distance.
+You can't say nobody warned you.
+Some flags are best left alone.
