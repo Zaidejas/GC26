@@ -8,11 +8,12 @@ namespace GC26.Timetraveler
     /// Fly: waits until the traveler is close, then flies left toward him (pterodactyl).
     /// Drop: waits until the traveler is close, flashes, then falls (boulder).
     /// Crush: a block that slams down to the ground and slowly rises again, on a loop.
+    /// Swoop: waits high up, then flies left and dives down to head height in <c>period</c> seconds (pterodactyl).
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D))]
     public class RunnerMover : MonoBehaviour
     {
-        public enum Mode { Bob, Fly, Drop, Crush }
+        public enum Mode { Bob, Fly, Drop, Crush, Swoop }
 
         public Mode mode;
         public float lowY;
@@ -30,6 +31,7 @@ namespace GC26.Timetraveler
         bool _triggered;
         float _fallSpeed;
         float _warnTimer;
+        float _swoopTime;
 
         const float DropWarnTime = 0.35f;
         const float DropGravity = 60f;
@@ -74,6 +76,20 @@ namespace GC26.Timetraveler
                 case Mode.Fly:
                     if (!_triggered && Near()) _triggered = true;
                     if (_triggered) pos.x -= speed * dt;
+                    break;
+                case Mode.Swoop:
+                    if (!_triggered && Near())
+                    {
+                        _triggered = true;
+                        _swoopTime = 0f;
+                    }
+                    if (_triggered)
+                    {
+                        _swoopTime += dt;
+                        pos.x -= speed * dt;
+                        var k = Mathf.Clamp01(_swoopTime / period);
+                        pos.y = Mathf.Lerp(highY, lowY, 1f - (1f - k) * (1f - k));   // fast dive, gentle pull-out
+                    }
                     break;
                 case Mode.Drop:
                     if (!_triggered && Near())

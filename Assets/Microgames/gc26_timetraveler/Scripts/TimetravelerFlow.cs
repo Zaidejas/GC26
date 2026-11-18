@@ -15,6 +15,7 @@ namespace GC26.Timetraveler
     {
         Camera _camera;
         TimetravelerSave _save;
+        TimetravelerSettings _settings;
         Action<int> _exitToShell;
         GameObject _screen;
         /// <summary>Tests: the current screen object (menu, map or run).</summary>
@@ -29,11 +30,15 @@ namespace GC26.Timetraveler
             _camera = cam;
             _exitToShell = exitToShell;
             _save = new TimetravelerSave();
+            _settings = TimetravelerSettings.Load();
+            _mapPosition = _save.MapPosition;   // continue where the traveler stood
+            if (TimetravelerDevTools.Allowed) gameObject.AddComponent<TimetravelerDevTools>().Init(this, cam, _save);
             ShowMenu();
         }
 
         void Update()
         {
+            _save?.AddPlayTime(Time.unscaledDeltaTime);
             if (_pending == null) return;
             var next = _pending;
             _pending = null;
@@ -42,6 +47,7 @@ namespace GC26.Timetraveler
 
         GameObject NewScreen(string name)
         {
+            _save.Flush();   // autosave on every screen change (map position, play time)
             if (_screen != null) Destroy(_screen);
             _screen = new GameObject(name);
             _screen.transform.SetParent(transform, false);
@@ -54,8 +60,19 @@ namespace GC26.Timetraveler
             var menu = NewScreen("TimetravelerMenu").AddComponent<TimetravelerMenu>();
             menu.Init(_camera, _save,
                 play: () => _pending = ShowMap,
+                newGame: () => _pending = NewGame,
                 endless: () => _pending = () => StartRun(null),
+                settings: () => _pending = ShowSettings,
                 exit: () => _pending = ExitToShell);
+        }
+
+        internal void ShowSettings()
+        {
+            TimetravelerLog.Info("Screen: settings.", this);
+            var screen = NewScreen("TimetravelerSettings").AddComponent<TimetravelerSettingsScreen>();
+            screen.Init(_camera, _settings,
+                back: () => _pending = ShowMenu,
+                exitToShell: () => _pending = ExitToShell);
         }
 
         internal void ShowMap()
@@ -66,7 +83,11 @@ namespace GC26.Timetraveler
                 playLevel: level => _pending = () => StartRun(level),
                 playEndless: () => _pending = () => StartRun(null),
                 back: () => _pending = ShowMenu);
-            map.PositionChanged += p => _mapPosition = p;
+            map.PositionChanged += p =>
+            {
+                _mapPosition = p;
+                _save.SetMapPosition(p);
+            };
         }
 
         internal void StartRun(TimetravelerLevel level)
@@ -74,8 +95,24 @@ namespace GC26.Timetraveler
             TimetravelerLog.Info(level == null ? "Screen: endless run." : $"Screen: level {level.Title}.", this);
             var session = NewScreen("TimetravelerRun").AddComponent<RunnerSession>();
             session.LeaveRequested = () => _pending = level == null ? (Action)ShowMenu : ShowMap;
-            session.Init(_camera, _save, level);
+            session.Init(_camera, _save, level, _settings);
         }
+
+        /// <summary>Wipes the save and opens the map at the first level.</summary>
+        internal void NewGame()
+        {
+            _save.NewGame();
+            _mapPosition = null;
+            ShowMap();
+        }
+
+        // A phone may kill the app in the background without a quit message: save when it goes there.
+        void OnApplicationPause(bool paused)
+        {
+            if (paused) _save?.Flush();
+        }
+
+        void OnDestroy() => _save?.Flush();
 
         void ExitToShell()
         {

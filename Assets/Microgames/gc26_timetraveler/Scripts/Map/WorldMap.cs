@@ -45,6 +45,9 @@ namespace GC26.Timetraveler
         RunnerShapes _shapes;
         Transform _player;
         SpriteRenderer _playerRenderer;
+        Sprite[] _walkFrames;             // the runner's run cycle, played slower while walking (null = still picture)
+        float _walkPhase;
+        const float WalkFramesPerUnit = 1.6f;
         Vector2? _walkTarget;
         float _maxY;
         float _viewTop;                 // highest world y the camera may show
@@ -166,7 +169,9 @@ namespace GC26.Timetraveler
             _playerRenderer.sharedMaterial = _shapes.Material;
             _playerRenderer.sortingOrder = 5;
             // map_player slot, else the runner's traveler frame, else a plain box.
-            _playerRenderer.sprite = TimetravelerArt.Sprite(TimetravelerArt.MapPlayer) ?? TravelerAnimator.LoadPreviewFrame();
+            var still = TimetravelerArt.Sprite(TimetravelerArt.MapPlayer);
+            _walkFrames = still == null ? TravelerAnimator.LoadRunFrames() : null;
+            _playerRenderer.sprite = still ?? (_walkFrames != null ? _walkFrames[0] : TravelerAnimator.LoadPreviewFrame());
             if (_playerRenderer.sprite == null)
             {
                 Destroy(go);
@@ -237,6 +242,7 @@ namespace GC26.Timetraveler
             var edge = TimetravelerLevels.MapHalfWidth - 1.2f;
             pos.x = Mathf.Clamp(pos.x, -edge, edge);
             pos.y = Mathf.Clamp(pos.y, MapBottom + 2f, _maxY);
+            AnimateWalk(Vector2.Distance(_player.position, pos));
             if ((Vector2)_player.position != pos)
             {
                 _player.position = pos;
@@ -244,6 +250,20 @@ namespace GC26.Timetraveler
             }
 
             FindNearNode(pos);
+        }
+
+        /// <summary>Walking plays the run cycle by distance; standing still shows the first frame.</summary>
+        void AnimateWalk(float moved)
+        {
+            if (_walkFrames == null || _playerRenderer == null) return;
+            if (moved < 0.0001f)
+            {
+                _walkPhase = 0f;
+                _playerRenderer.sprite = _walkFrames[0];
+                return;
+            }
+            _walkPhase = Mathf.Repeat(_walkPhase + moved * WalkFramesPerUnit, _walkFrames.Length);
+            _playerRenderer.sprite = _walkFrames[Mathf.Clamp((int)_walkPhase, 0, _walkFrames.Length - 1)];
         }
 
         void LateUpdate() => MoveCamera(snap: false);

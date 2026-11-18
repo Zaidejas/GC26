@@ -45,7 +45,7 @@ namespace GC26.Timetraveler
         static Color WallColor(RunnerWorld w) => RunnerWorldState.ColorOf(w) * new Color(0.75f, 0.75f, 0.75f, 1f);
 
         /// <summary>First time each obstacle type appears in a run, a hint is shown before it.</summary>
-        readonly List<(float x, string text)> _hints = new List<(float, string)>();
+        readonly List<(string key, float x, string text)> _hints = new List<(string, float, string)>();
         readonly HashSet<string> _taught = new HashSet<string>();
 
         RunnerShapes _shapes;
@@ -72,6 +72,15 @@ namespace GC26.Timetraveler
         public float CheckpointMeters { get; private set; }
         float _plannedFinishX = float.PositiveInfinity;
         bool _finishBuilt;
+
+        // ---- boss level (1-5): normal run, then a chase with the boss behind, then an arena with a dead end ----
+        bool _boss;
+        /// <summary>Boss level: the chase starts here (also the checkpoint). +infinity otherwise.</summary>
+        public float ChaseStartX { get; private set; } = float.PositiveInfinity;
+        /// <summary>Boss level: the traveler stops here, turns round and fights. +infinity until built.</summary>
+        public float ArenaX { get; private set; } = float.PositiveInfinity;
+        public float ArenaGroundY { get; private set; }
+        public bool HasBoss => _boss;
         readonly List<Transform> _pieces = new List<Transform>();
         /// <summary>Tests: every live track piece (ground, hazards, coins...).</summary>
         internal IReadOnlyList<Transform> Pieces => _pieces;
@@ -84,9 +93,11 @@ namespace GC26.Timetraveler
         /// -1 = endless: groups unlock with distance.</param>
         /// <param name="finishMeters">Levels: distance of the finish line; 0 = endless.</param>
         public void Build(RunnerShapes shapes, RunnerWorldState worlds, Transform target, int seed,
-            int tier = -1, float finishMeters = 0f, float density = 1f, bool hard = false, int era = 0)
+            int tier = -1, float finishMeters = 0f, float density = 1f, bool hard = false, int era = 0, bool boss = false)
         {
             _era = era;
+            _boss = boss && finishMeters > 0f;
+            ArenaX = float.PositiveInfinity;
             _shapes = shapes;
             _worlds = worlds;
             _target = target;
@@ -103,8 +114,10 @@ namespace GC26.Timetraveler
             _patternCount = 0;
             _checkpointBuilt = false;
             CheckpointX = float.PositiveInfinity;
-            CheckpointMeters = finishMeters > 0f ? finishMeters * 0.5f : 0f;
+            // Boss level: the checkpoint is where the chase begins, so a death in the chase does not cost the whole level.
+            CheckpointMeters = finishMeters > 0f ? finishMeters * (_boss ? 0.7f : 0.5f) : 0f;
             _plannedCheckpointX = finishMeters > 0f ? StartX + CheckpointMeters / MetersPerUnit : float.PositiveInfinity;
+            ChaseStartX = _boss ? _plannedCheckpointX : float.PositiveInfinity;
             _finishBuilt = false;
             FinishX = float.PositiveInfinity;
             _plannedFinishX = finishMeters > 0f ? StartX + finishMeters / MetersPerUnit : float.PositiveInfinity;
@@ -116,8 +129,16 @@ namespace GC26.Timetraveler
             while (_cursorX < untilX)
             {
                 if (!_checkpointBuilt && _cursorX >= _plannedCheckpointX) BuildCheckpoint();
-                else if (_cursorX < _plannedFinishX) AddPattern();
-                else if (!_finishBuilt) BuildFinish();
+                else if (_cursorX < _plannedFinishX)
+                {
+                    if (_boss && _cursorX >= ChaseStartX) AddChasePattern();
+                    else AddPattern();
+                }
+                else if (!_finishBuilt)
+                {
+                    if (_boss) BuildArena();
+                    else BuildFinish();
+                }
                 else Flat(20f);
             }
         }
@@ -155,21 +176,31 @@ namespace GC26.Timetraveler
         }
 
         /// <summary>The hint for the next taught obstacle, if the traveler is approaching it.</summary>
-        public string HintFor(float travelerX)
+        public string HintFor(float travelerX) => CurrentHint(travelerX, out _, out var text, out _) ? text : null;
+
+        /// <summary>The hint the traveler is approaching: its key (obstacle type), text and how far ahead it is.</summary>
+        public bool CurrentHint(float travelerX, out string key, out string text, out float ahead)
         {
-            foreach (var (x, text) in _hints)
+            foreach (var (k, x, t) in _hints)
             {
-                var ahead = x - travelerX;
-                if (ahead > -1f && ahead < 18f) return text;
+                ahead = x - travelerX;
+                if (ahead > -1f && ahead < 18f)
+                {
+                    key = k;
+                    text = t;
+                    return true;
+                }
             }
-            return null;
+            key = text = null;
+            ahead = 0f;
+            return false;
         }
 
         /// <summary>Adds a hint at the current build position, once per obstacle type per run.</summary>
         void Teach(string key, string text)
         {
             if (!_taught.Add(key)) return;
-            _hints.Add((_cursorX, text));
+            _hints.Add((key, _cursorX, text));
         }
 
         static string Name(RunnerWorld w) => RunnerWorldState.NameOf(w);
@@ -224,6 +255,8 @@ namespace GC26.Timetraveler
                 options.Add(("gaprock", GapRock, 1f));
                 options.Add(("logrock", LogRock, 1f));
                 options.Add(("stairs", Stairs, 0.9f));
+                options.Add(("spring", SpringWall, 0.9f));
+                options.Add(("tunnel", Tunnel, 1f));
             }
             if (_hard)
             {
@@ -243,6 +276,7 @@ namespace GC26.Timetraveler
                 options.Add(("flyer", Flyer, 1.3f));
                 options.Add(("boulders", Boulders, 1.1f));
                 options.Add(("crusher", Crusher, 1.1f));
+                if (_era == 0) options.Add(("ptero", Ptero, 1.2f));
             }
 
             // Each later timeline has its own flavour: new patterns and its own favourites.
@@ -321,9 +355,10 @@ namespace GC26.Timetraveler
             switch (pattern)
             {
                 case "stepup": case "stepdown": case "ledge": case "tallwall":
-                case "rockrock": case "rocklog": case "gaprock": case "logrock": case "stairs": return 1;
+                case "rockrock": case "rocklog": case "gaprock": case "logrock": case "stairs":
+                case "spring": case "tunnel": return 1;
                 case "worldbridge": case "worldwall": case "worldsplit": case "worldwallrock": return 2;
-                case "blade": case "flyer": case "boulders": case "crusher": return 3;
+                case "blade": case "flyer": case "boulders": case "crusher": case "ptero": return 3;
                 default: return 0;
             }
         }
@@ -386,6 +421,83 @@ namespace GC26.Timetraveler
                     case "gap": case "islands": return 0.7f;
                 }
             return 1f;
+        }
+
+        // ---------- more obstacles ----------
+
+        /// <summary>A spring pad in front of a wall far too high to jump: the spring throws you over it.</summary>
+        void SpringWall()
+        {
+            // Long run-up: a jump over whatever came before must land before the pad, not past it.
+            Flat(12f);
+            Teach("spring", "Spring! Run onto it to fly over the giant wall (don't jump before it)");
+            var pad = _shapes.Box(transform, "TrackSpring", _cursorX, _groundY, 2f, 0.6f, SpringColor, isTrigger: true,
+                sortingOrder: 1, slot: TimetravelerArt.Spring);
+            pad.AddComponent<RunnerSpring>().height = SpringHeight;
+            _pieces.Add(pad.transform);
+            // Coins up the flight path.
+            for (var i = 0; i < 4; i++) CoinAt(_cursorX + 2f + i * 1.6f, _groundY + 10f + i * 2.5f);   // above the wall's top (12)
+            Flat(5.5f);
+            // Too high for a double jump (6.5 + 5 = 11.5); the spring flight peaks around 16-17
+            // and is still above 14 where it crosses the wall, at any speed (checked by the bot tests).
+            Hazard("TrackGiantWall", _cursorX, _groundY, 1.5f, 12f, TimetravelerArt.TallWall);
+            // The spring flight lands 8 (slow) to 16 (fast) units after the pad: clear ground.
+            Flat(16f);
+        }
+
+        /// <summary>A long low tunnel: hold the slide all the way through, coins inside.</summary>
+        void Tunnel()
+        {
+            Flat(4f);
+            Teach("tunnel", "Low tunnel: HOLD slide all the way through");
+            var length = Range(9f, 13f);
+            Hazard("TrackTunnel", _cursorX, _groundY + LowBottom, length, 14f, TimetravelerArt.Tunnel);
+            CoinRow(_cursorX + 1f, _groundY + 0.8f, Mathf.FloorToInt(length / 1.5f), 1.5f);
+            Flat(length + 6f);
+        }
+
+        /// <summary>Dinosaurs: a pterodactyl dives from the sky down to head height: slide under it.</summary>
+        void Ptero()
+        {
+            Flat(22f);
+            Teach("ptero", "Pterodactyl dives at you: SLIDE under it");
+            var ptero = Hazard("TrackPtero", _cursorX, _groundY + 9f, 2.4f, 1.2f, TimetravelerArt.Flyer);
+            var mover = AddMover(ptero, RunnerMover.Mode.Swoop, low: _groundY + LowBottom + 0.6f, high: _groundY + 9.6f, period: 0.8f);
+            mover.speed = 6f;
+            mover.triggerDistance = 26f;
+            Flat(6f);
+        }
+
+        // ---------- boss level ----------
+
+        /// <summary>The chase: only quick basic obstacles (the boss is right behind you).</summary>
+        void AddChasePattern()
+        {
+            _patternCount++;
+            Teach("chase", "The T-REX is after you! RUN!");
+            switch (_rng.Next(5))
+            {
+                case 0: Rock(); break;
+                case 1: Gap(Range(3f, 4.2f)); break;
+                case 2: Log(); break;
+                case 3: RockRock(); break;
+                default: RockLog(); break;
+            }
+            Ground(Mathf.Max(2f, Range(3f, 5f) * _density));
+        }
+
+        /// <summary>A flat arena that ends in a cliff: the traveler stops, turns round and fights the boss.</summary>
+        void BuildArena()
+        {
+            Flat(10f);
+            ArenaX = _cursorX;
+            ArenaGroundY = _groundY;
+            _finishBuilt = true;
+            Flat(10f);
+            // The dead end: a cliff face (solid, not deadly; the traveler stops before it).
+            _pieces.Add(_shapes.Box(transform, "TrackCliff", _cursorX, _groundY, 4f, 30f, RunnerShapes.LedgeColor,
+                sortingOrder: 0, slot: TimetravelerArt.BossCliff, tile: true).transform);
+            Flat(30f);
         }
 
         // ---------- timeline patterns ----------
@@ -775,6 +887,9 @@ namespace GC26.Timetraveler
             for (var i = 0; i < ArcHeights.Length; i++)
                 CoinAt(centerX + (i - 2) * 1.3f, groundY + ArcHeights[i]);
         }
+
+        const float SpringHeight = 20f;
+        static readonly Color SpringColor = new Color(0.3f, 0.85f, 0.45f);
 
         void BuildFinish()
         {

@@ -58,6 +58,9 @@ namespace GC26.Timetraveler
         public bool IsDead { get; private set; }
         public bool IsGrounded { get; private set; }
         public bool IsSliding => _sliding;
+        /// <summary>Stopped on the spot (boss fight): no running, no jumping, input ignored. ResetAt clears it.</summary>
+        public bool IsHalted { get; private set; }
+        public event Action<RunnerSpring> Sprung;
         public float ColliderHeight => _collider != null ? _collider.size.y : tuning.standSize.y;
         public float VelocityY => _body != null ? _body.linearVelocity.y : 0f;
 
@@ -108,6 +111,7 @@ namespace GC26.Timetraveler
         public void ResetAt(Vector2 position, float runSpeed)
         {
             IsDead = false;
+            IsHalted = false;
             RunSpeed = runSpeed;
             _slideTimer = 0f;
             _sliding = false;
@@ -124,7 +128,7 @@ namespace GC26.Timetraveler
 
         void Update()
         {
-            if (IsDead || _input == null) return;
+            if (IsDead || _input == null || IsHalted) return;
 
             if (_input.JumpPressed) _jumpBufferTimer = tuning.jumpBufferTime;
             if (_input.SlidePressed) StartSlideOrFastFall();
@@ -153,7 +157,7 @@ namespace GC26.Timetraveler
             }
 
             var v = _body.linearVelocity;
-            v.x = RunSpeed;
+            v.x = IsHalted ? 0f : RunSpeed;
 
             // Jump (buffered) or double jump.
             if (_jumpBufferTimer > 0f)
@@ -233,7 +237,13 @@ namespace GC26.Timetraveler
             var filter = new ContactFilter2D { useTriggers = true };
             var count = Physics2D.OverlapBox(center, size, 0f, filter, _overhead);
             for (var i = 0; i < count; i++)
-                if (_overhead[i] != _collider && _overhead[i].GetComponent<RunnerCoin>() == null) return true;
+            {
+                var c = _overhead[i];
+                if (c == _collider) continue;
+                // Only real ceilings count: solids and deadly things, not coins, flags, springs.
+                if (c.isTrigger && c.GetComponent<RunnerHazard>() == null) continue;
+                return true;
+            }
             return false;
         }
 
@@ -305,12 +315,39 @@ namespace GC26.Timetraveler
         {
             if (IsDead) return;
             if (other.TryGetComponent<RunnerCoin>(out var coin)) CoinTouched?.Invoke(coin);
+            else if (other.TryGetComponent<RunnerSpring>(out var spring)) Launch(spring);
             else if (other.GetComponent<RunnerHazard>() != null) Die($"hit '{other.name}'");
         }
+
+        /// <summary>Stop on the spot (the boss arena). The traveler keeps standing, gravity still works.</summary>
+        public void Halt()
+        {
+            IsHalted = true;
+            EndSlide();
+            _jumpBufferTimer = 0f;
+            if (_body != null) _body.linearVelocity = new Vector2(0f, Mathf.Min(0f, _body.linearVelocity.y));
+        }
+
+        void Launch(RunnerSpring spring)
+        {
+            EndSlide();
+            var v = _body.linearVelocity;
+            v.y = Mathf.Sqrt(2f * _gravity * spring.height);
+            _body.linearVelocity = v;
+            _coyoteTimer = 0f;
+            _jumpBufferTimer = 0f;
+            _canDoubleJump = true;
+            spring.Used();
+            Sprung?.Invoke(spring);
+        }
+
+        /// <summary>Dev hotkey (F2): hazards do not kill (falling into a gap still does).</summary>
+        internal bool Invulnerable;
 
         public void Die(string reason)
         {
             if (IsDead) return;
+            if (Invulnerable && !reason.StartsWith("fell")) return;
             IsDead = true;
             _body.linearVelocity = Vector2.zero;
             _body.simulated = false;

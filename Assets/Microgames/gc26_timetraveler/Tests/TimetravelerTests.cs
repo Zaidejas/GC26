@@ -1,4 +1,5 @@
 using System.Collections;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
@@ -18,6 +19,10 @@ namespace GC26.Timetraveler.Tests
         Camera _camera;
         readonly List<GameObject> _spawned = new List<GameObject>();
         Dictionary<string, int> _savedPrefs;
+        byte[] _savedFile, _savedSettings;
+        static string SettingsPath => Path.Combine(GC26.Core.MicrogameSave.Folder(TimetravelerGame.Id), TimetravelerSettings.FileName);
+
+        static string SavePath => Path.Combine(GC26.Core.MicrogameSave.Folder(TimetravelerGame.Id), TimetravelerSave.FileName);
 
         static IEnumerable<string> SaveKeys()
         {
@@ -34,6 +39,11 @@ namespace GC26.Timetraveler.Tests
         {
             _savedPrefs = SaveKeys().ToDictionary(k => k, k => PlayerPrefs.HasKey(Key(k)) ? PlayerPrefs.GetInt(Key(k)) : int.MinValue);
             foreach (var k in SaveKeys()) PlayerPrefs.DeleteKey(Key(k));
+            // The player's real save file: kept aside, tests start from no save at all.
+            _savedFile = File.Exists(SavePath) ? File.ReadAllBytes(SavePath) : null;
+            if (File.Exists(SavePath)) File.Delete(SavePath);
+            _savedSettings = File.Exists(SettingsPath) ? File.ReadAllBytes(SettingsPath) : null;
+            if (File.Exists(SettingsPath)) File.Delete(SettingsPath);
             _cameraObject = new GameObject("TestCamera");
             _camera = _cameraObject.AddComponent<Camera>();
             _camera.orthographic = true;
@@ -54,6 +64,11 @@ namespace GC26.Timetraveler.Tests
                 else PlayerPrefs.SetInt(Key(pair.Key), pair.Value);
             }
             PlayerPrefs.Save();
+            if (_savedFile != null) File.WriteAllBytes(SavePath, _savedFile);
+            else if (File.Exists(SavePath)) File.Delete(SavePath);
+            if (File.Exists(SavePath + ".broken")) File.Delete(SavePath + ".broken");
+            if (_savedSettings != null) File.WriteAllBytes(SettingsPath, _savedSettings);
+            else if (File.Exists(SettingsPath)) File.Delete(SettingsPath);
         }
 
         RunnerSession NewSession(TimetravelerLevel level)
@@ -143,6 +158,78 @@ namespace GC26.Timetraveler.Tests
             Assert.IsTrue(eras[2].IsOpen(save), "finishing 2-5 must open the Renaissance");
         }
 
+        [Test]
+        public void Save_SurvivesARestartAndNewGameWipesIt()
+        {
+            var save = new TimetravelerSave();
+            Assert.IsFalse(save.HasProgress);
+            save.CompleteLevel(TimetravelerLevels.Era1[0], 9);
+            save.AddCoins(12);
+            save.ReportDistance(300);
+            save.SetMapPosition(new Vector2(3f, 7f));
+            save.Flush();
+
+            var again = new TimetravelerSave();                 // as if the game was closed and opened again
+            Assert.IsTrue(again.HasProgress);
+            Assert.AreEqual(1, again.LevelsDone);
+            Assert.AreEqual(12, again.Coins);
+            Assert.AreEqual(300, again.BestMeters);
+            Assert.AreEqual(9, again.LevelBestCoins(TimetravelerLevels.Era1[0]));
+            Assert.AreEqual(new Vector2(3f, 7f), again.MapPosition);
+
+            again.NewGame();
+            var fresh = new TimetravelerSave();
+            Assert.IsFalse(fresh.HasProgress, "new game did not wipe the save");
+            Assert.AreEqual(0, fresh.LevelsDone);
+            Assert.IsNull(fresh.MapPosition);
+        }
+
+        [Test]
+        public void Save_ABrokenFileStartsFreshInsteadOfCrashing()
+        {
+            File.WriteAllText(SavePath, "{ this is not json");
+            LogAssert.Expect(LogType.Warning, new System.Text.RegularExpressions.Regex("Save file unreadable"));
+            var save = new TimetravelerSave();
+            Assert.IsFalse(save.HasProgress);
+            Assert.IsTrue(File.Exists(SavePath + ".broken"), "the broken file was not kept for a look");
+            save.AddCoins(1);
+            Assert.AreEqual(1, new TimetravelerSave().Coins, "saving after a broken file does not work");
+        }
+
+        [Test]
+        public void Save_OldPlayerPrefsProgressMovesIntoTheFile()
+        {
+            PlayerPrefs.SetInt(Key("coins"), 40);
+            PlayerPrefs.SetInt(Key("levels_done"), 3);
+            PlayerPrefs.SetInt(Key("level_coins_" + TimetravelerLevels.Era1[1].Key), 6);
+            var save = new TimetravelerSave();
+            Assert.AreEqual(40, save.Coins);
+            Assert.AreEqual(3, save.LevelsDone);
+            Assert.AreEqual(6, save.LevelBestCoins(TimetravelerLevels.Era1[1]));
+            Assert.IsFalse(PlayerPrefs.HasKey(Key("coins")), "old keys were not removed");
+            Assert.AreEqual(3, new TimetravelerSave().LevelsDone, "migrated progress was not written to the file");
+        }
+
+        [Test]
+        public void Settings_AreSavedAndSurviveANewGame()
+        {
+            var settings = TimetravelerSettings.Load();
+            settings.MusicVolume = 0.3f;
+            settings.Shake = 0;
+            settings.TutorialSlowMotion = false;
+            settings.RhythmOffsetMs = 500;                 // clamped to 200
+            new TimetravelerSave().NewGame();
+
+            var again = TimetravelerSettings.Load();
+            Assert.AreEqual(0.3f, again.MusicVolume, 0.001f);
+            Assert.AreEqual(0, again.Shake);
+            Assert.AreEqual(0f, again.ShakeFactor);
+            Assert.IsFalse(again.TutorialSlowMotion);
+            Assert.AreEqual(200, again.RhythmOffsetMs);
+            again.ResetToDefaults();
+            Assert.IsTrue(TimetravelerSettings.Load().TutorialSlowMotion, "reset did not restore the defaults");
+        }
+
         // ---------- track structure ----------
 
         static IEnumerable<int> TrackCases() => Enumerable.Range(0, TimetravelerLevels.All.Length).Concat(new[] { -1, -2, -3 });
@@ -161,7 +248,8 @@ namespace GC26.Timetraveler.Tests
             yield return new WaitForFixedUpdate();
             Physics2D.SyncTransforms();
 
-            if (level != null) Assert.IsFalse(float.IsInfinity(session.Track.FinishX), "no finish line was built");
+            if (level != null && level.Boss) Assert.IsFalse(float.IsInfinity(session.Track.ArenaX), "no boss arena was built");
+            else if (level != null) Assert.IsFalse(float.IsInfinity(session.Track.FinishX), "no finish line was built");
 
             var pieces = session.Track.Pieces.Where(p => p != null).ToList();
             var hazards = pieces.Where(p => p.GetComponent<RunnerHazard>() != null && p.GetComponent<RunnerMover>() == null).ToList();
@@ -261,7 +349,7 @@ namespace GC26.Timetraveler.Tests
         static IEnumerable<int> LevelCases() => Enumerable.Range(0, TimetravelerLevels.All.Length);
 
         /// <summary>The autopilot must be able to finish every level: proves each level can be completed.</summary>
-        [UnityTest, Timeout(180000)]
+        [UnityTest, Timeout(240000)]
         public IEnumerator Level_CanBeFinishedByTheBot([ValueSource(nameof(LevelCases))] int levelIndex)
         {
             var level = TimetravelerLevels.All[levelIndex];
@@ -272,6 +360,50 @@ namespace GC26.Timetraveler.Tests
         public IEnumerator Endless_BotSurvives700Meters()
         {
             yield return Play(null, 700);
+        }
+
+        /// <summary>The first rock of a new save: time slows down, the jump ends it, time is back to normal,
+        /// and the second run of the level does not slow down again.</summary>
+        [UnityTest, Timeout(120000)]
+        public IEnumerator Tutorial_SlowsTimeOnceAndRestoresIt()
+        {
+            var level = TimetravelerLevels.Era1[0];
+            var session = NewSession(level);
+            var bot = new TimetravelerBot(session);
+            session.Input.Scripted = bot.Next;
+            string death = null;
+            session.Traveler.Died += reason => death = reason;
+            Application.targetFrameRate = 60;
+
+            var slowSeen = false;
+            var timeout = Time.realtimeSinceStartup + 60f;
+            while (session.DistanceMeters < 60 && death == null)
+            {
+                if (Time.realtimeSinceStartup > timeout) Assert.Fail("timed out");
+                if (session.InTutorialSlowMotion)
+                {
+                    slowSeen = true;
+                    Assert.Less(Time.timeScale, 0.5f, "tutorial slow motion is not slow");
+                }
+                else Assert.AreEqual(1f, Time.timeScale, 0.001f, "time scale not restored after the tutorial");
+                yield return null;
+            }
+            Assert.IsNull(death, "the bot died during the tutorial: " + death);
+            Assert.IsTrue(slowSeen, "no tutorial slow motion on the first obstacles of a new save");
+
+            // Same save, new run: those obstacles are known now.
+            Object.Destroy(session.gameObject);
+            yield return null;
+            Assert.AreEqual(1f, Time.timeScale, 0.001f, "time scale not restored when the run was closed");
+            var again = NewSession(level);
+            again.Input.Scripted = new TimetravelerBot(again).Next;
+            timeout = Time.realtimeSinceStartup + 60f;
+            while (again.DistanceMeters < 25)
+            {
+                if (Time.realtimeSinceStartup > timeout) Assert.Fail("timed out (second run)");
+                Assert.IsFalse(again.InTutorialSlowMotion, "a tutorial already learned slowed time again");
+                yield return null;
+            }
         }
 
         [UnityTest, Timeout(120000)]
@@ -319,6 +451,7 @@ namespace GC26.Timetraveler.Tests
         IEnumerator Play(TimetravelerLevel level, int targetMeters)
         {
             var session = NewSession(level);
+            session.TutorialSlowMotion = false;   // faster; Tutorial_SlowsTimeOnceAndRestoresIt covers it
             var bot = new TimetravelerBot(session);
             session.Input.Scripted = bot.Next;
             string death = null;
@@ -328,7 +461,7 @@ namespace GC26.Timetraveler.Tests
             Time.timeScale = 2f;
             var startCoins = 0;
 
-            var timeout = Time.realtimeSinceStartup + 150f;
+            var timeout = Time.realtimeSinceStartup + 200f;
             while (death == null && !session.IsFinished && session.DistanceMeters < targetMeters)
             {
                 if (Time.realtimeSinceStartup > timeout) Assert.Fail($"timed out at {session.DistanceMeters} m (stuck?)");
@@ -338,6 +471,11 @@ namespace GC26.Timetraveler.Tests
             var name = level != null ? $"Level {level.Title}" : "Endless";
             Assert.IsNull(death, $"{name}: the bot died: {death}");
             if (level != null) Assert.IsTrue(session.IsFinished, $"{name}: finish line not reached");
+            if (level != null && level.Boss)
+            {
+                Assert.AreEqual(RunnerBoss.State.Won, session.Boss.CurrentState, $"{name}: the boss was not beaten");
+                Assert.AreEqual(RunnerBoss.MaxHearts, session.Boss.Hearts, $"{name}: notes played on the beat still lost hearts (hit window broken?)");
+            }
             Assert.Greater(session.RunCoins, startCoins, $"{name}: no coins collected on the whole run");
             Debug.Log($"[test] {name}: done, {session.DistanceMeters} m, {session.RunCoins} coins");
         }

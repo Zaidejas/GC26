@@ -29,6 +29,10 @@ namespace GC26.Timetraveler
         public const string RunnerLayerMid = "runner_layer_mid";
         public const string RunnerLayerNear = "runner_layer_near";
         public const string Checkpoint = "checkpoint";
+        public const string Spring = "spring";
+        public const string Tunnel = "tunnel";            // stretched over the tunnel ceiling
+        public const string Boss = "boss_trex";           // whole T-Rex, facing right
+        public const string BossCliff = "boss_cliff";     // tiled, the dead end of the boss arena
 
         // ---- world map ----
         public const string MapGround = "map_ground";     // tiled

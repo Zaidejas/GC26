@@ -21,6 +21,8 @@ namespace GC26.Timetraveler
         public float Density = 1f;
         /// <summary>Adds triple and mixed combos.</summary>
         public bool Hard;
+        /// <summary>Ends with the boss: a chase from 70 % on, then a rhythm fight at a dead end (instead of a finish line).</summary>
+        public bool Boss;
     }
 
     public enum PlaceKind { Npc, Shop, Minigame }
@@ -61,7 +63,7 @@ namespace GC26.Timetraveler
             new TimetravelerLevel { Key = "dino_2", Title = "1-2", Order = 1, LengthMeters = 220, Seed = 102, Tier = 1, StartSpeed = 7.5f, MaxSpeed = 10.5f, Density = 0.85f, MapPosition = new Vector2(-1f, 8f) },
             new TimetravelerLevel { Key = "dino_3", Title = "1-3", Order = 2, LengthMeters = 280, Seed = 103, Tier = 2, StartSpeed = 8f, MaxSpeed = 11.5f, Density = 0.75f, MapPosition = new Vector2(11f, 12f) },
             new TimetravelerLevel { Key = "dino_4", Title = "1-4", Order = 3, LengthMeters = 340, Seed = 104, Tier = 3, StartSpeed = 8.5f, MaxSpeed = 12.5f, Density = 0.65f, MapPosition = new Vector2(15f, 24f) },
-            new TimetravelerLevel { Key = "dino_5", Title = "1-5", Order = 4, LengthMeters = 420, Seed = 105, Tier = 3, StartSpeed = 9f, MaxSpeed = 13f, Density = 0.55f, Hard = true, MapPosition = new Vector2(2f, 30f) },
+            new TimetravelerLevel { Key = "dino_5", Title = "1-5", Order = 4, LengthMeters = 420, Seed = 105, Tier = 3, StartSpeed = 9f, MaxSpeed = 13f, Density = 0.55f, Hard = true, Boss = true, MapPosition = new Vector2(2f, 30f) },
         };
 
         // The Age of Exploration: islands, sea gaps and bridges between worlds.

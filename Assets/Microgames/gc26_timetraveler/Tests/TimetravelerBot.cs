@@ -42,6 +42,14 @@ namespace GC26.Timetraveler.Tests
         {
             var f = new TravelerInput.ScriptedFrame();
             if (T == null || T.IsDead) return f;
+
+            // Boss fight: the boss reads the bot's "finger" (BossPointer) itself; no buttons needed here.
+            var boss = _session.Boss;
+            if (boss != null && boss.InControl)
+            {
+                if (boss.ScriptedPointer == null) boss.ScriptedPointer = BossPointer;
+                return f;
+            }
             _jumpCooldown -= Time.deltaTime;
 
             var pos = (Vector2)T.transform.position;
@@ -70,6 +78,15 @@ namespace GC26.Timetraveler.Tests
             var needDouble = false;
             var switchWorld = false;
 
+            // A spring pad ahead throws her over whatever stands behind it: do not jump for those.
+            var springX = float.PositiveInfinity;
+            foreach (var piece in _session.Track.Pieces)
+            {
+                if (piece == null || piece.GetComponent<RunnerSpring>() == null) continue;
+                var sb = piece.GetComponent<Collider2D>().bounds;
+                if (sb.max.x > back && sb.min.x - front < LookAhead) springX = Mathf.Min(springX, sb.min.x);
+            }
+
             foreach (var piece in _session.Track.Pieces)
             {
                 if (piece == null) continue;
@@ -77,6 +94,7 @@ namespace GC26.Timetraveler.Tests
                 if (col == null) continue;
                 var b = col.bounds;
                 if (b.max.x < back - 0.5f || b.min.x > front + LookAhead) continue;
+                if (b.min.x > springX) continue;
                 var member = piece.GetComponent<RunnerWorldMember>();
                 var isHazard = piece.GetComponent<RunnerHazard>() != null;
                 var d = b.min.x - front;
@@ -172,6 +190,31 @@ namespace GC26.Timetraveler.Tests
                 }
             }
             return f;
+        }
+
+        bool _fingerDown;
+
+        /// <summary>
+        /// The bot's finger in the osu!-style boss fight: a tap on the centre of each circle right on its beat
+        /// (down for one frame, then up), and for sliders down from the start until the end, on the ball.
+        /// </summary>
+        (bool down, Vector2 pos) BossPointer()
+        {
+            var boss = _session.Boss;
+            var n = boss.CurrentState == RunnerBoss.State.Fight ? boss.NextNote() : null;
+            if (n == null) return (_fingerDown = false, Vector2.zero);
+            var now = boss.JudgeTime;
+            if (n.Holding)
+            {
+                LastDecision = "boss: following slider";
+                return (_fingerDown = true, boss.ToScreen(boss.SliderBall(n, now)));
+            }
+            if (!_fingerDown && now >= n.Time - 0.02f)
+            {
+                LastDecision = $"boss: tap {n.Kind} at {n.Time:0.00}";
+                return (_fingerDown = true, boss.ToScreen(n.Pos));
+            }
+            return (_fingerDown = false, boss.ToScreen(n.Pos));
         }
 
         bool GroundAhead(float feet, float x) => !float.IsNegativeInfinity(GroundHeightAhead(feet, x));

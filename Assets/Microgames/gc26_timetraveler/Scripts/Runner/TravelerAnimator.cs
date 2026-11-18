@@ -34,6 +34,31 @@ namespace GC26.Timetraveler
         float _lastX;
         Vector2 _squash = Vector2.one;   // squash and stretch, springs back to 1
 
+        // Boss fight poses: shown for a moment instead of the normal animation.
+        public enum Pose { Attack, Dodge, Hurt }
+        Sprite[] _poseSet, _poseAuraSet;
+        int _poseFrame;
+        float _poseTime;
+
+        /// <summary>Faces left (the boss fight: the boss is behind her).</summary>
+        public bool FaceLeft
+        {
+            get => _body != null && _body.flipX;
+            set { if (_body != null) { _body.flipX = value; _aura.flipX = value; } }
+        }
+
+        /// <summary>Boss fight: strike, duck or get hit, for <paramref name="seconds"/>.</summary>
+        public void PlayPose(Pose pose, float seconds = 0.25f)
+        {
+            switch (pose)
+            {
+                case Pose.Attack: _poseSet = _jump; _poseAuraSet = _jumpAura; _poseFrame = JumpPush; break;
+                case Pose.Dodge: _poseSet = _slide; _poseAuraSet = _slideAura; _poseFrame = SlideHold; break;
+                default: _poseSet = _death; _poseAuraSet = _deathAura; _poseFrame = 0; break;
+            }
+            _poseTime = seconds;
+        }
+
         float _sinceJump = 99f, _sinceLand = 99f, _sinceSlideStart = 99f, _sinceSlideEnd = 99f, _sinceDeath;
         bool _wasSliding, _wasDead;
 
@@ -75,6 +100,12 @@ namespace GC26.Timetraveler
             anim.Show(run, runAura, 0);
             return anim;
         }
+
+        /// <summary>A set of frames ("run", "jump", "slide", "death") for other screens; null if any is missing.</summary>
+        public static Sprite[] LoadFrames(string name, int count) => LoadSet(name, count, out var frames, out _) ? frames : null;
+
+        /// <summary>The run frames for other screens (the map's walking marker); null if missing.</summary>
+        public static Sprite[] LoadRunFrames() => LoadSet("run", RunFrames, out var frames, out _) ? frames : null;
 
         /// <summary>One frame for a still picture (the scene preview outside Play mode, the map marker).</summary>
         public static Sprite LoadPreviewFrame() => Load("run0");
@@ -144,6 +175,16 @@ namespace GC26.Timetraveler
                 _wasDead = false;
                 _sinceJump = _sinceLand = _sinceSlideStart = _sinceSlideEnd = 99f;
             }
+
+            if (_traveler.IsHalted)
+            {
+                // Boss fight: a pose for a moment, else the ready stance (crouched take-off frame).
+                _poseTime -= dt;
+                if (_poseTime > 0f && _poseSet != null) Show(_poseSet, _poseAuraSet, _poseFrame);
+                else Show(_jump, _jumpAura, JumpCrouch);
+                return;
+            }
+            _poseTime = 0f;
 
             var sliding = _traveler.IsSliding;
             if (sliding && !_wasSliding) _sinceSlideStart = 0f;

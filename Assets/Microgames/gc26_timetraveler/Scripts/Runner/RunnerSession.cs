@@ -62,6 +62,18 @@ namespace GC26.Timetraveler
         bool _newRecord;
         SpriteRenderer _background;
         RunnerParallax _parallax;
+        RunnerBoss _boss;               // boss levels only
+        TimetravelerSettings _settings;
+
+        // ---- tutorial: the first time an obstacle type comes, time slows down and an example plays ----
+        const float TutorialTimeScale = 0.3f;
+        RunnerTutorial _tutorial;
+        string _tutorialKey;            // the obstacle being taught in slow motion (null = none)
+        float _tutorialScaleBefore = 1f;
+        bool _wasSliding;
+        /// <summary>Tests: the bot playthroughs turn the slow motion off to run faster (one test checks it on).</summary>
+        internal bool TutorialSlowMotion = true;
+        internal bool InTutorialSlowMotion => _tutorialKey != null;
 
         // ---- checkpoints (levels) ----
         bool _checkpointReached;
@@ -93,12 +105,16 @@ namespace GC26.Timetraveler
         internal bool IsFinished => _finished;
         internal int RunCoins => _runCoins;
         internal bool CheckpointReached => _checkpointReached;
+        internal RunnerBoss Boss => _boss;
 
         /// <param name="level">Story level to play, or null for the endless run.</param>
-        public void Init(Camera cam, TimetravelerSave save, TimetravelerLevel level)
+        /// <param name="settings">Player settings (null = defaults, e.g. in tests).</param>
+        public void Init(Camera cam, TimetravelerSave save, TimetravelerLevel level, TimetravelerSettings settings = null)
         {
             _camera = cam;
             _save = save;
+            _settings = settings ?? TimetravelerSettings.Defaults();
+            TutorialSlowMotion = _settings.TutorialSlowMotion;
             _level = level;
             if (level != null)
             {
@@ -141,12 +157,22 @@ namespace GC26.Timetraveler
             _traveler.Jumped += OnJumped;
             _traveler.Landed += OnLanded;
 
+            _tutorial = new RunnerTutorial();
             _fx = new GameObject("RunnerFx").AddComponent<RunnerFx>();
             _fx.transform.SetParent(transform, false);
             _fx.Init(_shapes);
 
             // Our own follow component (removed again in OnDestroy, so the map can move the camera).
             _follow = cam.gameObject.AddComponent<RunnerCamera>();
+            _follow.shakeFactor = _settings.ShakeFactor;
+
+            if (level != null && level.Boss)
+            {
+                _boss = new GameObject("TimetravelerBoss").AddComponent<RunnerBoss>();
+                _boss.transform.SetParent(transform, false);
+                _boss.Init(_shapes, _fx, _follow, _traveler, _travelerSprite, _input, _track, _settings);
+                _boss.Defeated += OnBossDefeated;
+            }
 
             TimetravelerLog.Info(IsEndless ? $"Endless run created (best so far {_save.BestMeters} m)."
                 : $"Level {_level.Title} created ({_level.LengthMeters} m, tier {_level.Tier}, seed {_level.Seed}).", this);
@@ -159,6 +185,7 @@ namespace GC26.Timetraveler
         /// <param name="fromCheckpoint">Levels: rebuild the same track and start at the half-way checkpoint.</param>
         void StartRun(bool fromCheckpoint)
         {
+            EndTutorialSlowMotion(false);
             // A level is the same track every attempt; every endless run is a new random track.
             _seed = IsEndless ? Random.Range(1, int.MaxValue) : _level.Seed;
             _runTime = 0f;
@@ -173,10 +200,11 @@ namespace GC26.Timetraveler
             _worlds.Reset();
             if (IsEndless) _track.Build(_shapes, _worlds, _traveler.transform, _seed);
             else _track.Build(_shapes, _worlds, _traveler.transform, _seed, _level.Tier, _level.LengthMeters,
-                _level.Density, _level.Hard, _level.Era);
+                _level.Density, _level.Hard, _level.Era, _level.Boss);
+            if (_boss != null) _boss.ResetForRun();
             if (fromCheckpoint)
             {
-                _track.Extend(_level.LengthMeters * 0.5f / MetersPerUnit + 60f);
+                _track.Extend(_track.CheckpointMeters / MetersPerUnit + 60f);
                 _runTime = _checkpointRunTime;
                 _traveler.ResetAt(new Vector2(_track.CheckpointX + 1f, _track.CheckpointGroundY),
                     Mathf.Min(maxSpeed, startSpeed + speedRampPerSecond * _runTime));
@@ -188,7 +216,11 @@ namespace GC26.Timetraveler
                 _checkpointReached = false;
                 _traveler.ResetAt(new Vector2(_track.StartX, 0f), startSpeed);
             }
-            if (_follow != null) _follow.Snap();
+            if (_follow != null)
+            {
+                _follow.groundY = Feet.y;
+                _follow.Snap();
+            }
             TimetravelerLog.Info($"Run started (track seed {_seed}, speed {startSpeed}).", this);
         }
 
@@ -235,8 +267,22 @@ namespace GC26.Timetraveler
                 Finish();
                 return;
             }
+            if (_boss != null)
+            {
+                _boss.Tick();
+                if (_boss.InControl)
+                {
+                    EndTutorialSlowMotion(true);
+                    // The fight owns the input; the run is on hold (no speed, no world switch, no time slow).
+                    _timeSlow.Restore();
+                    _follow.screenAnchorX = _boss.CameraAnchor ?? _follow.screenAnchorX;
+                    _track.Extend(_follow.RightEdge + buildAhead);
+                    return;
+                }
+            }
 
-            if (_input.SlowPressed)
+            UpdateTutorial();
+            if (_input.SlowPressed && _tutorialKey == null)
             {
                 var wasActive = _timeSlow.Active;
                 _timeSlow.Toggle();
@@ -255,8 +301,98 @@ namespace GC26.Timetraveler
             var baseSpeed = Mathf.Min(maxSpeed, startSpeed + speedRampPerSecond * _runTime);
             _traveler.RunSpeed = baseSpeed * _timeSlow.TravelerSpeedFactor;
             UpdateFeel(baseSpeed);
+            if (_boss != null && _boss.CameraAnchor.HasValue) _follow.screenAnchorX = _boss.CameraAnchor.Value;
             _track.Extend(_follow.RightEdge + buildAhead);
             _track.Trim(_follow.LeftEdge - 10f);
+        }
+
+        // ---------- developer hotkeys (TimetravelerDevTools, editor and development builds only) ----------
+
+        internal bool DevGodMode
+        {
+            get => _traveler != null && _traveler.Invulnerable;
+            set { if (_traveler != null) _traveler.Invulnerable = value; }
+        }
+
+        internal TimetravelerLevel Level => _level;
+        internal void DevRestart() => StartRun();
+
+        /// <summary>Levels: start again at the checkpoint (on 1-5 that is where the boss chase begins).</summary>
+        internal void DevSkipToCheckpoint()
+        {
+            if (IsEndless) return;
+            _checkpointRunTime = Mathf.Max(_runTime, _level.LengthMeters * 0.5f / Mathf.Max(1f, startSpeed));
+            _checkpointReached = true;
+            StartRun(true);
+        }
+
+        /// <summary>Boss level: straight to the end of the chase, a few seconds before the cliff.</summary>
+        internal void DevSkipToArena()
+        {
+            if (_boss == null) return;
+            DevSkipToCheckpoint();
+            _track.Extend(_track.CheckpointX + _level.LengthMeters / MetersPerUnit);
+            if (float.IsInfinity(_track.ArenaX)) return;
+            _traveler.ResetAt(new Vector2(_track.ArenaX - 25f, _track.ArenaGroundY), maxSpeed);
+            _follow.groundY = _track.ArenaGroundY;
+            _follow.Snap();
+        }
+
+        internal void DevFinish()
+        {
+            if (IsEndless || _finished || _traveler.IsDead) return;
+            if (_boss != null && _boss.InControl) _boss.DevWin();
+            else Finish();
+        }
+
+        internal void DevBossWin()
+        {
+            if (_boss != null) _boss.DevWin();
+        }
+
+        // ---------- tutorial slow motion ----------
+
+        void UpdateTutorial()
+        {
+            var x = _traveler.transform.position.x;
+            var sliding = _traveler.IsSliding;
+            var startedSlide = sliding && !_wasSliding;
+            _wasSliding = sliding;
+            if (_tutorialKey != null && startedSlide) EndTutorialSlowMotion(true);   // the player did something
+
+            if (!_track.CurrentHint(x, out var key, out _, out var ahead))
+            {
+                EndTutorialSlowMotion(true);
+                return;
+            }
+            if (_tutorialKey != null)
+            {
+                // Passed it (or a new hint took over): back to normal speed.
+                if (key != _tutorialKey || ahead < -0.5f) EndTutorialSlowMotion(true);
+                return;
+            }
+            if (!TutorialSlowMotion || _save.TutorialSeen(key) || RunnerTutorial.MoveFor(key) == TutorialMove.None) return;
+            // Slow down while it comes into reach, so there is time to read, watch the example and act.
+            if (ahead < 12f && ahead > 1.5f && !_timeSlow.Active) StartTutorialSlowMotion(key);
+        }
+
+        void StartTutorialSlowMotion(string key)
+        {
+            _tutorialKey = key;
+            _tutorialScaleBefore = Time.timeScale;
+            Time.timeScale = _tutorialScaleBefore * TutorialTimeScale;
+            TimetravelerLog.Info($"Tutorial {key}: slow motion.", this);
+        }
+
+        /// <summary>Back to normal time (always restores the time scale it changed: rule 6).</summary>
+        void EndTutorialSlowMotion(bool learned)
+        {
+            if (_tutorialKey == null) return;
+            if (learned) _save.MarkTutorialSeen(_tutorialKey);
+            _tutorialKey = null;
+            // While paused the pause restores the scale itself: give it the one to go back to.
+            if (_paused) _scaleBeforePause = _tutorialScaleBefore;
+            else Time.timeScale = _tutorialScaleBefore;
         }
 
         /// <summary>Switch timelines, unless it would trap the traveler inside a solid of the other world.</summary>
@@ -270,6 +406,7 @@ namespace GC26.Timetraveler
                 return;
             }
             _worlds.Switch();
+            EndTutorialSlowMotion(true);
             _switchFlash = 0.6f;
             _fx.Burst(_traveler.transform.position, 14, RunnerWorldState.ColorOf(_worlds.Current), Vector2.zero, 8f, 0.35f, 0.45f,
                 falls: false);
@@ -289,12 +426,19 @@ namespace GC26.Timetraveler
 
         void OnDied(string reason)
         {
+            EndTutorialSlowMotion(false);
             _timeSlow.Restore();
             _deathTime = Time.unscaledTime;
             _fx.Burst(_traveler.transform.position, 18, RunnerShapes.HazardColor, new Vector2(0f, 6f), 8f, 0.45f, 0.8f);
             _follow.Shake(0.5f, 0.35f);
             TimetravelerLog.Info($"Died at {DistanceMeters} m: {reason} (world {RunnerWorldState.NameOf(_worlds.Current)}, speed {_traveler.RunSpeed:0.0}).", this);
             EndRunBookkeeping();
+            if (_boss != null) _boss.OnTravelerDied();
+        }
+
+        void OnBossDefeated()
+        {
+            if (!_finished && !_traveler.IsDead) Finish();
         }
 
         void OnCoin(RunnerCoin coin)
@@ -308,6 +452,7 @@ namespace GC26.Timetraveler
 
         void OnJumped(bool isDouble)
         {
+            EndTutorialSlowMotion(true);
             if (_travelerSprite != null) _travelerSprite.Punch(0.8f, 1.25f);
             if (isDouble)
                 _fx.Burst(Feet, 8, RunnerWorldState.ColorOf(_worlds.Current), new Vector2(0f, -4f), 4f, 0.3f, 0.35f, falls: false);
@@ -327,7 +472,8 @@ namespace GC26.Timetraveler
         void UpdateFeel(float baseSpeed)
         {
             var speed01 = Mathf.InverseLerp(startSpeed, maxSpeed, baseSpeed);
-            _follow.screenAnchorX = Mathf.Lerp(0.22f, 0.13f, speed01);   // see further ahead when fast
+            _follow.screenAnchorX = 0.17f;   // fixed framing: the view does not slide around with the speed
+            if (_traveler.IsGrounded) _follow.groundY = Feet.y;
 
             _speedFlash -= Time.unscaledDeltaTime;
             var step = Mathf.FloorToInt(baseSpeed);
@@ -347,6 +493,7 @@ namespace GC26.Timetraveler
 
         void Finish()
         {
+            EndTutorialSlowMotion(true);
             _finished = true;
             _timeSlow.Restore();
             _save.CompleteLevel(_level, _runCoins);
@@ -409,6 +556,7 @@ namespace GC26.Timetraveler
         void Leave()
         {
             Resume();
+            EndTutorialSlowMotion(false);
             _timeSlow.Restore();
             if (!_traveler.IsDead && !_finished) EndRunBookkeeping();
             TimetravelerLog.Info($"Leaving the run ({(IsEndless ? "to the menu" : "to the map")}).", this);
@@ -433,12 +581,14 @@ namespace GC26.Timetraveler
         void OnDisable()
         {
             Resume();
+            EndTutorialSlowMotion(false);
             _timeSlow.Restore();
         }
 
         void OnDestroy()
         {
             Resume();
+            EndTutorialSlowMotion(false);
             _timeSlow.Restore();
             if (_traveler != null)
             {
@@ -448,6 +598,7 @@ namespace GC26.Timetraveler
                 _traveler.Landed -= OnLanded;
             }
             _worlds.Changed -= OnWorldChanged;
+            if (_boss != null) _boss.Defeated -= OnBossDefeated;
             // The map and menu move the camera themselves.
             if (_follow != null) Destroy(_follow);
         }
@@ -502,17 +653,11 @@ namespace GC26.Timetraveler
                 GUI.color = oldColor;
             }
 
+            var bossFight = _boss != null && _boss.InControl;
             // Hint for an obstacle met for the first time.
-            var hint = _traveler.IsDead ? null : _track.HintFor(_traveler.transform.position.x);
-            if (hint != null)
-            {
-                var box = new Rect(safe.x + unit * 0.5f, Screen.height * 0.28f, safe.width - unit, unit * 3.2f);
-                GUI.color = new Color(0f, 0f, 0f, 0.55f);
-                GUI.DrawTexture(box, Texture2D.whiteTexture);
-                GUI.color = Color.white;
-                GUI.Label(new Rect(box.x + unit * 0.3f, box.y + unit * 0.3f, box.width - unit * 0.6f, box.height), hint, _centerStyle);
-                GUI.color = oldColor;
-            }
+            string hintKey = null, hint = null;
+            if (!_traveler.IsDead && !bossFight) _track.CurrentHint(_traveler.transform.position.x, out hintKey, out hint, out _);
+            if (hint != null) DrawHint(unit, safe, hintKey, hint, _tutorialKey != null && _tutorialKey == hintKey);
 
             // Controls: on a phone only the gestures, and only at the start; with a keyboard a short key list.
             var touch = UnityEngine.InputSystem.Touchscreen.current != null || Application.isMobilePlatform;
@@ -523,7 +668,7 @@ namespace GC26.Timetraveler
                 legend = _runTime < hintDuration
                     ? "Space jump (twice = double)   S slide   E/Shift slow time   Q switch world"
                     : "Space jump   S slide   E/Shift slow   Q switch";
-            if (legend != null)
+            if (legend != null && !bossFight && _settings.ShowControls)
                 ShadowLabel(new Rect(safe.x + unit, Screen.height - safe.y - unit * 3.6f, width, unit * 3.4f), legend, _centerStyle, Color.white);
 
             if (_traveler.IsDead)
@@ -541,6 +686,42 @@ namespace GC26.Timetraveler
             }
 
             DrawPause(unit);
+        }
+
+        GUIStyle _hintStyle, _gestureStyle;
+
+        /// <summary>
+        /// The hint for an obstacle: big text. The first time ever (slow motion on) also a looping example of the
+        /// move with her sprites and the gesture in large letters, lit up in time with the example.
+        /// </summary>
+        void DrawHint(float unit, Rect safe, string key, string text, bool teaching)
+        {
+            if (_hintStyle == null)
+            {
+                _hintStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, wordWrap = true, fontStyle = FontStyle.Bold };
+                _gestureStyle = new GUIStyle(_hintStyle) { wordWrap = false };
+            }
+            _hintStyle.fontSize = Mathf.RoundToInt(unit * (teaching ? 1.15f : 1f));
+            _gestureStyle.fontSize = Mathf.RoundToInt(unit * 1.6f);
+
+            var width = safe.width - unit;
+            var textH = unit * 4.2f;
+            var demoH = teaching ? Mathf.Min(width * 0.55f, unit * 9f) : 0f;
+            var gestureH = teaching ? unit * 2.6f : 0f;
+            var box = new Rect(safe.x + unit * 0.5f, Screen.height * 0.2f, width, textH + demoH + gestureH + unit * 0.8f);
+            Fill(box, new Color(0f, 0f, 0f, teaching ? 0.78f : 0.6f));
+            ShadowLabel(new Rect(box.x + unit * 0.4f, box.y + unit * 0.3f, box.width - unit * 0.8f, textH), text, _hintStyle, Color.white);
+            if (!teaching) return;
+
+            var move = RunnerTutorial.MoveFor(key);
+            var demo = new Rect(box.x + unit * 0.8f, box.y + unit * 0.3f + textH, box.width - unit * 1.6f, demoH);
+            var acting = _tutorial.Draw(demo, move, Time.unscaledTime);
+            var touch = UnityEngine.InputSystem.Touchscreen.current != null || Application.isMobilePlatform;
+            var pulse = acting ? 1f : 0.55f;
+            ShadowLabel(new Rect(box.x, demo.yMax + unit * 0.2f, box.width, gestureH), RunnerTutorial.GestureFor(move, touch),
+                _gestureStyle, new Color(1f, 0.85f, 0.3f, pulse));
+            ShadowLabel(new Rect(box.x, box.yMax, box.width, unit * 1.6f), "slow motion: do it now!", _centerStyle,
+                new Color(0.6f, 0.9f, 1f, 0.9f));
         }
 
         static readonly Color PanelColor = new Color(0f, 0f, 0f, 0.45f);
