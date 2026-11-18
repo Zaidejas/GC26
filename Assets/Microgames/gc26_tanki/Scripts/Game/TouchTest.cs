@@ -91,6 +91,9 @@ namespace GC26.Tanki.Game
             InputSystem.QueueStateEvent(finger, new TouchState { touchId = 900, phase = UnityEngine.InputSystem.TouchPhase.Moved, position = new Vector2(Screen.width * 0.22f, Screen.height * 0.12f), pressure = 1f });
             yield return End(GamePhase.LevelCleared);
             yield return Tap("ДАЛЬШЕ", () => game.Sim.Phase == GamePhase.Playing && game.Sim.LevelIndex == 1);
+            // The finger left from the last battle must not drive the tank in the next one.
+            yield return new WaitForSeconds(0.3f);
+            Check("stick let go after the battle", game.Controls.Direction == null && game.Controls.KnobOffset == Vector2.zero);
             yield return End(GamePhase.LevelCleared);
             yield return Tap("В МЕНЮ", () => game.Page == Page.Menu);
             InputSystem.QueueStateEvent(finger, new TouchState { touchId = 900, phase = UnityEngine.InputSystem.TouchPhase.Ended, position = new Vector2(Screen.width * 0.22f, Screen.height * 0.12f) });
@@ -99,6 +102,12 @@ namespace GC26.Tanki.Game
 
             Debug.Log("TOUCHTEST done passed=" + passed + " failed=" + failed);
             Application.Quit();
+        }
+
+        void Check(string what, bool ok)
+        {
+            if (ok) passed++; else failed++;
+            Debug.Log("TOUCHTEST " + (ok ? "ok" : "FAIL") + " " + what);
         }
 
         /// <summary>Ends the battle the given way, as if it had been played out.</summary>

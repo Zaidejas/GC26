@@ -426,6 +426,7 @@ namespace GC26.Tanki.Game
             if (phase == lastPhase) return;
             lastPhase = phase;
             if (phase == GamePhase.Playing) return;
+            Controls.ReleaseAll();
             TankiLog.Info("Бой окончен: " + phase + ", режим " + Sim.Mode + ", счёт " + Sim.Score + ", жизней " + Sim.Lives);
 
             LastParts = Sim.TakeParts();
@@ -489,6 +490,7 @@ namespace GC26.Tanki.Game
 
         void ShowCurrentLevel()
         {
+            Controls.ReleaseAll();
             world.BuildLevel(Sim);
             world.Sync(Sim, 0f, true);
             accumulator = 0f;
@@ -648,8 +650,16 @@ namespace GC26.Tanki.Game
 
         void OnApplicationPause(bool paused)
         {
+            if (Sim == null || Save == null) return;
+            if (paused) Controls.ReleaseAll();
             if (paused && Page == Page.Game && Sim.Phase == GamePhase.Playing) Paused = true;
             Save.Save();
+        }
+
+        // A press that was down when the window lost focus never reports its release, so drop it now.
+        void OnApplicationFocus(bool focused)
+        {
+            if (!focused) Controls?.ReleaseAll();
         }
     }
 }
