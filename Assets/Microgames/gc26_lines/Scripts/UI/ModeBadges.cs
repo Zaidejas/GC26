@@ -128,7 +128,8 @@ namespace GC26.Lines.UI
                 float discX = sideLabels ? 0f : (widths[i] - d) / 2f, discY = height - d;
                 Place((RectTransform)b.Disc.transform, discX, discY, d, d);
                 Place((RectTransform)b.Ring.transform, discX, discY, d, d);
-                b.Ring.sprite = SpriteFactory.CircleRing(0.4f / (disc / 2f)); // a 0.4-unit line, as in the prototype
+                UiShapes.MakeDisc(b.Disc, d); // drawn at their real size, so the edges stay sharp on phones
+                UiShapes.MakeCircleRing(b.Ring, d, 0.4f * unit); // a 0.4-unit line, as in the prototype
                 Place((RectTransform)b.Glow.transform, discX - d * 0.4f, discY - d * 0.4f, d * 1.8f, d * 1.8f);
                 Place((RectTransform)b.Icon.transform, discX + d * 0.23f, discY + d * 0.23f, d * 0.54f, d * 0.54f);
                 if (sideLabels) Place(b.Label.rectTransform, d + 1.6f * unit, 0f, widths[i] - d - 1.6f * unit, d);

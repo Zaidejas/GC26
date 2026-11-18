@@ -98,10 +98,15 @@ namespace GC26.Lines.UI
             SetSize(ringBack, d);
             SetSize(ring, d);
             SetSize(core, d - 2f * RingWidth * unit);
+            // Drawn at their real size, so the ring's edges stay sharp on phones.
+            UiShapes.MakeDisc(ringBack, d);
+            UiShapes.MakeDisc(ring, d);
+            UiShapes.MakeDisc(core, d - 2f * RingWidth * unit);
             SetSize(icon, d * 0.72f);
             SetSize(spark, d * 0.72f);
             float b = BadgeSize * unit;
             badge.rectTransform.sizeDelta = new Vector2(b, b);
+            UiShapes.MakeDisc(badge, b);
             badge.rectTransform.anchoredPosition = new Vector2(d / 2f - b / 2f + 0.8f * unit, d / 2f - b / 2f + 0.8f * unit);
             count.fontSize = BadgeText * unit;
         }
@@ -120,6 +125,22 @@ namespace GC26.Lines.UI
             count.text = ready.ToString();
             if (!Armed) glow.color = new Color(Gold.r, Gold.g, Gold.b, have ? 0.35f : 0f);
         }
+
+        Canvas badgeCanvas;
+
+        /// <summary>
+        /// While a tutorial lights up this button, its count badge sits partly outside the lit circle: drawn on its
+        /// own layer above the tutorial (25) but under the pop-ups (30), it isn't covered by the gold outline.
+        /// </summary>
+        public void SetBadgeOnTop(bool onTop)
+        {
+            if (onTop && badgeCanvas == null) badgeCanvas = badge.gameObject.AddComponent<Canvas>();
+            if (badgeCanvas == null) return;
+            badgeCanvas.overrideSorting = onTop;
+            badgeCanvas.sortingOrder = onTop ? 26 : 0;
+        }
+
+        public bool BadgeOnTop => badgeCanvas != null && badgeCanvas.overrideSorting;
 
         /// <summary>Aiming: the button pulses gold (or stops pulsing).</summary>
         public void SetArmed(bool armed)

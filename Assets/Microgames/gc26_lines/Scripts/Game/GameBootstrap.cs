@@ -339,7 +339,7 @@ namespace GC26.Lines.Game
         void LeaveGameScreen()
         {
             Controller?.CancelAiming();
-            coach.Hide();
+            HideCoach();
             tutorial = null;
             hud.Bubble.Hide();
             hud.Banner.Stop();
@@ -394,7 +394,7 @@ namespace GC26.Lines.Game
             hud.SetTimed(controller.Game.Timed);
             tutorialQueue.Clear();
             tutorial = null;
-            coach.Hide();
+            HideCoach();
             hud.Bubble.Hide();
             hud.Banner.Stop();
             celebrateUntil = 0f;
@@ -451,7 +451,7 @@ namespace GC26.Lines.Game
             SaveGame();
             hud.Dialog.Close();
             hud.Settings.Close();
-            coach.Hide();
+            HideCoach();
             tutorial = null;
             hud.Bubble.Hide();
             hud.GameOver.Show(score, Scores.DefaultName, Controller != null && Controller.Game.EndedWithNoMoves);
@@ -654,6 +654,7 @@ namespace GC26.Lines.Game
         {
             if (tutorial == null || Controller == null) return;
             var game = Controller.Game;
+            hud.Puffball.SetBadgeOnTop(tutorial == "rescue" || tutorial == "super" && tutorialStep == 0); // lit: the button itself
             switch (tutorial)
             {
                 case "rainbow":
@@ -705,6 +706,12 @@ namespace GC26.Lines.Game
             return new Rect(centre - Vector2.one * size / 2f, Vector2.one * size);
         }
 
+        void HideCoach()
+        {
+            coach.Hide();
+            hud.Puffball.SetBadgeOnTop(false);
+        }
+
         Rect PuffballRect()
         {
             var rt = hud.Puffball.Rect;
@@ -714,7 +721,7 @@ namespace GC26.Lines.Game
         // Got it (rainbow, ice): the next tutorial, if any, follows.
         void CloseTutorial()
         {
-            coach.Hide();
+            HideCoach();
             tutorial = null;
             Tween.Delay(0.3f, ShowNextTutorial);
         }
@@ -723,7 +730,7 @@ namespace GC26.Lines.Game
         void SkipTutorial()
         {
             string was = tutorial;
-            coach.Hide();
+            HideCoach();
             tutorial = null;
             if (was == "rescue") { Controller?.EndGame(); return; }
             Controller?.CancelAiming();
@@ -737,7 +744,7 @@ namespace GC26.Lines.Game
             if ((tutorial == "super" && tutorialStep == 0) || tutorial == "rescue")
             {
                 if (!coach.Hole.Contains(position)) return;
-                if (tutorial == "rescue") { coach.Hide(); tutorial = null; Controller.StartAiming(); return; }
+                if (tutorial == "rescue") { HideCoach(); tutorial = null; Controller.StartAiming(); return; }
                 tutorialStep = 1;
                 Controller.StartAiming();
                 hud.Bubble.Hide();
@@ -748,7 +755,7 @@ namespace GC26.Lines.Game
             {
                 if (cell == Controller.AimCell)
                 {
-                    coach.Hide();
+                    HideCoach();
                     tutorial = null;
                     if (!Controller.Burst()) { tutorial = "super"; ShowTutorialStep(); } // an empty square can't burst
                     return;

@@ -426,7 +426,7 @@ namespace GC26.Lines.View
         // A white icon made of round-ended lines through the given points (a 24-unit grid, like the prototype's SVGs).
         static Sprite StrokeIcon(string name, float strokeWidth, params Vector2[][] lines)
         {
-            const int n = 64;
+            const int n = 128; // icons show up to about 75 px on phones: drawn larger, so they're never stretched
             float scale = n / 24f, half = strokeWidth / 2f * scale;
             var pixels = new Color32[n * n];
             for (int y = 0; y < n; y++)

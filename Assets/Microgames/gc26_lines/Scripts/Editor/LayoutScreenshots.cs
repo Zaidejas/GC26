@@ -254,6 +254,7 @@ namespace GC26.Lines.EditorTools
                 }
                 case 5:
                     coach.Show(puffballRect, true, puffballRect.center, T("rescueNoMoves"), T("rescueSub"), false, true, T("endGame"));
+                    hud.Puffball.SetBadgeOnTop(true); // as the game does while the button is lit
                     break;
                 case 6:
                     hud.SetTimed(true);

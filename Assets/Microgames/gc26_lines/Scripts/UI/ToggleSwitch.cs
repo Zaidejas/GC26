@@ -86,6 +86,7 @@ namespace GC26.Lines.UI
             f.offsetMin = new Vector2(b, b); f.offsetMax = new Vector2(-b, -b);
             UiShapes.MakePill(fill, pixels.height - 2f * b);
             knob.rectTransform.sizeDelta = Vector2.one * Knob * u;
+            UiShapes.MakeDisc(knob, Knob * u); // drawn at its real size: a sharp edge
             knob.rectTransform.anchoredPosition = KnobPosition(IsOn);
         }
 

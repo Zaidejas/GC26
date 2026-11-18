@@ -295,6 +295,23 @@ namespace GC26.Lines.UI
             return reach;
         }
 
+        /// <summary>
+        /// Makes <paramref name="image"/> a disc <paramref name="diameterPixels"/> across, drawn at that size so its
+        /// edge stays sharp. Keeps the image's type, so a Filled (radial) image still fills.
+        /// </summary>
+        public static void MakeDisc(Image image, float diameterPixels)
+        {
+            image.sprite = SpriteFactory.ExactRoundRect(Mathf.Max(0.5f, diameterPixels / 2f), CanvasPpu(image));
+            if (image.type == Image.Type.Sliced) image.type = Image.Type.Simple;
+        }
+
+        /// <summary>Makes <paramref name="image"/> a circle outline <paramref name="diameterPixels"/> across with a <paramref name="linePixels"/> line.</summary>
+        public static void MakeCircleRing(Image image, float diameterPixels, float linePixels)
+        {
+            image.sprite = SpriteFactory.ExactRoundRing(Mathf.Max(0.5f, diameterPixels / 2f), linePixels, CanvasPpu(image));
+            image.type = Image.Type.Simple;
+        }
+
         /// <summary>Makes <paramref name="image"/> a pill: a rounded rectangle whose ends are half circles.</summary>
         public static void MakePill(Image image, float heightPixels) => MakeRounded(image, Mathf.Max(1f, heightPixels) / 2f);
 

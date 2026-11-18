@@ -70,10 +70,12 @@ namespace GC26.Lines.Tests
             Assert.AreEqual("You earned a puffball!", game.Coach.Title);
             Assert.IsTrue(game.Coach.SkipShowing);
             Assert.IsFalse(game.Hud.Banner.IsShowing, "the tutorial instead of the banner");
+            Assert.IsTrue(game.Hud.Puffball.BadgeOnTop, "the count isn't hidden under the tutorial's gold outline");
 
             game.Coach.TapAt(new Vector2(5f, 5f)); // a tap off the lit spot does nothing
             Assert.AreEqual(0, game.TutorialStep);
             game.Coach.TapAt(game.Coach.Hole.center);
+            Assert.IsFalse(game.Hud.Puffball.BadgeOnTop, "back in its place once the board is lit");
             Assert.AreEqual(1, game.TutorialStep);
             Assert.IsTrue(game.Controller.Aiming, "aiming on the busiest spot");
             Assert.AreEqual("Where to burst?", game.Coach.Title);
