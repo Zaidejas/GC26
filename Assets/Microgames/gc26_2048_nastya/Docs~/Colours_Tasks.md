@@ -12,8 +12,8 @@
 - [x] **T00** Добавить ID `gc26_2048_nastya` в `tools/games.txt`
 - [x] **T01** Написать GDD, TDD и HTML-прототип
 - [x] **T02** Создать каркас: `microgame.json`, asmdef, `Game2048Nastya.cs` с `IMicrogame`
-- [ ] **T03** Включить git-хук в этом клоне: `git config core.hooksPath tools/hooks`
-- [ ] **T04** Создать сцену `Scenes/gc26_2048_nastya_Main.unity` и повесить на неё `Game2048Nastya` — *MVP*
+- [x] **T03** Включить git-хук в этом клоне: `git config core.hooksPath tools/hooks`
+- [x] **T04** Создать сцену `Scenes/gc26_2048_nastya_Main.unity` и повесить на неё `Game2048Nastya` — *MVP*
 
 ## M1. Логика игры (без графики)
 
