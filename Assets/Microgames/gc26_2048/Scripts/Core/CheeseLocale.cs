@@ -41,6 +41,7 @@ namespace GC26._2048
             ["off"] = new[] { "Off", "Выкл" },
             ["language"] = new[] { "Language", "Язык" },
             ["language_name"] = new[] { "English", "Русский" },
+            ["version"] = new[] { "Version", "Версия" },
             ["close"] = new[] { "Close", "Закрыть" },
             ["got_it"] = new[] { "Got it", "Понятно" },
             ["rules_text"] = new[]

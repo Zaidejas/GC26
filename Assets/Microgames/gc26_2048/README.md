@@ -22,6 +22,12 @@
 | `Tests/Editor/` | Unit-тесты логики (Window → General → Test Runner → EditMode) |
 | `Docs~/` | `gc26_2048_docs.zip`: GDD, план, задачи, HTML-прототип. Unity эту папку не импортирует |
 
+## Версия
+
+Текущая версия — в `Scripts/Core/CheeseVersion.cs` (сейчас 0.0.1), видна на главном экране и в настройках.
+При выпуске новой версии обновите её там, в поле `version` файла `microgame.json` и в `CHANGELOG.md`
+(тест `CheeseVersionTests` проверяет, что всё совпадает).
+
 ## Языки
 
 Английский (по умолчанию) и русский. Переключатель **Settings → Language / Настройки → Язык** доступен из главного
