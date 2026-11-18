@@ -369,7 +369,7 @@ GameObject:
   - component: {fileID: 100000032}
   - component: {fileID: 100000033}
   m_Layer: 0
-  m_Name: EnemyTestSpawner (temporary)
+  m_Name: WaveSpawner
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -399,15 +399,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 100000031}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: da2888901d1d421ea293231f230f93c9, type: 3}
+  m_Script: {fileID: 11500000, guid: a656b89f359b4e14a141a9296ac2bfd0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   level: {fileID: 100000044}
   path: {fileID: 100000023}
-  enemy: {fileID: 11400000, guid: f441898c5003432c84ccf61f00d46241, type: 2}
-  count: 8
-  interval: 1
-  testDamagePerSecond: 0
+  waves:
+  - {fileID: 11400000, guid: 817f45e0ecfa40639a5e327438606f44, type: 2}
+  - {fileID: 11400000, guid: d9dde053424847068f53a54b4764097c, type: 2}
+  - {fileID: 11400000, guid: e2efbc416ac749e1aa6b2da1805ea342, type: 2}
+  - {fileID: 11400000, guid: b22dff42c4e74256848c38c2d6c41fd3, type: 2}
+  - {fileID: 11400000, guid: b88d3d91c5d74c1ca81d41b475a0fb22, type: 2}
+  - {fileID: 11400000, guid: 16a29774fc994a8b8591c7505893e41a, type: 2}
+  - {fileID: 11400000, guid: 3d5978153fa24cc0a46192c4692c120b, type: 2}
+  - {fileID: 11400000, guid: d8bb27eeb00241cc9bc18fd26f4d568f, type: 2}
+  - {fileID: 11400000, guid: 867d03ffc4004e5db634d6f264ea6d0f, type: 2}
+  - {fileID: 11400000, guid: 91a334335a264d99b006a1ea01181da3, type: 2}
+  hpPerWave: 0.08
+  debugDamagePerSecond: 0
 --- !u!1 &100000041
 GameObject:
   m_ObjectHideFlags: 0

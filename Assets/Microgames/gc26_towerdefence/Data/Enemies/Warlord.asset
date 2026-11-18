@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46addbb794ba43c59a8b018e8e9bf7db, type: 3}
+  m_Name: Warlord
+  m_EditorClassIdentifier: 
+  displayName: Warlord
+  maxHp: 2000
+  speed: 0.5
+  armor: 0
+  shield: 300
+  healPerSecond: 0
+  flying: 0
+  gold: 100
+  livesLost: 10
+  size: 0.46
+  color: {r: 0.776, g: 0.157, b: 0.157, a: 1}
+  prefab: {fileID: 0}
