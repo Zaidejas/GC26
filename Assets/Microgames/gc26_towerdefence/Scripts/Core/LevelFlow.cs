@@ -34,6 +34,9 @@ namespace GC26.Towerdefence
         [Tooltip("Wave-clear bonus = base + per wave x wave number (prototype: 20 + 5 x wave).")]
         [SerializeField, Min(0)] int waveClearBase = 20;
         [SerializeField, Min(0)] int waveClearPerWave = 5;
+        [Tooltip("Lives left needed for 3 and for 2 stars.")]
+        [SerializeField, Min(0)] int threeStarLives = 18;
+        [SerializeField, Min(0)] int twoStarLives = 10;
 
         /// <summary>Raised when bonus gold is paid: a short reason ("Early", "Wave 3 cleared") and the amount.</summary>
         public event Action<string, int> BonusPaid;
@@ -60,6 +63,11 @@ namespace GC26.Towerdefence
         public float Countdown { get; private set; }
 
         public bool IsOver => State == LevelState.Won || State == LevelState.Lost;
+
+        /// <summary>
+        /// Stars for a win (GDD section 3): 3 with 18+ lives left, 2 with 10+, 1 for any win; 0 if not won.
+        /// </summary>
+        public int Stars => State != LevelState.Won ? 0 : Lives >= threeStarLives ? 3 : Lives >= twoStarLives ? 2 : 1;
         public bool CanStartWave => State == LevelState.Build && CurrentWave < totalWaves;
 
         int _aliveEnemies;

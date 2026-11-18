@@ -11,7 +11,7 @@ namespace GC26.Towerdefence
     /// First version of the HUD, laid out like the prototype:
     /// gold and lives top left, wave X/10 top center, pause top right,
     /// a "start wave" play button with the build timer bottom right,
-    /// and a big result line in the middle when the level is won or lost.
+    /// and a result screen when the level ends: Victory with 1-3 stars or Defeat, plus Restart / Main menu.
     /// Pause opens a small menu: Resume, Restart level, Main menu. Next to pause, a 1x/2x speed toggle.
     /// Keys: Esc pauses / resumes, Space starts the next wave. A hint line at the bottom says what to do next.
     /// Built from code with plain uGUI: works with touches (Input System) and stays inside the safe area.
@@ -38,15 +38,18 @@ namespace GC26.Towerdefence
         TMP_Text _lives;
         TMP_Text _wave;
         RectTransform _wavePanel;
-        TMP_Text _result;
+        GameObject _resultScreen;
+        TMP_Text _resultTitle;
+        TMP_Text _resultText;
+        GameObject _starRow;
+        readonly Image[] _stars = new Image[3];
         Button _startButton;
         TMP_Text _startTimer;
         GameObject _pauseMenu;
         TMP_Text _bonus;
         float _bonusUntil;
 
-        Sprite _playSprite;
-        Texture2D _playTexture;
+        readonly System.Collections.Generic.List<Object> _owned = new();
         bool _paused;
         float _speed = 1f;
         TMP_Text _speedLabel;
@@ -85,8 +88,8 @@ namespace GC26.Towerdefence
         void OnDestroy()
         {
             if (level != null) level.BonusPaid -= ShowBonus;
-            if (_playSprite != null) Destroy(_playSprite);
-            if (_playTexture != null) Destroy(_playTexture);
+            foreach (var o in _owned)
+                if (o != null) Destroy(o);
         }
 
         void Update()
@@ -113,13 +116,7 @@ namespace GC26.Towerdefence
                 else _bonus.alpha = Mathf.Clamp01(left / 0.5f); // fade out over the last half second
             }
 
-            _result.text = level.State switch
-            {
-                LevelState.Won => "VICTORY",
-                LevelState.Lost => "DEFEAT",
-                _ => "",
-            };
-            _result.color = level.State == LevelState.Won ? new Color(0.6f, 0.9f, 0.48f) : Heart;
+            UpdateResultScreen();
 
             _speedLabel.text = _speed > 1f ? "2x" : "1x";
             _hint.text = level.State switch
@@ -127,7 +124,6 @@ namespace GC26.Towerdefence
                 LevelState.Build when level.CurrentWave == 0 => "Tap a grey square to build a tower, then press the green play button",
                 LevelState.Build => "Tap a tower to upgrade or sell it. Start early for bonus gold",
                 LevelState.Wave => "Tap a tower to change its target",
-                LevelState.Won or LevelState.Lost => "Open pause and choose Restart level to play again",
                 _ => "",
             };
         }
@@ -136,7 +132,7 @@ namespace GC26.Towerdefence
         {
             var keyboard = Keyboard.current;
             if (keyboard == null) return;
-            if (keyboard.escapeKey.wasPressedThisFrame) SetPaused(!_paused);
+            if (keyboard.escapeKey.wasPressedThisFrame && !level.IsOver) SetPaused(!_paused);
             if (keyboard.spaceKey.wasPressedThisFrame && !_paused) level.StartNextWave();
         }
 
@@ -167,7 +163,8 @@ namespace GC26.Towerdefence
         void ExitToMainMenu()
         {
             SetPaused(false);
-            if (game != null) game.ExitToMenu(0);
+            // The shell gets the stars as the score (0 when the level was not won).
+            if (game != null) game.ExitToMenu(level.Stars);
         }
 
         /// <summary>The shell scene has its own EventSystem; create one only when the game runs alone.</summary>
@@ -253,11 +250,7 @@ namespace GC26.Towerdefence
             _bonus.fontStyle = FontStyles.Bold;
             Place(_bonus.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 260f), new Vector2(0f, 340f));
 
-            // Middle: result.
-            _result = Label("Result", _safeArea, 140f, TextAlignmentOptions.Center, Color.white);
-            _result.fontStyle = FontStyles.Bold;
-            Place(_result.rectTransform, new Vector2(0f, 0.4f), new Vector2(1f, 0.6f), Vector2.zero, Vector2.zero);
-
+            BuildResultScreen(canvasGo.transform);
             BuildPauseMenu(canvasGo.transform);
         }
 
@@ -284,6 +277,66 @@ namespace GC26.Towerdefence
             MenuButton(box, "Main menu", -410f, Grey, ExitToMainMenu);
 
             _pauseMenu.SetActive(false);
+        }
+
+        void BuildResultScreen(Transform canvas)
+        {
+            var dim = NewRect("ResultScreen", canvas);
+            Stretch(dim);
+            dim.gameObject.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.6f);
+            _resultScreen = dim.gameObject;
+
+            var box = NewRect("Box", dim);
+            box.anchorMin = box.anchorMax = box.pivot = new Vector2(0.5f, 0.5f);
+            box.sizeDelta = new Vector2(760f, 760f);
+            box.gameObject.AddComponent<Image>().color = new Color(0.12f, 0.14f, 0.12f, 0.95f);
+
+            _resultTitle = Label("Title", box, 96f, TextAlignmentOptions.Center, Color.white);
+            _resultTitle.fontStyle = FontStyles.Bold;
+            Place(_resultTitle.rectTransform, new Vector2(0f, 1f), Vector2.one, new Vector2(0f, -150f), new Vector2(0f, -30f));
+
+            // Three stars; earned ones are gold, missing ones dark.
+            var row = NewRect("Stars", box);
+            row.anchorMin = row.anchorMax = row.pivot = new Vector2(0.5f, 1f);
+            row.anchoredPosition = new Vector2(0f, -160f);
+            row.sizeDelta = new Vector2(620f, 180f);
+            _starRow = row.gameObject;
+            var star = StarSprite();
+            for (int i = 0; i < 3; i++)
+            {
+                var s = NewRect($"Star{i + 1}", row);
+                s.anchorMin = s.anchorMax = new Vector2(0.5f, 0.5f);
+                s.anchoredPosition = new Vector2((i - 1) * 200f, i == 1 ? 14f : 0f); // middle star a bit higher
+                s.sizeDelta = new Vector2(170f, 170f);
+                _stars[i] = s.gameObject.AddComponent<Image>();
+                _stars[i].sprite = star;
+                _stars[i].raycastTarget = false;
+            }
+
+            _resultText = Label("Text", box, 50f, TextAlignmentOptions.Center, new Color(1f, 1f, 1f, 0.9f));
+            Place(_resultText.rectTransform, new Vector2(0f, 1f), Vector2.one, new Vector2(30f, -430f), new Vector2(-30f, -350f));
+
+            MenuButton(box, "Restart level", -470f, Green, Restart);
+            MenuButton(box, "Main menu", -610f, Grey, ExitToMainMenu);
+
+            _resultScreen.SetActive(false);
+        }
+
+        void UpdateResultScreen()
+        {
+            bool over = level.IsOver;
+            if (_resultScreen.activeSelf != over) _resultScreen.SetActive(over);
+            if (!over) return;
+
+            bool won = level.State == LevelState.Won;
+            _resultTitle.text = won ? "Victory!" : "Defeat";
+            _resultTitle.color = won ? new Color(0.6f, 0.9f, 0.48f) : Heart;
+            _starRow.SetActive(won);
+            for (int i = 0; i < _stars.Length; i++)
+                _stars[i].color = i < level.Stars ? Gold : new Color(0.25f, 0.25f, 0.25f);
+            _resultText.text = won
+                ? $"Lives left: {level.Lives}/{level.StartLives}"
+                : $"You reached wave {level.CurrentWave} of {level.TotalWaves}";
         }
 
         void MenuButton(Transform parent, string text, float top, Color color, UnityEngine.Events.UnityAction onClick)
@@ -319,35 +372,61 @@ namespace GC26.Towerdefence
         }
 
         /// <summary>A white "play" triangle pointing right, drawn once at runtime (no art file needed yet).</summary>
-        Sprite PlaySprite()
-        {
-            if (_playSprite != null) return _playSprite;
+        Sprite PlaySprite() => PolygonSprite(new[] { new Vector2(0f, 1f), new Vector2(0f, 0f), new Vector2(1f, 0.5f) });
 
-            const int size = 128;
-            _playTexture = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
+        /// <summary>A white five-pointed star.</summary>
+        Sprite StarSprite()
+        {
+            var points = new Vector2[10];
+            for (int i = 0; i < 10; i++)
+            {
+                float angle = Mathf.PI / 2f + i * Mathf.PI / 5f;
+                float r = i % 2 == 0 ? 0.5f : 0.21f;
+                points[i] = new Vector2(0.5f + Mathf.Cos(angle) * r, 0.47f + Mathf.Sin(angle) * r);
+            }
+            return PolygonSprite(points);
+        }
+
+        /// <summary>
+        /// Fills a polygon given in 0..1 coordinates (y up) into a 128 px sprite,
+        /// with 4x4 samples per pixel for smooth edges. Works for concave shapes like a star.
+        /// </summary>
+        Sprite PolygonSprite(Vector2[] points)
+        {
+            const int size = 128, samples = 4;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
             var pixels = new Color32[size * size];
-            // Triangle corners: left top, left bottom, right middle.
-            Vector2 a = new(0f, size), b = new(0f, 0f), c = new(size, size / 2f);
             for (int y = 0; y < size; y++)
             for (int x = 0; x < size; x++)
             {
-                var p = new Vector2(x + 0.5f, y + 0.5f);
-                // Signed distance to each edge (positive inside); 1-pixel soft edge.
-                float d = Mathf.Min(EdgeDistance(p, a, b), Mathf.Min(EdgeDistance(p, b, c), EdgeDistance(p, c, a)));
-                byte alpha = (byte)(Mathf.Clamp01(d + 0.5f) * 255);
-                pixels[y * size + x] = new Color32(255, 255, 255, alpha);
+                int inside = 0;
+                for (int sy = 0; sy < samples; sy++)
+                for (int sx = 0; sx < samples; sx++)
+                {
+                    var p = new Vector2((x + (sx + 0.5f) / samples) / size, (y + (sy + 0.5f) / samples) / size);
+                    if (Inside(p, points)) inside++;
+                }
+                pixels[y * size + x] = new Color32(255, 255, 255, (byte)(255 * inside / (samples * samples)));
             }
-            _playTexture.SetPixels32(pixels);
-            _playTexture.Apply();
-            _playSprite = Sprite.Create(_playTexture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
-            return _playSprite;
+            texture.SetPixels32(pixels);
+            texture.Apply();
+            var sprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
+            _owned.Add(texture);
+            _owned.Add(sprite);
+            return sprite;
         }
 
-        static float EdgeDistance(Vector2 p, Vector2 from, Vector2 to)
+        /// <summary>Even-odd rule: count how many polygon edges a ray to the right crosses.</summary>
+        static bool Inside(Vector2 p, Vector2[] poly)
         {
-            Vector2 edge = to - from;
-            // Corners are listed counter-clockwise, so "inside" is to the left of each edge.
-            return (edge.x * (p.y - from.y) - edge.y * (p.x - from.x)) / edge.magnitude;
+            bool inside = false;
+            for (int i = 0, j = poly.Length - 1; i < poly.Length; j = i++)
+            {
+                if ((poly[i].y > p.y) != (poly[j].y > p.y) &&
+                    p.x < (poly[j].x - poly[i].x) * (p.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x)
+                    inside = !inside;
+            }
+            return inside;
         }
 
         // ---------- small builders ----------
