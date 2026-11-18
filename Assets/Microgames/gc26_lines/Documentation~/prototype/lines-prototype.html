@@ -586,7 +586,6 @@ body {
         <button type="button" data-special="rainbow" title="The first mushroom in NEXT becomes a rainbow one (and its tutorial shows)">Rainbow next</button>
         <button type="button" data-special="ice" title="The first mushroom in NEXT arrives frozen (and its tutorial shows)">Ice next</button>
         <button type="button" data-special="super" title="Add one puffball, up to 2 (and its tutorial shows)">+1 Puffball</button>
-        <button type="button" data-special="tips" title="This game shows its tutorials once more">Replay tips</button>
         <button type="button" data-special="score190" title="A new game at 190 points with a line of 5 one move away: make it to earn the first puffball">Start at 190</button>
       </div>
 
@@ -2230,7 +2229,6 @@ body {
       if (k === "rainbow") { S.preview.colors[0] = RAINBOW; S.preview.ice[0] = false; forgetTip("rainbow"); }
       if (k === "ice") { if (S.preview.colors[0] === RAINBOW) S.preview.colors[0] = 0; S.preview.ice[0] = true; forgetTip("ice"); }
       if (k === "super") { S.supers = Math.min(SUPER_MAX, S.supers + 1); forgetTip("super"); queueTip("super"); }
-      if (k === "tips") { S.tips = {}; toast("Tips will show again"); }
       if (currentScreen() === "game") { render(); checkTips(); } save();
     }));
     $("#continue").addEventListener("click", () => { if (hasSavedGame()) showScreen("game"); });
