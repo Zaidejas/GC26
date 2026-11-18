@@ -64,6 +64,40 @@ namespace GC26.Minesweeper
             MinesPlaced = true;
         }
 
+        // Share of boards that are allowed to need a guess (GDD 3.1). The rest can be solved by logic alone.
+        public const float GuessChance = 0.04f;
+
+        // What the game uses on the first tap: about GuessChance of the boards need a guess, the rest don't.
+        public int PlaceMinesFair(int safeX, int safeY) => PlaceMinesWithGuessChance(safeX, safeY, GuessChance);
+
+        // Never needs a guess.
+        public int PlaceMinesNoGuess(int safeX, int safeY) => PlaceMinesWithGuessChance(safeX, safeY, 0f);
+
+        // Like PlaceMines, but first decides (with the given chance) whether this board should need a guess,
+        // then re-rolls the layout until MinesweeperSolver agrees: solvable from the first tap by logic alone,
+        // or, for a "guess" board, not. Returns how many layouts it tried, or -1 if it gave up
+        // (after maxAttempts or maxMilliseconds); then the last random layout is kept.
+        public int PlaceMinesWithGuessChance(int safeX, int safeY, float guessChance,
+                                             int maxAttempts = 1000, int maxMilliseconds = 1500)
+        {
+            bool wantGuess = rng.NextDouble() < guessChance;
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                ClearMines();
+                PlaceMines(safeX, safeY);
+                if (MinesweeperSolver.IsSolvableWithoutGuessing(this, safeX, safeY) != wantGuess) return attempt;
+                if (clock.ElapsedMilliseconds > maxMilliseconds) break;
+            }
+            return -1;
+        }
+
+        private void ClearMines()
+        {
+            foreach (var c in cells) { c.IsMine = false; c.AdjacentMines = 0; }
+            MinesPlaced = false;
+        }
+
         private void CalculateNumbers()
         {
             for (int x = 0; x < Width; x++)

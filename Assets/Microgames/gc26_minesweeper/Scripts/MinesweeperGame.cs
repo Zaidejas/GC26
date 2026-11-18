@@ -220,7 +220,9 @@ namespace GC26.Minesweeper
             bool firstReveal = !board.MinesPlaced;
             if (firstReveal)
             {
-                board.PlaceMines(x, y);                           // the first tap is always safe
+                // The first tap is always safe. About 4% of boards need a guess somewhere; the rest are
+                // re-rolled until they can be solved from here by logic alone (MinesweeperSolver).
+                board.PlaceMinesFair(x, y);
                 state = MinesweeperState.Playing;
             }
             AfterOpen(board.Reveal(x, y));

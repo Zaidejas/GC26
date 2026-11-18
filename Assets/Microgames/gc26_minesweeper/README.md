@@ -17,7 +17,7 @@
 ## Structure
 | Folder | What's inside |
 |---|---|
-| `Scripts/Core/` | The rules in plain C# (`MinesweeperBoard`, `MinesweeperCell`, `MinesweeperState`, `MinesweeperDifficulty`, `MinesweeperLossLines`) |
+| `Scripts/Core/` | The rules in plain C# (`MinesweeperBoard`, `MinesweeperCell`, `MinesweeperState`, `MinesweeperDifficulty`, `MinesweeperLossLines`) and `MinesweeperSolver`, which checks that a board can be solved without guessing |
 | `Scripts/` | `MinesweeperGame` (the `IMicrogame`; builds the whole UI from code), `MinesweeperCellView` (tap / long press / right click), `MinesweeperSprites` (graphics drawn in code), `MinesweeperSafeArea` |
 | `Resources/gc26_minesweeper/loss_lines.txt` | Lines shown after a loss, one per line; `#` lines are comments. Add lines here, no code changes needed |
 | `Editor/` | `GC26 → Minesweeper → Create Main Scene` and `Build Windows Player` |
@@ -30,6 +30,8 @@ In Unity: **GC26 → Minesweeper → Version → Bump Version...** — describe 
 
 | Version | Changes |
 |---|---|
+| 0.2.1 | About 4% of boards need a guess again, on every level (MinesweeperBoard.GuessChance); measured 3.9% |
+| 0.2.0 | No-guess boards: every board can be solved by logic from the first tap (MinesweeperSolver). Before: 11.5% / 33.8% / 89.3% of Beginner / Intermediate / Expert boards needed a guess |
 | 0.1.2 | Editor: GC26 → Minesweeper → Version menu to bump the version and add the changelog row |
 | 0.1.1 | Version number at the bottom of the screen; used for the Windows build |
 | 0.1.0 | First playable version: levels, tutorial, How to play, pause, loss lines, Windows build |

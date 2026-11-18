@@ -123,6 +123,7 @@ Expert is the classic 30×16 board turned upright, so it has the same difficulty
 2. The round starts in the **Ready** state: **every cell is hidden**, the timer shows `000`, and the counter shows the total number of red flags. The game never opens or marks any cell by itself before the player's first action; this is true for every new board (from the menu, the face button or Play again).
 3. Mines are **not** placed until the first reveal.
 4. On the first tap that reveals a cell, mines are placed randomly, but **never on the tapped cell or its 8 neighbours**. So the first tap always opens a 0, which opens an area of the board.
+   - **Hardly any guessing:** the layout is also checked by a logic solver. On every level about **4%** of boards (target 3–5%) need a guess somewhere, which keeps a little tension; all other boards are re-rolled until they can be solved from that first tap by logic alone. (Measured on 400 boards per level, purely random layouts needed a guess in 11.5% of Beginner, 33.8% of Intermediate and 89.3% of Expert boards; with this rule it is 3.9% on each level.)
 5. The timer starts on that first reveal and the round enters the **Playing** state.
 
 ### 3.2 Opening a cell (tap)
@@ -442,15 +443,13 @@ No account, internet connection or special permissions are needed. Uninstalling 
 | Very narrow phone (320 px wide) | The top bar's digits get slightly smaller so all five items (menu, counter, face, timer, ?) fit |
 ## 10. Out of scope
 
-Landscape mode, desktop and web versions, multiplayer, online leaderboards, ads and in-app purchases, saving an unfinished round, guaranteed "no-guess" boards, and replays.
+Landscape mode, desktop and web versions, multiplayer, online leaderboards, ads and in-app purchases, saving an unfinished round, and replays.
 
 ## 11. Possible future ideas
 
 - iOS version
 - Save and resume an unfinished round
-- Lighter, shorter haptic "ticks" using a native haptics plugin
-- A "no-guess" mode that only generates boards solvable by logic
-- Dark theme
+- Lighter, shorter haptic "ticks" using a native haptics plugin- Dark theme
 - Daily puzzle with a shared seed
 - Statistics: games played, win rate, longest streak
 - Google Play Games achievements

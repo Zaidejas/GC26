@@ -306,6 +306,25 @@ namespace MineSweeper.Core
 }
 ```
 
+### No-guess boards: MinesweeperSolver
+In the Unity game (`Assets/Microgames/gc26_minesweeper/Scripts/Core/`) the first tap calls `MinesweeperBoard.PlaceMinesFair(x, y)` instead of `PlaceMines`. It first decides, with chance `GuessChance` (0.04), whether this board should need a guess. Then it places red flags as above, asks `MinesweeperSolver` to play the board from that tap **using logic only**, and re-rolls the layout until the answer matches: solvable for normal boards, not solvable for the ~4% "guess" boards. It gives up after 1000 layouts or 1.5 s and keeps the last one; this didn't happen in testing. `PlaceMinesNoGuess` (chance 0) is also available.
+
+The solver only uses what a player can see, and applies, from simple to strong:
+1. a number whose red flags are all found → its other hidden neighbours are safe; a number with exactly as many hidden neighbours as missing red flags → they are all red flags;
+2. subsets: if number A's hidden cells all lie inside number B's, the cells only B touches hold (B − A) red flags;
+3. the total red flag count (none left → everything hidden is safe, and the other way round);
+4. trying every layout of each group of hidden edge cells (up to 24 cells) that fits all the numbers: a cell that is safe in every layout is safe.
+
+Measured with `MinesweeperSolverTests` (400 boards per level, first tap anywhere):
+
+| Level | Random layout needs a guess | `PlaceMinesNoGuess` | `PlaceMinesFair` (the game, 1000 boards) | Time of `PlaceMinesFair` on a PC (avg / max) |
+|---|---|---|---|---|
+| Beginner | 11.5% | 0% | 3.9% | 0 / 6 ms |
+| Intermediate | 33.8% | 0% | 3.9% | 0.4 / 11 ms |
+| Expert | 89.3% | 0% | 3.9% | 12 / 121 ms |
+
+Phones are slower than this PC, so the first tap on Expert can take a fraction of a second.
+
 ### DifficultySettings.cs (week 8)
 ```csharp
 using UnityEngine;
