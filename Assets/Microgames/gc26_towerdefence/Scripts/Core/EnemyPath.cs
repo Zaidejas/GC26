@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,7 +8,12 @@ namespace GC26.Towerdefence
     /// The road enemies walk along, on the 16x9 tile field.
     /// Points are typed in prototype map coordinates (x right, y down, tile centers at .5),
     /// exactly as PATH in Docs~/towerdefence_prototype/game.js, and turned into world space here:
-    /// one tile = one unit, the field covers x 0..16 and y 0..9 with y pointing up.
+    /// one tile = one unit, y pointing up.
+    /// Horizontal screen: the field covers x 0..16, y 0..9, the road comes in on the left.
+    /// Upright screen (as in the prototype): the map is turned 90 degrees clockwise onto a 9x16 field,
+    /// the road comes in at the top and the castle is at the bottom. Distances stay the same, so balance does too.
+    /// Only positions turn, not sprites, so letters and HP bars stay level. When the screen turns,
+    /// LayoutChanged fires and everything that stores a position moves to the new one.
     /// Ground enemies follow every point; flying ones go straight from the first point to the last (the castle).
     /// </summary>
     public class EnemyPath : MonoBehaviour
@@ -23,8 +29,34 @@ namespace GC26.Towerdefence
             new(7.5f, 2.5f), new(11.5f, 2.5f), new(11.5f, 6.5f), new(15f, 6.5f),
         };
 
+        [Tooltip("Turn the map for upright screens. Off = always horizontal.")]
+        [SerializeField] bool allowVertical = true;
+
         PathLine _ground;
         PathLine _air;
+
+        /// <summary>True when the map is turned for an upright screen (9 wide, 16 tall).</summary>
+        public bool IsVertical { get; private set; }
+
+        /// <summary>Raised after the map turned (screen rotated). Positions from before are out of date.</summary>
+        public event Action LayoutChanged;
+
+        public float FieldWidth => IsVertical ? Rows : Columns;
+        public float FieldHeight => IsVertical ? Columns : Rows;
+
+        void Awake() => IsVertical = WantVertical();
+
+        void Update()
+        {
+            bool vertical = WantVertical();
+            if (vertical == IsVertical) return;
+            IsVertical = vertical;
+            _ground = null;
+            _air = null;
+            LayoutChanged?.Invoke();
+        }
+
+        bool WantVertical() => allowVertical && Screen.height > Screen.width;
 
         public PathLine Ground => _ground ??= Build(false);
         public PathLine Air => _air ??= Build(true);
@@ -36,7 +68,9 @@ namespace GC26.Towerdefence
         public Vector3 CastlePosition => Ground.End;
 
         /// <summary>Prototype map coordinates (y down) to world space (y up), relative to this object.</summary>
-        public Vector3 MapToWorld(Vector2 map) => transform.position + new Vector3(map.x, Rows - map.y, 0f);
+        public Vector3 MapToWorld(Vector2 map) => transform.position + (IsVertical
+            ? new Vector3(Rows - map.y, Columns - map.x, 0f)  // turned: map x runs down the screen
+            : new Vector3(map.x, Rows - map.y, 0f));
 
         PathLine Build(bool straight)
         {
@@ -83,10 +117,10 @@ namespace GC26.Towerdefence
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(MapToWorld(mapPoints[^1]), 0.4f);
 
-            // Field border, so the 16x9 area is visible in the Scene view.
+            // Field border, so the play area is visible in the Scene view.
             Gizmos.color = new Color(1f, 1f, 1f, 0.25f);
             var origin = transform.position;
-            Gizmos.DrawWireCube(origin + new Vector3(Columns / 2f, Rows / 2f), new Vector3(Columns, Rows));
+            Gizmos.DrawWireCube(origin + new Vector3(FieldWidth / 2f, FieldHeight / 2f), new Vector3(FieldWidth, FieldHeight));
         }
     }
 

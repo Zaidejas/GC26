@@ -3,20 +3,23 @@ using UnityEngine;
 namespace GC26.Towerdefence
 {
     /// <summary>
-    /// Keeps the whole 16x9 field on screen at any screen shape: sets the orthographic size
-    /// so the field fits both in height and in width, and centers the camera on it.
-    /// On a phone held upright the field is small; the "Horizontal and vertical layout" task
-    /// will turn the map for portrait screens.
+    /// Keeps the whole field on screen at any screen shape: sets the orthographic size so the field
+    /// fits both in height and in width, and centers the camera on it.
+    /// Horizontal screens show the 16x9 field; upright screens show the turned 9x16 field (see EnemyPath),
+    /// with extra room above and below for the HUD (gold, lives, wave on top; the play button at the bottom).
     /// </summary>
     [ExecuteAlways]
     [RequireComponent(typeof(Camera))]
     public class FieldCameraFit : MonoBehaviour
     {
-        [Tooltip("Optional. The field is placed relative to this path object; empty = field starts at world (0, 0).")]
+        [Tooltip("The field is placed relative to this path object and turns with it.")]
         [SerializeField] EnemyPath path;
 
         [Tooltip("Empty space around the field, in tiles.")]
         [SerializeField, Min(0f)] float margin = 0.25f;
+
+        [Tooltip("Upright screens only: extra tiles kept free above and below the field for the HUD.")]
+        [SerializeField, Min(0f)] float verticalHudRoom = 2.5f;
 
         Camera _camera;
 
@@ -26,15 +29,19 @@ namespace GC26.Towerdefence
         {
             if (_camera == null) return;
 
-            float halfWidth = EnemyPath.Columns / 2f + margin;
-            float halfHeight = EnemyPath.Rows / 2f + margin;
+            bool vertical = path != null && path.IsVertical;
+            float width = path != null ? path.FieldWidth : EnemyPath.Columns;
+            float height = path != null ? path.FieldHeight : EnemyPath.Rows;
+
+            float halfWidth = width / 2f + margin;
+            float halfHeight = height / 2f + margin + (vertical ? verticalHudRoom : 0f);
             float aspect = _camera.aspect > 0f ? _camera.aspect : 16f / 9f;
 
             _camera.orthographic = true;
             _camera.orthographicSize = Mathf.Max(halfHeight, halfWidth / aspect);
 
             Vector3 origin = path != null ? path.transform.position : Vector3.zero;
-            transform.position = new Vector3(origin.x + EnemyPath.Columns / 2f, origin.y + EnemyPath.Rows / 2f, origin.z - 10f);
+            transform.position = new Vector3(origin.x + width / 2f, origin.y + height / 2f, origin.z - 10f);
         }
     }
 }

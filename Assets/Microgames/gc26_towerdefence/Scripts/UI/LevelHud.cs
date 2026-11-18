@@ -12,7 +12,8 @@ namespace GC26.Towerdefence
     /// gold and lives top left, wave X/10 top center, pause top right,
     /// a "start wave" play button with the build timer bottom right,
     /// and a result screen when the level ends: Victory with 1-3 stars or Defeat, plus Restart / Main menu.
-    /// Pause opens a small menu: Resume, Restart level, Main menu. Next to pause, a 1x/2x speed toggle.
+    /// Pause opens a small menu: Resume, Restart level, Main menu, and at the bottom two phone icons
+    /// that turn the screen upright (9:16) or sideways (16:9). Next to pause, a 1x/2x speed toggle.
     /// Keys: Esc pauses / resumes, Space starts the next wave. A hint line at the bottom says what to do next.
     /// Built from code with plain uGUI: works with touches (Input System) and stays inside the safe area.
     /// Final look and icons come later (W5-W6).
@@ -54,6 +55,10 @@ namespace GC26.Towerdefence
         float _speed = 1f;
         TMP_Text _speedLabel;
         TMP_Text _hint;
+        Button _portraitButton;
+        Button _landscapeButton;
+        ScreenOrientation _startOrientation;
+        bool _orientationChanged;
 
         public bool IsPaused => _paused;
 
@@ -65,6 +70,7 @@ namespace GC26.Towerdefence
                 enabled = false;
                 return;
             }
+            _startOrientation = Screen.orientation;
             EnsureEventSystem();
             BuildUi();
             level.BonusPaid += ShowBonus;
@@ -80,9 +86,14 @@ namespace GC26.Towerdefence
 
         void OnDisable()
         {
-            // Rule 6: never leave the shell paused or sped up.
+            // Rule 6: never leave the shell paused, sped up or turned.
             Time.timeScale = 1f;
             _paused = false;
+            if (_orientationChanged)
+            {
+                Screen.orientation = _startOrientation;
+                _orientationChanged = false;
+            }
         }
 
         void OnDestroy()
@@ -119,6 +130,7 @@ namespace GC26.Towerdefence
             UpdateResultScreen();
 
             _speedLabel.text = _speed > 1f ? "2x" : "1x";
+            if (_pauseMenu.activeSelf) UpdateOrientationButtons();
             _hint.text = level.State switch
             {
                 LevelState.Build when level.CurrentWave == 0 => "Tap a grey square to build a tower, then press the green play button",
@@ -143,6 +155,31 @@ namespace GC26.Towerdefence
         }
 
         // ---------- actions ----------
+
+        /// <summary>
+        /// Turns the screen. Works on phones and in the Device Simulator; a desktop window cannot turn.
+        /// The original orientation comes back when the game closes (OnDisable).
+        /// </summary>
+        void SetOrientation(bool portrait)
+        {
+            Screen.orientation = portrait ? ScreenOrientation.Portrait : ScreenOrientation.LandscapeLeft;
+            _orientationChanged = true;
+        }
+
+        void UpdateOrientationButtons()
+        {
+            bool portrait = Screen.height > Screen.width;
+            Highlight(_portraitButton, portrait);
+            Highlight(_landscapeButton, !portrait);
+        }
+
+        static void Highlight(Button button, bool on)
+        {
+            var colors = button.colors;
+            colors.normalColor = colors.selectedColor = on ? Green : Grey;
+            colors.highlightedColor = Color.Lerp(colors.normalColor, Color.white, 0.15f);
+            button.colors = colors;
+        }
 
         void SetPaused(bool paused)
         {
@@ -264,7 +301,7 @@ namespace GC26.Towerdefence
 
             var box = NewRect("Box", dim);
             box.anchorMin = box.anchorMax = box.pivot = new Vector2(0.5f, 0.5f);
-            box.sizeDelta = new Vector2(620f, 560f);
+            box.sizeDelta = new Vector2(620f, 760f);
             box.gameObject.AddComponent<Image>().color = new Color(0.12f, 0.14f, 0.12f, 0.95f);
 
             var title = Label("Title", box, 72f, TextAlignmentOptions.Center, Color.white);
@@ -275,6 +312,13 @@ namespace GC26.Towerdefence
             MenuButton(box, "Resume", -150f, Green, () => SetPaused(false));
             MenuButton(box, "Restart level", -280f, Grey, Restart);
             MenuButton(box, "Main menu", -410f, Grey, ExitToMainMenu);
+
+            // Bottom row: screen orientation, shown as an upright and a sideways phone.
+            var label = Label("ScreenLabel", box, 40f, TextAlignmentOptions.Center, new Color(1f, 1f, 1f, 0.8f));
+            label.text = "Screen";
+            Place(label.rectTransform, new Vector2(0f, 1f), Vector2.one, new Vector2(0f, -585f), new Vector2(0f, -535f));
+            _portraitButton = PhoneButton(box, new Vector2(-90f, -600f), portrait: true);
+            _landscapeButton = PhoneButton(box, new Vector2(90f, -600f), portrait: false);
 
             _pauseMenu.SetActive(false);
         }
@@ -337,6 +381,40 @@ namespace GC26.Towerdefence
             _resultText.text = won
                 ? $"Lives left: {level.Lives}/{level.StartLives}"
                 : $"You reached wave {level.CurrentWave} of {level.TotalWaves}";
+        }
+
+        /// <summary>A square button with a phone drawing: body, screen and a small camera dot.</summary>
+        Button PhoneButton(Transform parent, Vector2 topCenter, bool portrait)
+        {
+            var button = NewButton(portrait ? "Portrait" : "Landscape", parent, new Vector2(0.5f, 1f), topCenter, new Vector2(150f, 140f), Grey);
+            button.onClick.AddListener(() => SetOrientation(portrait));
+
+            Vector2 body = portrait ? new Vector2(58f, 100f) : new Vector2(100f, 58f);
+            var phone = NewRect("Phone", button.transform);
+            phone.anchorMin = phone.anchorMax = new Vector2(0.5f, 0.5f);
+            phone.sizeDelta = body;
+            var bodyImage = phone.gameObject.AddComponent<Image>();
+            bodyImage.color = Color.white;
+            bodyImage.raycastTarget = false;
+
+            var screen = NewRect("Screen", phone);
+            screen.anchorMin = Vector2.zero;
+            screen.anchorMax = Vector2.one;
+            // Thin frame on the long sides, a wider one on the short sides (top/bottom of the phone).
+            screen.offsetMin = portrait ? new Vector2(6f, 14f) : new Vector2(14f, 6f);
+            screen.offsetMax = portrait ? new Vector2(-6f, -14f) : new Vector2(-14f, -6f);
+            var screenImage = screen.gameObject.AddComponent<Image>();
+            screenImage.color = new Color(0.15f, 0.2f, 0.28f);
+            screenImage.raycastTarget = false;
+
+            var dot = NewRect("Camera", phone);
+            dot.anchorMin = dot.anchorMax = portrait ? new Vector2(0.5f, 1f) : new Vector2(0f, 0.5f);
+            dot.anchoredPosition = portrait ? new Vector2(0f, -7f) : new Vector2(7f, 0f);
+            dot.sizeDelta = new Vector2(6f, 6f);
+            var dotImage = dot.gameObject.AddComponent<Image>();
+            dotImage.color = new Color(0.15f, 0.2f, 0.28f);
+            dotImage.raycastTarget = false;
+            return button;
         }
 
         void MenuButton(Transform parent, string text, float top, Color color, UnityEngine.Events.UnityAction onClick)

@@ -36,6 +36,7 @@ namespace GC26.Towerdefence
         public float SpeedMultiplier { get; set; } = 1f;
 
         PathLine _line;
+        EnemyPath _path;
         float _slowUntil;
         float _healGlowUntil;
         SpriteRenderer _body;
@@ -94,6 +95,9 @@ namespace GC26.Towerdefence
             SpeedMultiplier = 1f;
             _slowUntil = 0f;
             _healGlowUntil = 0f;
+            if (_path != null) _path.LayoutChanged -= OnLayoutChanged;
+            _path = path;
+            _path.LayoutChanged += OnLayoutChanged;
             _line = path.For(data.flying);
             transform.position = _line.Start;
             IsAlive = true;
@@ -160,6 +164,18 @@ namespace GC26.Towerdefence
             // Pulse towards light green while healed, back to the normal color otherwise.
             float pulse = IsBeingHealed ? 0.55f + 0.25f * Mathf.Sin(Time.time * 18f) : 0f;
             _body.color = Color.Lerp(Data.color, HealGlow, pulse);
+        }
+
+        /// <summary>The screen turned: same distance walked, on the turned line.</summary>
+        void OnLayoutChanged()
+        {
+            _line = _path.For(Data.flying);
+            transform.position = _line.PositionAt(Distance);
+        }
+
+        void OnDestroy()
+        {
+            if (_path != null) _path.LayoutChanged -= OnLayoutChanged;
         }
 
         void Finish()

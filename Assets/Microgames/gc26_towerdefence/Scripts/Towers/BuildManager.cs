@@ -59,11 +59,13 @@ namespace GC26.Towerdefence
         void OnEnable()
         {
             if (level != null) level.LevelBegun += ClearTowers;
+            if (path != null) path.LayoutChanged += Relayout;
         }
 
         void OnDisable()
         {
             if (level != null) level.LevelBegun -= ClearTowers;
+            if (path != null) path.LayoutChanged -= Relayout;
         }
 
         void Start()
@@ -208,6 +210,18 @@ namespace GC26.Towerdefence
             _selected = -1;
             PreviewRange(0f);
             menu.Close();
+        }
+
+        /// <summary>The screen turned: move slots and towers to their turned positions.</summary>
+        void Relayout()
+        {
+            CloseMenu();
+            if (_slotViews == null) return;
+            for (int i = 0; i < _slotViews.Length; i++)
+            {
+                _slotViews[i].transform.position = SlotPosition(i);
+                if (_built[i] != null) _built[i].transform.position = SlotPosition(i);
+            }
         }
 
         void ClearTowers()
