@@ -167,6 +167,8 @@ namespace GC26.Tetris
 
         string ControlsHint()
         {
+            if (usingTouch)
+                return TouchHint();
             return usingMouse
                 ? T("мышь — ход   ЛКМ сброс   ПКМ или колесо поворот   клик по «Запасу» — запас",
                     "mouse moves   left click drops   right click or wheel turns   click HOLD to hold")

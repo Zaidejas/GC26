@@ -96,6 +96,7 @@ namespace GC26.Tetris
             mainCamera = gameCamera != null ? gameCamera : Camera.main;
             view = new BoardView(transform, spriteMaterial);
             ReadCommandLine();
+            SetUpPhone();
             LegacyRecords.Move();
             LoadLanguage();
             LoadRecords();
@@ -511,13 +512,14 @@ namespace GC26.Tetris
             {
                 HandleMovement();
                 HandleMouse();
+                HandleTouch();
             }
             if (game.IsFinished)
                 UpdateGameOverButtons();
             if (autoplay)
                 RunAutoplay();
 
-            bool softDrop = Held(Key.DownArrow) || Held(Key.S);
+            bool softDrop = Held(Key.DownArrow) || Held(Key.S) || touchSoftDrop;
             if (game.State == GameState.Playing)
                 CountPlayTime(Time.deltaTime);
             game.Tick(Time.deltaTime, softDrop);

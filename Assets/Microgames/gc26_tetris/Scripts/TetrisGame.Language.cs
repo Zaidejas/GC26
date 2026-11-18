@@ -49,10 +49,11 @@ namespace GC26.Tetris
             if (Pressed(Key.L))
                 SetLanguage(!english);
 
-            Mouse mouse = Mouse.current;
-            if (mouse == null || !mouse.leftButton.wasPressedThisFrame)
+            // Any pointer: a mouse click or a tap on a phone.
+            Pointer pointer = Pointer.current;
+            if (pointer == null || !pointer.press.wasPressedThisFrame)
                 return;
-            Vector2 point = PointerWorld(mouse.position.ReadValue());
+            Vector2 point = PointerWorld(pointer.position.ReadValue());
             Vector2 center = HudLayout.LanguageButtonCenter, size = HudLayout.LanguageButtonSize;
             if (Inside(point, center, size))
                 SetLanguage(point.x > center.x);

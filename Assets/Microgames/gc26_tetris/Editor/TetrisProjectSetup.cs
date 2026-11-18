@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using GC26.Tetris.Logic;
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -14,6 +15,7 @@ namespace GC26.Tetris.EditorTools
     {
         const string ScenePath = "Assets/Microgames/gc26_tetris/Scenes/gc26_tetris_Main.unity";
         const string BuildPath = "Build/BlockDrop.exe";
+        const string ApkPath = "Build/Android/BlockDrop.apk";
 
         [MenuItem("GC26 Tetris/Create Scene")]
         public static void CreateScene()
@@ -90,6 +92,76 @@ namespace GC26.Tetris.EditorTools
                 PlayerSettings.defaultScreenHeight = height;
                 PlayerSettings.resizableWindow = resizable;
                 PlayerSettings.runInBackground = background;
+            }
+        }
+
+        /// <summary>
+        /// Phone test build (an APK for 64-bit Android). As with Windows, player settings are set for the build
+        /// and put back afterwards. Run with -buildTarget Android so the editor is already on that platform.
+        /// </summary>
+        [MenuItem("GC26 Tetris/Build Android APK")]
+        public static void BuildAndroid()
+        {
+            var android = NamedBuildTarget.Android;
+            string company = PlayerSettings.companyName;
+            string product = PlayerSettings.productName;
+            string identifier = PlayerSettings.GetApplicationIdentifier(android);
+            ScriptingImplementation backend = PlayerSettings.GetScriptingBackend(android);
+            AndroidArchitecture architectures = PlayerSettings.Android.targetArchitectures;
+            UIOrientation orientation = PlayerSettings.defaultInterfaceOrientation;
+            bool portraitDown = PlayerSettings.allowedAutorotateToPortraitUpsideDown;
+            try
+            {
+                PlayerSettings.companyName = "BlockDrop";
+                PlayerSettings.productName = "BlockDrop";
+                PlayerSettings.SetApplicationIdentifier(android, "com.gc26.blockdrop");
+                // Play stores and modern phones want 64-bit code, which on Android means IL2CPP.
+                PlayerSettings.SetScriptingBackend(android, ScriptingImplementation.IL2CPP);
+                PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+                // Both layouts work, so the phone may turn either way.
+                PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
+                PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
+
+                System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(ApkPath));
+                EditorUserBuildSettings.buildAppBundle = false;
+                var options = new BuildPlayerOptions
+                {
+                    scenes = new[] { ScenePath },
+                    locationPathName = ApkPath,
+                    target = BuildTarget.Android,
+                    options = BuildOptions.None,
+                };
+                BuildReport report = BuildPipeline.BuildPlayer(options);
+                Debug.Log("[BlockDrop] Android build result: " + report.summary.result);
+                if (report.summary.result != BuildResult.Succeeded)
+                    throw new Exception("Android build failed: " + report.summary.result);
+            }
+            finally
+            {
+                PlayerSettings.companyName = company;
+                PlayerSettings.productName = product;
+                PlayerSettings.SetApplicationIdentifier(android, identifier);
+                PlayerSettings.SetScriptingBackend(android, backend);
+                PlayerSettings.Android.targetArchitectures = architectures;
+                PlayerSettings.defaultInterfaceOrientation = orientation;
+                PlayerSettings.allowedAutorotateToPortraitUpsideDown = portraitDown;
+            }
+        }
+
+        /// <summary>Batch-mode entry for the phone build: tests, scene, APK.</summary>
+        public static void RunAndroid()
+        {
+            try
+            {
+                TetrisRulesTests.RunOrThrow();
+                CreateScene();
+                BuildAndroid();
+                EditorApplication.Exit(0);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("[BlockDrop] FAILED: " + e);
+                EditorApplication.Exit(1);
             }
         }
 

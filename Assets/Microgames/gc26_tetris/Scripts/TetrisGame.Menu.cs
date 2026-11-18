@@ -94,7 +94,9 @@ namespace GC26.Tetris
 
             DrawTablePanel(T("Марафон: лучшие очки", "Marathon: best scores"), HudLayout.MenuTable(0), marathonTable, unit);
             DrawTablePanel(T("Бой: лучшие очки", "Battle: best scores"), HudLayout.MenuTable(1), battleTable, unit);
-            Label(T("↑ ↓ выбрать    Enter подтвердить    или мышью    L — English", "↑ ↓ select    Enter confirm    or use the mouse    L — русский"), 0f, HudLayout.MenuHintY, unit, 0.42f, TextAnchor.MiddleCenter, Muted);
+            string menuHint = IsPhone ? TouchHint()
+                : T("↑ ↓ выбрать    Enter подтвердить    или мышью    L — English", "↑ ↓ select    Enter confirm    or use the mouse    L — русский");
+            Label(menuHint, 0f, HudLayout.MenuHintY, unit, IsPhone ? 0.36f : 0.42f, TextAnchor.MiddleCenter, Muted);
             Vector2 coins = HudLayout.MenuCoins;
             DrawLanguageButton(unit);
             Label(T("Монеты: ", "Coins: ") + coinsTotal.ToString("N0"), coins.x, coins.y, unit, 0.42f, TextAnchor.MiddleCenter, new Color(1f, 0.8f, 0.25f));
@@ -191,11 +193,12 @@ namespace GC26.Tetris
                 gameAudio.Play("move", 0.6f);
             }
 
-            Mouse mouse = Mouse.current;
-            if (mouse != null)
+            // Any pointer: the mouse, or a finger on a phone.
+            Pointer pointer = Pointer.current;
+            if (pointer != null)
             {
                 // The pointer only takes over when it moves, so it never fights the arrow keys.
-                Vector2 position = mouse.position.ReadValue();
+                Vector2 position = pointer.position.ReadValue();
                 int hovered = ButtonAt(position, count, topY, stepY, width, height);
                 if (hovered >= 0 && position != lastMousePosition && hovered != index)
                 {
@@ -203,7 +206,7 @@ namespace GC26.Tetris
                     gameAudio.Play("move", 0.6f);
                 }
                 lastMousePosition = position;
-                if (hovered >= 0 && mouse.leftButton.wasPressedThisFrame)
+                if (hovered >= 0 && pointer.press.wasPressedThisFrame)
                 {
                     index = hovered;
                     return true;
