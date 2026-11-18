@@ -29,6 +29,19 @@ namespace GC26._2048.EditorTools
         }
 
         /// <summary>
+        /// Opens gc26_2048_Main and enters Play mode. Menu: GC26 → gc26_2048 → Play.
+        /// From the command line: Unity.exe -projectPath &lt;project&gt; -executeMethod GC26._2048.EditorTools.CheeseSceneBuilder.OpenAndPlay
+        /// </summary>
+        [MenuItem("GC26/gc26_2048/Play")]
+        public static void OpenAndPlay()
+        {
+            if (EditorApplication.isPlaying) return;
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            EditorApplication.isPlaying = true;
+        }
+
+        /// <summary>
         /// Builds a Windows player with only gc26_2048_Main for a quick look, without touching Build Settings.
         /// Batch mode: -executeMethod GC26._2048.EditorTools.CheeseSceneBuilder.BuildPreviewPlayer -previewOut &lt;folder&gt;
         /// </summary>

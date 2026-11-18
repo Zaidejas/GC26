@@ -128,6 +128,7 @@ namespace GC26._2048
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = CheeseArt.Page;
             cam.orthographic = true;
+            if (FindAnyObjectByType<AudioListener>() == null) go.AddComponent<AudioListener>();
         }
 
         // ---------------- input ----------------
