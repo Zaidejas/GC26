@@ -130,6 +130,7 @@ GameObject:
   - component: {fileID: 100000004}
   - component: {fileID: 100000003}
   - component: {fileID: 100000005}
+  - component: {fileID: 100000006}
   m_Layer: 0
   m_Name: gc26_towerdefence_Camera
   m_TagString: Untagged
@@ -146,7 +147,7 @@ Camera:
   m_GameObject: {fileID: 100000001}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
+  m_ClearFlags: 2
   m_BackGroundColor: {r: 0.17, g: 0.24, b: 0.16, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
@@ -246,6 +247,20 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
+--- !u!114 &100000006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b83b1e7aab64bbcac8cde817206799b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  path: {fileID: 100000023}
+  margin: 0.25
 --- !u!1 &100000011
 GameObject:
   m_ObjectHideFlags: 0
