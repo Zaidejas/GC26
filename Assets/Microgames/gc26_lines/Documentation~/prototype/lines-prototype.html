@@ -336,12 +336,11 @@ body {
 .subhead .mode-pick .badge { flex-direction: row; gap: 1.6cqw; }
 /* The clock (Timed mode): in the middle of the SCORE / NEXT row, like a game number. Yellow from 0:30, red from 0:10. */
 .hud { position: relative; }
-/* The clock (Timed): a pill of dark glass above the SCORE / NEXT row, centred on the board. It keeps one size:
+/* The clock (Timed): above the SCORE / NEXT row, centred on the board. It keeps one size:
    a fixed width, and every digit in a slot of its own (the title font's digits differ in width). */
 .time-stat { position: absolute; left: 50%; bottom: calc(100% + 2.2cqw); transform: translateX(-50%);
   width: 36cqw; height: 12cqw; display: flex; align-items: center; justify-content: center;
-  border-radius: 999px;
-  background: rgba(28, 20, 58, 0.62); box-shadow: 0 0 3cqw rgba(140, 220, 255, 0.12), inset 0 0 2.4cqw rgba(0, 0, 0, 0.25); }
+  /* no outline or background: just the spores, the stopwatch and the time */ }
 .timer .tnum .d { display: inline-block; width: 0.62em; text-align: center; }
 .timer .tnum .c { display: inline-block; width: 0.3em; text-align: center; }
 /* A fairy ring of 12 glowing spores around the stopwatch: one goes dark every 15 s (full at 3:00 and above);
