@@ -3,29 +3,23 @@ using UnityEngine;
 
 namespace GC26.Tetris.View
 {
-    /// <summary>Badges for special pieces, computed at start-up from distance shapes.</summary>
+    /// <summary>
+    /// Badges for special pieces, computed from distance shapes. Each board builds its own pair (no shared cache),
+    /// so one game instance freeing its assets never blanks another's icons.
+    /// </summary>
     public static class SpecialIcons
     {
         const int Size = 96;
 
-        static Sprite bomb, lightning;
-
-        /// <summary>Drops the cached icons; RuntimeAssets destroys them.</summary>
-        public static void Forget()
-        {
-            bomb = null;
-            lightning = null;
-        }
-
         public static readonly Color BombColor = new Color(1f, 0.42f, 0.24f);
         public static readonly Color LightningColor = new Color(1f, 0.9f, 0.32f);
 
-        public static Sprite Get(SpecialKind kind)
+        public static Sprite Create(SpecialKind kind)
         {
             switch (kind)
             {
-                case SpecialKind.Bomb: return bomb != null ? bomb : (bomb = Build(PaintBomb));
-                case SpecialKind.Lightning: return lightning != null ? lightning : (lightning = Build(PaintLightning));
+                case SpecialKind.Bomb: return Build(PaintBomb);
+                case SpecialKind.Lightning: return Build(PaintLightning);
                 default: return null;
             }
         }

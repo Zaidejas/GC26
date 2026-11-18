@@ -89,8 +89,20 @@ namespace GC26.Tetris
         int specialCycleIndex;
         bool logSlowFrames;
 
+        // Every copy of the game that is alive. Normally one; see TakeOverFromOlderCopies.
+        static readonly List<TetrisGame> liveCopies = new List<TetrisGame>();
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetForPlayMode()
+        {
+            liveCopies.Clear();
+        }
+
         void Awake()
         {
+            TakeOverFromOlderCopies();
+            // Everything made in code from here on belongs to this copy and is freed with it.
+            RuntimeAssets.Owner = this;
             // Layout is static, so read the window afresh rather than trust a previous visit.
             HudLayout.Refresh(Screen.width, Screen.height);
             mainCamera = gameCamera != null ? gameCamera : Camera.main;
@@ -107,10 +119,28 @@ namespace GC26.Tetris
                 inMenu = false;
         }
 
+        /// <summary>
+        /// Two copies at once (the scene open in the editor while the shell loads it too, say) would draw two boards
+        /// over each other. The newest copy wins; older ones switch off with their camera.
+        /// </summary>
+        void TakeOverFromOlderCopies()
+        {
+            liveCopies.RemoveAll(copy => copy == null);
+            foreach (TetrisGame older in liveCopies)
+            {
+                Debug.LogWarning("[BlockDrop] Another copy of the game was still running; switching it off: " + older.gameObject.scene.name);
+                if (older.mainCamera != null)
+                    older.mainCamera.gameObject.SetActive(false);
+                older.gameObject.SetActive(false);
+            }
+            liveCopies.Add(this);
+        }
+
         void OnDestroy()
         {
-            // The shell unloads the scene; code-made textures, sprites and clips go with it.
-            RuntimeAssets.ReleaseAll();
+            liveCopies.Remove(this);
+            // The shell unloads the scene; this copy's code-made textures, sprites and clips go with it.
+            RuntimeAssets.ReleaseAll(this);
             SaveAchievements();
             SaveStats();
         }

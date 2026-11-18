@@ -137,6 +137,8 @@ namespace GC26.Tetris.View
         readonly Material material;
         readonly Sprite tileSprite;
         readonly Sprite plainSprite;
+        readonly Sprite bombIcon;
+        readonly Sprite lightningIcon;
         readonly SpriteRenderer[,] grid = new SpriteRenderer[Board.Width, Board.VisibleHeight];
         readonly SpriteRenderer[][] previews = new SpriteRenderer[TetrisMatch.PreviewCount][];
         readonly SpriteRenderer[] holdCells;
@@ -153,6 +155,8 @@ namespace GC26.Tetris.View
             material = spriteMaterial;
             tileSprite = CreateTileSprite();
             plainSprite = CreatePlainSprite();
+            bombIcon = SpecialIcons.Create(SpecialKind.Bomb);
+            lightningIcon = SpecialIcons.Create(SpecialKind.Lightning);
             Effects = new BoardEffects(root, material, tileSprite, plainSprite);
 
             targetTheme = Themes[0];
@@ -202,7 +206,7 @@ namespace GC26.Tetris.View
 
         void CreateLegendIcon(SpecialKind kind)
         {
-            SpriteRenderer icon = CreateRenderer("LegendIcon", SpecialIcons.Get(kind), Vector2.zero, 0.8f, 2);
+            SpriteRenderer icon = CreateRenderer("LegendIcon", Icon(kind), Vector2.zero, 0.8f, 2);
             icon.color = Color.white;
             legendIcons.Add(icon);
         }
@@ -223,6 +227,11 @@ namespace GC26.Tetris.View
             panel.transform.localScale = new Vector3(size.x, size.y, 1f);
         }
 
+        Sprite Icon(SpecialKind kind)
+        {
+            return kind == SpecialKind.Bomb ? bombIcon : kind == SpecialKind.Lightning ? lightningIcon : null;
+        }
+
         SpriteRenderer CreateIconRenderer()
         {
             SpriteRenderer icon = CreateRenderer("SpecialIcon", null, Vector2.zero, 1f, 4);
@@ -235,7 +244,7 @@ namespace GC26.Tetris.View
             icon.enabled = kind != SpecialKind.None;
             if (!icon.enabled)
                 return;
-            icon.sprite = SpecialIcons.Get(kind);
+            icon.sprite = Icon(kind);
             icon.color = new Color(1f, 1f, 1f, alpha);
             icon.transform.localPosition = position;
             icon.transform.localScale = new Vector3(scale, scale, 1f);
