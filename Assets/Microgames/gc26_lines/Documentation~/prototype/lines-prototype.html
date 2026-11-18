@@ -307,6 +307,7 @@ body {
 .screen:lang(ru) .logo { font-size: 17cqw; } /* "Грибочки" in the wider Russian font: a little smaller so it fits the width */
 .tag { margin: 2.5cqw 0 0; font-size: 4.2cqw; color: var(--soft); font-weight: 700; }
 .menu-buttons { display: flex; flex-direction: column; gap: 3cqw; }
+.version { position: absolute; left: 0; right: 0; bottom: 3cqw; margin: 0; text-align: center; font-size: 3cqw; color: var(--soft); opacity: 0.6; pointer-events: none; } /* the game's version, small at the bottom */
 .menu-buttons .btn { height: 13.5cqw; }
 .btn .sub { font-weight: 700; font-size: 3.6cqw; opacity: 0.75; }
 .btn .sub-clock { white-space: nowrap; } /* plain text on the same line, the icon sits on the text's line */
@@ -610,6 +611,7 @@ body {
             <button type="button" class="btn" id="howto" data-i18n="howToPlay">How to play</button>
             <button type="button" class="btn" id="scores" data-i18n="leaderboard">Leaderboard</button>
           </div>
+          <p class="version" aria-label="Version 0.2.0">v0.2.0</p>
         </div>
 
         <div class="view subview" id="screen-howto" hidden>

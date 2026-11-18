@@ -19,6 +19,7 @@ namespace GC26.Lines.EditorTools
         {
             PlayerSettings.companyName = "GC26";
             PlayerSettings.productName = "Glowcaps"; // the name under the icon (the code and app id stay "lines")
+            PlayerSettings.bundleVersion = Game.LinesVersion.Number; // the same version the start screen shows
             // A unique app id, needed to install on a real iPhone with a free Apple account (and on Android).
             PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.iOS, BundleId);
             PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Android, BundleId);

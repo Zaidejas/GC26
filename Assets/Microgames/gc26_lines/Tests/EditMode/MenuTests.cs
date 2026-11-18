@@ -40,6 +40,19 @@ namespace GC26.Lines.Tests
         }
 
         [Test]
+        public void TitleAndVersion()
+        {
+            menu.Show(null, PieceSet.Balls());
+            Assert.AreEqual("Glowcaps", menu.TitleText);
+            Assert.AreEqual("v" + GC26.Lines.Game.LinesVersion.Number, menu.VersionText);
+            Assert.Less(menu.VersionRect.anchoredPosition.y, ((RectTransform)menu.ContinueButton.transform).anchoredPosition.y, "At the bottom, below the buttons");
+            Texts.Set(Language.Russian);
+            menu.RefreshTexts();
+            Assert.AreEqual("Грибочки", menu.TitleText);
+            Texts.Set(Language.English);
+        }
+
+        [Test]
         public void SavedGame_ContinueShowsItsScore()
         {
             menu.Show(120, PieceSet.Balls());

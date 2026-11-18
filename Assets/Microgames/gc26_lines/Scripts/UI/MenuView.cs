@@ -18,6 +18,7 @@ namespace GC26.Lines.UI
     {
         // Prototype sizes (cqw).
         const float PieceSize = 11f, PieceGap = 2f, DecoHeight = 13f, DecoMargin = 4f;
+        const float VersionSize = 3f, VersionBottom = 2f; // the prototype's 3cqw text, 3cqw from the bottom
         const float LogoSize = 18f, LogoSizeRussian = 17f, TagSize = 4.2f, TagMargin = 2.5f; // "Грибочки" is a little wider
         const float ButtonHeight = 13.5f, ButtonGap = 3f, BrandToButtons = 12f, SidePadding = 10f;
         // L09: the Classic | Timed badges right above Continue (prototype: 12cqw discs, 3.6cqw names, 5cqw to Continue).
@@ -28,7 +29,7 @@ namespace GC26.Lines.UI
         Canvas canvas;
         RectTransform root;
         readonly List<Image> deco = new List<Image>();
-        TextMeshProUGUI logo, tagline;
+        TextMeshProUGUI logo, tagline, version;
         Image logoGlow;
         PillButton continueButton, newGame, howTo, leaderboard, settings;
         int? savedScore;
@@ -49,6 +50,11 @@ namespace GC26.Lines.UI
         public PillButton SettingsButton => settings;
         public string Tagline => tagline.text;
         public bool IsShowing => gameObject.activeSelf;
+
+        /// <summary>The title and the version at the bottom, as shown (tests).</summary>
+        public string TitleText => logo.text;
+        public string VersionText => version.text;
+        public RectTransform VersionRect => version.rectTransform;
 
         public static MenuView Create(Camera camera)
         {
@@ -78,6 +84,9 @@ namespace GC26.Lines.UI
             }
             logo = NewText("Title", "", Palette.Text);
             tagline = NewText("Tagline", "", Palette.SoftText);
+            // The game's version, small and quiet at the very bottom (like the prototype's).
+            version = NewText("Version", Game.LinesVersion.Label, new Color(Palette.SoftText.r, Palette.SoftText.g, Palette.SoftText.b, 0.6f));
+            version.fontStyle = FontStyles.Normal;
             UiFonts.UseDisplay(logo);
             UiFonts.UseDisplay(tagline);
             logo.color = Color.white;
@@ -138,6 +147,8 @@ namespace GC26.Lines.UI
             tagline.fontSize = TagSize * u;
             float tagTop = logoTop - (LogoSize * 0.95f + TagMargin) * u;
             Place(tagline.rectTransform, left, tagTop - TagSize * 1.3f * u, width, TagSize * 1.3f * u);
+            version.fontSize = VersionSize * u;
+            Place(version.rectTransform, left, safe.y + VersionBottom * u, width, VersionSize * 1.3f * u);
 
             float y = top - (brandH + BrandToButtons) * u;
             modes.Place(new Vector2(safe.center.x, y - BadgesHeight * u / 2f), u, BadgeDisc, BadgeText, BadgeGap);
