@@ -522,14 +522,16 @@ namespace GC26.Tetris.EditorTools
         static void SoundsAreValid()
         {
             Dictionary<string, float[]> sounds = GC26.Tetris.View.GameAudio.BuildAllSounds();
-            string[] required = { "move", "rotate", "hold", "lock", "harddrop", "clear1", "clear2", "clear3", "clear4", "levelup", "gameover", "music", "bomb", "zap", "bothit", "botdown", "coin" };
+            string[] required = { "move", "rotate", "hold", "lock", "harddrop", "clear1", "clear2", "clear3", "clear4", "levelup", "gameover", "music", "musicdrive", "bomb", "zap", "bothit", "botdown", "coin" };
             foreach (string name in required)
             {
                 Check(sounds.ContainsKey(name), "missing " + name);
                 float peak = sounds[name].Max(Mathf.Abs);
                 Check(peak > 0.05f, name + " is silent, peak " + peak);
                 Check(peak <= 1f, name + " clips, peak " + peak);
+                Check(sounds[name].All(sample => !float.IsNaN(sample)), name + " has NaN samples");
             }
+            Check(sounds["music"].Length == sounds["musicdrive"].Length, "the two music layers must be the same length to stay in step");
         }
 
         static void SpecialDeckRhythm()
