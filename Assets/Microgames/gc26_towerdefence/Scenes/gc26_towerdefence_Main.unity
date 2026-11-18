@@ -496,6 +496,102 @@ MonoBehaviour:
   game: {fileID: 100000013}
   level: {fileID: 100000044}
   economy: {fileID: 100000043}
+--- !u!1 &100000051
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 100000052}
+  - component: {fileID: 100000053}
+  - component: {fileID: 100000054}
+  - component: {fileID: 100000055}
+  m_Layer: 0
+  m_Name: BuildManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &100000052
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000051}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &100000053
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000051}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ecc46279c05742bab3101a943eeb1d87, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &100000054
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000051}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e80a6f938e247a4a93f52f43c7d3770, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  worldCamera: {fileID: 100000003}
+  path: {fileID: 100000023}
+  level: {fileID: 100000044}
+  economy: {fileID: 100000043}
+  enemies: {fileID: 100000033}
+  art: {fileID: 100000053}
+  menu: {fileID: 100000055}
+  towers:
+  - {fileID: 11400000, guid: 10ef69c984d44d00b1394acc26ee07d5, type: 2}
+  - {fileID: 11400000, guid: d75e0669ca90470a81b777f582f789b0, type: 2}
+  - {fileID: 11400000, guid: e725a739dd6440a990a0903a31f11b1e, type: 2}
+  - {fileID: 11400000, guid: d8f0fa21ce2c4bd19774d88c22d15235, type: 2}
+  - {fileID: 11400000, guid: e47be3b159374aec9f3f53432d3808ef, type: 2}
+  slotMapPoints:
+  - {x: 1.5, y: 3}
+  - {x: 2, y: 5.5}
+  - {x: 5.5, y: 3}
+  - {x: 5.5, y: 5}
+  - {x: 5.5, y: 8}
+  - {x: 9.5, y: 1}
+  - {x: 9.5, y: 4.5}
+  - {x: 9.5, y: 7.8}
+  - {x: 13.5, y: 1.5}
+  - {x: 13.5, y: 4.5}
+  - {x: 13.5, y: 8}
+--- !u!114 &100000055
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000051}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b85b6c1d09f40be9026878d3ac97722, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  art: {fileID: 100000053}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -505,3 +601,4 @@ SceneRoots:
   - {fileID: 100000022}
   - {fileID: 100000032}
   - {fileID: 100000042}
+  - {fileID: 100000052}

@@ -27,12 +27,27 @@ namespace GC26.Towerdefence
         /// <summary>Distance still to go before the castle.</summary>
         public float DistanceLeft => _line == null ? 0f : _line.Length - Distance;
 
+        /// <summary>Share of its own path already walked, 0..1. Towers target the highest ("First").</summary>
+        public float Progress => _line == null || _line.Length <= 0f ? 0f : Distance / _line.Length;
+
         public bool IsAlive { get; private set; }
 
-        /// <summary>Multiplies speed; the StatusEffect task (Frost slow) will drive it. 1 = normal.</summary>
+        /// <summary>Multiplies speed; 1 = normal. Set by ApplySlow (Frost).</summary>
         public float SpeedMultiplier { get; set; } = 1f;
 
         PathLine _line;
+        float _slowUntil;
+
+        /// <summary>
+        /// Slows the enemy by `amount` (0.4 = 40% slower) for `seconds`. A new slow replaces the old one,
+        /// as in the prototype. The StatusEffect task (W3) can grow this into burn/poison later.
+        /// </summary>
+        public void ApplySlow(float amount, float seconds)
+        {
+            if (!IsAlive) return;
+            SpeedMultiplier = 1f - Mathf.Clamp01(amount);
+            _slowUntil = Time.time + seconds;
+        }
 
         /// <summary>
         /// Creates an enemy at the start of its path. Uses data.prefab if set, otherwise a colored circle.
@@ -72,6 +87,7 @@ namespace GC26.Towerdefence
             Shield = data.shield;
             Distance = 0f;
             SpeedMultiplier = 1f;
+            _slowUntil = 0f;
             _line = path.For(data.flying);
             transform.position = _line.Start;
             IsAlive = true;
@@ -80,6 +96,12 @@ namespace GC26.Towerdefence
         void Update()
         {
             if (!IsAlive) return;
+
+            if (_slowUntil > 0f && Time.time >= _slowUntil)
+            {
+                _slowUntil = 0f;
+                SpeedMultiplier = 1f;
+            }
 
             Distance += Data.speed * SpeedMultiplier * Time.deltaTime;
             if (Distance >= _line.Length)

@@ -40,6 +40,8 @@ namespace GC26.Towerdefence
         Button _startButton;
         TMP_Text _startTimer;
         GameObject _pauseMenu;
+        TMP_Text _bonus;
+        float _bonusUntil;
 
         Sprite _playSprite;
         Texture2D _playTexture;
@@ -57,6 +59,15 @@ namespace GC26.Towerdefence
             }
             EnsureEventSystem();
             BuildUi();
+            level.BonusPaid += ShowBonus;
+        }
+
+        void ShowBonus(string reason, int gold)
+        {
+            if (_bonus == null) return;
+            _bonus.text = $"+{gold} gold  <size=75%>{reason}</size>";
+            _bonus.alpha = 1f;
+            _bonusUntil = Time.unscaledTime + 2f;
         }
 
         void OnDisable()
@@ -68,6 +79,7 @@ namespace GC26.Towerdefence
 
         void OnDestroy()
         {
+            if (level != null) level.BonusPaid -= ShowBonus;
             if (_playSprite != null) Destroy(_playSprite);
             if (_playTexture != null) Destroy(_playTexture);
         }
@@ -84,7 +96,16 @@ namespace GC26.Towerdefence
             bool build = level.State == LevelState.Build;
             _startButton.gameObject.SetActive(!level.IsOver);
             _startButton.interactable = level.CanStartWave && !_paused;
-            _startTimer.text = build ? $"{Mathf.CeilToInt(level.Countdown)} s" : "";
+            // The timer shows what an early start pays right now.
+            int early = level.EarlyCallBonus;
+            _startTimer.text = build && early > 0 ? $"+{early} gold" : "";
+
+            if (_bonusUntil > 0f)
+            {
+                float left = _bonusUntil - Time.unscaledTime;
+                if (left <= 0f) { _bonusUntil = 0f; _bonus.text = ""; }
+                else _bonus.alpha = Mathf.Clamp01(left / 0.5f); // fade out over the last half second
+            }
 
             _result.text = level.State switch
             {
@@ -184,6 +205,11 @@ namespace GC26.Towerdefence
             timerRect.pivot = new Vector2(0.5f, 0f);
             timerRect.anchoredPosition = new Vector2(0f, 8f);
             timerRect.sizeDelta = new Vector2(0f, 60f);
+
+            // Bottom center: "+19 gold Early" / "+35 gold Wave 3 cleared", shown for 2 seconds.
+            _bonus = Label("Bonus", _safeArea, 60f, TextAlignmentOptions.Center, Gold);
+            _bonus.fontStyle = FontStyles.Bold;
+            Place(_bonus.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 260f), new Vector2(0f, 340f));
 
             // Middle: result.
             _result = Label("Result", _safeArea, 140f, TextAlignmentOptions.Center, Color.white);

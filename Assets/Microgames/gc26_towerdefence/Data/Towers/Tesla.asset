@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 787f886068104c638314f5e89f8fdc12, type: 3}
+  m_Name: Tesla
+  m_EditorClassIdentifier: 
+  displayName: Tesla
+  letter: T
+  cost: 200
+  damage: 15
+  fireRate: 0.8
+  range: 3.0
+  hitsAir: 1
+  attack: 1
+  splashRadius: 0
+  slowAmount: 0
+  slowDuration: 0
+  chainCount: 3
+  chainJumpRange: 1.6
+  ignoresArmor: 0
+  color: {r: 0.878, g: 0.706, b: 0.000, a: 1}

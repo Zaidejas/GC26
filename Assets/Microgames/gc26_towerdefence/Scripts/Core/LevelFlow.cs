@@ -29,9 +29,20 @@ namespace GC26.Towerdefence
 
         [SerializeField, Min(1)] int startLives = 20;
         [SerializeField, Min(1)] int totalWaves = 10;
-        [Tooltip("Seconds on the build timer. Calling the wave early pays the seconds left (bonus task, W4).")]
+        [Tooltip("Seconds on the build timer. Calling the wave early pays the seconds left as gold.")]
         [SerializeField, Min(0f)] float buildCountdown = 20f;
+        [Tooltip("Wave-clear bonus = base + per wave x wave number (prototype: 20 + 5 x wave).")]
+        [SerializeField, Min(0)] int waveClearBase = 20;
+        [SerializeField, Min(0)] int waveClearPerWave = 5;
 
+        /// <summary>Raised when bonus gold is paid: a short reason ("Early", "Wave 3 cleared") and the amount.</summary>
+        public event Action<string, int> BonusPaid;
+
+        /// <summary>Gold the player gets for starting the next wave right now.</summary>
+        public int EarlyCallBonus => State == LevelState.Build ? Mathf.CeilToInt(Countdown) : 0;
+
+        /// <summary>Raised at the start of every attempt (first start and restarts): clear towers, effects, etc.</summary>
+        public event Action LevelBegun;
         public event Action<LevelState> StateChanged;
         public event Action<int> LivesChanged;
         /// <summary>Raised with the 1-based wave number. The spawner starts sending enemies on it.</summary>
@@ -74,6 +85,7 @@ namespace GC26.Towerdefence
             _aliveEnemies = 0;
             _spawningFinished = false;
             if (economy != null) economy.ResetGold();
+            LevelBegun?.Invoke();
             LivesChanged?.Invoke(Lives);
             EnterBuild();
         }
@@ -82,6 +94,10 @@ namespace GC26.Towerdefence
         public void StartNextWave()
         {
             if (!CanStartWave) return;
+
+            // Early call: the seconds left on the build timer are paid as gold.
+            int early = EarlyCallBonus;
+            if (early > 0) PayBonus("Early", early);
 
             CurrentWave++;
             _aliveEnemies = 0;
@@ -152,7 +168,7 @@ namespace GC26.Towerdefence
 
             Debug.Log($"[{TowerdefenceGame.Id}] wave {CurrentWave} cleared, lives {Lives}");
             WaveCleared?.Invoke(CurrentWave);
-            // TODO (W4 "Wave bonuses"): wave-clear bonus 20 + 5 x wave.
+            PayBonus($"Wave {CurrentWave} cleared", waveClearBase + waveClearPerWave * CurrentWave);
 
             if (CurrentWave >= totalWaves)
             {
@@ -163,6 +179,13 @@ namespace GC26.Towerdefence
             {
                 EnterBuild();
             }
+        }
+
+        void PayBonus(string reason, int gold)
+        {
+            if (gold <= 0) return;
+            if (economy != null) economy.Add(gold);
+            BonusPaid?.Invoke(reason, gold);
         }
 
         void EnterBuild()
