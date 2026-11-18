@@ -268,7 +268,7 @@ namespace GC26._2048
             int bestLevel = storage.BestLevel;
             menuFindIcon.gameObject.SetActive(bestLevel > 0);
             menuFindIcon.sprite = art.Item(bestLevel);
-            menuFindText.text = bestLevel > 0 ? loc.ItemShort(bestLevel) : "—";
+            menuFindText.text = bestLevel > 0 ? loc.ItemName(bestLevel) : "—";
         }
 
         void ShowGame()
@@ -534,7 +534,7 @@ namespace GC26._2048
             fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
             fit.aspectRatio = 1f;
             boardView = area.gameObject.AddComponent<BoardView>();
-            boardView.Init(field, art, level => loc.ItemShort(level));
+            boardView.Init(field, art, level => loc.ItemName(level));
 
             var hint = Bind(CheeseUi.Label(s, "", 36f, CheeseArt.Light, TextAlignmentOptions.Left, true), "hint");
             hint.enableAutoSizing = true;
@@ -587,7 +587,7 @@ namespace GC26._2048
                 Bind(CheeseUi.Label(line, "", 32f, CheeseArt.Ink, TextAlignmentOptions.Left), () =>
                 {
                     string from = level == 1 ? loc["chain_first"]
-                        : $"2 × {loc.ItemShort(level - 1).ToLower()}{(level == CheeseRules.CheeseLevel ? loc["chain_to_hole"] : "")}";
+                        : $"2 × {loc.ItemName(level - 1).ToLower()}{(level == CheeseRules.CheeseLevel ? loc["chain_to_hole"] : "")}";
                     return $"<b>{loc.ItemName(level)}</b>\n<size=24><color=#6e5a45>{from}</color></size>";
                 }).Size(84f, -1f, 1f);
                 CheeseUi.Label(line, level > 1 ? "+" + CheeseRules.PointsForMerge(level - 1) : "", 34f,

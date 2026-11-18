@@ -75,21 +75,9 @@ namespace GC26._2048
             ["cheese_ready"] = new[] { "Cheese is ready!", "Сыр готов!" },
         };
 
+        // One name per item, the same on tiles, in the rules and on the results screen.
         // index = item level, then { English, Russian }
         static readonly string[][] ItemNames =
-        {
-            new[] { "", "" },
-            new[] { "Green grass", "Зелёная трава" },
-            new[] { "Haystack", "Стог сена" },
-            new[] { "Cow", "Корова" },
-            new[] { "Milk can", "Бидон молока" },
-            new[] { "Bottle of milk", "Бутылка молока" },
-            new[] { "Bowl of sour cream", "Миска сметаны" },
-            new[] { "Bowl of cottage cheese", "Чаша творога" },
-            new[] { "Cheese", "Сыр" },
-        };
-
-        static readonly string[][] ItemShortNames =
         {
             new[] { "", "" },
             new[] { "Grass", "Трава" },
@@ -115,22 +103,14 @@ namespace GC26._2048
 
         public string this[string key] => Get(key, Language);
 
-        public string ItemName(int level) => Pick(ItemNames, level);
-
-        public string ItemShort(int level) => Pick(ItemShortNames, level);
+        public string ItemName(int level) => ItemName(level, Language);
 
         public static IEnumerable<string> Keys => Texts.Keys;
 
         public static string Get(string key, CheeseLanguage language) =>
             Texts.TryGetValue(key, out var v) ? v[(int)language] : key;
 
-        public static string ItemName(int level, CheeseLanguage language) => Pick(ItemNames, level, language);
-
-        public static string ItemShort(int level, CheeseLanguage language) => Pick(ItemShortNames, level, language);
-
-        string Pick(string[][] table, int level) => Pick(table, level, Language);
-
-        static string Pick(string[][] table, int level, CheeseLanguage language) =>
-            level > 0 && level < table.Length ? table[level][(int)language] : "";
+        public static string ItemName(int level, CheeseLanguage language) =>
+            level > 0 && level < ItemNames.Length ? ItemNames[level][(int)language] : "";
     }
 }

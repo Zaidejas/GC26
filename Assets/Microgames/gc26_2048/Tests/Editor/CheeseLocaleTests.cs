@@ -22,14 +22,19 @@ namespace GC26._2048.Tests
         }
 
         [Test]
-        public void EveryItemHasBothNames()
+        public void EveryItemHasANameInBothLanguages()
         {
             for (int level = 1; level <= CheeseRules.CheeseLevel; level++)
             foreach (var lang in new[] { CheeseLanguage.English, CheeseLanguage.Russian })
-            {
                 Assert.IsNotEmpty(CheeseLocale.ItemName(level, lang), $"name {level} {lang}");
-                Assert.IsNotEmpty(CheeseLocale.ItemShort(level, lang), $"short {level} {lang}");
-            }
+        }
+
+        [Test]
+        public void ItemsUseTheTileNamesEverywhere()
+        {
+            Assert.AreEqual("Curd", CheeseLocale.ItemName(7, CheeseLanguage.English));
+            Assert.AreEqual("Творог", CheeseLocale.ItemName(7, CheeseLanguage.Russian));
+            Assert.AreEqual("Grass", CheeseLocale.ItemName(1, CheeseLanguage.English));
         }
 
         [Test]
