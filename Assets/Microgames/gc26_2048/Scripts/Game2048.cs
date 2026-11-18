@@ -14,8 +14,9 @@ using UnityEngine.InputSystem.UI;
 namespace GC26._2048
 {
     /// <summary>
-    /// «Мышкин сыр» — the single IMicrogame in gc26_2048_Main. Builds its whole UI from code under this object,
-    /// so everything it creates lives in the game scene and goes away when the shell unloads it.
+    /// «Mousey's Cheese / Мышкин сыр» — the single IMicrogame in gc26_2048_Main. Builds its whole UI from code under
+    /// this object, so everything it creates lives in the game scene and goes away when the shell unloads it.
+    /// All text comes from <see cref="CheeseLocale"/> (English by default, Russian in Settings).
     /// </summary>
     public class Game2048 : MonoBehaviour, IMicrogame
     {
@@ -30,10 +31,12 @@ namespace GC26._2048
         CheeseStorage storage;
         CheeseSession session;
         CheeseAudio sound;
+        CheeseLocale loc;
         BoardView boardView;
 
         RectTransform frame, titleScreen, gameScreen, overlay;
         readonly Dictionary<string, RectTransform> sheets = new Dictionary<string, RectTransform>();
+        readonly List<(TextMeshProUGUI label, Func<string> text)> bound = new List<(TextMeshProUGUI, Func<string>)>();
 
         TextMeshProUGUI scoreText, bestText, movesText, holeText;
         Image movesCard;
@@ -59,6 +62,7 @@ namespace GC26._2048
         {
             art = new CheeseArt(Id);
             storage = new CheeseStorage(Id);
+            loc = new CheeseLocale(storage.Language);
             session = new CheeseSession(Environment.TickCount);
             sound = gameObject.AddComponent<CheeseAudio>();
             sound.Enabled = storage.Sound;
@@ -131,6 +135,37 @@ namespace GC26._2048
             if (FindAnyObjectByType<AudioListener>() == null) go.AddComponent<AudioListener>();
         }
 
+        // ---------------- language ----------------
+
+        /// <summary>Remembers how to fill a label, so it can be refilled when the language changes.</summary>
+        TextMeshProUGUI Bind(TextMeshProUGUI label, Func<string> text)
+        {
+            bound.Add((label, text));
+            label.text = text();
+            return label;
+        }
+
+        TextMeshProUGUI Bind(TextMeshProUGUI label, string key) => Bind(label, () => loc[key]);
+
+        Button LocButton(Transform parent, string key, bool primary, Action onClick, float fontSize = 46f)
+        {
+            var b = CheeseUi.Button(parent, loc[key], primary, art, onClick, fontSize);
+            Bind(b.GetComponentInChildren<TextMeshProUGUI>(), key);
+            return b;
+        }
+
+        void SwitchLanguage()
+        {
+            loc.Set(loc.Next);
+            storage.Language = loc.Language;
+            foreach (var (label, text) in bound)
+                if (label != null) label.text = text();
+            boardView.Relabel();
+            RefreshTitle();
+            if (sheets[Results].gameObject.activeSelf) FillResults();
+            sound.Play(CheeseSound.Chime, 2);
+        }
+
         // ---------------- input ----------------
 
         void Update()
@@ -186,7 +221,7 @@ namespace GC26._2048
             else if (r.TopLevel == 3) sound.Play(CheeseSound.Moo);
             else if (r.TopLevel > 0) sound.Play(CheeseSound.Chime, r.TopLevel);
 
-            if (r.FirstCheese) StartCoroutine(Toast("Сыр готов!"));
+            if (r.FirstCheese) StartCoroutine(Toast(loc["cheese_ready"]));
             if (r.Points > 0) StartCoroutine(FloatPoints(r.Points));
             if (session.Score > storage.Best) storage.Best = session.Score;
             if (session.BestLevel > storage.BestLevel) storage.BestLevel = session.BestLevel;
@@ -220,16 +255,20 @@ namespace GC26._2048
             Show(null);
             gameScreen.gameObject.SetActive(false);
             titleScreen.gameObject.SetActive(true);
+            RefreshTitle();
+        }
 
+        void RefreshTitle()
+        {
             bool hasGame = storage.HasGame;
             continueButton.gameObject.SetActive(hasGame);
-            playButton.SetText(hasGame ? "Новая игра" : "Играть");
+            playButton.SetText(loc[hasGame ? "new_game" : "play"]);
             playButton.SetPrimary(!hasGame);
             menuBestText.text = storage.Best.ToString();
             int bestLevel = storage.BestLevel;
             menuFindIcon.gameObject.SetActive(bestLevel > 0);
             menuFindIcon.sprite = art.Item(bestLevel);
-            menuFindText.text = bestLevel > 0 ? CheeseRules.ShortNames[bestLevel] : "—";
+            menuFindText.text = bestLevel > 0 ? loc.ItemShort(bestLevel) : "—";
         }
 
         void ShowGame()
@@ -273,17 +312,22 @@ namespace GC26._2048
         IEnumerator ShowResultsLater()
         {
             yield return new WaitForSecondsRealtime(0.45f);
-            resultTitle.text = session.Ended == EndReason.OutOfMoves ? "Ходы закончились" : "Поле заполнено";
+            FillResults();
+            Show(Results);
+        }
+
+        void FillResults()
+        {
+            resultTitle.text = loc[session.Ended == EndReason.BoardFull ? "field_full" : "out_of_moves"];
             resultScore.text = session.Score.ToString();
             resultBest.text = storage.Best.ToString();
             resultRecord.SetActive(session.Score > recordAtStart && session.Score > 0);
             int level = session.BestLevel;
             resultFindIcon.gameObject.SetActive(level > 0);
             resultFindIcon.sprite = art.Item(level);
-            resultFind.text = level > 0 ? CheeseRules.Names[level] : "—";
+            resultFind.text = level > 0 ? loc.ItemName(level) : "—";
             resultHole.text = session.Cheeses.ToString();
             resultMoves.text = session.MovesMade.ToString();
-            Show(Results);
         }
 
         void RenderHud()
@@ -307,7 +351,6 @@ namespace GC26._2048
         void OpenSettings(string from)
         {
             settingsReturn = from;
-            soundButton.SetText(sound.Enabled ? "Вкл" : "Выкл");
             soundButton.SetPrimary(sound.Enabled);
             Show(Settings);
         }
@@ -322,7 +365,7 @@ namespace GC26._2048
         {
             sound.Enabled = !sound.Enabled;
             storage.Sound = sound.Enabled;
-            soundButton.SetText(sound.Enabled ? "Вкл" : "Выкл");
+            soundButton.SetText(loc[sound.Enabled ? "on" : "off"]);
             soundButton.SetPrimary(sound.Enabled);
             if (sound.Enabled) sound.Play(CheeseSound.Chime, 3);
         }
@@ -361,11 +404,15 @@ namespace GC26._2048
         {
             var box = CheeseUi.Box(gameScreen, "Toast", art.Box, CheeseArt.Cheese, true);
             var rt = box.rectTransform;
-            rt.Place(0.14f, 0.47f, 0.86f, 0.56f);
+            rt.Place(0.1f, 0.47f, 0.9f, 0.56f);
             var icon = CheeseUi.Picture(rt, "Cheese", art.Item(CheeseRules.CheeseLevel));
-            icon.rectTransform.Place(0.04f, 0.1f, 0.26f, 0.9f);
+            icon.rectTransform.Place(0.04f, 0.1f, 0.24f, 0.9f);
             var label = CheeseUi.Label(rt, text, 70f, CheeseArt.Ink, TextAlignmentOptions.Center, true);
-            label.rectTransform.Place(0.24f, 0f, 0.98f, 1f);
+            label.rectTransform.Place(0.24f, 0f, 0.97f, 1f);
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 36f;
+            label.fontSizeMax = 70f;
             var group = box.gameObject.AddComponent<CanvasGroup>();
             group.blocksRaycasts = false;
             for (float t = 0; t < 1.8f; t += Time.unscaledDeltaTime)
@@ -416,36 +463,40 @@ namespace GC26._2048
         {
             var s = CheeseUi.Rect("TitleScreen", frame).Fill();
 
-            var eyebrow = CheeseUi.Label(s, "ФЕРМА · ГОЛОВОЛОМКА", 34f, CheeseArt.InkDim, TextAlignmentOptions.Center, true);
+            var eyebrow = Bind(CheeseUi.Label(s, "", 34f, CheeseArt.InkDim, TextAlignmentOptions.Center, true), "eyebrow");
             eyebrow.characterSpacing = 12f;
             eyebrow.rectTransform.Place(0.05f, 0.028f, 0.95f, 0.058f);
 
-            var logo = CheeseUi.Label(s, "Мышкин сыр", 150f, CheeseArt.Cheese, TextAlignmentOptions.Center, true);
+            var logo = Bind(CheeseUi.Label(s, "", 150f, CheeseArt.Cheese, TextAlignmentOptions.Center, true), "title");
             logo.outlineWidth = 0.22f;
             logo.outlineColor = CheeseArt.Ink;
             logo.textWrappingMode = TextWrappingModes.NoWrap;
-            logo.rectTransform.Place(0.02f, 0.058f, 0.98f, 0.15f);
+            logo.enableAutoSizing = true;
+            logo.fontSizeMin = 70f;
+            logo.fontSizeMax = 150f;
+            logo.rectTransform.Place(0.03f, 0.058f, 0.97f, 0.15f);
 
             CheeseUi.Picture(s, "MouseHole", art.Mouse).rectTransform.Place(0.05f, 0.165f, 0.95f, 0.535f);
 
             var stats = CheeseUi.Rect("Stats", s).Place(0.06f, 0.555f, 0.94f, 0.63f);
             CheeseUi.RowGroup(stats.gameObject, 24f);
-            menuBestText = Card(stats, "РЕКОРД", out _, out _);
-            menuFindText = Card(stats, "ЛУЧШИЙ ПРЕДМЕТ", out _, out menuFindIcon, withIcon: true);
+            menuBestText = Card(stats, "best_caps", out _, out _);
+            menuFindText = Card(stats, "best_item_caps", out _, out menuFindIcon, withIcon: true);
 
-            continueButton = CheeseUi.Button(s, "Продолжить", true, art, () => { sound.Play(CheeseSound.Chime, 2); ContinueGame(); }, 56f);
+            continueButton = LocButton(s, "continue", true, () => { sound.Play(CheeseSound.Chime, 2); ContinueGame(); }, 56f);
             ((RectTransform)continueButton.transform).Place(0.06f, 0.655f, 0.94f, 0.72f);
-            playButton = CheeseUi.Button(s, "Играть", true, art, () => { sound.Play(CheeseSound.Chime, 2); NewGame(); }, 56f);
+            // its text switches between "Play" and "New game" in RefreshTitle
+            playButton = CheeseUi.Button(s, loc["play"], true, art, () => { sound.Play(CheeseSound.Chime, 2); NewGame(); }, 56f);
             ((RectTransform)playButton.transform).Place(0.06f, 0.737f, 0.94f, 0.802f);
 
             var row = CheeseUi.Rect("Row", s).Place(0.06f, 0.82f, 0.94f, 0.872f);
             CheeseUi.RowGroup(row.gameObject, 24f);
-            CheeseUi.Button(row, "Правила", false, art, () => OpenRules(null));
-            CheeseUi.Button(row, "Настройки", false, art, () => OpenSettings(null));
-            exitButton = CheeseUi.Button(row, "Выход", false, art, () => ExitToMenu(lastScore));
+            LocButton(row, "rules", false, () => OpenRules(null));
+            LocButton(row, "settings", false, () => OpenSettings(null));
+            exitButton = LocButton(row, "exit", false, () => ExitToMenu(lastScore));
             exitButton.gameObject.SetActive(false);
 
-            CheeseUi.Label(s, "Поле 4×4 · 8 предметов · 150 ходов", 36f, CheeseArt.Light, TextAlignmentOptions.Center, true)
+            Bind(CheeseUi.Label(s, "", 36f, CheeseArt.Light, TextAlignmentOptions.Center, true), "facts")
                 .rectTransform.Place(0.05f, 0.905f, 0.95f, 0.945f);
             return s;
         }
@@ -454,21 +505,24 @@ namespace GC26._2048
         {
             var s = CheeseUi.Rect("GameScreen", frame).Fill();
 
-            var title = CheeseUi.Label(s, "Мышкин сыр", 80f, CheeseArt.Cheese, TextAlignmentOptions.Left, true);
+            var title = Bind(CheeseUi.Label(s, "", 80f, CheeseArt.Cheese, TextAlignmentOptions.Left, true), "title");
             title.outlineWidth = 0.2f;
             title.outlineColor = CheeseArt.Ink;
             title.textWrappingMode = TextWrappingModes.NoWrap;
+            title.enableAutoSizing = true;
+            title.fontSizeMin = 40f;
+            title.fontSizeMax = 80f;
             title.rectTransform.Place(0.05f, 0.022f, 0.64f, 0.075f);
-            var menu = CheeseUi.Button(s, "Меню", false, art, () => { if (playing) Show(Pause); });
+            var menu = LocButton(s, "menu", false, () => { if (playing) Show(Pause); });
             ((RectTransform)menu.transform).Place(0.66f, 0.02f, 0.95f, 0.074f);
 
             var hud = CheeseUi.Rect("Hud", s).Place(0.04f, 0.09f, 0.96f, 0.165f);
             CheeseUi.RowGroup(hud.gameObject, 20f);
-            scoreText = Card(hud, "ОЧКИ", out scoreCard, out _);
-            bestText = Card(hud, "РЕКОРД", out _, out _);
-            movesText = Card(hud, "ХОДЫ", out var movesRect, out _);
+            scoreText = Card(hud, "score_caps", out scoreCard, out _);
+            bestText = Card(hud, "best_caps", out _, out _);
+            movesText = Card(hud, "moves_caps", out var movesRect, out _);
             movesCard = movesRect.GetComponent<Image>();
-            holeText = Card(hud, "НОРКА", out holeCard, out var holeIcon, withIcon: true);
+            holeText = Card(hud, "hole_caps", out holeCard, out var holeIcon, withIcon: true);
             holeIcon.sprite = art.Item(CheeseRules.CheeseLevel);
 
             var area = CheeseUi.Rect("FieldArea", s).Place(0.04f, 0.18f, 0.96f, 0.875f);
@@ -480,11 +534,14 @@ namespace GC26._2048
             fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
             fit.aspectRatio = 1f;
             boardView = area.gameObject.AddComponent<BoardView>();
-            boardView.Init(field, art);
+            boardView.Init(field, art, level => loc.ItemShort(level));
 
-            CheeseUi.Label(s, "Свайп по полю или стрелки", 36f, CheeseArt.Light, TextAlignmentOptions.Left, true)
-                .rectTransform.Place(0.05f, 0.9f, 0.64f, 0.95f);
-            var restart = CheeseUi.Button(s, "Заново", false, art, () =>
+            var hint = Bind(CheeseUi.Label(s, "", 36f, CheeseArt.Light, TextAlignmentOptions.Left, true), "hint");
+            hint.enableAutoSizing = true;
+            hint.fontSizeMin = 24f;
+            hint.fontSizeMax = 36f;
+            hint.rectTransform.Place(0.05f, 0.9f, 0.64f, 0.95f);
+            var restart = LocButton(s, "restart", false, () =>
             {
                 confirmReturn = null;
                 if (playing) Show(Confirm);
@@ -500,85 +557,81 @@ namespace GC26._2048
             var dim = o.gameObject.AddComponent<Image>();
             dim.color = CheeseArt.Shade;
 
-            var pause = Sheet(o, Pause, "Меню");
-            Btn(pause, "Продолжить", true, () => Show(null));
-            Btn(pause, "Заново", false, () => { confirmReturn = Pause; Show(Confirm); });
-            Btn(pause, "Правила", false, () => OpenRules(Pause));
-            Btn(pause, "Настройки", false, () => OpenSettings(Pause));
-            Btn(pause, "В главное меню", false, ShowTitle);
+            var pause = Sheet(o, Pause, "menu");
+            Btn(pause, "resume", true, () => Show(null));
+            Btn(pause, "restart", false, () => { confirmReturn = Pause; Show(Confirm); });
+            Btn(pause, "rules", false, () => OpenRules(Pause));
+            Btn(pause, "settings", false, () => OpenSettings(Pause));
+            Btn(pause, "main_menu", false, ShowTitle);
 
-            var settings = Sheet(o, Settings, "Настройки");
-            var soundRow = CheeseUi.Rect("SoundRow", settings);
-            var h = CheeseUi.RowGroup(soundRow.gameObject, 20f);
-            h.childForceExpandWidth = false;
-            soundRow.Size(120f);
-            CheeseUi.Label(soundRow, "Звук", 48f, CheeseArt.Ink, TextAlignmentOptions.Left, true).Size(120f, -1f, 1f);
-            soundButton = CheeseUi.Button(soundRow, "Вкл", true, art, ToggleSound);
-            soundButton.Size(120f, 240f, 0f);
-            Btn(settings, "Правила", false, () => OpenRules(Settings));
-            Btn(settings, "Закрыть", true, () => Show(settingsReturn));
+            var settings = Sheet(o, Settings, "settings");
+            soundButton = SettingRow(settings, "sound", () => loc[sound.Enabled ? "on" : "off"], ToggleSound);
+            SettingRow(settings, "language", () => loc["language_name"], SwitchLanguage);
+            Btn(settings, "rules", false, () => OpenRules(Settings));
+            Btn(settings, "close", true, () => Show(settingsReturn));
 
-            var rules = Sheet(o, Rules, "Правила");
-            var text = CheeseUi.Label(rules,
-                "1. Проведите пальцем вверх, вниз, влево или вправо — все предметы на поле сдвинутся.\n" +
-                "2. Два одинаковых предмета объединяются в следующий.\n" +
-                "3. За каждое объединение — очки: чем ценнее предмет, тем больше, от 32 до 2048.\n" +
-                "4. Готовый сыр мышка сразу уносит в норку, и место освобождается.\n" +
-                "5. После каждого хода на поле появляется новая трава или сено.\n" +
-                "6. У вас 150 ходов. Игра заканчивается, когда ходы кончатся или поле заполнится.",
-                32f, CheeseArt.Ink, TextAlignmentOptions.TopLeft);
+            var rules = Sheet(o, Rules, "rules");
+            var text = Bind(CheeseUi.Label(rules, "", 32f, CheeseArt.Ink, TextAlignmentOptions.TopLeft), "rules_text");
             text.lineSpacing = 4f;
             text.paragraphSpacing = 10f;
             var chain = CheeseUi.Rect("Chain", rules);
             CheeseUi.Column(chain.gameObject, 6f);
-            for (int level = 1; level <= CheeseRules.CheeseLevel; level++)
+            for (int i = 1; i <= CheeseRules.CheeseLevel; i++)
             {
+                int level = i;
                 var line = CheeseUi.Rect("Item" + level, chain);
                 var lh = CheeseUi.RowGroup(line.gameObject, 18f);
                 lh.childForceExpandWidth = false;
                 line.Size(84f);
                 CheeseUi.Picture(line, "Icon", art.Item(level)).Size(84f, 84f, 0f);
-                string from = level == 1 ? "появляется на поле"
-                    : $"2 × {CheeseRules.ShortNames[level - 1].ToLower()}{(level == CheeseRules.CheeseLevel ? " → мышка уносит в норку" : "")}";
-                CheeseUi.Label(line, $"<b>{CheeseRules.Names[level]}</b>\n<size=24><color=#6e5a45>{from}</color></size>",
-                    32f, CheeseArt.Ink, TextAlignmentOptions.Left).Size(84f, -1f, 1f);
+                Bind(CheeseUi.Label(line, "", 32f, CheeseArt.Ink, TextAlignmentOptions.Left), () =>
+                {
+                    string from = level == 1 ? loc["chain_first"]
+                        : $"2 × {loc.ItemShort(level - 1).ToLower()}{(level == CheeseRules.CheeseLevel ? loc["chain_to_hole"] : "")}";
+                    return $"<b>{loc.ItemName(level)}</b>\n<size=24><color=#6e5a45>{from}</color></size>";
+                }).Size(84f, -1f, 1f);
                 CheeseUi.Label(line, level > 1 ? "+" + CheeseRules.PointsForMerge(level - 1) : "", 34f,
                     CheeseArt.CheeseDeep, TextAlignmentOptions.Right, true).Size(84f, 150f, 0f);
             }
-            Btn(rules, "Понятно", true, () => Show(rulesReturn));
+            Btn(rules, "got_it", true, () => Show(rulesReturn));
 
-            var confirm = Sheet(o, Confirm, "Начать заново?");
-            CheeseUi.Label(confirm, "Текущая партия будет потеряна.", 40f, CheeseArt.InkDim, TextAlignmentOptions.Left);
-            Btn(confirm, "Начать новую партию", true, NewGame);
-            Btn(confirm, "Отмена", false, () => Show(confirmReturn));
+            var confirm = Sheet(o, Confirm, "confirm_title");
+            Bind(CheeseUi.Label(confirm, "", 40f, CheeseArt.InkDim, TextAlignmentOptions.Left), "confirm_text");
+            Btn(confirm, "confirm_yes", true, NewGame);
+            Btn(confirm, "cancel", false, () => Show(confirmReturn));
 
-            var results = Sheet(o, Results, "Ходы закончились");
-            resultTitle = results.GetChild(0).GetComponent<TextMeshProUGUI>();
+            var results = Sheet(o, Results, null);
+            resultTitle = Bind(results.GetChild(0).GetComponent<TextMeshProUGUI>(),
+                () => loc[session.Ended == EndReason.BoardFull ? "field_full" : "out_of_moves"]);
             var chip = CheeseUi.Box(results, "Record", art.Box, CheeseArt.Cheese);
             chip.Size(70f);
-            var chipText = CheeseUi.Label(chip.transform, "Новый рекорд!", 34f, CheeseArt.Ink, TextAlignmentOptions.Center, true);
-            chipText.rectTransform.Fill();
+            Bind(CheeseUi.Label(chip.transform, "", 34f, CheeseArt.Ink, TextAlignmentOptions.Center, true), "new_record")
+                .rectTransform.Fill();
             resultRecord = chip.gameObject;
-            CheeseUi.Label(results, "Очки", 36f, CheeseArt.InkDim, TextAlignmentOptions.Left, true);
+            Bind(CheeseUi.Label(results, "", 36f, CheeseArt.InkDim, TextAlignmentOptions.Left, true), "score");
             resultScore = CheeseUi.Label(results, "0", 110f, CheeseArt.Ink, TextAlignmentOptions.Left, true);
-            resultBest = ResultRow(results, "Рекорд", out _);
-            resultFind = ResultRow(results, "Лучший предмет", out resultFindIcon);
-            resultHole = ResultRow(results, "Сыров в норке", out _);
-            resultMoves = ResultRow(results, "Сделано ходов", out _);
-            Btn(results, "Заново", true, NewGame);
-            Btn(results, "В главное меню", false, ShowTitle);
+            resultBest = ResultRow(results, "best", out _);
+            resultFind = ResultRow(results, "best_item", out resultFindIcon);
+            resultHole = ResultRow(results, "cheese_in_hole", out _);
+            resultMoves = ResultRow(results, "moves_made", out _);
+            Btn(results, "restart", true, NewGame);
+            Btn(results, "main_menu", false, ShowTitle);
 
             o.gameObject.SetActive(false);
             return o;
         }
 
         /// <summary>HUD / menu card: small caption on top, value (with optional icon) below.</summary>
-        TextMeshProUGUI Card(Transform parent, string caption, out RectTransform card, out Image icon, bool withIcon = false)
+        TextMeshProUGUI Card(Transform parent, string captionKey, out RectTransform card, out Image icon, bool withIcon = false)
         {
-            var box = CheeseUi.Box(parent, caption, art.Box, CheeseArt.Panel, true);
+            var box = CheeseUi.Box(parent, captionKey, art.Box, CheeseArt.Panel, true);
             card = box.rectTransform;
-            CheeseUi.Label(card, caption, 26f, CheeseArt.InkDim, TextAlignmentOptions.Center, true)
-                .rectTransform.Place(0.05f, 0.1f, 0.95f, 0.42f);
+            var caption = Bind(CheeseUi.Label(card, "", 26f, CheeseArt.InkDim, TextAlignmentOptions.Center, true), captionKey);
+            caption.textWrappingMode = TextWrappingModes.NoWrap;
+            caption.enableAutoSizing = true;
+            caption.fontSizeMin = 16f;
+            caption.fontSizeMax = 26f;
+            caption.rectTransform.Place(0.05f, 0.1f, 0.95f, 0.42f);
             icon = null;
             float textLeft = 0.05f;
             if (withIcon)
@@ -596,7 +649,8 @@ namespace GC26._2048
             return value;
         }
 
-        RectTransform Sheet(RectTransform parent, string key, string title)
+        /// <summary>Overlay window; its first child is the title (bound to <paramref name="titleKey"/> when given).</summary>
+        RectTransform Sheet(RectTransform parent, string key, string titleKey)
         {
             var panel = CheeseUi.Box(parent, key, art.Box, CheeseArt.Panel, true);
             var rt = panel.rectTransform;
@@ -607,21 +661,36 @@ namespace GC26._2048
             CheeseUi.Column(panel.gameObject, 22f, 56);
             var fitter = panel.gameObject.AddComponent<ContentSizeFitter>();
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-            CheeseUi.Label(rt, title, 72f, CheeseArt.Ink, TextAlignmentOptions.Left, true);
+            var title = CheeseUi.Label(rt, "", 72f, CheeseArt.Ink, TextAlignmentOptions.Left, true);
+            if (titleKey != null) Bind(title, titleKey);
             sheets[key] = rt;
             return rt;
         }
 
-        void Btn(Transform sheet, string text, bool primary, Action onClick) =>
-            CheeseUi.Button(sheet, text, primary, art, onClick).Size(124f);
+        void Btn(Transform sheet, string key, bool primary, Action onClick) =>
+            LocButton(sheet, key, primary, onClick).Size(124f);
 
-        TextMeshProUGUI ResultRow(Transform sheet, string caption, out Image icon)
+        /// <summary>"Caption ........ [value button]" row in Settings; the button shows the current value.</summary>
+        Button SettingRow(Transform sheet, string captionKey, Func<string> value, Action onClick)
         {
-            var row = CheeseUi.Rect(caption, sheet);
+            var row = CheeseUi.Rect(captionKey, sheet);
+            var h = CheeseUi.RowGroup(row.gameObject, 20f);
+            h.childForceExpandWidth = false;
+            row.Size(120f);
+            Bind(CheeseUi.Label(row, "", 48f, CheeseArt.Ink, TextAlignmentOptions.Left, true), captionKey).Size(120f, -1f, 1f);
+            var button = CheeseUi.Button(row, value(), true, art, onClick);
+            Bind(button.GetComponentInChildren<TextMeshProUGUI>(), value);
+            button.Size(120f, 300f, 0f);
+            return button;
+        }
+
+        TextMeshProUGUI ResultRow(Transform sheet, string captionKey, out Image icon)
+        {
+            var row = CheeseUi.Rect(captionKey, sheet);
             var h = CheeseUi.RowGroup(row.gameObject, 14f);
             h.childForceExpandWidth = false;
             row.Size(76f);
-            CheeseUi.Label(row, caption, 40f, CheeseArt.InkDim, TextAlignmentOptions.Left).Size(76f, -1f, 1f);
+            Bind(CheeseUi.Label(row, "", 40f, CheeseArt.InkDim, TextAlignmentOptions.Left), captionKey).Size(76f, -1f, 1f);
             icon = CheeseUi.Picture(row, "Icon", null);
             icon.Size(70f, 70f, 0f);
             icon.gameObject.SetActive(false);

@@ -49,6 +49,15 @@ namespace GC26._2048
             set { PlayerPrefs.SetInt(MicrogameSave.Key(gameId, "sound"), value ? 1 : 0); PlayerPrefs.Save(); }
         }
 
+        /// <summary>English unless the player picked Russian in Settings.</summary>
+        public CheeseLanguage Language
+        {
+            get => PlayerPrefs.GetInt(MicrogameSave.Key(gameId, "language"), (int)CheeseLanguage.English) == (int)CheeseLanguage.Russian
+                ? CheeseLanguage.Russian
+                : CheeseLanguage.English;
+            set { PlayerPrefs.SetInt(MicrogameSave.Key(gameId, "language"), (int)value); PlayerPrefs.Save(); }
+        }
+
         public CheeseSaveData LoadGame()
         {
             try

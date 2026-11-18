@@ -15,15 +15,17 @@ namespace GC26._2048
         const float SlideTime = 0.1f;
 
         CheeseArt art;
+        Func<int, string> nameOf;
         RectTransform pan;
         readonly Dictionary<int, TileView> tiles = new Dictionary<int, TileView>();
         readonly Stack<TileView> pool = new Stack<TileView>();
 
         public bool Busy { get; private set; }
 
-        public void Init(RectTransform field, CheeseArt artSet)
+        public void Init(RectTransform field, CheeseArt artSet, Func<int, string> itemName)
         {
             art = artSet;
+            nameOf = itemName;
             var crate = CheeseUi.Box(field, "Crate", art.Box, CheeseArt.Wood, true);
             crate.rectTransform.Fill();
             pan = CheeseUi.Box(crate.transform, "Pan", art.Soft, CheeseArt.Plank).rectTransform;
@@ -90,7 +92,7 @@ namespace GC26._2048
                     if (tiles.TryGetValue(e.OtherId, out var gone)) { Release(gone); tiles.Remove(e.OtherId); }
                     if (tiles.TryGetValue(e.Id, out var keep))
                     {
-                        keep.Show(e.Level, art);
+                        keep.Show(e.Level, art, nameOf(e.Level));
                         StartCoroutine(keep.Pulse());
                     }
                 }
@@ -100,7 +102,7 @@ namespace GC26._2048
                     {
                         if (!tiles.TryGetValue(id, out var cheese)) continue;
                         tiles.Remove(id);
-                        cheese.Show(CheeseRules.CheeseLevel, art);
+                        cheese.Show(CheeseRules.CheeseLevel, art, nameOf(CheeseRules.CheeseLevel));
                         StartCoroutine(FlyAndRelease(cheese));
                     }
                 }
@@ -126,10 +128,17 @@ namespace GC26._2048
             Release(view);
         }
 
+        /// <summary>Re-reads the item names after the language changes.</summary>
+        public void Relabel()
+        {
+            if (Busy) return;
+            foreach (var t in tiles.Values) t.Show(t.Level, art, nameOf(t.Level));
+        }
+
         TileView Take(int level)
         {
             var view = pool.Count > 0 ? pool.Pop() : TileView.Create(pan, art);
-            view.Show(level, art);
+            view.Show(level, art, nameOf(level));
             view.transform.SetAsLastSibling();
             return view;
         }

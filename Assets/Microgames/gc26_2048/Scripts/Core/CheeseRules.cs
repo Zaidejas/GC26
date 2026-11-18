@@ -14,17 +14,6 @@ namespace GC26._2048
         // Index = level of the two merged items.
         static readonly int[] MergePoints = { 0, 32, 64, 128, 256, 512, 1024, 2048 };
 
-        public static readonly string[] Names =
-        {
-            "", "Зелёная трава", "Стог сена", "Корова", "Бидон молока",
-            "Бутылка молока", "Миска сметаны", "Чаша творога", "Сыр"
-        };
-
-        public static readonly string[] ShortNames =
-        {
-            "", "Трава", "Сено", "Корова", "Бидон", "Бутылка", "Сметана", "Творог", "Сыр"
-        };
-
         public static int PointsForMerge(int level) =>
             level > 0 && level < MergePoints.Length ? MergePoints[level] : 0;
     }

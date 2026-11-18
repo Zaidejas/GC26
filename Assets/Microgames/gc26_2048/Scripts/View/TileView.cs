@@ -46,12 +46,12 @@ namespace GC26._2048
             return view;
         }
 
-        public void Show(int level, CheeseArt art)
+        public void Show(int level, CheeseArt art, string name)
         {
             Level = level;
             box.color = CheeseArt.TileColor(level);
             icon.sprite = art.Item(level);
-            label.text = CheeseRules.ShortNames[level];
+            label.text = name;
             badge.text = level.ToString();
             rect.localScale = Vector3.one;
             group.alpha = 1f;
