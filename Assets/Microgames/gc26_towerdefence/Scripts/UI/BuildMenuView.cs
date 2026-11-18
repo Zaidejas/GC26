@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -6,9 +7,24 @@ using UnityEngine.UI;
 
 namespace GC26.Towerdefence
 {
+    /// <summary>One round button in the radial menu.</summary>
+    public class RadialItem
+    {
+        public string Label;
+        /// <summary>Second line (price, refund, mode); read every frame so it stays current.</summary>
+        public Func<string> Sub;
+        public Color Color;
+        /// <summary>Button is greyed out while this returns false (e.g. not enough gold).</summary>
+        public Func<bool> CanUse = () => true;
+        public Action Use;
+        /// <summary>Range shown while the mouse is over the button; 0 = keep the current preview.</summary>
+        public float PreviewRange;
+    }
+
     /// <summary>
-    /// The radial build menu: one round button per tower (name + cost) around the tapped slot.
-    /// Buttons the player cannot afford are greyed out. Hovering a button with a mouse previews its range.
+    /// The radial menu around a slot: on an empty slot one button per tower (name + cost),
+    /// on a built tower Upgrade / Sell / Target. BuildManager decides the items; this only draws them.
+    /// Hovering a button with a mouse previews its range (touch screens have no hover).
     /// Placeholder look; the real one comes with the art (W5-W6).
     /// </summary>
     public class BuildMenuView : MonoBehaviour
@@ -21,8 +37,8 @@ namespace GC26.Towerdefence
         RectTransform _canvasRect;
         CanvasScaler _scaler;
         RectTransform _ring;
-        readonly List<(Button button, TowerData tower)> _buttons = new();
-        BuildManager _owner;
+        readonly List<(Button button, TMP_Text sub, RadialItem item)> _buttons = new();
+        Action<float> _preview;
 
         public bool IsOpen => _ring != null && _ring.gameObject.activeSelf;
 
@@ -47,21 +63,26 @@ namespace GC26.Towerdefence
 
         void Update()
         {
-            if (!IsOpen || _owner == null) return;
-            foreach (var (button, tower) in _buttons)
-                button.interactable = _owner.CanAfford(tower);
+            if (!IsOpen) return;
+            foreach (var (button, sub, item) in _buttons)
+            {
+                button.interactable = item.CanUse();
+                sub.text = item.Sub != null ? item.Sub() : "";
+            }
         }
 
-        public void Open(Vector2 screenPoint, BuildManager owner)
+        /// <param name="screenPoint">Center of the ring (the slot on screen).</param>
+        /// <param name="preview">Called with a range to preview on hover, or 0 when the pointer leaves.</param>
+        public void Open(Vector2 screenPoint, IReadOnlyList<RadialItem> items, Action<float> preview)
         {
-            _owner = owner;
+            _preview = preview;
             // Same scaling rule as the HUD: the short side of the screen is 1080 reference pixels.
             bool portrait = Screen.height > Screen.width;
             _scaler.referenceResolution = portrait ? new Vector2(1080, 1920) : new Vector2(1920, 1080);
             _scaler.matchWidthOrHeight = portrait ? 0f : 1f;
             Canvas.ForceUpdateCanvases();
 
-            if (_buttons.Count != owner.Towers.Count) RebuildButtons(owner.Towers);
+            RebuildButtons(items);
 
             // Keep the whole ring on screen.
             RectTransformUtility.ScreenPointToLocalPointInRectangle(_canvasRect, screenPoint, null, out var local);
@@ -79,17 +100,16 @@ namespace GC26.Towerdefence
             if (_ring != null) _ring.gameObject.SetActive(false);
         }
 
-        void RebuildButtons(IReadOnlyList<TowerData> towers)
+        void RebuildButtons(IReadOnlyList<RadialItem> items)
         {
-            foreach (var (button, _) in _buttons) Destroy(button.gameObject);
+            foreach (var (button, _, _) in _buttons) Destroy(button.gameObject);
             _buttons.Clear();
 
-            for (int i = 0; i < towers.Count; i++)
+            for (int i = 0; i < items.Count; i++)
             {
-                var tower = towers[i];
-                if (tower == null) continue;
-                float angle = Mathf.PI / 2f - i * 2f * Mathf.PI / towers.Count; // first one on top, then clockwise
-                var rect = new GameObject(tower.displayName, typeof(RectTransform)).GetComponent<RectTransform>();
+                var item = items[i];
+                float angle = Mathf.PI / 2f - i * 2f * Mathf.PI / items.Count; // first one on top, then clockwise
+                var rect = new GameObject(item.Label, typeof(RectTransform)).GetComponent<RectTransform>();
                 rect.SetParent(_ring, false);
                 rect.sizeDelta = new Vector2(ButtonSize, ButtonSize);
                 rect.anchoredPosition = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * Radius;
@@ -99,29 +119,34 @@ namespace GC26.Towerdefence
                 image.color = Color.white;
                 var button = rect.gameObject.AddComponent<Button>();
                 var colors = button.colors;
-                colors.normalColor = tower.color;
-                colors.highlightedColor = Color.Lerp(tower.color, Color.white, 0.2f);
-                colors.pressedColor = Color.Lerp(tower.color, Color.black, 0.3f);
-                colors.selectedColor = tower.color;
+                colors.normalColor = item.Color;
+                colors.highlightedColor = Color.Lerp(item.Color, Color.white, 0.2f);
+                colors.pressedColor = Color.Lerp(item.Color, Color.black, 0.3f);
+                colors.selectedColor = item.Color;
                 colors.disabledColor = new Color(0.35f, 0.35f, 0.35f, 0.85f);
                 button.colors = colors;
-                button.onClick.AddListener(() => _owner.BuildSelected(tower));
+                button.onClick.AddListener(() =>
+                {
+                    if (item.CanUse()) item.Use?.Invoke();
+                });
 
-                // Mouse hover previews the range (touch screens have no hover).
-                var hover = rect.gameObject.AddComponent<EventTrigger>();
-                AddTrigger(hover, EventTriggerType.PointerEnter, () => _owner.PreviewRange(tower));
-                AddTrigger(hover, EventTriggerType.PointerExit, () => _owner.PreviewRange(null));
+                if (item.PreviewRange > 0f)
+                {
+                    var hover = rect.gameObject.AddComponent<EventTrigger>();
+                    AddTrigger(hover, EventTriggerType.PointerEnter, () => _preview?.Invoke(item.PreviewRange));
+                    AddTrigger(hover, EventTriggerType.PointerExit, () => _preview?.Invoke(0f));
+                }
 
-                var title = Label(rect, tower.displayName, 38f, Color.white);
+                var title = Label(rect, item.Label, 38f, Color.white);
                 title.rectTransform.anchoredPosition = new Vector2(0f, 18f);
-                var cost = Label(rect, $"{tower.cost}g", 34f, new Color(1f, 0.84f, 0.31f));
-                cost.rectTransform.anchoredPosition = new Vector2(0f, -26f);
+                var sub = Label(rect, "", 34f, new Color(1f, 0.84f, 0.31f));
+                sub.rectTransform.anchoredPosition = new Vector2(0f, -26f);
 
-                _buttons.Add((button, tower));
+                _buttons.Add((button, sub, item));
             }
         }
 
-        static void AddTrigger(EventTrigger trigger, EventTriggerType type, System.Action action)
+        static void AddTrigger(EventTrigger trigger, EventTriggerType type, Action action)
         {
             var entry = new EventTrigger.Entry { eventID = type };
             entry.callback.AddListener(_ => action());

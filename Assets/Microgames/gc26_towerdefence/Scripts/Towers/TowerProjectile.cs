@@ -13,18 +13,20 @@ namespace GC26.Towerdefence
         const float Speed = 9f;
 
         TowerData _data;
+        float _damage;
         EnemyUnit _target;
         Vector3 _aim;
         WaveSpawner _enemies;
         PlaceholderArt _art;
         Transform _effects;
 
-        public static void Launch(TowerData data, Vector3 from, EnemyUnit target, WaveSpawner enemies, PlaceholderArt art, Transform effects)
+        public static void Launch(TowerData data, float damage, Vector3 from, EnemyUnit target, WaveSpawner enemies, PlaceholderArt art, Transform effects)
         {
             float size = data.splashRadius > 0f ? 0.22f : 0.14f;
             var sr = art.NewShape("Projectile", art.Circle, effects, from, size, Color.Lerp(data.color, Color.white, 0.35f), 30);
             var p = sr.gameObject.AddComponent<TowerProjectile>();
             p._data = data;
+            p._damage = damage;
             p._target = target;
             p._aim = target.transform.position;
             p._enemies = enemies;
@@ -61,13 +63,13 @@ namespace GC26.Towerdefence
                 {
                     if (e == null || !e.IsAlive || e.Data.flying) continue;
                     if ((e.transform.position - _aim).sqrMagnitude <= r2)
-                        e.TakeDamage(_data.damage, _data.ignoresArmor);
+                        e.TakeDamage(_damage, _data.ignoresArmor);
                 }
                 return;
             }
 
             if (_target == null || !_target.IsAlive) return;
-            _target.TakeDamage(_data.damage, _data.ignoresArmor);
+            _target.TakeDamage(_damage, _data.ignoresArmor);
             if (_data.slowAmount > 0f && _target != null && _target.IsAlive)
                 _target.ApplySlow(_data.slowAmount, _data.slowDuration);
         }

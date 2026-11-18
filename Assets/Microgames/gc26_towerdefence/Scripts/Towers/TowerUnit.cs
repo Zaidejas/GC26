@@ -4,18 +4,53 @@ using UnityEngine;
 
 namespace GC26.Towerdefence
 {
+    /// <summary>Which enemy in range a tower shoots.</summary>
+    public enum TargetMode
+    {
+        /// <summary>Furthest along its path (closest to the castle). Default.</summary>
+        First,
+        /// <summary>Least far along its path.</summary>
+        Last,
+        /// <summary>Most HP + shield.</summary>
+        Strongest,
+        /// <summary>Nearest to the tower.</summary>
+        Closest,
+    }
+
     /// <summary>
-    /// A built tower: finds the enemy furthest along the path within range ("First") and attacks it
-    /// according to TowerData.attack. Upgrades, selling and other target modes are later tasks.
+    /// A built tower: picks a target in range by its TargetMode and attacks it according to TowerData.attack.
+    /// Three levels: each upgrade gives +40% damage and +10% range and costs 75%, then 100% of the base price.
+    /// Selling refunds 70% of all gold spent on it. Numbers from the prototype CONFIG and GDD section 5.
     /// </summary>
     public class TowerUnit : MonoBehaviour
     {
+        public const int MaxLevel = 2; // 0 = base, then 2 upgrades
+        const float UpgradeDamage = 1.4f;
+        const float UpgradeRange = 1.1f;
+        static readonly float[] UpgradeCostShare = { 0.75f, 1f };
+        const float SellRefund = 0.7f;
+
         public TowerData Data { get; private set; }
         public int SlotIndex { get; private set; }
+        public int Level { get; private set; }
+        /// <summary>All gold paid for this tower (build + upgrades).</summary>
+        public int Spent { get; private set; }
+        public TargetMode Mode { get; private set; } = TargetMode.First;
+
+        public float Damage => DamageAt(Level);
+        public float Range => RangeAt(Level);
+        public float DamageAt(int level) => Data.damage * Mathf.Pow(UpgradeDamage, level);
+        public float RangeAt(int level) => Data.range * Mathf.Pow(UpgradeRange, level);
+
+        public bool CanUpgrade => Level < MaxLevel;
+        /// <summary>Price of the next upgrade, or 0 at max level.</summary>
+        public int UpgradeCost => CanUpgrade ? Mathf.RoundToInt(Data.cost * UpgradeCostShare[Level]) : 0;
+        public int SellValue => Mathf.FloorToInt(Spent * SellRefund);
 
         WaveSpawner _enemies;
         PlaceholderArt _art;
         Transform _effects;
+        TextMeshPro _label;
         float _cooldown;
 
         public static TowerUnit Build(TowerData data, int slot, Vector3 position, Transform parent,
@@ -25,15 +60,15 @@ namespace GC26.Towerdefence
             var tower = body.gameObject.AddComponent<TowerUnit>();
             tower.Data = data;
             tower.SlotIndex = slot;
+            tower.Spent = data.cost;
             tower._enemies = enemies;
             tower._art = art;
             tower._effects = effects;
 
-            // Letter on top, so towers can be told apart before there is art.
+            // Letter on top, so towers can be told apart before there is art. "+" marks each upgrade.
             var label = new GameObject("Letter").AddComponent<TextMeshPro>();
             label.transform.SetParent(body.transform, false);
-            label.text = data.letter;
-            label.enableAutoSizing = true; // fit the letter inside the square whatever the font
+            label.enableAutoSizing = true; // fit the text inside the square whatever the font
             label.fontSizeMin = 0.5f;
             label.fontSizeMax = 8f;
             label.fontStyle = FontStyles.Bold;
@@ -41,8 +76,26 @@ namespace GC26.Towerdefence
             label.color = Color.white;
             label.rectTransform.sizeDelta = new Vector2(0.75f, 0.75f);
             label.GetComponent<MeshRenderer>().sortingOrder = 6;
+            tower._label = label;
+            tower.RefreshLabel();
             return tower;
         }
+
+        /// <summary>Raises the level. The caller has already taken UpgradeCost from the player.</summary>
+        public void Upgrade(int pricePaid)
+        {
+            if (!CanUpgrade) return;
+            Level++;
+            Spent += pricePaid;
+            RefreshLabel();
+        }
+
+        public void CycleMode()
+        {
+            Mode = (TargetMode)(((int)Mode + 1) % System.Enum.GetValues(typeof(TargetMode)).Length);
+        }
+
+        void RefreshLabel() => _label.text = Data.letter + new string('+', Level);
 
         void Update()
         {
@@ -58,16 +111,25 @@ namespace GC26.Towerdefence
         EnemyUnit PickTarget()
         {
             EnemyUnit best = null;
-            float bestProgress = float.MinValue;
-            float range2 = Data.range * Data.range;
+            float bestScore = float.MinValue;
+            float range2 = Range * Range;
             foreach (var e in _enemies.Alive)
             {
                 if (e == null || !e.IsAlive) continue;
                 if (e.Data.flying && !Data.hitsAir) continue;
-                if ((e.transform.position - transform.position).sqrMagnitude > range2) continue;
-                if (e.Progress > bestProgress)
+                float d2 = (e.transform.position - transform.position).sqrMagnitude;
+                if (d2 > range2) continue;
+
+                float score = Mode switch
                 {
-                    bestProgress = e.Progress;
+                    TargetMode.First => e.Progress,
+                    TargetMode.Last => -e.Progress,
+                    TargetMode.Strongest => e.Hp + e.Shield,
+                    _ => -d2, // Closest
+                };
+                if (score > bestScore)
+                {
+                    bestScore = score;
                     best = e;
                 }
             }
@@ -79,12 +141,12 @@ namespace GC26.Towerdefence
             switch (Data.attack)
             {
                 case TowerAttack.Projectile:
-                    TowerProjectile.Launch(Data, transform.position, target, _enemies, _art, _effects);
+                    TowerProjectile.Launch(Data, Damage, transform.position, target, _enemies, _art, _effects);
                     break;
 
                 case TowerAttack.Hitscan:
                     _art.FlashLine(transform.position, target.transform.position, new Color(0.88f, 0.75f, 0.9f), 0.06f, 0.1f, _effects);
-                    target.TakeDamage(Data.damage, Data.ignoresArmor);
+                    target.TakeDamage(Damage, Data.ignoresArmor);
                     break;
 
                 case TowerAttack.Chain:
@@ -96,7 +158,7 @@ namespace GC26.Towerdefence
                         from = e.transform.position;
                     }
                     foreach (var e in hit)
-                        e.TakeDamage(Data.damage, Data.ignoresArmor);
+                        e.TakeDamage(Damage, Data.ignoresArmor);
                     break;
             }
         }

@@ -7,7 +7,8 @@ namespace GC26.Towerdefence
 {
     /// <summary>
     /// The 11 build slots by the road. Tap an empty slot to open the build menu, tap a tower in it to build
-    /// (if there is enough gold). Tapping anywhere else closes the menu.
+    /// (if there is enough gold). Tap a built tower for Upgrade / Sell / Target (its range is shown).
+    /// Tapping anywhere else closes the menu.
     /// Slots are typed in prototype map coordinates, like EnemyPath (SLOTS in game.js).
     /// </summary>
     public class BuildManager : MonoBehaviour
@@ -91,46 +92,121 @@ namespace GC26.Towerdefence
             if (IsOverUi(screen)) return; // the menu, pause or start buttons handle this tap
 
             int slot = SlotAt(screen);
-            if (slot >= 0 && _built[slot] == null && slot != _selected) OpenMenu(slot);
+            if (slot >= 0 && slot != _selected) OpenMenu(slot);
             else CloseMenu();
         }
 
-        /// <summary>Called by the build menu. Spends the gold and builds on the selected slot.</summary>
-        public void BuildSelected(TowerData tower)
+        void BuildOn(int slot, TowerData tower)
         {
-            if (_selected < 0 || _built[_selected] != null || tower == null) return;
+            if (_built[slot] != null || tower == null) return;
             if (!economy.TrySpend(tower.cost)) return;
 
-            int slot = _selected;
             _built[slot] = TowerUnit.Build(tower, slot, SlotPosition(slot), _towerRoot, enemies, art, _effectRoot);
             _slotViews[slot].gameObject.SetActive(false);
             CloseMenu();
         }
 
-        /// <summary>Shows the range circle of a tower on the selected slot (menu hover), or hides it with null.</summary>
-        public void PreviewRange(TowerData tower)
+        void Upgrade(TowerUnit tower)
+        {
+            int cost = tower.UpgradeCost;
+            if (!tower.CanUpgrade || !economy.TrySpend(cost)) return;
+            tower.Upgrade(cost);
+            CloseMenu();
+        }
+
+        void Sell(TowerUnit tower)
+        {
+            int slot = tower.SlotIndex;
+            economy.Add(tower.SellValue);
+            Destroy(tower.gameObject);
+            _built[slot] = null;
+            _slotViews[slot].gameObject.SetActive(true);
+            CloseMenu();
+        }
+
+        /// <summary>
+        /// Range circle on the selected slot: `range` while hovering a menu button,
+        /// otherwise (0) the selected tower's own range, or nothing on an empty slot.
+        /// </summary>
+        void PreviewRange(float range)
         {
             if (_rangePreview == null) return;
-            bool show = tower != null && _selected >= 0;
+            if (range <= 0f && _selected >= 0 && _built[_selected] != null) range = _built[_selected].Range;
+            bool show = range > 0f && _selected >= 0;
             _rangePreview.gameObject.SetActive(show);
             if (!show) return;
             _rangePreview.transform.position = SlotPosition(_selected);
-            _rangePreview.transform.localScale = Vector3.one * tower.range * 2f;
+            _rangePreview.transform.localScale = Vector3.one * range * 2f;
         }
 
         void OpenMenu(int slot)
         {
             CloseMenu();
             _selected = slot;
-            _slotViews[slot].color = SlotSelectedColor;
-            menu.Open(worldCamera.WorldToScreenPoint(SlotPosition(slot)), this);
+            var tower = _built[slot];
+            if (tower == null) _slotViews[slot].color = SlotSelectedColor;
+
+            var items = tower == null ? BuildItems(slot) : TowerItems(tower);
+            menu.Open(worldCamera.WorldToScreenPoint(SlotPosition(slot)), items, PreviewRange);
+            PreviewRange(0f);
+        }
+
+        List<RadialItem> BuildItems(int slot)
+        {
+            var items = new List<RadialItem>();
+            foreach (var t in towers)
+            {
+                if (t == null) continue;
+                var tower = t;
+                items.Add(new RadialItem
+                {
+                    Label = tower.displayName,
+                    Sub = () => $"{tower.cost}g",
+                    Color = tower.color,
+                    CanUse = () => economy.CanAfford(tower.cost),
+                    Use = () => BuildOn(slot, tower),
+                    PreviewRange = tower.range,
+                });
+            }
+            return items;
+        }
+
+        List<RadialItem> TowerItems(TowerUnit tower)
+        {
+            int slot = tower.SlotIndex;
+            return new List<RadialItem>
+            {
+                new()
+                {
+                    Label = tower.CanUpgrade ? "Upgrade" : "Max",
+                    Sub = () => tower.CanUpgrade ? $"{tower.UpgradeCost}g" : "",
+                    Color = new Color(0.4f, 0.73f, 0.42f),
+                    CanUse = () => tower.CanUpgrade && economy.CanAfford(tower.UpgradeCost),
+                    Use = () => Upgrade(tower),
+                    PreviewRange = tower.CanUpgrade ? tower.RangeAt(tower.Level + 1) : 0f,
+                },
+                new()
+                {
+                    Label = "Sell",
+                    Sub = () => $"+{tower.SellValue}g",
+                    Color = new Color(0.94f, 0.33f, 0.31f),
+                    Use = () => Sell(tower),
+                },
+                new()
+                {
+                    Label = "Target",
+                    Sub = () => tower.Mode.ToString(),
+                    Color = new Color(0.56f, 0.79f, 0.98f),
+                    Use = tower.CycleMode, // the menu stays open; the label updates by itself
+                },
+            };
         }
 
         void CloseMenu()
         {
             if (_selected >= 0 && _slotViews[_selected] != null) _slotViews[_selected].color = SlotColor;
             _selected = -1;
-            PreviewRange(null);
+            PreviewRange(0f);
             menu.Close();
         }
 
