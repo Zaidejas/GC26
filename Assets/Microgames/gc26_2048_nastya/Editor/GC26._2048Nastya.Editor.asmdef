@@ -1,0 +1,15 @@
+{
+    "name": "GC26._2048Nastya.Editor",
+    "rootNamespace": "GC26._2048Nastya.EditorTools",
+    "references": [
+        "GC26._2048Nastya",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "autoReferenced": false
+}
