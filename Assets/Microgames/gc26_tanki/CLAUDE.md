@@ -25,6 +25,7 @@ with a menu shell. Read `RULES.md` at the repo root before changing anything.
   - `Controls.cs`: touch, mouse and keyboard through the new Input System
   - `SaveData.cs`: save, as JSON in PlayerPrefs key `gc26_tanki_save`
   - `AutoCheck.cs`: an automatic play-through with screenshots, for development builds only; `-defeattest` instead opens a lost level 1, to click the defeat screen by hand
+  - `TouchTest.cs`: development builds, `-touchtest`: taps every menu and result button with a virtual Input System finger (the Device Simulator's path), including with a finger left on the stick; prints `TOUCHTEST done passed/failed`
   - `TankiLog.cs`: `[Tanki]` lines in the Console (pages, button presses, battle results; warnings for missing Resources). If the editor recompiles during Play, `GameRunner` logs an error and stops Play instead of throwing every frame
 - `Scripts/Editor/TankiAssetImport.cs`: import settings, only for this folder
 - `Resources/gc26_tanki/`: everything loaded with `Resources.Load("gc26_tanki/...")`; materials use URP Lit (`_BaseMap`, `_BaseColor`, `_Smoothness`, `_EmissionColor`)

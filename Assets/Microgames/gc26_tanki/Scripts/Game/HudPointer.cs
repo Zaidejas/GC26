@@ -20,8 +20,14 @@ namespace GC26.Tanki.Game
         static Vector2 pressedAt = new Vector2(-1f, -1f);
         static Vector2 guiPressedAt = new Vector2(-1f, -1f);
         static bool guiHeld;
+        static int followed = -1;
         static float lastFire = -1f;
         static readonly Vector2 Nowhere = new Vector2(-1f, -1f);
+
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+        /// <summary>Where each named button was drawn last, so TouchTest can tap it.</summary>
+        public static readonly System.Collections.Generic.Dictionary<string, Rect> Drawn = new System.Collections.Generic.Dictionary<string, Rect>();
+#endif
 
         /// <summary>Reads the pointer once per frame, in GUI coordinates (y down).</summary>
         static void Refresh()
@@ -34,14 +40,23 @@ namespace GC26.Tanki.Game
             Touchscreen screen = Touchscreen.current;
             if (screen != null)
             {
-                TouchControl touch = screen.primaryTouch;
-                if (touch.press.isPressed || touch.press.wasReleasedThisFrame)
+                // Every finger, not just the first: a finger left on the stick when a battle ends (or one the
+                // simulator never lifted) stays the "primary" touch and would hide every later tap.
+                // The menu follows the finger that touched down last.
+                foreach (TouchControl touch in screen.touches)
                 {
+                    if (touch.press.wasPressedThisFrame) followed = touch.touchId.ReadValue();
+                }
+                foreach (TouchControl touch in screen.touches)
+                {
+                    if (touch.touchId.ReadValue() != followed) continue;
+                    if (!touch.press.isPressed && !touch.press.wasReleasedThisFrame) break;
                     seen = true;
                     at = touch.position.ReadValue();
                     down = touch.press.wasPressedThisFrame;
                     up = touch.press.wasReleasedThisFrame;
                     isHeld = touch.press.isPressed;
+                    break;
                 }
             }
             Mouse mouse = Mouse.current;
@@ -82,6 +97,9 @@ namespace GC26.Tanki.Game
                 return Fire(name ?? content.text);
             }
             if (e.type != EventType.Repaint) return false;
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+            Drawn[name ?? content.text ?? ""] = rect;
+#endif
 
             bool inside = rect.Contains(position);
             bool pressed = (held && inside && rect.Contains(pressedAt)) || (guiHeld && rect.Contains(guiPressedAt));
