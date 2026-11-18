@@ -110,8 +110,32 @@ namespace GC26.Tanki.Game
             ShowCurrentLevel();
         }
 
+        bool lostWarned;
+
+        /// <summary>
+        /// The editor recompiled the scripts during Play: everything made in code is gone, so stop with a clear
+        /// message instead of a NullReferenceException every frame.
+        /// </summary>
+        void LostAfterReload()
+        {
+            if (!lostWarned)
+            {
+                lostWarned = true;
+                TankiLog.Error("Скрипты пересобрались прямо во время игры, и игра потеряла своё состояние. Play остановлен, запусти его снова. " +
+                    "Чтобы так не было: Edit > Preferences > General > Script Changes While Playing = Recompile After Finished Playing.");
+            }
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#endif
+        }
+
         void Update()
         {
+            if (Sim == null || Controls == null || world == null || Save == null)
+            {
+                LostAfterReload();
+                return;
+            }
             if (OnSplash)
             {
                 UpdateSplash();
@@ -402,6 +426,7 @@ namespace GC26.Tanki.Game
             if (phase == lastPhase) return;
             lastPhase = phase;
             if (phase == GamePhase.Playing) return;
+            TankiLog.Info("Бой окончен: " + phase + ", режим " + Sim.Mode + ", счёт " + Sim.Score + ", жизней " + Sim.Lives);
 
             LastParts = Sim.TakeParts();
             Save.Parts += LastParts;
@@ -485,6 +510,7 @@ namespace GC26.Tanki.Game
         public void Open(Page page)
         {
             if (page == Page.Settings && Page != Page.Settings) settingsReturn = Page;
+            if (page != Page) TankiLog.Info("Страница: " + Page + " -> " + page);
             Page = page;
         }
 

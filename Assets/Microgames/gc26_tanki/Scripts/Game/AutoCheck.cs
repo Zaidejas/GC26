@@ -12,11 +12,19 @@ namespace GC26.Tanki.Game
     public sealed class AutoCheck : MonoBehaviour
     {
         string folder;
+        bool defeatOnly;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
         {
             string[] args = System.Environment.GetCommandLineArgs();
+            if (System.Array.IndexOf(args, "-defeattest") >= 0)
+            {
+                // For clicking the defeat screen by hand: starts level 1 and loses it at once.
+                Application.runInBackground = true;
+                new GameObject("DefeatTest").AddComponent<AutoCheck>().defeatOnly = true;
+                return;
+            }
             int index = System.Array.IndexOf(args, "-autocheck");
             if (index < 0 || index + 1 >= args.Length) return;
             // The check must not stall when its window loses focus.
@@ -28,6 +36,16 @@ namespace GC26.Tanki.Game
         {
             GameRunner game;
             while ((game = FindAnyObjectByType<GameRunner>()) == null) yield return null;
+            if (defeatOnly)
+            {
+                while (game.OnSplash) yield return null;
+                yield return new WaitForSeconds(0.5f);
+                game.StartLevel(0);
+                yield return new WaitForSeconds(1f);
+                typeof(Rules.GameSim).GetProperty("Phase").SetValue(game.Sim, Rules.GamePhase.GameOver);
+                Debug.Log("DEFEATTEST phase=" + game.Sim.Phase);
+                yield break;
+            }
 
             yield return new WaitForSeconds(1.5f);
             ScreenCapture.CaptureScreenshot(Path.Combine(folder, "splash.png"));

@@ -152,9 +152,9 @@ namespace GC26.Tanki.Game
 
         public WorldView(Transform parent)
         {
-            baseMaterial = Resources.Load<Material>("gc26_tanki/SteelLineLit");
+            baseMaterial = TankiLog.Load<Material>("gc26_tanki/SteelLineLit");
             if (baseMaterial == null) baseMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            ghostMaterial = Resources.Load<Material>("gc26_tanki/SteelLineGhost");
+            ghostMaterial = TankiLog.Load<Material>("gc26_tanki/SteelLineGhost");
             if (ghostMaterial == null) ghostMaterial = baseMaterial;
 
             root = new GameObject("World").transform;
@@ -280,14 +280,14 @@ namespace GC26.Tanki.Game
         {
             if (tileMaterial == null)
             {
-                tileMaterial = new Material(baseMaterial) { mainTexture = Resources.Load<Texture2D>("gc26_tanki/Tiles/atlas") };
+                tileMaterial = new Material(baseMaterial) { mainTexture = TankiLog.Load<Texture2D>("gc26_tanki/Tiles/atlas") };
                 tileMaterial.SetFloat("_Smoothness", 0.05f);
             }
 
             var model = new GameObject(name);
             model.transform.SetParent(cell, false);
             model.AddComponent<MeshFilter>().sharedMesh =
-                Resources.Load<GameObject>("gc26_tanki/Tiles/" + name).GetComponentInChildren<MeshFilter>().sharedMesh;
+                TankiLog.Load<GameObject>("gc26_tanki/Tiles/" + name).GetComponentInChildren<MeshFilter>().sharedMesh;
             model.AddComponent<MeshRenderer>().sharedMaterial = tileMaterial;
             return model.transform;
         }
@@ -765,8 +765,8 @@ namespace GC26.Tanki.Game
             string key = name + ColorUtility.ToHtmlStringRGBA(tint) + ColorUtility.ToHtmlStringRGB(glow) + seeThrough;
             if (spriteMaterials.TryGetValue(key, out Material material)) return material;
 
-            Texture2D texture = Resources.Load<Texture2D>("gc26_tanki/Tanks/" + name);
-            material = new Material(seeThrough ? ghostMaterial : Resources.Load<Material>("gc26_tanki/SteelLineModel"))
+            Texture2D texture = TankiLog.Load<Texture2D>("gc26_tanki/Tanks/" + name);
+            material = new Material(seeThrough ? ghostMaterial : TankiLog.Load<Material>("gc26_tanki/SteelLineModel"))
             {
                 mainTexture = texture,
                 color = tint
@@ -780,7 +780,7 @@ namespace GC26.Tanki.Game
         // Models come from Art/build_models.py: the drawings raised into 3D, with the drawing as texture.
         static Mesh ModelMesh(string name)
         {
-            return Resources.Load<GameObject>("gc26_tanki/Tanks/" + name + "_model").GetComponentInChildren<MeshFilter>().sharedMesh;
+            return TankiLog.Load<GameObject>("gc26_tanki/Tanks/" + name + "_model").GetComponentInChildren<MeshFilter>().sharedMesh;
         }
 
         TankView BuildTank(Tank tank, string playerModel)
@@ -931,7 +931,7 @@ namespace GC26.Tanki.Game
             var model = new GameObject("Model");
             model.transform.SetParent(bonusIcon, false);
             model.AddComponent<MeshFilter>().sharedMesh =
-                Resources.Load<GameObject>("gc26_tanki/Bonuses/" + kind.ToString().ToLowerInvariant()).GetComponentInChildren<MeshFilter>().sharedMesh;
+                TankiLog.Load<GameObject>("gc26_tanki/Bonuses/" + kind.ToString().ToLowerInvariant()).GetComponentInChildren<MeshFilter>().sharedMesh;
             model.AddComponent<MeshRenderer>().sharedMaterial = BonusMaterial();
             bonusModel = model.transform;
             return holder;
@@ -942,7 +942,7 @@ namespace GC26.Tanki.Game
         {
             if (bonusMaterial != null) return bonusMaterial;
 
-            bonusMaterial = new Material(baseMaterial) { mainTexture = Resources.Load<Texture2D>("gc26_tanki/Bonuses/atlas") };
+            bonusMaterial = new Material(baseMaterial) { mainTexture = TankiLog.Load<Texture2D>("gc26_tanki/Bonuses/atlas") };
             bonusMaterial.SetFloat("_Smoothness", 0.05f);
             return bonusMaterial;
         }
@@ -988,7 +988,7 @@ namespace GC26.Tanki.Game
             Color key = glow ? new Color(color.r, color.g, color.b, 0.5f) : color;
             if (materials.TryGetValue(key, out Material material)) return material;
 
-            material = new Material(glow ? Resources.Load<Material>("gc26_tanki/SteelLineGlow") : baseMaterial) { color = color };
+            material = new Material(glow ? TankiLog.Load<Material>("gc26_tanki/SteelLineGlow") : baseMaterial) { color = color };
             material.SetFloat("_Smoothness", 0.1f);
             // Above 1 in HDR, so the bloom picks these parts up.
             if (glow) material.SetColor("_EmissionColor", color * 1.4f);

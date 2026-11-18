@@ -62,7 +62,7 @@ namespace GC26.Tanki.Game
         }
 
         /// <summary>Draws the button and returns true once, when a press on it ends.</summary>
-        public static bool Button(Rect rect, GUIContent content, GUIStyle style)
+        public static bool Button(Rect rect, GUIContent content, GUIStyle style, string name = null)
         {
             Refresh();
             Event e = Event.current;
@@ -79,7 +79,7 @@ namespace GC26.Tanki.Game
                 if (!rect.Contains(e.mousePosition) || !rect.Contains(guiPressedAt)) return false;
                 guiPressedAt = Nowhere;
                 e.Use();
-                return Fire();
+                return Fire(name ?? content.text);
             }
             if (e.type != EventType.Repaint) return false;
 
@@ -89,14 +89,15 @@ namespace GC26.Tanki.Game
             if (!released || !inside || !rect.Contains(pressedAt) || firedFrame == frame) return false;
             firedFrame = frame;
             pressedAt = Nowhere;
-            return Fire();
+            return Fire(name ?? content.text);
         }
 
         /// <summary>One press fires once: whichever path sees it second is ignored.</summary>
-        static bool Fire()
+        static bool Fire(string name)
         {
             if (!GUI.enabled || Time.unscaledTime - lastFire < 0.3f) return false;
             lastFire = Time.unscaledTime;
+            TankiLog.Info("Кнопка: " + (string.IsNullOrEmpty(name) ? "без подписи" : name.Replace('\n', ' ')));
             return true;
         }
     }

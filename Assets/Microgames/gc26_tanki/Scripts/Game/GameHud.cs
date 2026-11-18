@@ -387,7 +387,7 @@ namespace GC26.Tanki.Game
             art = new Texture2D[ArtNames.Length];
             for (int i = 0; i < ArtNames.Length; i++)
             {
-                art[i] = Resources.Load<Texture2D>("gc26_tanki/Backgrounds/" + ArtNames[i]);
+                art[i] = TankiLog.Load<Texture2D>("gc26_tanki/Backgrounds/" + ArtNames[i]);
                 if (art[i] != null) art[i].filterMode = FilterMode.Point;
             }
 
@@ -584,7 +584,7 @@ namespace GC26.Tanki.Game
         {
             if (!icons.TryGetValue(name, out Texture2D picture))
             {
-                picture = Resources.Load<Texture2D>("gc26_tanki/Icons/" + name);
+                picture = TankiLog.Load<Texture2D>("gc26_tanki/Icons/" + name);
                 icons[name] = picture;
             }
             return picture;
@@ -620,7 +620,7 @@ namespace GC26.Tanki.Game
         /// <summary>A button with an icon before its text, both centred together.</summary>
         bool IconButton(Rect rect, string text, string icon, GUIStyle style)
         {
-            bool pressed = HudPointer.Button(rect, GUIContent.none, style);
+            bool pressed = HudPointer.Button(rect, GUIContent.none, style, text);
             if (Event.current.type != EventType.Repaint) return pressed;
             GUIStyle bare = BareText(style, style.normal.textColor);
             var content = new GUIContent(text);
@@ -803,7 +803,7 @@ namespace GC26.Tanki.Game
         {
             if (!tankPictures.TryGetValue(model, out Texture2D picture))
             {
-                picture = Resources.Load<Texture2D>("gc26_tanki/Tanks/" + model);
+                picture = TankiLog.Load<Texture2D>("gc26_tanki/Tanks/" + model);
                 tankPictures[model] = picture;
             }
             return picture;
