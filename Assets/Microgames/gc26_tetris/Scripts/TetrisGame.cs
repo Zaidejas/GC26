@@ -65,7 +65,17 @@ namespace GC26.Tetris
         // Main menu. Items are laid out in world units so they scale with the window, like the rest of the HUD.
         enum MenuItem { Marathon, Battle, Shop, Achievements, Stats, Sound, Exit }
 
-        static readonly MenuItem[] MenuItems = { MenuItem.Marathon, MenuItem.Battle, MenuItem.Shop, MenuItem.Achievements, MenuItem.Stats, MenuItem.Sound, MenuItem.Exit };
+        static readonly MenuItem[] AllMenuItems = { MenuItem.Marathon, MenuItem.Battle, MenuItem.Shop, MenuItem.Achievements, MenuItem.Stats, MenuItem.Sound, MenuItem.Exit };
+        static readonly MenuItem[] PhoneMenuItems = { MenuItem.Marathon, MenuItem.Battle, MenuItem.Shop, MenuItem.Achievements, MenuItem.Stats, MenuItem.Sound };
+
+        /// <summary>
+        /// A phone app is closed by the system, so the phone menu has no Exit. Inside the GC26 shell the last item
+        /// is "Back to GC26" and always stays: it is how the game hands control back.
+        /// </summary>
+        MenuItem[] MenuItems
+        {
+            get { return IsPhone && exitToShell == null ? PhoneMenuItems : AllMenuItems; }
+        }
 
         static float MenuTopY { get { return HudLayout.MenuTopY; } }
         const float MenuStepY = 1.5f;
@@ -822,6 +832,12 @@ namespace GC26.Tetris
             Label(value, at.x, at.y - 0.25f * scale, unit, 0.85f * scale * valueScale, TextAnchor.MiddleCenter, Bright);
         }
 
+        static readonly Vector2[] OutlineDirections =
+        {
+            new Vector2(1f, 0f), new Vector2(-1f, 0f), new Vector2(0f, 1f), new Vector2(0f, -1f),
+            new Vector2(0.7f, 0.7f), new Vector2(-0.7f, 0.7f), new Vector2(0.7f, -0.7f), new Vector2(-0.7f, -0.7f),
+        };
+
         void DrawPopups(float unit)
         {
             foreach (Popup popup in popups)
@@ -830,8 +846,14 @@ namespace GC26.Tetris
                 float punch = age < 0.12f ? Mathf.Lerp(1.5f, 1f, age / 0.12f) : 1f;
                 float alpha = Mathf.Clamp01(popup.Life / (popup.MaxLife * 0.4f));
                 float size = popup.Size * punch;
-                Color shadow = new Color(0f, 0f, 0f, alpha * 0.85f);
-                Label(popup.Text, popup.X + 0.07f, popup.Y - 0.07f, unit, size, TextAnchor.MiddleCenter, shadow);
+                // A thin dark outline all round, not a shifted shadow: one offset copy read as doubled text.
+                Color outline = new Color(0.04f, 0.03f, 0.07f, alpha * 0.55f);
+                float edge = Mathf.Max(0.035f, size * 0.04f);
+                for (int i = 0; i < OutlineDirections.Length; i++)
+                {
+                    Vector2 offset = OutlineDirections[i] * edge;
+                    Label(popup.Text, popup.X + offset.x, popup.Y + offset.y, unit, size, TextAnchor.MiddleCenter, outline);
+                }
                 Label(popup.Text, popup.X, popup.Y, unit, size, TextAnchor.MiddleCenter,
                     new Color(popup.Color.r, popup.Color.g, popup.Color.b, alpha));
             }

@@ -37,7 +37,7 @@ namespace GC26.Tetris
         }
 
         readonly List<FallingPiece> menuPieces = new List<FallingPiece>();
-        readonly float[] menuGlow = new float[MenuItems.Length];
+        readonly float[] menuGlow = new float[AllMenuItems.Length];
         readonly System.Random menuRandom = new System.Random(2026);
         float menuClock;
 
