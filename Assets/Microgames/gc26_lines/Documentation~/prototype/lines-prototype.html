@@ -242,6 +242,7 @@ body {
 .card .final { display: block; font-family: var(--font-display); font-weight: 600; font-size: 13cqw; color: var(--text); line-height: 1.1; font-variant-numeric: tabular-nums; }
 .card .row { display: grid; grid-template-columns: 1fr 1fr; gap: 3cqw; }
 .zero { display: flex; flex-direction: column; gap: 3cqw; }
+.zero .row { grid-template-columns: auto 1fr; } .zero .row .btn { white-space: nowrap; padding: 0 4cqw; } /* with icons: Menu as wide as it needs, Play again gets the rest, one line each */
 
 /* Screens */
 .view { position: absolute; inset: 0; }
@@ -744,8 +745,8 @@ body {
             <div class="zero" id="over-zero" hidden>
               <p class="fine" data-i18n="zeroHint">Clear a line to get on the leaderboard.</p>
               <div class="row">
-                <button type="button" class="btn" id="over-menu" data-i18n="menuButton">Menu</button>
-                <button type="button" class="btn primary" id="over-again" data-i18n="playAgain">Play again</button>
+                <button type="button" class="btn" id="over-menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 3.8l8.5 7.2"/><path d="M5.8 9.6V19a1.2 1.2 0 0 0 1.2 1.2h3.4v-5.4h3.2v5.4H17a1.2 1.2 0 0 0 1.2-1.2V9.6"/></svg><span data-i18n="menuButton">Menu</span></button>
+                <button type="button" class="btn primary" id="over-again"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><span data-i18n="playAgain">Play again</span></button>
               </div>
             </div>
           </div>
@@ -1755,7 +1756,7 @@ body {
       classic: "Классика", timed: "На время", timeUp: "Время вышло!", time: "Время", zeroHint: "Собери линию, чтобы попасть в таблицу рекордов.", menuButton: "Меню",
       howto4Title: "Наперегонки со временем", howto4Text: "Выбери в меню «На время», чтобы играть на скорость: 3 минуты, и каждая собранная линия добавляет 5 секунд. Пока грибы двигаются, часы стоят.",
       howto3Title: "Следи, что дальше", howto3Text: "Если ход не собрал линию, появятся 3 новых гриба — там, где видны бледные грибы. Игра заканчивается, когда поле заполнено. «Отменить» возвращает один ход.",
-      scoresEmpty: "Пока нет законченных игр. Твой счёт появится здесь, когда игра закончится.", playAgain: "Сыграть ещё",
+      scoresEmpty: "Пока нет законченных игр. Твой счёт появится здесь, когда игра закончится.", playAgain: "Ещё раз",
       newBestShort: "Новый рекорд!",
       howto5Title: "Радужный гриб", howto5Text: "Редкий радужный гриб подходит к любой линии: он считается грибом любого цвета. Один радужный гриб может даже завершить две линии разных цветов за один ход.",
       howto6Title: "Замёрзшие грибы", howto6Text: "После 100 очков некоторые новые грибы появляются замёрзшими. Их нельзя передвинуть, но они считаются своим цветом: собери линию через такой гриб, чтобы разбить лёд.",
