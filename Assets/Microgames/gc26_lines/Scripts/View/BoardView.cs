@@ -238,13 +238,17 @@ namespace GC26.Lines.View
         public void ApplyLayout(BoardLayout layout)
         {
             transform.localPosition = layout.BoardCenterWorld;
-            background.sprite = SpriteFactory.RoundRect(layout.BoardCornerWorld);
+            // Rounded shapes drawn at their real size on screen (1 world unit = one cell pitch in pixels),
+            // so the board's corners and the aim outline stay sharp on phones.
+            pitch = layout.CellPitch;
+            background.sprite = SpriteFactory.ExactRoundRect(layout.BoardCornerWorld * pitch, pitch);
             background.size = Vector2.one * layout.BoardSizeWorld;
-            rim.sprite = SpriteFactory.RoundRect(layout.BoardCornerWorld + RimInCells);
+            rim.sprite = SpriteFactory.ExactRoundRect((layout.BoardCornerWorld + RimInCells) * pitch, pitch);
             rim.size = Vector2.one * (layout.BoardSizeWorld + 2f * RimInCells);
             glow.sprite = SpriteFactory.SoftGlow(GlowEdgeInCells);
             glow.size = Vector2.one * (layout.BoardSizeWorld + 2f * GlowEdgeInCells * SpriteFactory.SoftGlowFadeShare);
-            var cellSprite = SpriteFactory.RoundRect(layout.CellCornerWorld);
+            var cellSprite = SpriteFactory.ExactRoundRect(layout.CellCornerWorld * pitch, pitch);
+            if (aimRing != null) SetAimSprites();
             foreach (var sr in cells)
             {
                 sr.sprite = cellSprite;
@@ -396,7 +400,7 @@ namespace GC26.Lines.View
             {
                 aimFill = NewSprite("Aim fill", transform, new Color(1f, 0.78f, 0.35f, 0.14f), DotOrder);
                 aimRing = NewSprite("Aim ring", transform, new Color(1f, 0.84f, 0.42f, 0.95f), BallOrder + 3);
-                aimRing.sprite = SpriteFactory.AimRing();
+                SetAimSprites();
             }
             aimFill.gameObject.SetActive(centre.HasValue);
             aimRing.gameObject.SetActive(centre.HasValue);
@@ -518,6 +522,15 @@ namespace GC26.Lines.View
             ball.SetAimGlow(false);
             ball.transform.SetParent(poolRoot, false);
             pool.Push(ball);
+        }
+
+        float pitch = 100f; // screen pixels per world unit (one cell pitch), from the last layout
+
+        // The aim square: a 0.1-cell corner fill and a bolder gold outline (0.27-cell corners, a 0.05-cell line).
+        void SetAimSprites()
+        {
+            aimFill.sprite = SpriteFactory.ExactRoundRect(0.1f * pitch, pitch);
+            aimRing.sprite = SpriteFactory.ExactRoundRing(16f / 60f * pitch, 0.05f * pitch, pitch);
         }
 
         static SpriteRenderer NewSprite(string name, Transform parent, Color color, int order)
