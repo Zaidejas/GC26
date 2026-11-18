@@ -26,7 +26,13 @@
   /* ---------- menu ---------- */
   #menu{align-items:center;justify-content:center;padding:24px 22px;gap:10px;
     background:radial-gradient(120% 70% at 50% 0%,#f6fbf6 0%,#e3f0e3 60%,#d6ead7 100%)}
-  #menu svg{width:92px;height:92px}
+  #menu svg{width:104px;height:104px}
+  /* the menu snake blinks and flicks its tongue now and then */
+  #menu .eyes{transform-origin:50px 33px;animation:blink 4.5s infinite}
+  #menu .tongue{transform-origin:50px 54px;animation:tongue 3.2s infinite}
+  @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+  @keyframes tongue{0%,70%,100%{transform:scaleY(0)}76%,88%{transform:scaleY(1)}}
+  @media (prefers-reduced-motion: reduce){ #menu .eyes,#menu .tongue{animation:none} }
   #menu h1{margin:4px 0 0;font-size:34px;color:var(--g2);letter-spacing:.3px}
   #menu .tag{margin:0 0 14px;color:var(--muted);font-style:italic;font-family:Georgia,serif;font-size:15px}
   .mbtn{width:100%;max-width:320px;min-height:56px;border-radius:16px;background:#fff;
@@ -42,6 +48,7 @@
   .mrow{display:flex;gap:10px;width:100%;max-width:320px}
   .mrow .mbtn{min-height:48px;justify-content:center;text-align:center;font-weight:600;padding:8px 6px;font-size:14px}
   #menuStats{margin-top:10px;color:var(--muted);font-size:13px}
+  #menuVer{color:var(--muted);font-size:11px;opacity:.75}
 
   /* ---------- game ---------- */
   #game{touch-action:none}
@@ -57,8 +64,16 @@
   #lives.hurt{animation:shake .3s}
   @keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
   #phaseTag{font-size:12px;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.16);white-space:nowrap}
+  /* hunger facts: fixed-height strip above the grid, never blocks play */
+  #facts{display:none;flex:none;height:92px;overflow:hidden;padding:10px 18px 0;text-align:center;
+    flex-direction:column;justify-content:center;gap:3px;color:var(--ink);font-size:14px;line-height:1.35}
+  #facts.on{display:flex}
+  #facts small{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
+  #factText{font-family:Georgia,serif;transition:opacity .25s}
+  #factText.fade{opacity:0}
   .stage{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:0;padding:10px}
   canvas{display:block;border-radius:14px;box-shadow:0 2px 0 #b9d6bb,0 6px 18px rgba(20,60,30,.12)}
+  @media (pointer:fine){ #cv{cursor:crosshair} }
   #toast{position:absolute;left:50%;top:18px;transform:translate(-50%,-8px);max-width:86%;
     background:rgba(23,58,34,.92);color:#fff;padding:9px 14px;border-radius:12px;font-size:14px;
     text-align:center;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none}
@@ -116,13 +131,28 @@
 
   <!-- MENU -->
   <section id="menu" class="screen on">
+    <!-- coiled snake facing the player, looking straight at them -->
     <svg viewBox="0 0 100 100" aria-hidden="true">
       <circle cx="50" cy="50" r="48" fill="#d4ead5"/>
-      <path d="M22 70 C 22 50, 44 52, 46 40 C 48 28, 62 24, 70 32" fill="none" stroke="#2e7d32" stroke-width="13" stroke-linecap="round"/>
-      <circle cx="72" cy="33" r="10" fill="#2e7d32"/>
-      <circle cx="75" cy="30" r="2.6" fill="#fff"/><circle cx="75.6" cy="30" r="1.3" fill="#111"/>
-      <circle cx="64" cy="70" r="9" fill="#d32f2f"/><path d="M64 61 q2 -5 6 -6" stroke="#5d4037" stroke-width="2" fill="none"/>
-      <ellipse cx="69" cy="58" rx="4" ry="2" fill="#43a047" transform="rotate(-25 69 58)"/>
+      <!-- coils -->
+      <ellipse cx="50" cy="80" rx="31" ry="9" fill="none" stroke="#1b5e20" stroke-width="11"/>
+      <ellipse cx="50" cy="72" rx="24" ry="7.5" fill="none" stroke="#2e7d32" stroke-width="10"/>
+      <!-- neck rising to the head -->
+      <path d="M66 70 C 70 62, 58 58, 50 54" fill="none" stroke="#2e7d32" stroke-width="12" stroke-linecap="round"/>
+      <!-- head, front view -->
+      <ellipse cx="50" cy="38" rx="22" ry="18" fill="#2e7d32"/>
+      <ellipse cx="50" cy="47" rx="13" ry="8" fill="#43a047"/>
+      <circle cx="46.5" cy="45" r="1.1" fill="#173a22"/><circle cx="53.5" cy="45" r="1.1" fill="#173a22"/>
+      <!-- eyes: pupils centred, so the snake looks at whoever is holding the phone -->
+      <g class="eyes">
+        <circle cx="41" cy="33" r="7" fill="#fff"/><circle cx="59" cy="33" r="7" fill="#fff"/>
+        <circle cx="41" cy="33.5" r="3.6" fill="#111"/><circle cx="59" cy="33.5" r="3.6" fill="#111"/>
+        <circle cx="42.4" cy="32" r="1.2" fill="#fff"/><circle cx="60.4" cy="32" r="1.2" fill="#fff"/>
+      </g>
+      <!-- forked tongue -->
+      <path d="M50 54 v6 m0 0 l-3 4 m3 -4 l3 4" fill="none" stroke="#d32f2f" stroke-width="2" stroke-linecap="round" class="tongue"/>
+      <!-- small apple: the theme -->
+      <circle cx="82" cy="70" r="6.5" fill="#d32f2f"/><path d="M82 63.5 q1.5 -3.5 4.5 -4" stroke="#5d4037" stroke-width="1.6" fill="none"/>
     </svg>
     <h1>Science Snake</h1>
     <p class="tag" data-t="tagline"></p>
@@ -135,6 +165,7 @@
       <button class="mbtn" id="bAbout" data-t="about"></button>
     </div>
     <div id="menuStats"></div>
+    <div id="menuVer"></div>
   </section>
 
   <!-- GAME -->
@@ -144,6 +175,7 @@
       <div class="mid"><div id="lives" aria-label="lives"></div><div id="phaseTag"></div></div>
       <button class="ibtn" id="bPause" aria-label="pause">❚❚</button>
     </div>
+    <div id="facts" aria-live="polite"><small id="factKick"></small><span id="factText"></span></div>
     <div class="stage" id="stage">
       <canvas id="cv"></canvas>
       <div id="toast"></div>
@@ -166,83 +198,118 @@
 /* =========================================================
    CONFIG
    ========================================================= */
+const VERSION = "2.1";                              // shown in the menu and About; bump on every shared build
 const N = 20;                                       // 20x20 grid, wrap-around edges
 const SPEEDS = { slow: 2.75, normal: 3.5, fast: 4.5 }; // cells / second
-const HUNGRY_MULT = 0.9;                            // GDD: 4.5 vs 5
 const EVIL_MAX = 9;
-const APPLE_LIFE = 20, TUT_APPLE_LIFE = 20;         // seconds an apple stays on the field
-const HUNGER_LIFE = [9, 12];                         // seconds a Hunger-branch object stays
-const SPAWN_GAP = [4, 6];                          // seconds between appearances
+const APPLE_LIFE = 10;                              // seconds an apple stays (walk phase); tutorial apples stay forever
+const GREED_LIFE = [9, 12];                         // seconds an object stays in the greed phase
+const SPAWN_GAP = [3, 5];                           // seconds between appearances (walk phase)
 const LIVES = 3;                                    // lives per run (checkpoint restart refills)
 const WARN_SEC = 2;                                 // blink warning before disappearing
 const POP_SEC = 0.25;                               // grow-in animation on appearance
-const TUT_MISS_LIMIT = 3;                           // missed tutorial apples -> ending C
 const DIRS = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
 const isTouch = matchMedia("(pointer:coarse)").matches || "ontouchstart" in window;
 
-function TH(){ return settings.test
-  ? { tut:5, question:10, greed:15, avoid:8, texts:5 }
-  : { tut:5, question:10, greed:50, avoid:30, texts:5 }; }
+// story thresholds: tut/walk/see = apples eaten for the 3 snake windows,
+// walkDist = cells to crawl after "Мне хватит" for endings 1–2, starveSec = seconds with 0 eaten
+// for the "care about yourself" ending, greed = points for ending 3
+// Test thresholds are for the team only, never shown to players: open the page with ?test in the URL
+const TEST_MODE = (() => { try{ return new URLSearchParams(location.search).has("test"); }catch(e){ return false; } })();
+function TH(){ return TEST_MODE
+  ? { tut:5, walk:10, see:15, walkDist:100, starveSec:10, greed:25, factSec:8, textSec:5 }
+  : { tut:5, walk:10, see:15, walkDist:300, starveSec:30, greed:50, factSec:15, textSec:10 }; }
 
 /* =========================================================
    STORAGE (safe)
    ========================================================= */
 function load(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v ? Object.assign(d, v) : d; }catch(e){ return d; } }
 function store(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
-const settings = load("ss3_settings", { speed:"normal", buttons:true, sound:true, vibe:true, lang:"ru", test:false });
-const save = load("ss2_save", { best:0, endings:{}, checkpoint:null });
+const reducedMotion = (() => { try{ return matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){ return false; } })();
+const settings = load("ss3_settings", { speed:"normal", buttons:true, sound:true, vibe:true, shake:!reducedMotion, lang:"ru" });
+delete settings.test;   // older builds saved a visible test toggle; ignore it
+const save = load("ss4_save", { best:0, endings:{}, checkpoint:null });   // ss4: new story, old saves ignored
 const persistSettings = () => store("ss3_settings", settings);
-const persistSave = () => store("ss2_save", save);
+const persistSave = () => store("ss4_save", save);
+try{ const old = JSON.parse(localStorage.getItem("ss2_save")); if (old && old.best > (save.best||0)) save.best = old.best; }catch(e){}   // keep Simple-mode best
 
 /* =========================================================
    TEXT
    ========================================================= */
 const L = {
  ru:{
-  tagline:"змейка о голоде и изобилии",
+  tagline:"Игра о голоде",
   story:"История", storySub:"Сюжет, выбор и концовки",
   cont:"Продолжить историю",
   simple:"Простая змейка", simpleSub:"Классика без сюжета",
   settings:"Настройки", about:"Об игре",
-  stats:"Рекорд: {0} · Концовки: {1}/3",
+  stats:"Рекорд: {0} · Концовки: {1}/4", version:"Версия {0}",
   pause:"Пауза", resume:"Продолжить", restart:"Начать заново", restartCp:"С чекпоинта", toMenu:"В меню", mainMenu:"Главное меню",
   speed:"Скорость", slow:"Медленно", normal:"Нормально", fast:"Быстро",
   pad:"Экранные стрелки", padSub:"Клавиатура и свайпы работают всегда", sound:"Звук", vibe:"Вибрация", lang:"Язык",
-  test:"Тестовые пороги", testSub:"15 съеденных / 8 избеганий вместо 50 / 30",
+  shake:"Тряска экрана", shakeSub:"Выключите, если укачивает",
   reset:"Сбросить прогресс", resetQ:"Удалить рекорд, концовки и сохранённую историю?", resetDone:"Прогресс сброшен",
   yes:"Да", cancel:"Отмена", done:"Готово",
   tutorial:"Туториал", stepOf:"Шаг {0} из {1}", skip:"Пропустить", play:"Играть",
   tutSteps:[
-   {title:"Движение", text:"Змейка ползёт сама. Поворачивай стрелками — на экране или на клавиатуре — или свайпами. Развернуться назад нельзя."},
+   {title:"Движение", text:"Змейка ползёт сама. Поворачивай стрелками — на экране или на клавиатуре, — свайпами или кликом мыши по полю: змейка повернёт к месту клика. Развернуться назад нельзя."},
    {title:"Края открыты", text:"Стен нет: уполз за край — появился с другой стороны. Опасно только собственное тело."},
-   {title:"Яблоки", text:"Каждое яблоко удлиняет змейку. Кольцо вокруг яблока показывает, сколько ему осталось. Для начала съешь 5 яблок."}
+   {title:"Яблоки", text:"Каждое яблоко удлиняет змейку. Позже вокруг яблок появится кольцо — сколько им осталось лежать. Для начала съешь 5 яблок."}
   ],
   introTitle:"Как играть",
   intro:["Свайпай или жми стрелки — змейка повернёт.","Развернуться назад нельзя.","Стен нет: уполз за край — появился с другой стороны.","Опасно только собственное тело."],
   go:"Поехали",
   tutGoal:"Съешь 5 яблок",
   enough:"Мне хватит.", ok:"ОК",
-  question:"Хочешь ли ты узнать о том, что такое голод, дорогой игрок?", qYes:"Да", qNo:"Нет, я просто хочу играть",
+  walkLine:"Я бы хотел просто прогуляться… То есть давай просто поползаем.",
+  letsSee:"Ну ладно. Посмотрим, как далеко ты готов зайти.",
+  greedHint:"Появились котята (+5) и фермеры (+10)",
   over:"Игра окончена", score:"Счёт: {0}", best:"Рекорд: {0}", newBest:"Новый рекорд!", again:"Ещё раз",
-  starveTitle:"Змея умерла от голода",
-  starveText:"Если совсем не заботиться о себе, то тебе не хватит сил помочь другим. К счастью, я всего лишь концепция Змеи и ты можешь начать заново.",
-  newGame:"Новая игра",
   e1Kick:"Концовка 1", e1Title:"Спасибо",
   e1Text:"Спасибо. Я хорошо провёл с тобой время. Это любимая концовка Марка — он тоже будет рад.",
   playAgain:"Играть снова",
-  e2Kick:"Концовка 2", e2Title:"Алчность", e2Text:"Конец игры",
-  newRoute:"Открыть новый рут", routeHint:"Попробуй не есть яблоки",
-  hungerHint:"Уворачивайся — пусть всё исчезнет само",
-  tutMiss:"Яблоко исчезло. Змея проголодалась…",
+  e2Kick:"Концовка 2", e2Title:"Усидеть на двух стульях",
+  e2Text:"Есть или не есть — вот в чём вопрос…",
+  e3Kick:"Концовка 3", e3Title:"Невежество", e3Text:"Жадность поглотила мир.",
+  e4Kick:"Концовка 4", e4Title:"Заботься и о себе тоже",
+  e4Text:"Если совсем не заботиться о себе, то тебе не хватит сил помочь другим. К счастью, я всего лишь концепция Змеи и ты можешь начать заново.",
+  newRoute:"Открыть новый рут", routeHint:"Попробуй больше не есть — просто ползи",
   evilToast:"Змее мало. Ей всегда мало.",
-  hudTut:"Яблоки {0}/{1}", hudEaten:"Съедено {0}", hudIgnored:"Пропущено {0}",
-  hudClassic:"Съедено {0}/{1}", hudAvoid:"Избегнуто {0}/{1}", hudAvoidSub:"съедено {0}/{1}",
+  hudTut:"Яблоки {0}/{1}", hudEaten:"Съедено {0}", hudWalk:"Проползено {0}/{1}", starveWarn:"Змея голодает… {0} с",
+  hudGreed:"Съедено {0}/{1}", hudGreedSub:"🐱 +5 · 🧑‍🌾 +10",
   lifeLost:"Ой! Осталось жизней: {0}",
   hudScore:"Счёт {0}", hudBest:"Рекорд {0}", hudEvil:"Алчность",
-  ph:{tutorial:"Туториал", choice:"Выбор", classic:"Классика", hunger:"Голод", evil:"Злая змея", simple:"Простая"},
-  ready:"Готов?", hint:"Свайп или стрелки · края открыты",
-  textKick:"О голоде · {0}/{1}", next:"Далее",
-  greedKick:"Съедено: {0}",
+  ph:{tutorial:"Начало", walk:"Прогулка", greed:"Жадность", evil:"Злая змея", simple:"Простая"},
+  ready:"Готов?", hint:"Свайп, стрелки или клик · края открыты",
+  factKick:"О голоде · {0}/{1}", factsWait:"Съешь 5 яблок, чтобы начать историю.", next:"Далее",
+  simpleFacts:[
+   ["c","Голод в мире — прежде всего не проблема нехватки еды."],
+   ["c","В мире производится почти 3000 ккал еды на человека в день — больше средней потребности."],
+   ["c","И всё же в 2024 году около 673 миллионов человек страдали от хронического голода."],
+   ["c","2,6 миллиарда человек не могут позволить себе здоровое питание."],
+   ["c","Этот парадокс объясняется просто: еда — не только средство к жизни, но и товар."],
+   ["c","На рынке еда распределяется по платёжеспособности, а не по потребности."],
+   ["c","Экономист Амартья Сен показал: в голод 1943 года в Бенгалии еды было почти как обычно — у бедных просто не стало денег её купить."],
+   ["c","Люди голодают не потому, что еды нет, а потому, что теряют право её получить."],
+   ["c","Первый механизм: производство следует за прибылью, а не за голодом."],
+   ["c","36% калорий урожая идёт на корм скоту, и лишь 12% из них возвращается людям в виде пищи."],
+   ["c","Кукуруза — основное сырьё для биотоплива: зерно идёт в бензобак, когда это выгоднее."],
+   ["c","Второй механизм: рынок контролируют немногие компании."],
+   ["c","Четыре компании держат около 70% мировой торговли зерном."],
+   ["c","В 2021–2022 годах цены на еду и число голодающих росли — а прибыли крупнейших зернотрейдеров резко выросли."],
+   ["c","Третий механизм: издержки системы ложатся на самых бедных."],
+   ["c","Мелкие хозяйства производят около трети еды в мире всего на 12% земель."],
+   ["c","Но именно семьи мелких фермеров составляют около половины голодающих."],
+   ["c","3,3 миллиарда человек живут в странах, которые тратят на проценты по долгам больше, чем на здравоохранение или образование."],
+   ["c","Поэтому голод — результат не столько природы, сколько распределения."],
+   ["c","Ресурсы, чтобы покончить с голодом, существуют."],
+   ["c","Налог 2% на состояние менее чем 3000 миллиардеров приносил бы около 250 млрд долларов в год."],
+   ["c","250 млрд — более чем в семь раз больше 33 млрд в год, нужных, по оценкам, чтобы покончить с голодом."],
+   ["c","Вопрос этой игры — «сколько тебе достаточно?» — не только личный, но и политический."]
+  ],
+  topicH:"О голоде", topicC:"Голод и капитализм", factN:"{0} · {1}/{2}",
+  restartQ:"Начать заново?", restartLose:"Текущий счёт ({0}) не сохранится.", restartLoseBest:"Твой счёт {0} — новый рекорд, но он не сохранится!",
+  storyRestartQ:"Начать историю заново? Сохранённый прогресс истории будет потерян.",
   greedLines:[
    "Ещё одно. Просто чтобы было.",
    "Яблок на поле много. Значит, они мои?",
@@ -254,63 +321,91 @@ const L = {
    "Ещё чуть-чуть — и останусь только я."
   ],
   hungerTexts:[
-   "В 2024 году от хронического голода страдали около 673 миллионов человек — примерно каждый двенадцатый на Земле.",
-   "В том же мире за 2022 год выбросили 1,05 миллиарда тонн еды — почти пятую часть всего, что было в магазинах, кафе и дома.",
-   "Одни только домохозяйства каждый день выбрасывают больше миллиарда порций еды. Это больше одной порции на каждого голодающего.",
-   "2,6 миллиарда человек не могут позволить себе здоровое питание. Еды хватает. Не хватает доступа к ней.",
-   "Голод — это не про то, сколько яблок выросло. Это про то, кому они достались. Давай попробуем не брать лишнего."
+   "Около 673 миллионов человек страдали от хронического голода в 2024 году — примерно каждый двенадцатый на Земле.",
+   "И в том же мире в 2022 году выбросили 1,05 миллиарда тонн еды — почти пятую часть всего, что было в магазинах, ресторанах и дома.",
+   "Только домохозяйства каждый день выбрасывают больше миллиарда порций еды. Это больше одной порции на каждого голодающего.",
+   "2,6 миллиарда человек не могут позволить себе здоровое питание. Еды хватает — не хватает доступа к ней.",
+   "Голод — это не о том, сколько яблок выросло, а о том, кому они достались. Давай попробуем не брать лишнего."
   ],
-  touch:{apple:"Это яблоко досталось тебе. Кому-то — нет.", kitten:"Это котёнок. Он тоже хочет есть.", farmer:"Фермер вырастил еду, которую сам не может купить.", basket:"Урожай ушёл не туда, где его ждали."},
+  touch:{kitten:"+5 · Это был котёнок. Он тоже хотел есть.", farmer:"+10 · Фермер вырастил еду, которую сам не может купить."},
   aboutTitle:"Об игре",
   aboutBody:"Знакомая змейка, переосмысленная как сатира: еда всегда под рукой, а решение «есть или не есть» становится выбором. Прототип по GDD «Science Snake» (рабочее название).",
-  aboutSrc:"Данные в текстах о голоде: ФАО и др., SOFI 2025 (данные за 2024 г.); ЮНЕП, Food Waste Index Report 2024 (данные за 2022 г.).",
+  aboutSrc:"Источники: ФАО и др., SOFI 2025; ФАО, Food Balance Sheets 2023; ЮНЕП, Food Waste Index 2024; UNICEF/ВОЗ/Всемирный банк, JME 2025; A. Sen, Poverty and Famines, 1981; Cassidy и др., Environ. Res. Lett. 2013; ОЭСР/ФАО, Agricultural Outlook 2025; J. Clapp, Canadian Food Studies 2015; ЮНКТАД, Trade and Development Report 2023 и A World of Debt 2024; Lowder и др., World Development 2021; Проект тысячелетия ООН, Halving Hunger 2005; EU Tax Observatory 2024; Ceres2030, 2020.",
   close:"Закрыть"
  },
  en:{
-  tagline:"a snake about hunger and plenty",
+  tagline:"A game about hunger",
   story:"Story", storySub:"Plot, choices and endings",
   cont:"Continue story",
   simple:"Simple snake", simpleSub:"Classic, no story",
   settings:"Settings", about:"About",
-  stats:"Best: {0} · Endings: {1}/3",
+  stats:"Best: {0} · Endings: {1}/4", version:"Version {0}",
   pause:"Paused", resume:"Resume", restart:"Restart", restartCp:"From checkpoint", toMenu:"Menu", mainMenu:"Main menu",
   speed:"Speed", slow:"Slow", normal:"Normal", fast:"Fast",
   pad:"On-screen arrows", padSub:"Keyboard and swipes always work", sound:"Sound", vibe:"Vibration", lang:"Language",
-  test:"Test thresholds", testSub:"15 eaten / 8 avoided instead of 50 / 30",
+  shake:"Screen shake", shakeSub:"Turn off if it makes you dizzy",
   reset:"Reset progress", resetQ:"Delete best score, endings and saved story?", resetDone:"Progress reset",
   yes:"Yes", cancel:"Cancel", done:"Done",
   tutorial:"Tutorial", stepOf:"Step {0} of {1}", skip:"Skip", play:"Play",
   tutSteps:[
-   {title:"Move", text:"The snake never stops. Turn with the arrows — on screen or on your keyboard — or swipe. You can't turn straight back."},
+   {title:"Move", text:"The snake never stops. Turn with the arrows — on screen or on your keyboard — swipe, or click the field: the snake turns towards the click. You can't turn straight back."},
    {title:"Open edges", text:"No walls: leave one edge and you come back from the opposite one. Only your own body is dangerous."},
-   {title:"Apples", text:"Every apple makes the snake longer. The ring around an apple shows how long it stays. To begin, eat 5 apples."}
+   {title:"Apples", text:"Every apple makes the snake longer. Later, a ring around each apple shows how long it stays. To begin, eat 5 apples."}
   ],
   introTitle:"How to play",
   intro:["Swipe or press the arrows to turn.","You can't turn straight back.","No walls: leave one edge, come back from the opposite one.","Only your own body is dangerous."],
   go:"Let's go",
   tutGoal:"Eat 5 apples",
-  enough:"I've had enough.", ok:"OK",
-  question:"Do you want to learn what hunger is, dear player?", qYes:"Yes", qNo:"No, I just want to play",
+  enough:"That's enough for me.", ok:"OK",
+  walkLine:"I would like just to take a walk… I mean, let's just crawl around.",
+  letsSee:"Well, okay. Let's see how far you want to go with this.",
+  greedHint:"Kittens (+5) and farmers (+10) have appeared",
   over:"Game over", score:"Score: {0}", best:"Best: {0}", newBest:"New best!", again:"Play again",
-  starveTitle:"The snake starved",
-  starveText:"If you don't take care of yourself at all, you won't have the strength to help others. Luckily, I'm only the concept of a Snake, and you can start over.",
-  newGame:"New game",
   e1Kick:"Ending 1", e1Title:"Thank you",
-  e1Text:"Thank you. I had a good time with you. This is Mark's favourite ending — he'll be glad too.",
+  e1Text:"Thank you. I had a good time with you. This is Marc's favourite ending — he'll be glad too.",
   playAgain:"Play again",
-  e2Kick:"Ending 2", e2Title:"Greed", e2Text:"Game over",
-  newRoute:"Unlock a new route", routeHint:"Try not to eat the apples",
-  hungerHint:"Dodge — let everything vanish on its own",
-  tutMiss:"The apple vanished. The snake is getting hungry…",
+  e2Kick:"Ending 2", e2Title:"Sitting on two chairs",
+  e2Text:"To eat or not to eat — that is the question…",
+  e3Kick:"Ending 3", e3Title:"Ignorance", e3Text:"Greed consumed the world.",
+  e4Kick:"Ending 4", e4Title:"You should care about yourself too",
+  e4Text:"If you don't take care of yourself at all, you won't have the strength to help others. Luckily, I'm only the concept of a Snake, and you can start over.",
+  newRoute:"Unlock a new route", routeHint:"Try not to eat any more — just crawl",
   evilToast:"It's never enough for the snake.",
-  hudTut:"Apples {0}/{1}", hudEaten:"Eaten {0}", hudIgnored:"Skipped {0}",
-  hudClassic:"Eaten {0}/{1}", hudAvoid:"Avoided {0}/{1}", hudAvoidSub:"eaten {0}/{1}",
+  hudTut:"Apples {0}/{1}", hudEaten:"Eaten {0}", hudWalk:"Crawled {0}/{1}", starveWarn:"The snake is starving… {0} s",
+  hudGreed:"Eaten {0}/{1}", hudGreedSub:"🐱 +5 · 🧑‍🌾 +10",
   lifeLost:"Ouch! Lives left: {0}",
   hudScore:"Score {0}", hudBest:"Best {0}", hudEvil:"Greed",
-  ph:{tutorial:"Tutorial", choice:"Choice", classic:"Classic", hunger:"Hunger", evil:"Evil snake", simple:"Simple"},
-  ready:"Ready?", hint:"Swipe or arrows · edges wrap",
-  textKick:"On hunger · {0}/{1}", next:"Next",
-  greedKick:"Eaten: {0}",
+  ph:{tutorial:"Start", walk:"Walk", greed:"Greed", evil:"Evil snake", simple:"Simple"},
+  ready:"Ready?", hint:"Swipe, arrows or click · edges wrap",
+  factKick:"On hunger · {0}/{1}", factsWait:"Eat 5 apples to begin the story.", next:"Next",
+  simpleFacts:[
+   ["c","World hunger is not, first of all, a problem of too little food."],
+   ["c","The world produces almost 3,000 kcal of food per person a day — more than the average need."],
+   ["c","Yet in 2024 about 673 million people lived with chronic hunger."],
+   ["c","2.6 billion people cannot afford a healthy diet."],
+   ["c","The paradox has a simple explanation: food is not only a means of life, but also a commodity."],
+   ["c","On the market, food is distributed by ability to pay, not by need."],
+   ["c","Economist Amartya Sen showed that in the 1943 Bengal famine there was almost as much food as usual — the poor could no longer afford it."],
+   ["c","People starve not because food is missing, but because they lose the entitlement to obtain it."],
+   ["c","The first mechanism: production follows profit, not hunger."],
+   ["c","36% of crop calories are fed to livestock, and only 12% of them return to people as food."],
+   ["c","Maize is the main feedstock for ethanol fuel: grain goes into fuel tanks when that pays better."],
+   ["c","The second mechanism: a few companies control the market."],
+   ["c","Four firms hold about 70% of the global grain trade."],
+   ["c","In 2021–2022, as food prices and hunger rose, the profits of the largest grain traders soared."],
+   ["c","The third mechanism: the costs of the system fall on the poorest."],
+   ["c","Small farms grow about a third of the world's food on just 12% of farmland."],
+   ["c","Yet small farming families make up about half of the world's hungry."],
+   ["c","3.3 billion people live in countries that spend more on debt interest than on health or education."],
+   ["c","Hunger is therefore less a matter of nature than of distribution."],
+   ["c","The resources to end hunger exist."],
+   ["c","A 2% tax on fewer than 3,000 billionaires would raise about $250 billion a year."],
+   ["c","$250 billion is more than seven times the $33 billion a year estimated to end hunger."],
+   ["c","The question this game asks — how much is enough? — is not only personal but political."]
+  ],
+  topicH:"On hunger", topicC:"Hunger and capitalism", factN:"{0} · {1}/{2}",
+  restartQ:"Restart?", restartLose:"Your current score ({0}) won't be saved.", restartLoseBest:"Your score {0} is a new record, but it won't be saved!",
+  storyRestartQ:"Restart the story? Your saved story progress will be lost.",
   greedLines:[
    "One more. Just to have it.",
    "There are lots of apples here. So they're mine?",
@@ -322,16 +417,16 @@ const L = {
    "Just a little more, and only I will be left."
   ],
   hungerTexts:[
-   "In 2024 about 673 million people lived with chronic hunger — roughly one in twelve people on Earth.",
-   "In the same world, 1.05 billion tonnes of food were thrown away in 2022 — almost a fifth of everything in shops, restaurants and homes.",
-   "Households alone throw away over a billion meals a day. That is more than one meal for every hungry person.",
-   "2.6 billion people cannot afford a healthy diet. There is enough food. There isn't enough access to it.",
+   "About 673 million people lived with chronic hunger in 2024 — roughly one in twelve people on Earth.",
+   "And in that same world, 1.05 billion tonnes of food were thrown away in 2022 — almost a fifth of all the food in shops, restaurants and homes.",
+   "Households alone throw away more than a billion meals every day. That is more than one meal for every hungry person.",
+   "2.6 billion people cannot afford a healthy diet. There is enough food — what's missing is access to it.",
    "Hunger isn't about how many apples grew. It's about who got them. Let's try not to take more than we need."
   ],
-  touch:{apple:"This apple went to you. Someone else went without.", kitten:"That's a kitten. It's hungry too.", farmer:"The farmer grew food they can't afford.", basket:"The harvest went somewhere it wasn't needed."},
+  touch:{kitten:"+5 · That was a kitten. It was hungry too.", farmer:"+10 · The farmer grew food they can't afford."},
   aboutTitle:"About",
   aboutBody:"The familiar snake, reimagined as satire: food is always within reach, and \"eat or don't eat\" becomes a choice. Prototype based on the \"Science Snake\" GDD (working title).",
-  aboutSrc:"Hunger text figures: FAO et al., SOFI 2025 (2024 data); UNEP, Food Waste Index Report 2024 (2022 data).",
+  aboutSrc:"Sources: FAO et al., SOFI 2025; FAO, Food Balance Sheets 2023; UNEP, Food Waste Index 2024; UNICEF/WHO/World Bank, JME 2025; A. Sen, Poverty and Famines, 1981; Cassidy et al., Environ. Res. Lett. 2013; OECD/FAO, Agricultural Outlook 2025; J. Clapp, Canadian Food Studies 2015; UNCTAD, Trade and Development Report 2023 and A World of Debt 2024; Lowder et al., World Development 2021; UN Millennium Project, Halving Hunger 2005; EU Tax Observatory 2024; Ceres2030, 2020.",
   close:"Close"
  }
 };
@@ -357,12 +452,12 @@ function tone(f, d=0.1, type="sine", vol=0.12, f2=null, delay=0){
 }
 const sfx = {
   eat(){ tone(520+Math.random()*260, .09, "triangle", .14, 900); },
-  die(){ tone(180, .35, "sawtooth", .12, 50); },
-  ding(){ tone(880, .25, "sine", .08); tone(1320, .3, "sine", .05, null, .05); },
+  die(){ const p = pj(); tone(180*p, .35, "sawtooth", .12, 50*p); },
+  ding(){ const p = pj(); tone(880*p, .25, "sine", .08); tone(1320*p, .3, "sine", .05, null, .05); },
   growl(){ tone(110, .6, "sawtooth", .16, 45); tone(90, .6, "square", .06, 40); },
   warm(){ [392,494,587,784].forEach((f,i)=>tone(f, 1.2, "sine", .06, null, i*.08)); },
   boom(){ tone(70, 1.0, "sawtooth", .2, 30); },
-  miss(){ tone(300, .15, "sine", .06, 200); }
+  miss(){ const p = pj(); tone(300*p, .15, "sine", .06, 200*p); }
 };
 function buzz(ms){ if (settings.vibe && navigator.vibrate) try{ navigator.vibrate(ms); }catch(e){} }
 
@@ -379,6 +474,7 @@ function show(id){ document.querySelectorAll(".screen").forEach(s => s.classList
 function refreshMenu(){
   const n = Object.keys(save.endings||{}).length;
   $("menuStats").textContent = t("stats", save.best||0, n);
+  $("menuVer").textContent = t("version", VERSION);
   const cp = save.checkpoint;
   $("bCont").style.display = cp ? "" : "none";
   if (cp) $("contSub").textContent = T().ph[cp.phase] || "";
@@ -417,8 +513,8 @@ function settingsModal(after){
    <div class="set"><span>${t("pad")}<small>${t("padSub")}</small></span>${tg("buttons")}</div>
    <div class="set"><span>${t("sound")}</span>${tg("sound")}</div>
    <div class="set"><span>${t("vibe")}</span>${tg("vibe")}</div>
-   <div class="set"><span>${t("lang")}</span><div class="seg"><button data-k="lang" data-v="ru" class="${settings.lang==="ru"?"on":""}">RU</button><button data-k="lang" data-v="en" class="${settings.lang==="en"?"on":""}">EN</button></div></div>
-   <div class="set"><span>${t("test")}<small>${t("testSub")}</small></span>${tg("test")}</div>`;
+   <div class="set"><span>${t("shake")}<small>${t("shakeSub")}</small></span>${tg("shake")}</div>
+   <div class="set"><span>${t("lang")}</span><div class="seg"><button data-k="lang" data-v="ru" class="${settings.lang==="ru"?"on":""}">RU</button><button data-k="lang" data-v="en" class="${settings.lang==="en"?"on":""}">EN</button></div></div>`;
   modal({ title:t("settings"), html, quiet:true, buttons:[
     {label:t("reset"), cls:"warn", on:()=>confirmReset(after)},
     {label:t("done"), cls:"p", on:()=>after&&after()}
@@ -434,31 +530,99 @@ function settingsModal(after){
 }
 function confirmReset(after){
   modal({ title:t("reset"), text:t("resetQ"), buttons:[
-    {label:t("yes"), cls:"warn", on:()=>{ save.best=0; save.endings={}; save.checkpoint=null; persistSave(); refreshMenu(); toast(t("resetDone")); after&&after(); }},
+    {label:t("yes"), cls:"warn", on:()=>{ save.best=0; save.endings={}; save.checkpoint=null; save.tutSeen=false; persistSave(); refreshMenu(); toast(t("resetDone")); after&&after(); }},
     {label:t("cancel"), cls:"p", on:()=>settingsModal(after)}
   ]});
 }
 function applyPad(){ $("pad").classList.toggle("off", !settings.buttons); if (screen==="game") layout(); }
 
 /* =========================================================
+   GAME FEEL
+   Techniques adapted from SNKRX by a327ex (MIT licence,
+   github.com/a327ex/SNKRX): damped springs for squash,
+   HitParticle/HitCircle bursts, decaying noise screen shake,
+   slow-motion on damage, white hit flash. Units are grid cells.
+   ========================================================= */
+const ITEM_COLOR = { apple:"#d32f2f", kitten:"#8e8e8e", farmer:"#8d6e63" };
+const Spring = (x=1, k=200, d=10) => ({ x, target:x, v:0, k, d });
+function springStep(s, dt){ const a = -s.k*(s.x - s.target) - s.d*s.v; s.v += a*dt; s.x += s.v*dt; }
+const easeInOut = k => k<.5 ? 4*k*k*k : 1 - Math.pow(-2*k+2, 3)/2;
+const FX = { parts:[], circles:[], shakes:[], texts:[], slow:1, slowFrom:1, slowT:0, slowDur:0, head:Spring(), bulges:[], hit:0 };
+// floating "+5" over the eaten object: rises and fades (SNKRX-style info text)
+function floatText(x, y, text, color){ FX.texts.push({ x, y, text, color, t:0, dur:.9 }); }
+function fxReset(){
+  FX.parts.length = 0; FX.circles.length = 0; FX.shakes.length = 0; FX.bulges.length = 0; FX.texts.length = 0;
+  FX.slow = 1; FX.slowDur = 0; FX.head = Spring(); FX.hit = 0; cv.style.transform = "";
+}
+// burst of small rectangles flying out and shrinking (SNKRX HitParticle)
+function burst(x, y, color, n=[4,6], spd=[3,7]){
+  const k = n[0] + ((Math.random()*(n[1]-n[0]+1))|0);
+  for (let i=0;i<k;i++) FX.parts.push({ x, y, a:Math.random()*Math.PI*2, v0:rand(spd[0],spd[1]), dur:rand(.2,.6), w0:rand(.2,.36), t:0, color });
+}
+// circle that flashes white, then takes the colour and shrinks (SNKRX HitCircle)
+function hitCircle(x, y, color, r=.6, dur=.22){ FX.circles.push({ x, y, r0:r, dur, t:0, color }); }
+// interpolated noise shake that decays linearly (SNKRX Shake); amp in px
+function shake(amp, dur, freq=60){
+  if (!settings.shake) return;
+  const n = Math.ceil(dur*freq)+2, noise = () => Array.from({length:n}, () => Math.random()*2-1);
+  FX.shakes.push({ amp, dur, freq, t:0, nx:noise(), ny:noise() });
+}
+// time scale drops to `amount` and eases back to 1 (SNKRX slow())
+function slowMo(amount, dur){ FX.slow = FX.slowFrom = amount; FX.slowT = 0; FX.slowDur = dur; }
+function fxUpdate(dt){
+  if (FX.slowDur>0){ FX.slowT += dt; const k = Math.min(1, FX.slowT/FX.slowDur); FX.slow = FX.slowFrom + (1-FX.slowFrom)*easeInOut(k); if (k>=1) FX.slowDur = 0; }
+  springStep(FX.head, dt);
+  if (FX.hit>0) FX.hit -= dt;
+  for (let i=FX.texts.length-1;i>=0;i--){ const f = FX.texts[i]; f.t += dt; if (f.t>=f.dur) FX.texts.splice(i,1); }
+  for (let i=FX.parts.length-1;i>=0;i--){ const p = FX.parts[i]; p.t += dt; if (p.t>=p.dur){ FX.parts.splice(i,1); continue; }
+    const e = easeInOut(p.t/p.dur), v = p.v0*(1-e); p.x += Math.cos(p.a)*v*dt; p.y += Math.sin(p.a)*v*dt; p.w = p.w0 + (.08-p.w0)*e; }
+  for (let i=FX.circles.length-1;i>=0;i--){ const c = FX.circles[i]; c.t += dt; if (c.t>=c.dur) FX.circles.splice(i,1); }
+  let ox = 0, oy = 0;
+  for (let i=FX.shakes.length-1;i>=0;i--){ const s = FX.shakes[i]; s.t += dt; if (s.t>=s.dur){ FX.shakes.splice(i,1); continue; }
+    const q = s.t*s.freq, i0 = Math.floor(q), f = q-i0, decay = (s.dur-s.t)/s.dur;
+    ox += s.amp*(s.nx[i0] + f*(s.nx[i0+1]-s.nx[i0]))*decay; oy += s.amp*(s.ny[i0] + f*(s.ny[i0+1]-s.ny[i0]))*decay; }
+  cv.style.transform = (ox||oy) && settings.shake ? `translate(${ox.toFixed(1)}px,${oy.toFixed(1)}px)` : "";
+}
+function fxDraw(s){
+  for (const c of FX.circles){
+    const e = easeInOut(c.t/c.dur); ctx.fillStyle = c.t < c.dur/2 ? "#fff" : c.color;
+    ctx.beginPath(); ctx.arc(c.x*s, c.y*s, Math.max(0, c.r0*(1-e))*s, 0, 7); ctx.fill();
+  }
+  for (const p of FX.parts){
+    ctx.save(); ctx.translate(p.x*s, p.y*s); ctx.rotate(p.a); ctx.fillStyle = p.color;
+    const w = p.w*s, h = Math.max(.06*s, w/2); ctx.fillRect(-w/2, -h/2, w, h); ctx.restore();
+  }
+  for (const f of FX.texts){
+    const k = f.t/f.dur, sc = 1 + .4*Math.max(0, 1 - k*5);           // small pop, then rise and fade
+    ctx.save(); ctx.globalAlpha = 1 - easeInOut(k);
+    ctx.font = `700 ${Math.floor(s*.8*sc)}px Georgia,serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.lineWidth = Math.max(2, s*.12); ctx.strokeStyle = "#fff"; ctx.fillStyle = f.color;
+    const y = (f.y - k*1.2)*s; ctx.strokeText(f.text, f.x*s, y); ctx.fillText(f.text, f.x*s, y); ctx.restore();
+  }
+}
+// sound pitch jitter, so repeated sounds don't tire the ear (SNKRX plays every sfx at 0.95–1.05)
+const pj = () => 0.95 + Math.random()*0.1;
+
+/* =========================================================
    GAME STATE
    ========================================================= */
 let G = null;
-function freshCounters(){ return { tut:0, tutMiss:0, total:0, ignored:0, avoided:0, q:false, seen:0, greed:0 }; }
+function freshCounters(){ return { total:0, dist:0, fact:0, greedLine:0 }; }
 function newGame(mode, phase, counters){
   G = { mode, phase: phase || (mode==="simple" ? "simple" : "tutorial"),
         snake:[], prev:[], dir:DIRS.right, queue:[], grow:0, items:[],
         t:0, acc:0, nextSpawn:0.3, countdown:0, c: counters || freshCounters(),
         score:0, over:false, black:new Set(), evil:null, flash:0, dark:0, hintUntil:0, tongue:0,
-        pace:{ ignoreT:0, lastWin:0, pending:null }, lives:LIVES, hurt:0 };
-  resetSnake();
+        lives:LIVES, hurt:0, respawnIn:0, factT:0 };
+  $("facts").classList.add("on");          // facts strip in Story and Simple modes
+  fxReset(); resetSnake(); showFact();
 }
 function resetSnake(){
   const cx = N/2, cy = N/2;
   G.snake = [{x:cx,y:cy},{x:cx-1,y:cy},{x:cx-2,y:cy}];
   G.prev = G.snake.map(s=>({...s}));
   G.dir = DIRS.right; G.queue = []; G.grow = 0; G.items = []; G.acc = 0;
-  G.nextSpawn = G.t + 0.3; G.over = false; G.black = new Set(); G.evil = null; G.dark = 0;
+  G.nextSpawn = G.t + 0.3; G.over = false; G.black = new Set(); G.evil = null; G.dark = 0; G.respawnIn = 0; G.noEat = 0;
 }
 function respawnSnake(){
   const cx = N/2, cy = N/2;
@@ -475,12 +639,11 @@ function speed(){
   if (G.phase==="evil") return G.evil.speed;
   const b = baseSpeed();
   if (G.phase==="simple") return b + Math.min(1.5, Math.floor(G.score/5)*0.15);
-  if (G.phase==="hunger") return b*HUNGRY_MULT;
   return b;
 }
 function snakeLook(){
   if (G.phase==="evil") return "evil";
-  if (G.phase==="hunger") return "hungry";
+  if (G.phase==="tutorial" && G.c.total===0 && (G.noEat||0)*2 >= TH().starveSec) return "hungry";   // starving: halfway to ending 4
   if (G.mode==="story" && G.c.total>=10) return "fed";
   return "base";
 }
@@ -488,7 +651,7 @@ function snakeLook(){
 /* ---------- checkpoints ---------- */
 function saveCheckpoint(){
   if (!G || G.mode!=="story") return;
-  if (["choice","classic","hunger"].includes(G.phase)) { save.checkpoint = { phase:G.phase, c:{...G.c} }; persistSave(); }
+  if (["walk","greed"].includes(G.phase)) { save.checkpoint = { phase:G.phase, c:{...G.c} }; persistSave(); }
 }
 function clearCheckpoint(){ save.checkpoint = null; persistSave(); }
 
@@ -499,14 +662,15 @@ function startSimple(){
 function startStory(){
   clearCheckpoint();
   newGame("story"); show("game");
+  if (save.tutSeen) { countdown(1.8); G.hintUntil = 5; return; }          // tutorial only on the very first story
+  save.tutSeen = true; persistSave();
   tutorial(0, () => { countdown(1.8); G.hintUntil = 5; }, true);
 }
 function continueStory(){
-  const cp = save.checkpoint; if (!cp) return startStory();
+  const cp = save.checkpoint; if (!cp || !["walk","greed"].includes(cp.phase)) return startStory();
   newGame("story", cp.phase, Object.assign(freshCounters(), cp.c)); show("game"); countdown(1.8);
-  if (cp.phase==="hunger") toast(t("hungerHint"));
 }
-function toMenu(){ saveCheckpoint(); G = null; show("menu"); refreshMenu(); }
+function toMenu(){ saveCheckpoint(); G = null; fxReset(); show("menu"); refreshMenu(); }
 
 /* =========================================================
    INPUT
@@ -543,6 +707,17 @@ function flashKey(d){ const b = document.querySelector(`#pad [data-d="${d}"]`); 
   el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end); el.addEventListener("pointerleave", end);
 })();
 document.querySelectorAll("#pad button").forEach(b => b.addEventListener("pointerdown", e => { e.preventDefault(); pushDir(b.dataset.d); }));
+// mouse: click on the field -> turn towards the click (touch keeps swipes)
+cv.addEventListener("pointerdown", e => {
+  if (e.pointerType!=="mouse" || e.button!==0 || !G) return;
+  const r = cv.getBoundingClientRect(), h = G.snake[0];
+  const dx = (e.clientX - r.left)/cell - (h.x+.5), dy = (e.clientY - r.top)/cell - (h.y+.5);
+  if (Math.abs(dx)<.5 && Math.abs(dy)<.5) return;                 // clicked on the head itself
+  const horiz = dx>0 ? "right" : "left", vert = dy>0 ? "down" : "up";
+  const main = Math.abs(dx)>=Math.abs(dy) ? horiz : vert, side = main===horiz ? vert : horiz;
+  const last = G.queue.length ? G.queue[G.queue.length-1] : G.dir, d = DIRS[main];
+  pushDir(d.x===-last.x && d.y===-last.y ? side : main);           // click behind the head: turn sideways first
+});
 $("bPause").onclick = () => { audio(); if (!modalOpen) pauseMenu(); };
 $("game").addEventListener("contextmenu", e => e.preventDefault());   // Android long-press menu on arrows/field
 document.addEventListener("visibilitychange", () => { if (document.hidden && screen==="game" && G && !modalOpen && !G.over) pauseMenu(); });
@@ -551,13 +726,22 @@ document.addEventListener("visibilitychange", () => { if (document.hidden && scr
    PAUSE
    ========================================================= */
 function resume(){ if (G && !G.over) countdown(1.2); }
+// Simple mode: restarting throws away the current run, so warn first (record is only saved at game over)
+function confirmSimpleRestart(){
+  if (!G || G.score===0) return startSimple();
+  const isBest = G.score > (save.best||0);
+  modal({ title:t("restartQ"), text: isBest ? t("restartLoseBest", G.score) : t("restartLose", G.score), buttons:[
+    {label:t("restart"), cls:"warn", on:startSimple},
+    {label:t("cancel"), cls:"p", on:pauseMenu}
+  ]});
+}
 function pauseMenu(){
   if (!G || G.over) return;
   saveCheckpoint();
   const story = G.mode==="story";
   modal({ title:t("pause"), buttons:[
     {label:t("resume"), cls:"p", on:resume},
-    {label: story ? t("restartCp") : t("restart"), on:()=> story ? restartPhase() : startSimple()},
+    {label: story ? t("restartCp") : t("restart"), on:()=> story ? restartPhase() : confirmSimpleRestart()},
     {label:t("settings"), on:()=>settingsModal(pauseMenu)},
     {label:t("toMenu"), on:toMenu}
   ]});
@@ -664,27 +848,26 @@ function rand(a,b){ return a+Math.random()*(b-a); }
 function maxItems(){
   switch(G.phase){
     case "simple": case "tutorial": return 1;
-    case "choice": case "classic": return 2;
-    case "hunger": return Math.min(3, 2 + Math.floor(G.c.avoided/15));
+    case "walk": return 2;
+    case "greed": return 3;
     default: return 0;
   }
 }
 function spawnOne(type, life){
-  const p = freeCell(G.phase==="hunger" ? 4 : 3) || freeCell(1); if (!p) return;
+  const p = freeCell(G.phase==="walk" ? 4 : 3) || freeCell(1); if (!p) return;
   G.items.push({ ...p, type, born:G.t, life });
 }
 function spawnLogic(){
   if (G.items.length >= maxItems() || G.t < G.nextSpawn) return;
   switch(G.phase){
-    case "simple": spawnOne("apple", Infinity); break;
-    case "tutorial": spawnOne("apple", TUT_APPLE_LIFE); break;
-    case "choice": case "classic": spawnOne("apple", APPLE_LIFE); break;
-    case "hunger": {
+    case "simple": case "tutorial": spawnOne("apple", Infinity); break;   // no missed apples before "Мне хватит"
+    case "walk": spawnOne("apple", APPLE_LIFE); break;
+    case "greed": {
       const r = Math.random();
-      spawnOne(r<.3?"apple":r<.55?"kitten":r<.8?"farmer":"basket", rand(HUNGER_LIFE[0],HUNGER_LIFE[1])); break;
+      spawnOne(r<.5?"apple":r<.75?"kitten":"farmer", rand(GREED_LIFE[0],GREED_LIFE[1])); break;
     }
   }
-  G.nextSpawn = G.t + (G.phase==="tutorial" ? 1.2 : G.phase==="hunger" ? rand(2.5,3.5) : rand(SPAWN_GAP[0],SPAWN_GAP[1]));
+  G.nextSpawn = G.t + (G.phase==="tutorial" ? 1.2 : G.phase==="greed" ? rand(2.5,3.5) : rand(SPAWN_GAP[0],SPAWN_GAP[1]));
 }
 function expireItems(){
   for (let i=G.items.length-1;i>=0;i--){
@@ -697,123 +880,122 @@ function expireItems(){
    STORY EVENTS
    ========================================================= */
 /* ---------------------------------------------------------
-   WINDOW PACING
-   Story windows (narrative texts) never pop on every apple:
-   • EAT trigger    – every 5th apple eaten  -> snake monologue line
-                      (choice phase: the 10th apple -> the question)
-   • IGNORE trigger – 20 s of game time without eating -> next hunger text
-                      (in the choice phase the 1st one opens the Hunger branch)
-   • COOLDOWN       – at least 15 s of play between two paced windows;
-                      an eat-window that falls into the cooldown waits
-                      in a queue and shows as soon as the cooldown ends.
-   Critical windows (Мне хватит, the question, death, endings) are never
-   delayed. Timers only run while the snake is actually moving.
+   STORY FLOW
+   tutorial : eat 5 apples                 -> window "Мне хватит."      -> walk
+              0 eaten for 30 s            -> Ending 4 «Заботься и о себе»
+   walk     : 5..14 eaten. Eating apple 10 -> window "просто поползаем"
+              eating apple 15             -> window "Посмотрим…"        -> greed
+              crawl 300 cells (eating does not reset it):
+                 eaten == 5   -> Ending 1 «Спасибо» (good)
+                 eaten 6..14  -> Ending 2 «Усидеть на двух стульях»
+   greed    : no way back. Kittens (+5) and farmers (+10) appear with apples (+1).
+              50 points -> Evil snake -> Ending 3 «Алчность» (bad)
+   Hunger facts never stop the game: they rotate in the strip above the grid.
    --------------------------------------------------------- */
-const PACE = { eatEvery:5, ignoreSec:20, cooldown:15 };
-function pacerReset(){ G.pace = { ignoreT:0, lastWin:G.t, pending:null }; }
-function canWindow(){ return G.t - G.pace.lastWin >= PACE.cooldown; }
-function markWindow(){ G.pace.lastWin = G.t; G.pace.ignoreT = 0; }
-function pacerTick(dt){
-  if (!G.pace) pacerReset();
-  const ph = G.phase;
-  if (ph==="choice" || ph==="hunger") G.pace.ignoreT += dt;
-  if (G.pace.pending && canWindow()){ const f = G.pace.pending; G.pace.pending = null; markWindow(); f(); return; }
-  if ((ph==="choice" || ph==="hunger") && G.pace.ignoreT >= PACE.ignoreSec && canWindow()){
-    const c = G.c, n = T().hungerTexts.length;
-    if (c.seen < n){
-      const i = c.seen++; markWindow();
-      hungerText(i, () => ph==="choice" ? enterHunger() : resume());
-    } else if (ph==="choice") { markWindow(); enterHunger(); }
-    else G.pace.ignoreT = 0;
+const POINTS = { apple:1, kitten:5, farmer:10 };
+function storyLine(key, after){
+  modal({ text:t(key), big:true, buttons:[{label:t("ok"), cls:"p", on:()=>{ after && after(); resume(); }}] });
+}
+// Story: 5 hunger facts. Simple: the short text on hunger and capitalism, sentence by sentence, in order.
+function factList(){
+  if (G.mode==="simple"){
+    const f = T().simpleFacts, n = f.length;
+    return f.map(([tp, text], i) => ({ text, kick:t("factN", t(tp==="c" ? "topicC" : "topicH"), i+1, n) }));
   }
+  const h = T().hungerTexts;
+  return h.map((x,i) => ({ text:x, kick:t("factKick", i+1, h.length) }));
+}
+function showFact(){
+  const el = $("factText"), k = $("factKick");
+  if (!G) return;
+  if (G.phase==="tutorial"){ k.textContent = ""; el.textContent = t("factsWait"); return; }
+  const list = factList(), f = list[G.c.fact % list.length];
+  k.textContent = f.kick;
+  const arr = [f.text], i = 0;
+  el.classList.add("fade");
+  setTimeout(() => { el.textContent = arr[i]; el.classList.remove("fade"); }, 250);
+}
+function factTick(dt){
+  if (G.phase==="tutorial") return;
+  G.factT = (G.factT||0) + dt;
+  if (G.factT >= (G.mode==="simple" ? TH().textSec : TH().factSec)){ G.factT = 0; G.c.fact++; showFact(); }
 }
 function onExpire(it){
   const c = G.c;
-  switch(G.phase){
-    case "tutorial":
-      c.tutMiss++; sfx.miss();
-      if (c.tutMiss >= TUT_MISS_LIMIT) return endingStarve();
-      toast(t("tutMiss")); break;
-    case "choice": case "classic": c.ignored++; break;
-    case "hunger":
-      c.avoided++;
-      if (c.avoided >= TH().avoid) return endingThanks();
-      break;
+  // soft "poof": avoided things dissolve quietly instead of blinking out
+  const soft = G.phase==="walk" ? "#9cbfa2" : "#d9a3a3";
+  burst(it.x+.5, it.y+.5, soft, [3,4], [1.5,3]); hitCircle(it.x+.5, it.y+.5, soft, .4, .25);
+}
+// called once per cell the snake moves
+function storyStep(){
+  if (G.mode!=="story" || G.phase!=="walk") return;
+  G.c.dist++;
+  if (G.c.dist >= TH().walkDist) G.c.total <= TH().tut ? endingThanks() : endingChairs();
+}
+// called every frame of play
+function storyTick(dt){
+  factTick(dt);
+  if (G.phase==="tutorial" && G.c.total===0){
+    G.noEat += dt;
+    if (G.noEat >= TH().starveSec) endingCare();
   }
-}
-function hungerText(i, after){
-  const arr = T().hungerTexts, n = arr.length;
-  modal({ kick:t("textKick", i+1, n), dots:[i,n], text:arr[i],
-    buttons:[{label:t("ok"), cls:"p", on:after}] });
-}
-function greedLine(){
-  // one queued window at most; lines are taken in order when the window actually opens
-  if (G.pace.pending || G.c.greed >= T().greedLines.length) return;
-  G.pace.pending = () => {
-    const c = G.c, i = c.greed++;
-    modal({ kick:t("greedKick", c.total), text:T().greedLines[i], big:true, buttons:[{label:t("ok"), cls:"p", on:resume}] });
-  };
 }
 function eatItem(it){
   G.grow++; sfx.eat(); buzz(12);
+  const col = ITEM_COLOR[it.type] || ITEM_COLOR.apple;
+  burst(it.x+.5, it.y+.5, col); hitCircle(it.x+.5, it.y+.5, col);
+  FX.head.x += 0.3;                          // head squash-and-stretch (spring pull)
+  FX.bulges.push({ p:0 });                   // swallowed lump travels down the body
+  if (G.phase==="evil") shake(3, .2);
   const c = G.c;
-  if (G.pace) G.pace.ignoreT = 0;           // eating breaks an ignore streak
   switch(G.phase){
     case "simple":
       G.score++; break;
     case "tutorial":
-      c.tut++; c.total++;
-      if (c.tut >= TH().tut){
+      c.total++;
+      if (c.total >= TH().tut){
         G.items = [];
-        modal({ text:t("enough"), big:true, buttons:[{label:t("ok"), cls:"p", on:()=>{ G.phase="choice"; G.nextSpawn=G.t+0.5; pacerReset(); saveCheckpoint(); resume(); }}] });
+        storyLine("enough", () => { G.phase = "walk"; G.nextSpawn = G.t + 0.5; G.factT = 0; saveCheckpoint(); showFact(); });
       }
       break;
-    case "choice":
+    case "walk":
       c.total++;
-      if (c.total >= TH().question && !c.q){
-        c.q = true; G.pace.pending = null;
-        modal({ text:t("question"), big:true, buttons:[
-          {label:t("qYes"), cls:"p", on:()=>{
-            markWindow();
-            if (c.seen < T().hungerTexts.length) { const i = c.seen++; hungerText(i, enterHunger); } else enterHunger();
-          }},
-          {label:t("qNo"), on:()=>{ G.phase="classic"; markWindow(); saveCheckpoint(); resume(); }}
-        ]});
-      }
+      if (c.total >= TH().see){
+        G.items = [];
+        storyLine("letsSee", () => { G.phase = "greed"; G.nextSpawn = G.t + 0.8; saveCheckpoint(); toast(t("greedHint"), 3500); });
+      } else if (c.total === TH().walk) storyLine("walkLine");
       break;
-    case "classic":
-      c.total++;
-      if (c.total >= TH().greed) startEvil();
-      else if (c.total % PACE.eatEvery === 0) greedLine();
+    case "greed": {
+      const pts = POINTS[it.type] || 1, before = c.total;
+      c.total += pts;
+      floatText(it.x+.5, it.y+.2, "+"+pts, col);
+      if (c.total >= TH().greed) { startEvil(); break; }
+      if (it.type!=="apple") toast(T().touch[it.type] || "", 2200);
+      else if (Math.floor(c.total/5) > Math.floor(before/5)) toast(T().greedLines[c.greedLine++ % T().greedLines.length], 2600);
       break;
-    case "hunger":
-      c.total++;
-      if (c.total >= TH().greed) startEvil();
-      else {
-        toast(T().touch[it.type] || "");          // short, non-blocking (GDD 7.3)
-        if (c.total % PACE.eatEvery === 0) greedLine();
-      }
-      break;
+    }
     case "evil":
       G.evil.speed = Math.min(EVIL_MAX, G.evil.speed + 0.35); break;
   }
 }
-function enterHunger(hint){
-  G.phase = "hunger"; G.items = []; G.nextSpawn = G.t + 0.8;
-  markWindow(); saveCheckpoint(); resume(); toast(hint || t("hungerHint"), 3200);
-}
 function restartPhase(){
   // story checkpoint = start of current phase, counters persist (GDD 8.7)
-  const ph = G.phase==="evil" ? (save.checkpoint ? save.checkpoint.phase : "classic") : G.phase;
+  const ph = G.phase==="evil" ? "greed" : G.phase;
   if (ph==="tutorial") G.c = freshCounters();
-  G.phase = ph; G.lives = LIVES; resetSnake(); pacerReset(); countdown(1.8);
+  G.phase = ph; G.lives = LIVES; resetSnake(); countdown(1.8); showFact();
+}
+function crashFx(){
+  const h = G.snake[0], col = PAL[snakeLook()].head;
+  burst(h.x+.5, h.y+.5, col, [6,9], [4,9]); hitCircle(h.x+.5, h.y+.5, col, .9, .3);
+  FX.hit = 0.15; FX.head.x += 0.35; shake(6, .5); slowMo(.25, 1);
 }
 function die(){
   G.lives = Math.max(0, G.lives-1); G.hurt = 0.6;
+  crashFx();
   if (G.lives > 0){                         // lose a life, keep playing
     G.flash = 0.35; sfx.die(); buzz([40,40,80]);
     toast(t("lifeLost", G.lives), 1800);
-    respawnSnake(); countdown(1.8);
+    G.respawnIn = 0.55;                     // let the crash be seen, then respawn
     return;
   }
   G.over = true; G.flash = 0.35; sfx.die(); buzz([40,40,80]);
@@ -824,7 +1006,7 @@ function die(){
         buttons:[{label:t("again"), cls:"p", on:startSimple},{label:t("toMenu"), on:toMenu}] });
     } else {
       saveCheckpoint();
-      modal({ title:t("over"), buttons:[{label:t("restart"), cls:"p", on:restartPhase},{label:t("toMenu"), on:toMenu}] });
+      modal({ title:t("over"), buttons:[{label:t("restartCp"), cls:"p", on:restartPhase},{label:t("toMenu"), on:toMenu}] });
     }
   }, 450);
 }
@@ -834,8 +1016,10 @@ function startEvil(){
   G.phase = "evil"; G.queue = []; G.flash = 0.6;
   G.evil = { speed: Math.min(EVIL_MAX, baseSpeed()*1.8), fieldStart:null };
   sfx.growl(); buzz([60,40,120]); toast(t("evilToast"), 2600);
+  { const h = G.snake[0]; burst(h.x+.5, h.y+.5, "#b23a48", [10,14], [4,10]); }
+  FX.hit = 0.2; FX.head.x += 0.5; shake(9, 1); slowMo(.4, .8);
   G.items = [];
-  ["apple","kitten","farmer","apple","basket","farmer","kitten"].forEach(ty => spawnOne(ty, Infinity));
+  ["apple","kitten","farmer","apple","apple","farmer","kitten"].forEach(ty => spawnOne(ty, Infinity));
 }
 function autopilot(){
   const h = G.snake[0];
@@ -862,25 +1046,33 @@ function autopilot(){
 }
 
 /* ---------- endings ---------- */
-function endingStarve(){
-  G.over = true; save.endings.starve = 1; clearCheckpoint();
-  modal({ title:t("starveTitle"), text:t("starveText"), buttons:[{label:t("newGame"), cls:"p", on:startStory},{label:t("mainMenu"), on:toMenu}] });
-}
-function endingThanks(){
+function endingThanks(){          // Ending 1 (good): stopped at exactly 5 apples
   G.over = true; save.endings.thanks = 1; clearCheckpoint(); sfx.warm();
   G.items = [];
   modal({ kick:t("e1Kick"), title:t("e1Title"), text:t("e1Text"), big:true,
     buttons:[{label:t("mainMenu"), cls:"p", on:toMenu},{label:t("playAgain"), on:startStory}] });
 }
-function endingGreed(){
+function endingChairs(){          // Ending 2: ate 6–14, then stopped
+  G.over = true; save.endings.chairs = 1; clearCheckpoint(); sfx.warm();
+  G.items = [];
+  modal({ kick:t("e2Kick"), title:t("e2Title"), text:t("e2Text"), big:true,
+    buttons:[{label:t("mainMenu"), cls:"p", on:toMenu},{label:t("playAgain"), on:startStory}] });
+}
+function endingCare(){            // Ending 4: ate nothing at all
+  G.over = true; save.endings.care = 1; clearCheckpoint(); sfx.miss();
+  modal({ kick:t("e4Kick"), title:t("e4Title"), text:t("e4Text"), big:true,
+    buttons:[{label:t("playAgain"), cls:"p", on:startStory},{label:t("mainMenu"), on:toMenu}] });
+}
+function endingGreed(){           // Ending 3 (bad): 50 points
+  shake(10, 1);
   G.over = true; save.endings.greed = 1; clearCheckpoint(); sfx.boom();
-  modal({ dark:true, kick:t("e2Kick"), title:t("e2Title"), text:t("e2Text"),
+  modal({ dark:true, kick:t("e3Kick"), title:t("e3Title"), text:t("e3Text"),
     buttons:[{label:t("newRoute"), cls:"p", on:newRoute},{label:t("mainMenu"), on:toMenu}] });
 }
 function newRoute(){
-  // reset story progress, start Hunger branch right after the tutorial
-  const c = freshCounters(); c.tut = TH().tut; c.q = true;
-  newGame("story", "hunger", c); show("game"); saveCheckpoint(); countdown(1.8);
+  // reset story progress, start right after "Мне хватит" with exactly 5 eaten
+  const c = freshCounters(); c.total = TH().tut;
+  newGame("story", "walk", c); show("game"); saveCheckpoint(); countdown(1.8);
   toast(t("routeHint"), 3500);
 }
 
@@ -900,6 +1092,7 @@ function step(){
   if (growing) G.grow--; else G.snake.pop();
   const idx = G.items.findIndex(i=>i.x===nh.x && i.y===nh.y);
   if (idx>=0){ const it = G.items.splice(idx,1)[0]; eatItem(it); }
+  storyStep();
   if (G.phase==="evil"){
     if (!G.items.length && G.evil.fieldStart===null) G.evil.fieldStart = G.t;
     if (G.evil.fieldStart!==null){
@@ -914,6 +1107,7 @@ function update(dt){
   if (G.hurt>0) G.hurt -= dt;
   G.tongue += dt;
   if (modalOpen || G.over) return;
+  if (G.respawnIn>0){ G.respawnIn -= dt; if (G.respawnIn<=0){ respawnSnake(); countdown(1.8); } return; }
   if (G.countdown>0){ G.countdown -= dt; return; }
   G.t += dt;
   if (G.hintUntil>0) G.hintUntil -= dt;
@@ -921,8 +1115,10 @@ function update(dt){
   spawnLogic();
   G.acc += dt;
   let st = 1/speed();
-  while (G.acc >= st && !modalOpen && !G.over){ G.acc -= st; step(); st = 1/speed(); }
-  if (G.mode==="story" && !modalOpen && !G.over) pacerTick(dt);
+  while (G.acc >= st && !modalOpen && !G.over && !(G.respawnIn>0)){ G.acc -= st; step(); st = 1/speed(); }
+  for (let i=FX.bulges.length-1;i>=0;i--){ FX.bulges[i].p += speed()*dt; if (FX.bulges[i].p > G.snake.length) FX.bulges.splice(i,1); }
+  if (G.mode==="story" && !modalOpen && !G.over) storyTick(dt);
+  else if (G.mode==="simple" && !modalOpen && !G.over) factTick(dt);
   if (G.phase==="evil" && G.evil.fieldStart!==null && !G.over){
     const e = G.t - G.evil.fieldStart;
     G.dark = Math.min(1, e/3);
@@ -962,7 +1158,7 @@ function drawApple(x,y,s){
   ctx.strokeStyle="#5d4037"; ctx.lineWidth=Math.max(1,s*.07); ctx.beginPath(); ctx.moveTo(cx,cy-r*.7); ctx.quadraticCurveTo(cx+s*.03,cy-r*1.2,cx+s*.1,cy-r*1.35); ctx.stroke();
   ctx.fillStyle="#43a047"; ctx.beginPath(); ctx.ellipse(cx+s*.14,cy-r*1.05,s*.12,s*.06,-.5,0,7); ctx.fill();
 }
-const EMOJI = { kitten:"🐱", farmer:"🧑‍🌾", basket:"🧺" };
+const EMOJI = { kitten:"🐱", farmer:"🧑‍🌾" };
 
 function render(){
   if (screen!=="game" || !G) return;
@@ -989,7 +1185,7 @@ function render(){
     const age = G.t - it.born, pop = Math.min(1, age/POP_SEC), sc = pop<1 ? 0.3 + 0.7*(1-Math.pow(1-pop,3)) + Math.sin(pop*Math.PI)*0.12 : 1;
     ctx.save(); ctx.translate((it.x+.5)*s,(it.y+.5)*s); ctx.scale(sc,sc); ctx.translate(-(it.x+.5)*s,-(it.y+.5)*s);
     if (isFinite(it.life)){
-      ctx.strokeStyle = G.phase==="hunger" ? "rgba(23,58,34,.35)" : "rgba(211,47,47,.35)";
+      ctx.strokeStyle = G.phase==="greed" && it.type!=="apple" ? "rgba(23,58,34,.35)" : "rgba(211,47,47,.35)";
       ctx.lineWidth = Math.max(1.5, s*.07);
       ctx.beginPath(); ctx.arc((it.x+.5)*s,(it.y+.5)*s,s*.48,-Math.PI/2,-Math.PI/2+Math.PI*2*Math.max(0,rem/it.life)); ctx.stroke();
     }
@@ -1000,6 +1196,7 @@ function render(){
   });
 
   drawSnake(s);
+  fxDraw(s);
 
   // overlays
   if (G.dark>0){ ctx.fillStyle=`rgba(0,0,0,${G.dark*.9})`; ctx.fillRect(0,0,W,W); }
@@ -1032,14 +1229,17 @@ function drawSnake(s){
     return { x:q.x+dx*tt, y:q.y+dy*tt };
   });
   const len = pts.length;
-  const width = i => { const base=.78; const fromTail=len-1-i; return fromTail<3 ? base*(.6+.13*fromTail) : base; };
+  const width = i => { const base=.78; const fromTail=len-1-i; let w = fromTail<3 ? base*(.6+.13*fromTail) : base;
+    for (const b of FX.bulges) w *= 1 + .38*Math.max(0, 1 - Math.abs(i - b.p)/1.3);   // swallowed lump
+    return w; };
+  const white = FX.hit > 0;
   const offs = [[0,0],[N,0],[-N,0],[0,N],[0,-N]];
   ctx.lineCap="round"; ctx.lineJoin="round";
   for (const [ox,oy] of offs){
     for (let i=len-1;i>=1;i--){
       const a=pts[i], b=pts[i-1];
       const k = i/(len-1||1);
-      ctx.strokeStyle = rgb(look.a, look.b, k);
+      ctx.strokeStyle = white ? "#ffffff" : rgb(look.a, look.b, k);
       ctx.lineWidth = width(i)*s;
       if (Math.abs(a.x-b.x)>1.5 || Math.abs(a.y-b.y)>1.5){
         ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc((a.x+ox+.5)*s,(a.y+oy+.5)*s,width(i)*s/2,0,7); ctx.fill(); continue;
@@ -1050,8 +1250,16 @@ function drawSnake(s){
   }
 }
 function drawHead(x,y,s,look){
-  const cx=(x+.5)*s, cy=(y+.5)*s, d=G.dir, r=s*.47;
+  const cx=(x+.5)*s, cy=(y+.5)*s;
   if (cx<-s || cy<-s || cx>s*(N+1) || cy>s*(N+1)) return;
+  // spring scale: stretch along the movement direction, squash across it
+  const k = FX.head.x, d = G.dir, along = k, across = 1/Math.sqrt(Math.max(.3,k));
+  ctx.save(); ctx.translate(cx,cy); ctx.scale(d.x ? along : across, d.x ? across : along); ctx.translate(-cx,-cy);
+  drawHeadShape(cx, cy, s, FX.hit>0 ? { ...look, head:"#ffffff" } : look);
+  ctx.restore();
+}
+function drawHeadShape(cx,cy,s,look){
+  const d=G.dir, r=s*.47;
   ctx.fillStyle = look.head;
   ctx.beginPath(); ctx.ellipse(cx+d.x*s*.04, cy+d.y*s*.04, d.x? r*1.06:r, d.y? r*1.06:r, 0,0,7); ctx.fill();
   // tongue
@@ -1083,10 +1291,13 @@ function updateHud(){
   const c = G.c, th = TH(); let a="", b="";
   switch(G.phase){
     case "simple": a=t("hudScore",G.score); b=t("hudBest",Math.max(save.best||0,G.score)); break;
-    case "tutorial": a=t("hudTut",c.tut,th.tut); b=t("tutGoal"); break;
-    case "choice": a=t("hudEaten",c.total); b=t("hudIgnored",c.ignored); break;
-    case "classic": a=t("hudClassic",c.total,th.greed); b=t("hudIgnored",c.ignored); break;
-    case "hunger": a=t("hudAvoid",c.avoided,th.avoid); b=t("hudAvoidSub",c.total,th.greed); break;
+    case "tutorial": {
+      a=t("hudTut",c.total,th.tut);
+      const left = Math.ceil(th.starveSec - (G.noEat||0));
+      b = c.total===0 && left <= 10 ? t("starveWarn", Math.max(0,left)) : t("tutGoal"); break;
+    }
+    case "walk": a=t("hudEaten",c.total); b=t("hudWalk",c.dist,th.walkDist); break;
+    case "greed": a=t("hudGreed",c.total,th.greed); b=t("hudGreedSub"); break;
     case "evil": a=t("hudEvil"); b="…"; break;
   }
   const ph = T().ph[G.phase] || "";
@@ -1100,18 +1311,18 @@ function updateHud(){
    LOOP + WIRING
    ========================================================= */
 let last = performance.now();
-function frame(now){ const dt = Math.min(0.05,(now-last)/1000); last = now; update(dt); render(); requestAnimationFrame(frame); }
+function frame(now){ const dt = Math.min(0.05,(now-last)/1000); last = now; fxUpdate(dt); update(dt*FX.slow); render(); requestAnimationFrame(frame); }
 requestAnimationFrame(frame);
 
-$("bStory").onclick = () => { audio(); if (save.checkpoint) modal({ text:t("restart")+"?", buttons:[{label:t("restart"), cls:"p", on:startStory},{label:t("cancel")}] }); else startStory(); };
+$("bStory").onclick = () => { audio(); if (save.checkpoint) modal({ title:t("restartQ"), text:t("storyRestartQ"), buttons:[{label:t("restart"), cls:"warn", on:startStory},{label:t("cancel"), cls:"p"}] }); else startStory(); };
 $("bCont").onclick = () => { audio(); continueStory(); };
 $("bSimple").onclick = () => { audio(); startSimple(); };
 $("bSettings").onclick = () => { audio(); settingsModal(()=>{}); };
 $("bTut").onclick = () => { audio(); tutorial(0, ()=>{}, false); };
-$("bAbout").onclick = () => { audio(); modal({ title:t("aboutTitle"), text:t("aboutBody"), src:t("aboutSrc"), buttons:[{label:t("close"), cls:"p"}] }); };
+$("bAbout").onclick = () => { audio(); modal({ title:t("aboutTitle"), text:t("aboutBody"), src:t("aboutSrc") + "<br>" + t("version", VERSION), buttons:[{label:t("close"), cls:"p"}] }); };
 
 // test hook for QA automation
-window.__ss = { get G(){ return G; }, settings, save, step, startEvil };  // QA hook
+window.__ss = { get G(){ return G; }, settings, save, step, startEvil, FX };  // QA hook
 
 applyLang(); applyPad();
 })();
