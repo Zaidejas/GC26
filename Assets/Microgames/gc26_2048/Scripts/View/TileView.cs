@@ -4,7 +4,11 @@ using UnityEngine.UI;
 
 namespace GC26._2048
 {
-    /// <summary>One item on the field: tinted box with the item icon only (names live in the rules window).</summary>
+    /// <summary>
+    /// One item on the field: tinted box with the item icon only (names live in the rules window).
+    /// Effects: appear, pulse, glow after a merge, jelly squash after a bump, flight to the hole.
+    /// Effects run on the tile itself, so a tile going back to the pool stops them; <see cref="Show"/> resets the look.
+    /// </summary>
     public class TileView : MonoBehaviour
     {
         const float Gap = 0.03f;
@@ -14,6 +18,10 @@ namespace GC26._2048
         Image box;
         Image icon;
         CanvasGroup group;
+        Image glow;
+        Coroutine shapeEffect, glowEffect;
+
+        static readonly Color GlowColor = new Color(1f, 0.93f, 0.55f, 0f);
 
         public int Level { get; private set; }
 
@@ -30,6 +38,13 @@ namespace GC26._2048
             view.box.raycastTarget = false;
             CheeseUi.AddShadow(rt.gameObject, 8f);
 
+            // under the icon, bigger than the tile: lights the tile up and spills a little halo around it
+            view.glow = CheeseUi.Picture(rt, "Glow", art.Glow);
+            view.glow.preserveAspect = false;
+            view.glow.rectTransform.Place(-0.3f, -0.3f, 1.3f, 1.3f);
+            view.glow.color = GlowColor;
+            view.glow.gameObject.SetActive(false);
+
             view.icon = CheeseUi.Picture(rt, "Icon", null);
             view.icon.rectTransform.Place(0.08f, 0.08f, 0.92f, 0.92f);
             return view;
@@ -40,7 +55,7 @@ namespace GC26._2048
             Level = level;
             box.color = CheeseArt.TileColor(level);
             icon.sprite = art.Item(level);
-            rect.localScale = Vector3.one;
+            StopEffects();
             group.alpha = 1f;
             gameObject.SetActive(true);
         }
@@ -60,6 +75,77 @@ namespace GC26._2048
         }
 
         public void SetCell(int row, int col) => SetAnchor(CellMin(row, col));
+
+        void StopEffects()
+        {
+            if (shapeEffect != null) StopCoroutine(shapeEffect);
+            if (glowEffect != null) StopCoroutine(glowEffect);
+            shapeEffect = glowEffect = null;
+            rect.localScale = Vector3.one;
+            glow.gameObject.SetActive(false);
+        }
+
+        void OnDisable()
+        {
+            shapeEffect = glowEffect = null; // coroutines stop with the object
+        }
+
+        /// <summary>Starts a scale effect, replacing the one running (a new move can come mid-animation).</summary>
+        void PlayShape(IEnumerator effect)
+        {
+            if (!isActiveAndEnabled) return;
+            if (shapeEffect != null) StopCoroutine(shapeEffect);
+            rect.localScale = Vector3.one;
+            shapeEffect = StartCoroutine(effect);
+        }
+
+        /// <summary>Merge result: a short pulse and a soft warm glow that flares up and fades.</summary>
+        public void PlayMerge()
+        {
+            PlayShape(Pulse());
+            if (!isActiveAndEnabled) return;
+            if (glowEffect != null) StopCoroutine(glowEffect);
+            glowEffect = StartCoroutine(Glow());
+        }
+
+        /// <summary>Bumped into another item without merging: jelly squash along the move axis.</summary>
+        public void PlayBump(bool horizontal) => PlayShape(Jelly(horizontal));
+
+        IEnumerator Glow(float duration = 0.55f)
+        {
+            glow.gameObject.SetActive(true);
+            var grt = glow.rectTransform;
+            grt.SetAsFirstSibling(); // below the icon
+            for (float t = 0; t < duration; t += Time.unscaledDeltaTime)
+            {
+                float k = t / duration;
+                // quick flare (first 20 %), then a slow fade
+                float a = k < 0.2f ? k / 0.2f : 1f - (k - 0.2f) / 0.8f;
+                glow.color = new Color(GlowColor.r, GlowColor.g, GlowColor.b, 0.85f * a * a);
+                grt.localScale = Vector3.one * Mathf.Lerp(0.8f, 1.15f, EaseOut(k));
+                yield return null;
+            }
+            glow.gameObject.SetActive(false);
+            glowEffect = null;
+        }
+
+        /// <summary>
+        /// Squashed along the move axis at the moment of impact (and a little wider across it), then it wobbles back
+        /// like jelly: a damped spring, about 0.4 s.
+        /// </summary>
+        IEnumerator Jelly(bool horizontal, float duration = 0.42f)
+        {
+            const float squash = 0.16f, bulge = 0.08f, damping = 7f, wobbles = 2.6f;
+            for (float t = 0; t < duration; t += Time.unscaledDeltaTime)
+            {
+                float f = Mathf.Exp(-damping * t) * Mathf.Cos(2f * Mathf.PI * wobbles * t);
+                float along = 1f - squash * f, across = 1f + bulge * f;
+                rect.localScale = horizontal ? new Vector3(along, across, 1f) : new Vector3(across, along, 1f);
+                yield return null;
+            }
+            rect.localScale = Vector3.one;
+            shapeEffect = null;
+        }
 
         public IEnumerator Appear(float duration = 0.16f)
         {

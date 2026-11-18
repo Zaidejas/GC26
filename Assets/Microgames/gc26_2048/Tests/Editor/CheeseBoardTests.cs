@@ -151,5 +151,57 @@ namespace GC26._2048.Tests
             Assert.AreEqual(14, cells.Count(l => l == 0));
             Assert.AreEqual(150, s.MovesLeft);
         }
+
+        // ---- bumps: items that slid into each other without merging (jelly squash in the view) ----
+
+        static int Id(Board b, int col) => b.IdAt(0, col);
+
+        [Test]
+        public void SlidingIntoAnotherItemBumpsBoth()
+        {
+            var b = Row(1, 0, 2, 0);
+            int grass = Id(b, 0), hay = Id(b, 2);
+            var r = b.Move(Direction.Left);
+            Assert.AreEqual(Direction.Left, r.Direction);
+            CollectionAssert.AreEquivalent(new[] { grass, hay }, r.Bumped);
+        }
+
+        [Test]
+        public void SlidingToTheWallIsNotABump()
+        {
+            var b = Row(0, 0, 3, 0);
+            var r = b.Move(Direction.Left);
+            Assert.IsTrue(r.Changed);
+            CollectionAssert.IsEmpty(r.Bumped);
+        }
+
+        [Test]
+        public void ItemsAlreadyTouchingDoNotBump()
+        {
+            var b = Row(1, 2, 0, 0);
+            var r = b.Move(Direction.Right);
+            Assert.AreEqual(new[] { 0, 0, 1, 2 }, FirstRow(b));
+            CollectionAssert.IsEmpty(r.Bumped, "they slid together, nothing hit them");
+        }
+
+        [Test]
+        public void MergedItemGlowsInsteadOfBumping()
+        {
+            var b = Row(1, 1, 0, 2);
+            int hay = Id(b, 3);
+            var r = b.Move(Direction.Left);
+            Assert.AreEqual(new[] { 2, 2, 0, 0 }, FirstRow(b));
+            CollectionAssert.AreEquivalent(new[] { hay }, r.Bumped);
+        }
+
+        [Test]
+        public void TrainOfItemsAllBumpWhenTheFrontOneHits()
+        {
+            var b = Row(1, 0, 2, 3);
+            int a = Id(b, 0), c = Id(b, 2), d = Id(b, 3);
+            var r = b.Move(Direction.Left);
+            Assert.AreEqual(new[] { 1, 2, 3, 0 }, FirstRow(b));
+            CollectionAssert.AreEquivalent(new[] { a, c, d }, r.Bumped);
+        }
     }
 }

@@ -49,6 +49,13 @@ namespace GC26._2048
         public int TopLevel;
         public bool FirstCheese;
         public TileEvent? Spawned;
+        /// <summary>Side the items slid to.</summary>
+        public Direction Direction;
+        /// <summary>
+        /// Items that knocked into each other without merging: one slid up against another and stopped, so both
+        /// get the "jelly" squash. Items made by a merge are not listed (they glow instead).
+        /// </summary>
+        public readonly List<int> Bumped = new List<int>();
         public readonly List<TileEvent> Events = new List<TileEvent>();
     }
 }

@@ -7,8 +7,9 @@ using UnityEngine.UI;
 namespace GC26._2048
 {
     /// <summary>
-    /// Draws the 4×4 field in its wooden crate and animates moves: slide 0.1 s, then pulse for merges,
-    /// cheese flies to the hole, the new item grows in. Tiles come from a small pool.
+    /// Draws the 4×4 field in its wooden crate and animates moves: slide 0.1 s, then pulse and glow for merges,
+    /// jelly squash for items that bumped into each other without merging, cheese flies to the hole, the new item
+    /// grows in. Tiles come from a small pool.
     /// </summary>
     public class BoardView : MonoBehaviour
     {
@@ -91,7 +92,7 @@ namespace GC26._2048
                     if (tiles.TryGetValue(e.Id, out var keep))
                     {
                         keep.Show(e.Level, art);
-                        StartCoroutine(keep.Pulse());
+                        keep.PlayMerge();
                     }
                 }
                 else if (e.Kind == TileEventKind.ToHole)
@@ -105,6 +106,10 @@ namespace GC26._2048
                     }
                 }
             }
+
+            bool horizontal = result.Direction == Direction.Left || result.Direction == Direction.Right;
+            foreach (int id in result.Bumped)
+                if (tiles.TryGetValue(id, out var bumped)) bumped.PlayBump(horizontal);
 
             if (result.Spawned.HasValue)
             {

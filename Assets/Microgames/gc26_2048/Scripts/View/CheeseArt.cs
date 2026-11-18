@@ -50,6 +50,8 @@ namespace GC26._2048
         public Sprite Mouse { get; }
         /// <summary>Mouse head and paws, cut flat at the bottom: peeks in from a screen edge when the player is idle.</summary>
         public Sprite MouseFace { get; }
+        /// <summary>Soft round light, white in the middle and fading out to the edge; tint it with Image.color.</summary>
+        public Sprite Glow { get; }
 
         public CheeseArt(string gameId)
         {
@@ -60,6 +62,7 @@ namespace GC26._2048
             MouseFace = LoadSprite($"{gameId}/mouse_face");
             Box = MakeRounded(96, 30, 7, true);
             Soft = MakeRounded(96, 30, 0, false);
+            Glow = MakeGlow(128);
         }
 
         public Sprite Item(int level) => level > 0 && level < items.Length ? items[level] : null;
@@ -96,6 +99,33 @@ namespace GC26._2048
                 return null;
             }
             sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+            owned.Add(sprite);
+            return sprite;
+        }
+
+        Sprite MakeGlow(int size)
+        {
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+                name = "gc26_2048_glow"
+            };
+            var px = new Color32[size * size];
+            float half = size / 2f;
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float dx = (x + 0.5f - half) / half, dy = (y + 0.5f - half) / half;
+                float d = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy));
+                float a = 1f - d;
+                a = a * a * (3f - 2f * a); // smooth fall-off, no hard rim
+                px[y * size + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(a * 255f));
+            }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+            owned.Add(tex);
+            var sprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
             owned.Add(sprite);
             return sprite;
         }

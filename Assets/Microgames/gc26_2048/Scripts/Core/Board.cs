@@ -70,10 +70,13 @@ namespace GC26._2048
         /// </summary>
         public MoveResult Move(Direction dir)
         {
-            var result = new MoveResult();
+            var result = new MoveResult { Direction = dir };
             var newLevels = new int[levels.Length];
             var newIds = new int[ids.Length];
             var line = new (int r, int c)[Size];
+            // final items of the current line, from the move side: id, where its front and back started (line index;
+            // differ only for a merge), slid this move, made by a merge
+            var slots = new (int id, int front, int back, bool moved, bool merged)[Size];
 
             for (int l = 0; l < Size; l++)
             {
@@ -106,6 +109,8 @@ namespace GC26._2048
                         else
                         {
                             newLevels[t] = level + 1;
+                            slots[p - 1].merged = true;
+                            slots[p - 1].back = k;
                             result.Events.Add(TileEvent.Merged(lastId, id, tr, tc, level + 1));
                         }
                         result.TopLevel = Math.Max(result.TopLevel, level + 1);
@@ -122,11 +127,23 @@ namespace GC26._2048
                         }
                         newLevels[t] = level;
                         newIds[t] = id;
+                        slots[p] = (id, k, k, t != i, false);
                         p++;
                         lastId = id;
                         lastLevel = level;
                         canMerge = true;
                     }
+                }
+
+                // an item that slid and closed a gap to the one ahead of it hits it: both bump. Items that were
+                // already touching slide together and only bump when the one ahead of them hit something.
+                bool aheadHit = false;
+                for (int j = 1; j < p; j++)
+                {
+                    aheadHit = slots[j].moved && (slots[j].front - slots[j - 1].back > 1 || aheadHit);
+                    if (!aheadHit) continue;
+                    if (!slots[j].merged) AddBump(result, slots[j].id);
+                    if (!slots[j - 1].merged) AddBump(result, slots[j - 1].id);
                 }
             }
 
@@ -151,6 +168,11 @@ namespace GC26._2048
             int row = cell / Size, col = cell % Size;
             int id = Place(row, col, level);
             return TileEvent.Spawned(id, row, col, level);
+        }
+
+        static void AddBump(MoveResult result, int id)
+        {
+            if (!result.Bumped.Contains(id)) result.Bumped.Add(id);
         }
 
         (int r, int c) Cell(Direction dir, int line, int k)
