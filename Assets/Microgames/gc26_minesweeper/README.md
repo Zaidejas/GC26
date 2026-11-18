@@ -26,8 +26,11 @@
 ## Version
 The version is shown at the bottom of every screen. It lives in `Scripts/MinesweeperVersion.cs`: bump it with every change (MAJOR.MINOR.PATCH: PATCH = fixes and small tweaks, MINOR = new features, MAJOR = big redesigns) and add a line below.
 
+In Unity: **GC26 → Minesweeper → Version → Bump Version...** — describe the change, press Patch, Minor or Major; it updates the number and adds the row here. **Show Current Version** shows the number and what the three parts mean.
+
 | Version | Changes |
 |---|---|
+| 0.1.2 | Editor: GC26 → Minesweeper → Version menu to bump the version and add the changelog row |
 | 0.1.1 | Version number at the bottom of the screen; used for the Windows build |
 | 0.1.0 | First playable version: levels, tutorial, How to play, pause, loss lines, Windows build |
 

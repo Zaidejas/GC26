@@ -6,8 +6,9 @@ namespace GC26.Minesweeper
     //   MINOR – new features
     //   MAJOR – big redesigns
     // Add a line to the changelog in README.md at the same time.
+    // Easiest: GC26 → Minesweeper → Version → Bump Version... in Unity does both.
     public static class MinesweeperVersion
     {
-        public const string Number = "0.1.1";
+        public const string Number = "0.1.2";
     }
 }
