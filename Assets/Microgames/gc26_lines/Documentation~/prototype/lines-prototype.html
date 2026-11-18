@@ -336,11 +336,13 @@ body {
 .subhead .mode-pick .badge { flex-direction: row; gap: 1.6cqw; }
 /* The clock (Timed mode): in the middle of the SCORE / NEXT row, like a game number. Yellow from 0:30, red from 0:10. */
 .hud { position: relative; }
-.time-stat { position: absolute; left: 50%; top: 0; transform: translateX(-50%); text-align: center; } /* "TIME" in line with SCORE and NEXT */
-.time-stat .label { margin-bottom: 0.6cqw; }
+/* A bordered pill above the SCORE / NEXT row, centred on the board (not on the row, whose two sides differ). */
+.time-stat { position: absolute; left: 50%; bottom: calc(100% + 2.4cqw); transform: translateX(-50%);
+  padding: 1cqw 3.6cqw 1cqw 1.2cqw; border-radius: 999px; border: 0.4cqw solid var(--line);
+  background: rgba(28, 20, 58, 0.6); box-shadow: 0 0 3cqw rgba(140, 220, 255, 0.12); }
 .time-stat .timer { justify-content: center; }
 /* The ring empties like a clock face as time runs out (full at 3:00 and above), around a small stopwatch. */
-.timer .ring { position: relative; flex: none; width: 8.4cqw; height: 8.4cqw; display: grid; place-items: center; }
+.timer .ring { position: relative; flex: none; width: 7.6cqw; height: 7.6cqw; display: grid; place-items: center; }
 .timer .ring::before { content: ""; position: absolute; inset: 0; border-radius: 50%;
   background: conic-gradient(currentColor calc(var(--p) * 360deg), rgba(255, 255, 255, 0.12) 0);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 0.75cqw), #000 calc(100% - 0.7cqw)); mask: radial-gradient(farthest-side, transparent calc(100% - 0.75cqw), #000 calc(100% - 0.7cqw)); }
@@ -352,7 +354,7 @@ body {
   font-family: var(--font-display); font-size: 5.4cqw; color: #9cf5b0; text-shadow: 0 0 2cqw rgba(140, 255, 170, 0.7); }
 .timer { position: relative; display: flex; align-items: center; gap: 1.6cqw; color: var(--text); }
 .timer svg { width: 4.2cqw; height: 4.2cqw; }
-.timer .tnum { font-family: var(--font-display); font-weight: 600; font-size: 7.5cqw; line-height: 1; font-variant-numeric: tabular-nums; }
+.timer .tnum { font-family: var(--font-display); font-weight: 600; font-size: 6.6cqw; line-height: 1; font-variant-numeric: tabular-nums; }
 .phone.forest .timer .tnum { text-shadow: 0 0 3cqw rgba(255, 214, 120, 0.3); }
 .timer.warn { color: #ffd56b; }
 .timer.warn .tnum { text-shadow: 0 0 3cqw rgba(255, 213, 107, 0.6); }
@@ -669,7 +671,6 @@ body {
               <span class="gain" id="gain"></span>
             </div>
             <div class="time-stat" id="time-row" hidden>
-              <span class="label" data-i18n="time">Time</span>
               <div class="timer" id="timer" aria-label="Time left"><span class="ring" id="time-ring" style="--p: 1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 10v3.5l2.2 2.2"/><path d="M10 2.8h4"/><path d="M12 2.8V6"/></svg></span><span class="tnum" id="clock-time">3:00</span></div>
             </div>
             <div class="next">
