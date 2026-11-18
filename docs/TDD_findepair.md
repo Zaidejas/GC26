@@ -45,6 +45,7 @@ Assets/Microgames/gc26_findepair/
         Card.cs                        одна карточка: нажатие, анимации
         CardData.cs                    ScriptableObject пары
         BoardFitter.cs                 подгонка сетки под экран
+        SparkleBurst.cs                взрыв розовых искр
         FindepairUI.cs                 экраны, HUD, окно победы, окно правил
         FindepairAudio.cs              звуки, музыка, вибрация
         FindepairSave.cs               рекорд и настройки
@@ -57,6 +58,7 @@ Assets/Microgames/gc26_findepair/
         Cards/  emo_cat.png … bow_skull.png, back.png   900 × 1200
         Backgrounds/  wall.png, cork.png
         UI/  кнопки, иконки
+        FX/  sparkle.png
         FindepairAtlas.spriteatlasv2
     Audio/
         flip.wav, match.wav, miss.wav, win.wav, music_loop.ogg
@@ -101,8 +103,9 @@ flowchart TD
 | Скрипт | Отвечает за | Ключевое API |
 |---|---|---|
 | `FindepairGame` | Реализует `IMicrogame`; запускает игру; переключает экраны; выход в оболочку | `const string Id = "gc26_findepair"`, `Begin(Action<int>)`, `ExitToShell()` |
-| `FindepairBoard` | Тасование, раскладка, проверка пары, ходы, таймер, пауза, победа | `NewGame()`, `SetPaused(bool)`, события `MovesChanged`, `PairMatched`, `PairMissed`, `CardFlipped`, `Won(Result)` |
-| `Card` | Нажатие, переворот, «пульс», покачивание | `Init(CardData, Sprite back, Action<Card>)`, `IEnumerator Flip(bool up)`, `PlayMatch()`, `PlayMiss()`, `IsUp`, `IsMatched` |
+| `FindepairBoard` | Тасование, раскладка, проверка пары, ходы, таймер, пауза, победа | `NewGame()`, `SetPaused(bool)`, события `MovesChanged`, `PairMatched`, `PairVanished`, `PairMissed`, `CardFlipped`, `Won(Result)` |
+| `Card` | Нажатие, переворот, «пульс», покачивание, исчезновение | `Init(CardData, Sprite back, Action<Card>)`, `IEnumerator Flip(bool up)`, `PlayMatch()`, `PlayMiss()`, `IEnumerator PlayVanish()`, `IsUp`, `IsMatched`, `IsGone` |
+| `SparkleBurst` | Взрыв розовых искр при исчезновении пары, пул `Image` | `Play(Vector2 localPos)`, `Clear()` |
 | `CardData` | Данные пары (ScriptableObject) | `string id`, `string displayName`, `Sprite front`, `Color glow` |
 | `BoardFitter` | Размер ячеек `GridLayoutGroup`; 3 × 4 в портрете, 4 × 3 в ландшафте; пересчёт при смене размера | `OnRectTransformDimensionsChange()` |
 | `FindepairUI` | Экраны (заставка, меню, поле, пауза, победа, настройки, правила), HUD, звёзды, конфетти | `Show(FindepairScreen)`, `ShowWin(Result, bool isRecord)` (enum назван не `Screen`, чтобы не путать с `UnityEngine.Screen`) |
@@ -169,31 +172,45 @@ stateDiagram-v2
     [*] --> Idle
     Idle --> OneUp: нажатие на карточку
     OneUp --> Checking: нажатие на вторую (ход +1)
-    Checking --> Idle: совпали (пар < 6)
+    Checking --> Idle: совпали (пар < 6), пара исчезает через 1 с
     Checking --> Mismatch: не совпали
     Mismatch --> Idle: через 0,8 с карты закрыты
-    Checking --> Won: совпали, пар = 6
+    Checking --> LastVanish: совпали, пар = 6
+    LastVanish --> Won: через 1 с взрыв, затем 0,5 с
     Won --> [*]
 ```
+
+Исчезновение пары идёт параллельно с игрой: пока найденная пара ждёт 1 с и взрывается, игрок уже может открывать другие карточки.
 
 | Константа | Значение | Откуда |
 |---|---|---|
 | `FlipSeconds` | 0,25 | GDD: переворот 0,25 с |
 | `MismatchSeconds` | 0,8 | GDD: закрытие через 0,8 с |
-| `WinDelaySeconds` | 0,5 | Прототип: пауза перед окном победы |
+| `MatchVanishDelaySeconds` | 1,0 | Найденная пара видна 1 с, затем исчезает |
+| `VanishSeconds` | 0,25 | Карточка увеличивается до 1,2 и гаснет во время взрыва |
+| `SparkleCount` | 16 на карточку | Число искр во взрыве |
+| `SparkleLifetime` | 0,5–0,7 с | Время жизни искры |
+| `WinDelaySeconds` | 0,5 | Прототип: пауза перед окном победы (отсчёт — после исчезновения последней пары) |
 | Звёзды | `moves <= 9 ? 3 : moves <= 13 ? 2 : 1` | GDD |
 
 Правила, перенесённые из прототипа (`onCardClick` / `checkPair`):
 
 1. Нажатие игнорируется, если идёт проверка (`locked`), игра на паузе или не идёт, карточка уже открыта или найдена.
 2. Вторая карточка: `moves++`, `locked = true`, ждём окончания переворота, затем сравниваем `CardData.id`.
-3. Совпали — обе `IsMatched`, событие `PairMatched`, `locked = false` (если не победа).
+3. Совпали — обе `IsMatched`, событие `PairMatched`, «пульс» и `locked = false` сразу (если не победа). Для пары запускается корутина `VanishPair`:
+   1. ждёт `MatchVanishDelaySeconds` (1 с) реального времени, на паузе отсчёт стоит;
+   2. в центре каждой карточки — `SparkleBurst.Play()`: взрыв розовых искр;
+   3. одновременно `Card.PlayVanish()`: масштаб 1 → 1,2, прозрачность 1 → 0 за 0,25 с;
+   4. после этого карточка `IsGone`: `CanvasGroup.alpha = 0`, `blocksRaycasts = false`. Объект **не выключается** — иначе `GridLayoutGroup` сдвинет остальные карточки, на поле остаётся пустое место;
+   5. событие `PairVanished`; если это была последняя пара — через `WinDelaySeconds` событие `Won`.
 4. Не совпали — `PairMissed`, через 0,8 с обе закрываются, после переворота `locked = false`.
 5. Тасование — Фишер — Йетс по списку из 12 ссылок на `CardData` (каждая дважды). Число пар берётся из длины массива `CardData[]` — легко сделать 4 / 8 пар.
 
 **Таймер и пауза.** `Time.timeScale` не меняется (правило GC26). `FindepairBoard` сам копит `elapsed += Time.unscaledDeltaTime` в `Update`, только если `running && !paused`. Задержки — корутины на `WaitForSecondsRealtime`; на паузе корутина проверки дожидается снятия паузы. При `OnApplicationPause(true)` игра сама ставит паузу.
 
-**Защита от быстрых нажатий.** Флаг `locked` ставится синхронно в обработчике нажатия, до старта корутины; `Card` при `IsUp || IsMatched` отключает `Button.interactable`.
+**Защита от быстрых нажатий.** Флаг `locked` ставится синхронно в обработчике нажатия, до старта корутины; `Card` при `IsUp || IsMatched` отключает `Button.interactable`, поэтому исчезающую пару нажать нельзя.
+
+**Остановка.** «Заново», выход в меню и выход в оболочку вызывают `StopAllCoroutines()` на поле и `SparkleBurst.Clear()`: недоигранные взрывы и ожидания исчезновения обрываются, искры возвращаются в пул.
 
 ## 6. Интерфейс и раскладка
 
@@ -211,8 +228,25 @@ stateDiagram-v2
 |---|---|
 | Переворот | `localScale.x` 1 → 0 (0,125 с), смена спрайта back ↔ front, 0 → 1 (0,125 с) |
 | «Пульс» при совпадении | `localScale` 1 → 1,1 → 1 за 0,3 с + розовое свечение (`Outline` / доп. `Image` с аддитивным материалом) |
+| Исчезновение пары (через 1 с после совпадения) | `Card.PlayVanish()`: `localScale` 1 → 1,2 и `CanvasGroup.alpha` 1 → 0 за 0,25 с (ease-in), одновременно взрыв искр |
+| Взрыв розовых искр | `SparkleBurst` (см. ниже) |
 | Покачивание при ошибке | `localRotation` ±6° три раза за 0,3 с |
 | Конфетти при победе | Пул из 36 символов ♥ / ★ (TextMeshPro) неоновых цветов, падающих 2–4 с со случайной задержкой — как в прототипе |
+
+### Взрыв розовых искр — `SparkleBurst`
+
+`ParticleSystem` не рисуется на Canvas в режиме Screen Space – Overlay, а UI-пакеты для частиц добавить нельзя (`Packages/` меняет только организатор). Поэтому искры — обычные `Image` из пула:
+
+| Параметр | Значение |
+|---|---|
+| Где | Один объект `Sparkles` поверх `Board` (последний ребёнок, без `GridLayoutGroup`), `raycastTarget = false` у всех искр |
+| Пул | 96 `Image` (до 3 пар одновременно × 2 карточки × 16 искр), создаются при старте, без `Instantiate` во время игры; если пул кончился — берётся самая старая искра |
+| Спрайт | `Art/FX/sparkle.png` — четырёхлучевая звёздочка 64 × 64 с мягким свечением, в атласе. Аддитивный материал — по желанию, свой шейдер в папке игры (`Art/FX/`); без него — `UI/Default` |
+| Цвета | `#FF2FB3`, `#FF7AD9`, редкие белые `#FCEBFF` для «горячего» центра |
+| Движение | Из центра карточки во все стороны, скорость 300–700 px/с, лёгкое замедление и гравитация вниз 600 px/с² |
+| Размер | 24–48 px, уменьшается до 0 к концу жизни, случайный поворот |
+| Время жизни | 0,5–0,7 с; обновление в `Update` на `Time.unscaledDeltaTime`, на паузе искры замирают |
+| API | `Play(Vector2 localPos)`, `Clear()` |
 
 ## 7. Звук и вибрация
 
@@ -264,6 +298,7 @@ python -m http.server 8000 --directory docs/prototype_findepair
 | `audio`, `vibrate` | `FindepairAudio` |
 | `fitBoard` | `BoardFitter` |
 | `show(id)` | `FindepairUI.Show` |
+| — (в прототипе найденные пары остаются открытыми) | `VanishPair`, `Card.PlayVanish`, `SparkleBurst` |
 
 ## 11. Сборка сцены
 
@@ -288,7 +323,8 @@ python -m http.server 8000 --directory docs/prototype_findepair
 | Что | Как |
 |---|---|
 | Правила | EditMode-тесты (Unity Test Framework уже в проекте) для логики `FindepairBoard`: тасование даёт ровно по 2 карты каждой пары, подсчёт ходов, звёзды, сравнение рекордов. Тесты в `Tests/` со своим asmdef `GC26.Findepair.Tests` |
-| Быстрые нажатия | Двойной тап по одной карте, тап по третьей карте во время проверки, тап во время паузы |
+| Быстрые нажатия | Двойной тап по одной карте, тап по третьей карте во время проверки, тап во время паузы, тап по исчезающей паре |
+| Исчезновение пар | Пара исчезает ровно через 1 с; пауза в эту секунду откладывает исчезновение; несколько пар подряд взрываются без пропусков; остальные карточки не сдвигаются; окно победы — только после взрыва последней пары |
 | Жизненный цикл | Сворачивание приложения во время проверки пары, «Заново» во время анимации, выход в оболочку и повторный вход |
 | Оболочка | Нет дублей `EventSystem` / `AudioListener`, после выхода не остаётся объектов игры, `Time.timeScale == 1` |
 | Экраны | Device Simulator: телефоны с вырезом, 16:9, 20:9, планшет 4:3, портрет и ландшафт |
