@@ -18,7 +18,7 @@ namespace GC26.Lines.EditorTools
         public static void Apply()
         {
             PlayerSettings.companyName = "GC26";
-            PlayerSettings.productName = "Lines";
+            PlayerSettings.productName = "Glowcaps"; // the name under the icon (the code and app id stay "lines")
             // A unique app id, needed to install on a real iPhone with a free Apple account (and on Android).
             PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.iOS, BundleId);
             PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Android, BundleId);
@@ -32,7 +32,7 @@ namespace GC26.Lines.EditorTools
 
         /// <summary>
         /// The app icon (one glowing mushroom on the dark forest) and the splash screen (the same mushroom and
-        /// the "Lines" title over the forest, no Unity logo). Android 8+ gets the icon as two layers, so the
+        /// the "Glowcaps" title over the forest, no Unity logo). Android 8+ gets the icon as two layers, so the
         /// phone can cut it into its own shape.
         /// </summary>
         static void ApplyIconAndSplash()

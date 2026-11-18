@@ -49,6 +49,7 @@ namespace GC26.Lines.Tests
             yield return Launch();
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             game.Menu.ContinueButton.Click();
+            SkipTutorials(game);
             yield return new WaitForSeconds(1f);
             Assert.AreEqual(12, game.BestAtStart);
             Assert.IsFalse(game.Hud.CrownShowing, "5 points: below the best");
@@ -95,6 +96,7 @@ namespace GC26.Lines.Tests
             yield return Launch();
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             game.Menu.ContinueButton.Click();
+            SkipTutorials(game);
             yield return null;
             Assert.IsTrue(game.Hud.CrownShowing);
             Assert.IsFalse(game.Fireworks.Playing);
@@ -107,6 +109,7 @@ namespace GC26.Lines.Tests
             yield return Launch();
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             game.Menu.NewGameButton.Click();
+            SkipTutorials(game);
             yield return null;
             Assert.AreEqual(0, game.BestAtStart);
             Assert.IsFalse(game.Hud.CrownShowing);

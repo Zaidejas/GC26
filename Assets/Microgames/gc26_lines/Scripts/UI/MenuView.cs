@@ -9,7 +9,7 @@ using UnityEngine.UI;
 namespace GC26.Lines.UI
 {
     /// <summary>
-    /// The start screen (GDD → Main menu; prototype's menu): 5 gently bobbing pieces, the "Lines" title,
+    /// The start screen (GDD → Main menu; prototype's menu): 5 gently bobbing pieces, the "Glowcaps" title,
     /// "Line up five of a kind", and the buttons Continue (with the saved game's score), New game,
     /// How to play and Leaderboard, and a gear (Settings) in the top-right corner. Texts come from
     /// <see cref="Texts"/>. Sizes follow the prototype, in units of 1 % of the content width.
@@ -18,7 +18,7 @@ namespace GC26.Lines.UI
     {
         // Prototype sizes (cqw).
         const float PieceSize = 11f, PieceGap = 2f, DecoHeight = 13f, DecoMargin = 4f;
-        const float LogoSize = 21f, TagSize = 4.2f, TagMargin = 2.5f;
+        const float LogoSize = 18f, LogoSizeRussian = 17f, TagSize = 4.2f, TagMargin = 2.5f; // "Грибочки" is a little wider
         const float ButtonHeight = 13.5f, ButtonGap = 3f, BrandToButtons = 12f, SidePadding = 10f;
         // L09: the Classic | Timed badges right above Continue (prototype: 12cqw discs, 3.6cqw names, 5cqw to Continue).
         const float BadgeDisc = 12f, BadgeText = 3.6f, BadgeGap = 8f, BadgesToButtons = 5f;
@@ -76,7 +76,7 @@ namespace GC26.Lines.UI
                 img.raycastTarget = false;
                 deco.Add(img);
             }
-            logo = NewText("Title", "Lines", Palette.Text);
+            logo = NewText("Title", "", Palette.Text);
             tagline = NewText("Tagline", "", Palette.SoftText);
             UiFonts.UseDisplay(logo);
             UiFonts.UseDisplay(tagline);
@@ -131,7 +131,7 @@ namespace GC26.Lines.UI
             }
 
             float logoTop = top - (DecoHeight + DecoMargin) * u;
-            logo.fontSize = LogoSize * u;
+            logo.fontSize = LogoFontSize() * u;
             Place(logo.rectTransform, left, logoTop - LogoSize * 0.95f * u, width, LogoSize * 0.95f * u);
             float glowWidth = 70f * u, glowHeight = LogoSize * 1.6f * u;
             Place(logoGlow.rectTransform, safe.center.x - glowWidth / 2f, logoTop - LogoSize * 0.95f * u / 2f - glowHeight / 2f, glowWidth, glowHeight);
@@ -154,8 +154,12 @@ namespace GC26.Lines.UI
         }
 
         /// <summary>Puts every text in the current language (<see cref="Texts"/>).</summary>
+        static float LogoFontSize() => Texts.Current == Language.Russian ? LogoSizeRussian : LogoSize;
+
         public void RefreshTexts()
         {
+            logo.text = Texts.Get("title");
+            if (layout.Unit > 0f) logo.fontSize = LogoFontSize() * layout.Unit;
             tagline.text = Texts.Get("tagline");
             newGame.SetText(Texts.Get("newGame"));
             modes.RefreshTexts();

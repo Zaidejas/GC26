@@ -137,7 +137,7 @@ namespace GC26.Lines.UI
             newBest = NewText("New best", "", Color.white, TextAlignmentOptions.Center, bold: true);
             newBest.rectTransform.SetParent(transform, false); // over the board, not inside the score area
             UiFonts.UseDisplay(newBest);
-            newBest.enableVertexGradient = true; // the gold of the "Lines" title: light at the top, orange below
+            newBest.enableVertexGradient = true; // the gold of the game's title: light at the top, orange below
             newBest.colorGradient = new VertexGradient(new Color(1f, 0.95f, 0.76f), new Color(1f, 0.95f, 0.76f), new Color(1f, 0.6f, 0.24f), new Color(1f, 0.6f, 0.24f));
             newBest.alpha = 0f;
             alert = AlertToast.Create((RectTransform)transform);

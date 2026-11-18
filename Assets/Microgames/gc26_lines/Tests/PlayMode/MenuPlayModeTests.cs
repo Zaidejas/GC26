@@ -70,6 +70,7 @@ namespace GC26.Lines.Tests
             yield return Launch();
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             game.Menu.NewGameButton.Click();
+            SkipTutorials(game);
             Assert.IsTrue(game.GameScreenShowing);
             Assert.IsFalse(game.Menu.IsShowing);
             yield return PlayOneTurn(game);
@@ -85,6 +86,8 @@ namespace GC26.Lines.Tests
 
             game.Menu.ContinueButton.Click();
 
+            SkipTutorials(game);
+
             Assert.IsTrue(game.GameScreenShowing);
             Assert.AreSame(controller, game.Controller, "The same game, not a new one");
             CollectionAssert.AreEqual(cells, Enumerable.Range(0, 81).Select(i => game.Controller.Game.Board.Get(C(i))).ToArray());
@@ -97,6 +100,7 @@ namespace GC26.Lines.Tests
             yield return Launch();
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             game.Menu.NewGameButton.Click();
+            SkipTutorials(game);
             yield return PlayOneTurn(game);
             var ball = Enumerable.Range(0, 81).Select(C).First(c => !game.Controller.Game.Board.IsEmpty(c));
             game.Controller.Tap(ball);
@@ -116,6 +120,7 @@ namespace GC26.Lines.Tests
             yield return Launch();
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             game.Menu.NewGameButton.Click();
+            SkipTutorials(game);
             var board = game.Controller.Game.Board;
             var ball = Enumerable.Range(0, 81).Select(C).First(c => !board.IsEmpty(c));
             var target = board.EmptyCells().OrderByDescending(c => System.Math.Abs(c.Row - ball.Row) + System.Math.Abs(c.Column - ball.Column))
@@ -164,11 +169,14 @@ namespace GC26.Lines.Tests
             yield return Launch();
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             game.Menu.NewGameButton.Click();
+            SkipTutorials(game);
             yield return PlayOneTurn(game);
             game.Hud.BackButton.Click();
             var controller = game.Controller;
 
             game.Menu.NewGameButton.Click();
+
+            SkipTutorials(game);
             Assert.IsTrue(game.Hud.Dialog.IsOpen, "Asks before throwing the game away");
             Assert.AreEqual(GameBootstrap.ResetTitle, game.Hud.Dialog.Title);
 
@@ -177,6 +185,8 @@ namespace GC26.Lines.Tests
             Assert.AreSame(controller, game.Controller);
 
             game.Menu.NewGameButton.Click();
+
+            SkipTutorials(game);
             game.Hud.Dialog.ConfirmButton.Click();
             Assert.IsTrue(game.GameScreenShowing);
             Assert.AreNotSame(controller, game.Controller, "A new game");

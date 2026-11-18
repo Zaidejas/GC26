@@ -43,7 +43,7 @@ namespace GC26.Lines.View
         public static readonly Color SeeThroughPanel = Hex(0x1A1736, 0.62f);
         public static readonly Color MiniCell = Hex(0x23263F);
 
-        // The "Lines" title: a gold gradient with a warm glow.
+        // The game's title (Glowcaps / Грибочки): a gold gradient with a warm glow.
         public static readonly Color TitleTop = Hex(0xFFF2C2);
         public static readonly Color TitleBottom = Hex(0xFF9A3C);
         public static readonly Color TitleGlow = Hex(0xFFBE5A, 0.14f);

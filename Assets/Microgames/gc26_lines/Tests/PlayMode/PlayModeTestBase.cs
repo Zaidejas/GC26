@@ -29,6 +29,17 @@ namespace GC26.Lines.Tests
 #endif
         }
 
+        /// <summary>
+        /// L17: marks every tutorial as seen in this game, for tests that play real moves: a random rainbow
+        /// in NEXT would otherwise show its tutorial, which blocks the board and the buttons.
+        /// </summary>
+        protected static void SkipTutorials(GC26.Lines.Game.GameBootstrap game)
+        {
+            var state = game.Controller?.Game;
+            if (state == null) return;
+            foreach (var key in new[] { "rainbow", "ice", "super", "rescue" }) state.TutorialsShown.Add(key);
+        }
+
         protected string SaveFolder { get; private set; }
 
         [SetUp]

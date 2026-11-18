@@ -50,6 +50,7 @@ namespace GC26.Lines.Tests
             yield return LoadGameScene();
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             game.Menu.NewGameButton.Click();
+            SkipTutorials(game);
             yield return new WaitForSeconds(1.5f);
             game.Controller.Tap(FirstBall(game)); // a selected mushroom bounces (a running animation)
             yield return null;

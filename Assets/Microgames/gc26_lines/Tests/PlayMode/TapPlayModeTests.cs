@@ -20,6 +20,7 @@ namespace GC26.Lines.Tests
             yield return null;
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             game.Menu.NewGameButton.Click();
+            SkipTutorials(game);
             var board = game.Controller.Game.Board;
             var layout = game.Layout;
 

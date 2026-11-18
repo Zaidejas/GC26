@@ -38,6 +38,7 @@ namespace GC26.Lines.Tests
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             Assert.IsFalse(game.Menu.ContinueButton.Interactable, "Nothing to continue on a first launch");
             game.Menu.NewGameButton.Click();
+            SkipTutorials(game);
             Assert.IsTrue(game.Saves.HasSave, "A new game is saved straight away");
 
             // Play one turn.
@@ -58,6 +59,7 @@ namespace GC26.Lines.Tests
             Assert.IsTrue(game.Menu.ContinueButton.Interactable);
             StringAssert.Contains("score " + scoreBefore, game.Menu.ContinueButton.Text);
             game.Menu.ContinueButton.Click();
+            SkipTutorials(game);
 
             var restored = game.Controller.Game;
             CollectionAssert.AreEqual(cellsBefore, Enumerable.Range(0, 81).Select(i => restored.Board.Get(C(i))).ToArray(), "Same board");
@@ -78,6 +80,7 @@ namespace GC26.Lines.Tests
             yield return Launch();
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             game.Menu.NewGameButton.Click();
+            SkipTutorials(game);
             game.AskToReset();
             game.Hud.Dialog.ConfirmButton.Click();
             var cellsAfterReset = Enumerable.Range(0, 81).Select(i => game.Controller.Game.Board.Get(C(i))).ToArray();
@@ -85,6 +88,7 @@ namespace GC26.Lines.Tests
             yield return Launch();
             game = Object.FindAnyObjectByType<GameBootstrap>();
             game.Menu.ContinueButton.Click();
+            SkipTutorials(game);
 
             CollectionAssert.AreEqual(cellsAfterReset, Enumerable.Range(0, 81).Select(i => game.Controller.Game.Board.Get(C(i))).ToArray());
             Assert.IsFalse(game.Hud.UndoButton.Interactable);
@@ -98,6 +102,7 @@ namespace GC26.Lines.Tests
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             Assert.IsFalse(game.Menu.ContinueButton.Interactable, "A broken save can't be continued");
             game.Menu.NewGameButton.Click();
+            SkipTutorials(game);
             Assert.AreEqual(78, game.Controller.Game.Board.EmptyCount, "A fresh game");
             Assert.AreEqual(TurnState.Idle, game.Controller.State);
         }

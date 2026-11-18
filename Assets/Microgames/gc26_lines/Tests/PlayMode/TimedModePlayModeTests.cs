@@ -43,6 +43,7 @@ namespace GC26.Lines.Tests
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             Assert.IsFalse(game.Timed, "Classic at first");
             game.Menu.NewGameButton.Click(); // a Classic game in progress
+            SkipTutorials(game);
             yield return null;
             game.Hud.BackButton.Click();
 
@@ -51,6 +52,7 @@ namespace GC26.Lines.Tests
             Assert.IsTrue(game.Settings.mode == "timed", "Remembered");
             Assert.IsFalse(game.Menu.ContinueButton.Interactable, "No timed game yet");
             game.Menu.NewGameButton.Click();
+            SkipTutorials(game);
             yield return null;
             Assert.IsTrue(game.Controller.Game.Timed);
             Assert.IsTrue(game.Hud.ClockShowing);
@@ -77,6 +79,7 @@ namespace GC26.Lines.Tests
             game.Menu.Modes.ClassicButton.onClick.Invoke();
             Assert.IsFalse(game.Controller.Game.Timed, "The Classic game is back behind Continue");
             game.Menu.ContinueButton.Click();
+            SkipTutorials(game);
             yield return null;
             Assert.IsFalse(game.Hud.ClockShowing);
             Assert.IsTrue(game.Hud.UndoShowing);
@@ -93,6 +96,7 @@ namespace GC26.Lines.Tests
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             game.Menu.Modes.TimedButton.onClick.Invoke();
             game.Menu.ContinueButton.Click();
+            SkipTutorials(game);
             yield return null;
             game.Controller.Tap(C(4, 2));
             game.Controller.Tap(C(4, 0));
@@ -113,6 +117,7 @@ namespace GC26.Lines.Tests
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             game.Menu.Modes.TimedButton.onClick.Invoke();
             game.Menu.ContinueButton.Click();
+            SkipTutorials(game);
             yield return null;
             game.Sounds.Played.Clear();
             game.TickClock(1f);
@@ -152,6 +157,7 @@ namespace GC26.Lines.Tests
             var game = Object.FindAnyObjectByType<GameBootstrap>();
             game.Menu.Modes.TimedButton.onClick.Invoke();
             game.Menu.ContinueButton.Click();
+            SkipTutorials(game);
             yield return null;
             game.TickClock(3f);
             yield return new WaitForSeconds(1.6f);

@@ -36,6 +36,7 @@ namespace GC26.Lines.Tests
         static IEnumerator PlayTheLastMove(GameBootstrap game)
         {
             game.Menu.ContinueButton.Click();
+            SkipTutorials(game);
             game.Controller.Tap(C(6, 8));
             game.Controller.Tap(C(7, 8));
             float waited = 0;

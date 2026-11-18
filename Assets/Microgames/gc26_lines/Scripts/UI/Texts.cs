@@ -41,7 +41,7 @@ namespace GC26.Lines.UI
 
         static readonly Dictionary<string, string> En = new Dictionary<string, string>
         {
-            ["tagline"] = "Line up five of a kind", ["continue"] = "Continue", ["scoreShort"] = "score",
+            ["title"] = "Glowcaps", ["tagline"] = "Line up five of a kind", ["continue"] = "Continue", ["scoreShort"] = "score",
             ["newGame"] = "New game", ["howToPlay"] = "How to play", ["leaderboard"] = "Leaderboard",
             ["score"] = "SCORE", ["next"] = "NEXT", ["undo"] = "Undo", ["reset"] = "Reset", ["noPath"] = "No path", ["newBestShort"] = "New best!",
             ["confirmTitle"] = "Start a new game?", ["confirmText"] = "Your current game will be lost.",
@@ -101,7 +101,7 @@ namespace GC26.Lines.UI
 
         static readonly Dictionary<string, string> Ru = new Dictionary<string, string>
         {
-            ["tagline"] = "Собери пять в ряд", ["continue"] = "Продолжить", ["scoreShort"] = "счёт",
+            ["title"] = "Грибочки", ["tagline"] = "Собери пять в ряд", ["continue"] = "Продолжить", ["scoreShort"] = "счёт",
             ["newGame"] = "Новая игра", ["howToPlay"] = "Как играть", ["leaderboard"] = "Рекорды",
             ["score"] = "СЧЁТ", ["next"] = "СЛЕДУЮЩИЕ", ["undo"] = "Отменить", ["reset"] = "Заново", ["noPath"] = "Нет пути", ["newBestShort"] = "Новый рекорд!",
             ["confirmTitle"] = "Начать новую игру?", ["confirmText"] = "Текущая игра будет потеряна.",

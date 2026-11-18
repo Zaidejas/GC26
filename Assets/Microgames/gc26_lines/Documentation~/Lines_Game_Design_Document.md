@@ -1,6 +1,6 @@
 # Lines — Game Design Document
 
-Oct 21, 2026 · revised Nov 2, 2026 · updated Nov 14, 2026 to match the finished game (version 0.1.0) · Nov 17, 2026: Pause in Timed mode, the special mushrooms and their tutorials (tasks L14–L19), agreed in the prototype · hmmd2
+Oct 21, 2026 · revised Nov 2, 2026 · updated Nov 14, 2026 to match the finished game (version 0.1.0) · Nov 17, 2026: Pause in Timed mode, the special mushrooms and their tutorials (tasks L14–L19), agreed in the prototype · Nov 18, 2026: the game is called Glowcaps (Грибочки in Russian) · hmmd2
 
 Earlier online version (before the Nov 2 revision): [https\://claude.ai/artifact/MbLgFyYVPGJvoRkVvUrSSQ](https://claude.ai/artifact/MbLgFyYVPGJvoRkVvUrSSQ)
 
@@ -8,7 +8,7 @@ Earlier online version (before the Nov 2 revision): [https\://claude.ai/artifact
 
 ## Overview
 
-Lines remakes the classic 1998 Windows puzzle game for phones, with a few custom changes. Players move balls on a 9×9 board to form lines of five and try to last as long as possible while new balls keep arriving.
+**Glowcaps** (in Russian **Грибочки**; called Lines while it was being made, and still "lines" in the code, folders and app id) remakes the classic 1998 Windows puzzle game Lines for phones, with a few custom changes. Players move balls on a 9×9 board to form lines of five and try to last as long as possible while new balls keep arriving.
 
 This is a study project. The game is built for iOS and Android and installed directly on our own phones; it is **not published** to the App Store or Google Play.
 
@@ -282,7 +282,7 @@ The game has four screens and four pop-ups (Pause, only in Timed mode, is the fo
 
 - The gear is a plain white icon like the house (no ring or disc). The pop-up is the same dark card as the other pop-ups; the game stays visible behind it (in Timed mode the board and NEXT are hidden behind it, like in Pause, since the clock is stopped).
 - **Music, Sounds, Vibration:** on/off switches (gold when on), all on by default, remembered on the device. Music and Sounds switch the game's sounds and music (see Sounds and music) on and off at once; Vibration switches the vibration (see Controls and feedback).
-- **Language:** English or Русский. Everything changes at once (menu, game screen, pop-ups, How to play, leaderboard messages and dates); the game's name "Lines" stays the same. The first time, the game uses Russian on a phone set to Russian, English otherwise; the choice is remembered.
+- **Language:** English or Русский. Everything changes at once (menu, game screen, pop-ups, How to play, leaderboard messages and dates); the game's name changes too: Glowcaps in English, Грибочки in Russian. The name under the app icon and on the splash screen is always Glowcaps. The first time, the game uses Russian on a phone set to Russian, English otherwise; the choice is remembered.
 - **How to play** closes Settings and opens the How to play cards; their back button and "Got it" return to where Settings was opened (the game or the menu). How to play also stays on the main menu.
 - Later, in the shared GC26 app, this pop-up can also be the game's pause, with a "Back to games" button.
 
@@ -339,10 +339,10 @@ The look is a dark, magical mushroom forest at night: glowing mushrooms on a dar
   - **Start screen:** tall glowing mushrooms on long stems at the sides and smaller ones along the bottom, placed in the free space around the title and buttons.
   - **Game, How to play and Leaderboard:** the same forest without mushrooms, and with nothing glowing near the bottom, so nothing sits behind the board, the buttons or the page dots.
 - **Board:** dark purple glass with a soft violet-and-turquoise glow around the edge; each cell glows faintly from inside.
-- **Buttons and pop-ups:** dark glass with a warm outline; main buttons (Continue, Yes, Save, Play again) are glowing gold. Text is light cream; the "Lines" title is a glowing gold gradient.
+- **Buttons and pop-ups:** dark glass with a warm outline; main buttons (Continue, Yes, Save, Play again) are glowing gold. Text is light cream; the title (Glowcaps / Грибочки) is a glowing gold gradient, in one line.
 - **Fonts:** Mystery Quest (playful, witchy) for the title, numbers, labels, buttons and headings; it has only Latin letters, so Russian text in those places uses Kurale (a fairy-tale serif with Cyrillic letters, also a free Google Font); Nunito for longer text (How to play explanations, pop-up messages, leaderboard names). Both are free Google Fonts under the SIL Open Font License, so they can be included in the game.
 - **App icon:** the red spotted mushroom, large and glowing, on the dark forest with a few fireflies. On Android 8+ it is made of two layers (the forest and the mushroom), so each phone can cut it into its own shape.
-- **Splash screen:** while the game loads: the same glowing mushroom and the gold "Lines" title over the plain forest background, for about 2 seconds, with no Unity logo. Before that, iOS shows a plain screen in the game's dark colour.
+- **Splash screen:** while the game loads: the same glowing mushroom and the gold "Glowcaps" title over the plain forest background, for about 2 seconds, with no Unity logo. Before that, iOS shows a plain screen in the game's dark colour.
 - One theme (the dark magic forest) in the MVP.
 - Preview dots: "ghost" versions of the next mushrooms in their target cells: about half the size of a real one, see-through and a little paler, with no glow, so they read as "a mushroom will grow here", not as real pieces (teacher's feedback; glowing coloured dots, a breathing animation and a magic circle were tried and dropped).
 - Game screen life (teacher's feedback, so the board isn't still before the first move): about 12 fireflies (warm gold and soft turquoise) drift slowly behind the board and pulse brighter and dimmer; every mushroom on the board sways gently on its foot (about 3° each way, 3 s per sway, each at its own rhythm, steady across moves; not while selected or moving; previews don't sway). When the game screen opens (New game, Continue, Reset) the board fades in and grows slightly into place, then the mushrooms pop up one after another from top-left to bottom-right, the previews last (about 0.6–1 s in all). In the browser prototype all of these are off when the device asks for reduced motion; the Unity game doesn't read that phone setting.
