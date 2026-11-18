@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Fairy Ring Prototype</title>
+<title>Glowcaps Prototype</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -304,7 +304,7 @@ body {
 .deco .ball { width: 11cqw; height: 11cqw; animation: float 1.4s ease-in-out infinite alternate; }
 @keyframes float { from { transform: translateY(0); } to { transform: translateY(-14%); } }
 .logo { font-family: var(--font-display); font-weight: 600; font-size: 18cqw; line-height: 0.95; letter-spacing: -0.01em; text-align: center; white-space: nowrap; padding-bottom: 0.15em; margin-bottom: -0.15em; } /* the name in one line; the padding keeps the g's tail inside the gold */
-.screen:lang(ru) .logo { font-size: 12.5cqw; } /* "Ведьмин круг" is longer: smaller so it fits the width */
+.screen:lang(ru) .logo { font-size: 14cqw; } /* "Светогрибы" is longer: smaller so it fits the width */
 .tag { margin: 2.5cqw 0 0; font-size: 4.2cqw; color: var(--soft); font-weight: 700; }
 .menu-buttons { display: flex; flex-direction: column; gap: 3cqw; }
 .menu-buttons .btn { height: 13.5cqw; }
@@ -568,7 +568,7 @@ body {
 <main class="page">
   <header class="bar">
     <div>
-      <h1>Fairy Ring</h1>
+      <h1>Glowcaps</h1>
       <p>MVP prototype. Tap a piece, then an empty cell.</p>
     </div>
     <div class="switches">
@@ -600,7 +600,7 @@ body {
           <button type="button" class="icon-btn gear" id="settings-menu" data-i18n-aria="settings" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
           <div class="brand">
             <div class="deco" id="deco"></div>
-            <div class="logo" data-i18n="title">Fairy Ring</div>
+            <div class="logo" data-i18n="title">Glowcaps</div>
             <p class="tag" data-i18n="tagline">Line up five of a kind</p>
           </div>
           <div class="menu-buttons">
@@ -1711,7 +1711,7 @@ body {
   // ---- Languages: English and Russian. Every text the player sees comes from these tables. ----
   const I18N = {
     en: {
-      title: "Fairy Ring", tagline: "Line up five of a kind", continue: "Continue", scoreShort: "score", newGame: "New game",
+      title: "Glowcaps", tagline: "Line up five of a kind", continue: "Continue", scoreShort: "score", newGame: "New game",
       howToPlay: "How to play", leaderboard: "Leaderboard", score: "Score", next: "Next", undo: "Undo", reset: "Reset",
       noPath: "No path", confirmTitle: "Start a new game?", confirmText: "Your current game will be lost.",
       cancel: "Cancel", yes: "Yes", gameOver: "Game over", finalScore: "Final score",
@@ -1742,7 +1742,7 @@ body {
       close: "Close", mainMenu: "Main menu", backToMenu: "Back to menu", backToGame: "Back to the game",
     },
     ru: {
-      title: "Ведьмин круг", tagline: "Собери пять в ряд", continue: "Продолжить", scoreShort: "счёт", newGame: "Новая игра",
+      title: "Светогрибы", tagline: "Собери пять в ряд", continue: "Продолжить", scoreShort: "счёт", newGame: "Новая игра",
       howToPlay: "Как играть", leaderboard: "Рекорды", score: "Счёт", next: "Следующие", undo: "Отменить", reset: "Заново",
       noPath: "Нет пути", confirmTitle: "Начать новую игру?", confirmText: "Текущая игра будет потеряна.",
       cancel: "Отмена", yes: "Да", gameOver: "Игра окончена", finalScore: "Итоговый счёт",
