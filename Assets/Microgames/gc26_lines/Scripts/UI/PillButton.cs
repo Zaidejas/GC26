@@ -15,7 +15,7 @@ namespace GC26.Lines.UI
     /// </summary>
     public sealed class PillButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     {
-        const float BorderWidth = 0.4f, FontSize = 5f, GlowSize = 3f;
+        const float BorderWidth = 0.4f, FontSize = 5f, GlowBlur = 5f; // the prototype's box-shadow: 0 0 5cqw
 
         RectTransform rect;
         Image hitArea, glow, border, fill;
@@ -146,7 +146,7 @@ namespace GC26.Lines.UI
             hitArea.color = Color.clear;
 
             glow = Child("Glow").gameObject.AddComponent<Image>();
-            glow.color = Palette.GoldGlow;
+            glow.color = new Color(Palette.GoldGlow.r, Palette.GoldGlow.g, Palette.GoldGlow.b, 1f); // its strength is in the picture
             glow.enabled = primary; // only the gold main buttons glow; the glass ones stay calm
             glow.raycastTarget = false;
 
@@ -178,10 +178,9 @@ namespace GC26.Lines.UI
             rect.anchoredPosition = pixels.center;
             rect.sizeDelta = pixels.size;
             UiShapes.MakePill(border, pixels.height);
-            float glowSize = GlowSize * unit;
-            glow.rectTransform.offsetMin = new Vector2(-glowSize, -glowSize);
-            glow.rectTransform.offsetMax = new Vector2(glowSize, glowSize);
-            UiShapes.MakeGlow(glow, glowSize);
+            float reach = UiShapes.MakePillGlow(glow, pixels.height, GlowBlur * unit, Palette.GoldGlow.a);
+            glow.rectTransform.offsetMin = new Vector2(-reach, -reach);
+            glow.rectTransform.offsetMax = new Vector2(reach, reach);
 
             var inset = BorderWidth * unit;
             var fillRect = fill.rectTransform;
@@ -281,6 +280,19 @@ namespace GC26.Lines.UI
             image.type = Image.Type.Sliced;
             image.fillCenter = false;
             image.pixelsPerUnitMultiplier = 1f;
+        }
+
+        /// <summary>
+        /// Makes <paramref name="image"/> the glow around a pill <paramref name="heightPixels"/> tall, like CSS's
+        /// <c>box-shadow: 0 0 blur</c> with alpha <paramref name="strength"/>. Returns how far the image must reach
+        /// past the pill on each side.
+        /// </summary>
+        public static float MakePillGlow(Image image, float heightPixels, float blurPixels, float strength)
+        {
+            image.sprite = SpriteFactory.ExactGlow(Mathf.Max(1f, heightPixels) / 2f, blurPixels, strength, CanvasPpu(image), out float reach);
+            image.type = Image.Type.Sliced;
+            image.pixelsPerUnitMultiplier = 1f;
+            return reach;
         }
 
         /// <summary>Makes <paramref name="image"/> a pill: a rounded rectangle whose ends are half circles.</summary>

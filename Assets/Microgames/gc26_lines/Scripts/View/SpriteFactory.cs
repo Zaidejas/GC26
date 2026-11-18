@@ -123,18 +123,68 @@ namespace GC26.Lines.View
             return sprite;
         }
 
+        /// <summary>
+        /// A glow like CSS's <c>box-shadow: 0 0 blur colour</c> around a rounded shape with corners
+        /// <paramref name="radiusPx"/> round, for a sliced UI image (pixelsPerUnitMultiplier 1). The image must
+        /// reach <paramref name="extent"/> pixels past the shape on every side. <paramref name="strength"/> is the
+        /// CSS colour's alpha; it's baked in so the glow looks as strong as in a browser even though Unity mixes
+        /// colours in linear light (so set the image colour's alpha to 1).
+        /// </summary>
+        public static Sprite ExactGlow(float radiusPx, float blurPx, float strength, float pixelsPerUnit, out float extent)
+        {
+            float r = Quantize(radiusPx, 2f);
+            float sigma = Mathf.Max(0.5f, Quantize(blurPx, 2f) / 2f); // CSS: the blur radius is two standard deviations
+            // The corner piece holds the shape's corner plus the glow's 3σ reach; the glow reaches a little further
+            // when that has to be rounded up to whole pixels.
+            int b = Mathf.Max(1, Mathf.CeilToInt(r + 3f * sigma - 0.5f)), n = 2 * b + 1;
+            extent = b + 0.5f - r;
+            var key = (Mathf.RoundToInt(r * 2f), -Mathf.RoundToInt(sigma * 4f) - 1000 * Mathf.RoundToInt(strength * 100f),
+                Mathf.RoundToInt(pixelsPerUnit));
+            if (ExactShapes.TryGetValue(key, out var cached) && cached != null) return cached;
+
+            var pixels = new Color32[n * n];
+            float inset = extent, scale = 1f / (sigma * Mathf.Sqrt(2f));
+            for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                float d = SignedDistance(x, y, n, r, inset);
+                float blurred = d >= 0f ? 0.5f * Erfc(d * scale) : 1f - 0.5f * Erfc(-d * scale); // a blurred straight edge
+                float alpha = Mathf.Pow(Mathf.Clamp01(strength * blurred), 2.2f); // browser strength in linear light
+                pixels[y * n + x] = new Color(1f, 1f, 1f, alpha);
+            }
+            var sprite = Sprite.Create(NewTexture(n, pixels, "Glow " + r), new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f),
+                pixelsPerUnit, 0, SpriteMeshType.FullRect, new Vector4(b, b, b, b));
+            sprite.name = "Glow " + r;
+            ExactShapes[key] = sprite;
+            return sprite;
+        }
+
+        // The complementary error function (Abramowitz & Stegun 7.1.26), for x ≥ 0.
+        static float Erfc(float x)
+        {
+            float t = 1f / (1f + 0.3275911f * x);
+            float poly = t * (0.254829592f + t * (-0.284496736f + t * (1.421413741f + t * (-1.453152027f + t * 1.061405429f))));
+            return poly * Mathf.Exp(-x * x);
+        }
+
         // How much of pixel (x, y) is inside an n × n square inset by `inset` px with corners `radius` round
         // (a signed distance, smoothed over one pixel: the same soft-but-sharp edge a browser draws).
         static float Coverage(int x, int y, int n, float radius, float inset)
         {
+            if (n / 2f - inset <= 0f) return 0f;
+            return Mathf.Clamp01(0.5f - SignedDistance(x, y, n, radius, inset));
+        }
+
+        // Distance from pixel (x, y)'s centre to that rounded square's edge: negative inside.
+        static float SignedDistance(int x, int y, int n, float radius, float inset)
+        {
             float half = n / 2f - inset;
-            if (half <= 0f) return 0f;
+            half = Mathf.Max(half, 0f);
             radius = Mathf.Min(radius, half);
             float qx = Mathf.Abs(x + 0.5f - n / 2f) - (half - radius);
             float qy = Mathf.Abs(y + 0.5f - n / 2f) - (half - radius);
             float outside = Mathf.Sqrt(Mathf.Max(qx, 0f) * Mathf.Max(qx, 0f) + Mathf.Max(qy, 0f) * Mathf.Max(qy, 0f));
-            float d = outside + Mathf.Min(Mathf.Max(qx, qy), 0f) - radius;
-            return Mathf.Clamp01(0.5f - d);
+            return outside + Mathf.Min(Mathf.Max(qx, qy), 0f) - radius;
         }
 
         // ---- Soft glows (the prototype's box-shadow glows) ----

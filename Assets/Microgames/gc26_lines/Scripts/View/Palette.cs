@@ -29,7 +29,7 @@ namespace GC26.Lines.View
         public static readonly Color Glass = Hex(0x1E1640, 0.9f);
         public static readonly Color Gold = Hex(0xFFC45E);
         public static readonly Color GoldText = Hex(0x3A2208);
-        public static readonly Color GoldGlow = Hex(0xFFBE5A, 0.13f);
+        public static readonly Color GoldGlow = Hex(0xFFBE5A, 0.5f); // the prototype's rgba(255, 190, 90, 0.5); see SpriteFactory.ExactGlow
         public static readonly Color DisabledFill = Hex(0x2A2448, 0.9f);
         public static readonly Color DisabledRim = Hex(0xFFFFFF, 0.15f);
 
