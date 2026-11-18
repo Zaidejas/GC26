@@ -9,6 +9,6 @@ namespace GC26.Minesweeper
     // Easiest: GC26 → Minesweeper → Version → Bump Version... in Unity does both.
     public static class MinesweeperVersion
     {
-        public const string Number = "0.2.1";
+        public const string Number = "0.2.2";
     }
 }

@@ -15,7 +15,7 @@ namespace GC26.Minesweeper
     /// <summary>
     /// Red Flags (Minesweeper): the only IMicrogame in gc26_minesweeper_Main.
     /// Builds its whole UI from code when it begins, so the scene needs only this component
-    /// (plus a camera for running the scene on its own). Rules: see docs/Minesweeper_GDD.md.
+    /// (plus a camera for running the scene on its own). Rules: see Docs~/Minesweeper_GDD.md.
     /// </summary>
     public class MinesweeperGame : MonoBehaviour, IMicrogame
     {
@@ -34,8 +34,9 @@ namespace GC26.Minesweeper
         static readonly Color YellowColor = Hex(0xF2C418);
         static readonly Color DarkText = Hex(0x222222);
 
-        // The tutorial runs in the first game each time the app is opened (GDD 6.5). Not saved on purpose.
-        static bool tutorialSeen;
+        // The tutorial runs in the first game each time Red Flags is opened (GDD 6.5). A normal field,
+        // not static and not saved: class rule 6 forbids state that outlives the game's scene.
+        bool tutorialSeen;
 
         Action<int> exit;
         bool started;

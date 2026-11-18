@@ -2,13 +2,13 @@
 
 **Target:** Android phones, portrait orientation. Unity 6000.5.6f1, URP, Input System package. The code also runs in the editor with a mouse, so you can test quickly without a phone.
 
-**Project:** the existing Unity project `GC26`, branch `gc26_minesweeper` of [Zaidejas/GC26](https://github.com/Zaidejas/GC26). It was created from the 3D URP template and already has the Input System (1.20) and Test Framework (1.7) packages.
+**Project:** the existing Unity project `GC26`, branch `game/gc26_minesweeper` of [Zaidejas/GC26](https://github.com/Zaidejas/GC26). It was created from the 3D URP template and already has the Input System (1.20) and Test Framework (1.7) packages.
 
 **Theme:** the player avoids hidden **red flags** and marks suspicious cells with **yellow flags** (see Minesweeper_GDD.md, section 1.1). The code keeps the classic names: "mine" (`IsMine`, `MineCount`) = hidden red flag, "flag" (`IsFlagged`, `ToggleFlag`) = the player's yellow flag. Only sprites and on-screen text use the new names.
 
 **Related documents:** [Minesweeper_GDD.md](Minesweeper_GDD.md) (rules, screens, controls), [Minesweeper_Prototype/](Minesweeper_Prototype/README.md), [task board](https://github.com/users/Zaidejas/projects/6) (all tasks from section 9 as cards).
 
-**Get the project on a new computer:** `git clone -b gc26_minesweeper https://github.com/Zaidejas/GC26.git`, then open the `GC26` folder in Unity Hub (Add → Add project from disk). These documents are in `GC26/docs`.
+**Get the project on a new computer:** `git clone -b game/gc26_minesweeper https://github.com/Zaidejas/GC26.git`, then open the `GC26` folder in Unity Hub (Add → Add project from disk). These documents are in `Assets/Microgames/gc26_minesweeper/Docs~/` (Unity ignores folders ending in `~`).
 
 **Contents:** 1–7 architecture and code · 8 testing · 9 development plan and tasks · 10 progress tracking
 
@@ -1010,7 +1010,7 @@ Red flags are easier to see from a distance.
 - **Loss line:** a `[SerializeField] private TextAsset lossLinesFile;` field. In `Awake`, `lines = LossLines.Parse(lossLinesFile != null ? lossLinesFile.text : "")`. When `StateChanged` reports `Lost`, set the loss panel's second text to `LossLines.PickRandom(lines, rng)` and hide that text if it's empty. The text box uses TextMeshPro word wrapping
 - Player-facing texts say "red flags", never "mines" (counter, menu cards, panels)
 - **"How to play" pop-up** (Minesweeper_GDD.md, section 6.6): a full-screen, semi-transparent `Image` with a centred panel (title, text, OK button) as its child, last in the Canvas so it draws on top. The **?** button's `onClick` shows it. A `Button` on the full-screen image (covering the panel too) and the OK button both hide it, so a tap anywhere closes it; because the image blocks raycasts, `InputHandler`'s `IsOverUI` check stops that tap from reaching the board. While it's open, `GameManager` pauses the timer (like `appPaused`), and the Back button closes it before going to the menu
-- **First-game tutorial** (Minesweeper_GDD.md, section 6.5): a bubble panel (TextMeshPro text + "Got it" button) anchored directly **under the top bar, above the board**. While it's visible, `CameraController.Fit` uses a larger top margin (top bar + bubble height), so the board sits below the bubble and no cell is covered; when it closes, fit again with the normal margin. Keep a `static bool tutorialSeen` (not saved, so it resets every time the app starts). In `NewGame`, if it's false, show step 1. When `StateChanged` reports `Playing` (the first reveal), find the revealed non-mine cell with the biggest `AdjacentMines` (first found on a tie), call `TileView.SetTutorialHighlight(true)` on it (a pulsing yellow outline sprite), show step 2 with that number, and set `tutorialSeen = true`. Close it on "Got it", on the next `OnTap`/`OnLongPress`, or on leaving the scene
+- **First-game tutorial** (Minesweeper_GDD.md, section 6.5): a bubble panel (TextMeshPro text + "Got it" button) anchored directly **under the top bar, above the board**. While it's visible, `CameraController.Fit` uses a larger top margin (top bar + bubble height), so the board sits below the bubble and no cell is covered; when it closes, fit again with the normal margin. Keep a normal (not static, not saved) `bool tutorialSeen` field, so it resets every time the game is opened; class rule 6 forbids static session state. In `NewGame`, if it's false, show step 1. When `StateChanged` reports `Playing` (the first reveal), find the revealed non-mine cell with the biggest `AdjacentMines` (first found on a tie), call `TileView.SetTutorialHighlight(true)` on it (a pulsing yellow outline sprite), show step 2 with that number, and set `tutorialSeen = true`. Close it on "Got it", on the next `OnTap`/`OnLongPress`, or on leaving the scene
 - **Android Back button:** in `Update`, `if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)` load the `MainMenu` scene. In the menu the same check calls `Application.Quit()`
 
 ## 6. Unit test example (week 11)
@@ -1197,16 +1197,16 @@ Use the same rhythm every week so no time is lost:
 **Goal:** a working project that already runs on your phone. Getting the Android toolchain working early removes the biggest technical risk.
 - Install **Unity 6000.5.6f1** (the version the GC26 project uses) in Unity Hub with the **Android Build Support** module, including **OpenJDK** and **Android SDK & NDK Tools**
 - Install Visual Studio 2022 Community with the "Game development with Unity" workload, or VS Code with the Unity extension
-- Open the existing `GC26` project and make sure the branch `gc26_minesweeper` is checked out (`git status`). On a new computer, first run `git clone https://github.com/Zaidejas/GC26.git` and `git checkout gc26_minesweeper`
+- Open the existing `GC26` project and make sure the branch `game/gc26_minesweeper` is checked out (`git status`). On a new computer, first run `git clone https://github.com/Zaidejas/GC26.git` and `git checkout game/gc26_minesweeper`
 - File → Build Profiles → **Switch Platform to Android**
 - Player Settings → Resolution and Presentation → Default Orientation: **Portrait**
 - The project was created from the 3D URP template, so set the Main Camera's **Projection to Orthographic** and add the **2D Sprite** package (Package Manager) for slicing sprites
 - Create the folder structure: `Assets/Scripts/{Core,View,UI,Managers}`, `Assets/Sprites`, `Assets/Prefabs`, `Assets/Audio` (`Assets/Scenes` and `Assets/Settings` already exist)
-- Git is already set up: check that `.gitignore` excludes `Library`, `Temp` and `Logs`, then commit the setup and push to `gc26_minesweeper`
+- Git is already set up: check that `.gitignore` excludes `Library`, `Temp` and `Logs`, then commit the setup and push to `game/gc26_minesweeper`
 - On the phone: enable **Developer options** (tap "Build number" 7 times) and **USB debugging**; connect by USB and use **Build And Run** on an empty scene
 - C# refresher: classes, 2D arrays `int[,]`, `List<T>`, `Queue<T>`, enums, `Random`, MonoBehaviour basics (`Start`, `Update`, `[SerializeField]`)
 
-**Done when:** an empty app opens on your phone and the setup commit is on GitHub in `gc26_minesweeper`.
+**Done when:** an empty app opens on your phone and the setup commit is on GitHub in `game/gc26_minesweeper`.
 
 **Tasks**
 
@@ -1214,8 +1214,8 @@ Use the same rhythm every week so no time is lost:
 |---|---|---|---|---|---|---|
 | ☐ | MS-01 | Install Unity 6000.5.6f1 (the GC26 project's version) with Android Build Support (OpenJDK, Android SDK & NDK Tools) | 20 | Must | — | Unity 6000.5.6f1 with the Android module appears under Installs in Unity Hub |
 | ☐ | MS-02 | Install Visual Studio 2022 (Unity workload) or VS Code + Unity extension, and set it as the external script editor | 10 | Must | MS-01 | Double-clicking a script in Unity opens it with autocomplete working |
-| ☐ | MS-03 | Prepare the GC26 project on branch `gc26_minesweeper`: switch platform to Android, set Portrait, make the camera orthographic, add the 2D Sprite package, create the folders | 15 | Must | MS-01 | Platform shows Android, orientation is Portrait, camera is orthographic; `Scripts/{Core,View,UI,Managers}`, `Sprites`, `Prefabs`, `Scenes`, `Audio` exist |
-| ☐ | MS-04 | Check Git for the `gc26_minesweeper` branch: `.gitignore` excludes `Library`/`Temp`/`Logs`; commit the setup and push | 15 | Must | MS-03 | The setup commit is on GitHub in `gc26_minesweeper` and the `Library` folder is not in it |
+| ☐ | MS-03 | Prepare the GC26 project on branch `game/gc26_minesweeper`: switch platform to Android, set Portrait, make the camera orthographic, add the 2D Sprite package, create the folders | 15 | Must | MS-01 | Platform shows Android, orientation is Portrait, camera is orthographic; `Scripts/{Core,View,UI,Managers}`, `Sprites`, `Prefabs`, `Scenes`, `Audio` exist |
+| ☐ | MS-04 | Check Git for the `game/gc26_minesweeper` branch: `.gitignore` excludes `Library`/`Temp`/`Logs`; commit the setup and push | 15 | Must | MS-03 | The setup commit is on GitHub in `game/gc26_minesweeper` and the `Library` folder is not in it |
 | ☐ | MS-05 | Enable Developer options and USB debugging on the phone; Build And Run an empty scene | 20 | Must | MS-03 | The empty app opens on the phone |
 | ☐ | MS-06 | C# refresher: classes, `int[,]`, `List<T>`, `Queue<T>`, enums, `Random`, MonoBehaviour basics | 10 | Must | — | You can explain what `Start`, `Update` and `[SerializeField]` do |
 

@@ -4,7 +4,7 @@
 |---|---|
 | **Title** | Red Flags (a Minesweeper-style game) |
 | **Genre** | Single-player logic / puzzle game |
-| **Engine** | Unity 6000.5.6f1 (URP), C#; project GC26, branch `gc26_minesweeper` |
+| **Engine** | Unity 6000.5.6f1 (URP), C#; project GC26, branch `game/gc26_minesweeper` |
 | **Platform** | Android phones (main); Android tablets supported; iOS optional later |
 | **Orientation** | Portrait only |
 | **Input** | Touch: tap, long press, drag, pinch; Android Back button |
@@ -337,7 +337,7 @@ A panel that slides up from the bottom, so the board stays visible above it and 
 - If the list is empty, only the "lost" message is shown.
 
 ### 6.5 First-game tutorial
-A short tutorial runs in the **first game each time the app is opened**, whatever difficulty the player chooses. Later games in the same session don't show it. It is a message bubble **above the board** (between the top bar and the board); the board stays playable the whole time.
+A short tutorial runs in the **first game each time Red Flags is opened** (from the GC26 menu, or as its own app), whatever difficulty the player chooses. Later games before leaving Red Flags don't show it. It is a message bubble **above the board** (between the top bar and the board); the board stays playable the whole time.
 
 1. **Before the first tap:** "Tap any cell to start. Your first tap is always safe." The bubble has no button; it waits for the tap.
 2. **After the first tap:** the opened cell with the **biggest number** gets a pulsing yellow outline (if several share the biggest number, the first one found is used; on a big board the view scrolls to it). The bubble says: **"This cell has *N* red flags around it — be careful!"** ("1 red flag" when N is 1). It has a **Got it** button.

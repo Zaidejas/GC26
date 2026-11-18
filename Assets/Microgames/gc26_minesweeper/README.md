@@ -1,10 +1,11 @@
 # gc26_minesweeper — Red Flags
 
-- Ветка: `gc26_minesweeper`
+- Ветка: `game/gc26_minesweeper`
 - Неймспейс: `GC26.Minesweeper`
 - Стартовая сцена: `Scenes/gc26_minesweeper_Main.unity` (компонент `MinesweeperGame` на объекте `MinesweeperGame`)
 - Команда: Tvareena
-- Дизайн: `docs/Minesweeper_GDD.md`, техническое описание: `docs/Minesweeper_TDD.md`
+- Дизайн: [`Docs~/Minesweeper_GDD.md`](Docs~/Minesweeper_GDD.md), техническое описание: [`Docs~/Minesweeper_TDD.md`](Docs~/Minesweeper_TDD.md), браузерный прототип: [`Docs~/Minesweeper_Prototype/`](Docs~/Minesweeper_Prototype/README.md)
+- `Docs~` ends with `~`, so Unity doesn't import it; it lives in the game folder because of rule 1 (only your own folder).
 
 Как играть (How to play):
 - Tap cells to reveal them. **Avoid the red flags!**
@@ -30,6 +31,7 @@ In Unity: **GC26 → Minesweeper → Version → Bump Version...** — describe 
 
 | Version | Changes |
 |---|---|
+| 0.2.2 | Class rules (tools/): tutorial state is no longer static (rule 6), docs moved into the game folder as `Docs~/` (rule 1), branch `game/gc26_minesweeper` |
 | 0.2.1 | About 4% of boards need a guess again, on every level (MinesweeperBoard.GuessChance); measured 3.9% |
 | 0.2.0 | No-guess boards: every board can be solved by logic from the first tap (MinesweeperSolver). Before: 11.5% / 33.8% / 89.3% of Beginner / Intermediate / Expert boards needed a guess |
 | 0.1.2 | Editor: GC26 → Minesweeper → Version menu to bump the version and add the changelog row |
