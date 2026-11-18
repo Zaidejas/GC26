@@ -286,7 +286,7 @@ All layouts are **portrait** and stay inside the phone's **safe area** (clear of
 - The menu has **no instructions text**; new players learn the controls from the first-game tutorial (6.5) and the **?** button in the game (6.6).
 - Large difficulty cards, each showing the board size, the number of red flags and the best time ("—" if there is none yet).
 - ⚙ opens the settings panel: **Sound** on/off and **Vibration** on/off.
-- There is **no Quit button**; on Android the Back or Home button leaves the app.
+- An **Exit** button at the bottom leaves Red Flags: it closes the app, or returns to the GC26 menu when the game was started from there (the class rules require a way out). Android Back on this screen does the same.
 
 ### 6.2 Game screen
 ```
@@ -392,9 +392,15 @@ Anything that would throw away a **game in progress** asks first. A game is in p
 | Action | Question | "Yes" button |
 |---|---|---|
 | Face button (restart) | Are you sure you want to start a new game and lose your progress? | New game |
-| Pause → Change level | Are you sure you want to change the level and lose your progress? | Change level |
-| Pause → Exit to menu | Are you sure you want to leave and lose your progress? | Exit to menu |
-| Android Back / Escape in the game | Are you sure you want to leave and lose your progress? | Leave |
+| Pause → Menu | Are you sure you want to go to the menu and lose your progress? | Menu |
+| Pause → Exit | Are you sure you want to exit and lose your progress? | Exit |
+| Android Back / Escape in the game | Are you sure you want to go to the menu and lose your progress? | Menu |
+
+**Button words mean the same everywhere:**
+- **Menu** = Red Flags' own main menu, the level screen (pause menu, end-of-round panel, Back in the game).
+- **Exit** = leave Red Flags: close the app, or go back to the GC26 menu when started from there (level screen, pause menu).
+
+The pause menu (☰ in the top bar) has **Resume**, **Menu** and **Exit**.
 
 - Two buttons: **Keep playing** (big, yellow, on top: the safe choice) and the red "Yes" button.
 - Only the buttons close it; a tap next to the dialog does nothing, so a stray tap can't decide for the player. Android Back means **Keep playing**.
@@ -454,7 +460,7 @@ No account, internet connection or special permissions are needed. Uninstalling 
 | App closed and opened again | The tutorial shows again in the first game |
 | Player taps the board area to close "How to play" | The pop-up closes; no cell is opened or flagged |
 | Android Back while "How to play" is open | The pop-up closes; the game stays open |
-| Restart, Change level, Exit or Back before the first tap, or after a win or loss | Happens at once, no question (nothing to lose) |
+| Restart, Menu, Exit or Back before the first tap, or after a win or loss | Happens at once, no question (nothing to lose) |
 | Android Back while "Are you sure?" is shown | Same as **Keep playing** |
 | Very narrow phone (320 px wide) | The top bar's digits get slightly smaller so all five items (menu, counter, face, timer, ?) fit |
 ## 10. Out of scope

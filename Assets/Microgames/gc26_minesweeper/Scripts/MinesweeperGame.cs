@@ -157,7 +157,7 @@ namespace GC26.Minesweeper
             if (confirmOverlay.activeSelf) { ConfirmNo(); return; }       // Back = "Keep playing"
             if (helpOverlay.activeSelf) { HideHelp(); return; }
             if (pauseOverlay.activeSelf) { pauseOverlay.SetActive(false); return; }
-            if (InGame) { ConfirmIfGameInProgress("Are you sure you want to leave and lose your progress?", "Leave", ShowMenu); return; }
+            if (InGame) { RequestMenu(); return; }
             ExitToMenu(0);
         }
 
@@ -192,8 +192,17 @@ namespace GC26.Minesweeper
             confirmOverlay.SetActive(false);     // back to the same game; the timer continues
         }
 
+        // Button words mean the same everywhere:
+        //   Menu = Red Flags' own main menu (the level screen)
+        //   Exit = leave Red Flags (closes the app, or returns to the GC26 menu when started from there)
         void RequestNewRound() =>
             ConfirmIfGameInProgress("Are you sure you want to start a new game and lose your progress?", "New game", NewRound);
+
+        void RequestMenu() =>
+            ConfirmIfGameInProgress("Are you sure you want to go to the menu and lose your progress?", "Menu", ShowMenu);
+
+        void RequestExit() =>
+            ConfirmIfGameInProgress("Are you sure you want to exit and lose your progress?", "Exit", () => ExitToMenu(0));
 
         // =====================================================================
         // Screens
@@ -762,10 +771,8 @@ namespace GC26.Minesweeper
             RectTransform dialog = MakeOverlay(app, "Pause", out pauseOverlay, closeOnTap: false);
             AddText(NewRect("Title", dialog), "Paused", 64, TextColor, FontStyle.Bold);
             Layout(MakeButton(dialog, "Resume", "Resume", 50, YellowColor, DarkText, () => pauseOverlay.SetActive(false), out _), h: 130);
-            Layout(MakeButton(dialog, "ChangeLevel", "Change level", 50, ButtonColor, TextColor,
-                () => ConfirmIfGameInProgress("Are you sure you want to change the level and lose your progress?", "Change level", ShowMenu), out _), h: 130);
-            Layout(MakeButton(dialog, "ExitToMenu", "Exit to menu", 50, ButtonColor, TextColor,
-                () => ConfirmIfGameInProgress("Are you sure you want to leave and lose your progress?", "Exit to menu", () => ExitToMenu(0)), out _), h: 130);
+            Layout(MakeButton(dialog, "Menu", "Menu", 50, ButtonColor, TextColor, RequestMenu, out _), h: 130);   // level screen
+            Layout(MakeButton(dialog, "Exit", "Exit", 50, ButtonColor, TextColor, RequestExit, out _), h: 130);   // leave Red Flags
             pauseOverlay.SetActive(false);
         }
 
@@ -968,9 +975,14 @@ namespace GC26.Minesweeper
             ConfirmNo();
             log.Add($"after 'Keep playing': state {state}, yellow flag kept {(safe.HasValue && board.GetCell(safe.Value.x, safe.Value.y).IsFlagged)}");
             ShowPause();
-            ConfirmIfGameInProgress("Are you sure you want to leave and lose your progress?", "Exit to menu", () => log.Add("ERROR: left without asking"));
-            log.Add($"pause -> Exit to menu asks first: {confirmOverlay.activeSelf}, pause closed: {!pauseOverlay.activeSelf}");
+            RequestMenu();
+            log.Add($"pause -> Menu asks first: {confirmOverlay.activeSelf} ('{confirmTitle.text}', button '{confirmYesLabel.text}'), pause closed: {!pauseOverlay.activeSelf}");
             ConfirmNo();
+            ShowPause();
+            RequestExit();
+            log.Add($"pause -> Exit asks first: {confirmOverlay.activeSelf} ('{confirmTitle.text}', button '{confirmYesLabel.text}')");
+            ConfirmNo();
+            log.Add($"still in the same game after both 'Keep playing': {InGame && state == MinesweeperState.Playing}");
             OnTap(mine.Value.x, mine.Value.y);
             yield return null; yield return null;
             log.Add($"after tapping a red flag: state {state}, panel '{endTitle.text}', line '{endLine.text}'");
@@ -978,6 +990,11 @@ namespace GC26.Minesweeper
             bool ranAtOnce = false;
             ConfirmIfGameInProgress("test", "Yes", () => ranAtOnce = true);
             log.Add($"after the round is over, leaving doesn't ask: {ranAtOnce && !confirmOverlay.activeSelf}");
+            RequestMenu();
+            yield return null;
+            log.Add($"after the round, pause Menu goes straight to the level screen: {menuScreen.activeSelf && !InGame}");
+            StartGame(MinesweeperDifficulty.Beginner);
+            yield return null;
 
             ShowPause();
             yield return null;

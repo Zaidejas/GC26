@@ -13,7 +13,8 @@
 - Long press (or right-click) a cell to mark it with a yellow flag where you suspect a red flag. The Flag button at the bottom does the same with a normal tap.
 - Tap an opened number when all its red flags are marked to open the cells around it.
 - Open every cell without a red flag to win. Your first tap is always safe.
-- Top bar: ☰ pause (Resume / Change level / Exit to menu), red flag counter, face = restart, timer, ? = How to play.
+- Top bar: ☰ pause (Resume / Menu / Exit), red flag counter, face = restart, timer, ? = How to play.
+- **Menu** always means Red Flags' own main menu (the level screen); **Exit** always means leaving Red Flags (closes the app, or back to the GC26 menu).
 
 ## Structure
 | Folder | What's inside |
@@ -31,6 +32,7 @@ In Unity: **GC26 → Minesweeper → Version → Bump Version...** — describe 
 
 | Version | Changes |
 |---|---|
+| 0.3.1 | Button words match their action: pause is now Resume / Menu (level screen) / Exit (leave Red Flags); questions and Back say "go to the menu" or "exit" |
 | 0.3.0 | "Are you sure you want to leave and lose your progress?" before restart, Change level, Exit to menu or Back during a game in progress |
 | 0.2.2 | Class rules (tools/): tutorial state is no longer static (rule 6), docs moved into the game folder as `Docs~/` (rule 1), branch `game/gc26_minesweeper` |
 | 0.2.1 | About 4% of boards need a guess again, on every level (MinesweeperBoard.GuessChance); measured 3.9% |

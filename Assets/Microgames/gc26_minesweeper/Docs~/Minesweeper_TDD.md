@@ -56,7 +56,7 @@ The main idea is to **separate the logic from the visuals**. The rules live in p
 
 ## 2. Scenes
 
-- `MainMenu`: title, three difficulty buttons with best times, settings button (sound, vibration). No Quit button; Android Back closes the app. **It is scene 0 in the Build Profiles scene list**, so the app always opens on the difficulty choice.
+- `MainMenu`: title, three difficulty buttons with best times, settings button (sound, vibration), and an **Exit** button that leaves Red Flags (`ExitToMenu`: closes the app, or returns to the GC26 menu). Android Back does the same. **It is scene 0 in the Build Profiles scene list**, so the app always opens on the difficulty choice.
 - `Game`: Main Camera (+ `CameraController`), `GameManager`, `BoardView`, `InputHandler`, `AudioManager`, and a Canvas with a `SafeArea` panel holding the top bar (menu, counter, face, timer, **?** help button), the bottom bar (flag-mode toggle), and the hidden "How to play" pop-up.
 
 ## 3. Project settings for mobile
@@ -1129,7 +1129,8 @@ Device Simulator profiles to check: a 16:9 phone, a tall 20:9 phone with a notch
 - [ ] OK, or a tap anywhere on the screen, closes it; the closing tap never opens or flags a cell
 - [ ] The timer doesn't count while "How to play" is open
 - [ ] All five top-bar items fit on the narrowest test phone
-- [ ] During a game: face button, Pause → Change level, Pause → Exit to menu and Back each ask "Are you sure you want to … and lose your progress?"; **Keep playing** returns to the same game with flags and timer intact
+- [ ] Button words match what they do: **Menu** always opens Red Flags' level screen, **Exit** always leaves Red Flags
+- [ ] During a game: face button, Pause → Menu, Pause → Exit and Back each ask "Are you sure you want to … and lose your progress?"; **Keep playing** returns to the same game with flags and timer intact
 - [ ] Before the first tap and after a win or loss, the same actions happen at once without asking
 
 #### Android behaviour
@@ -1357,7 +1358,7 @@ Use the same rhythm every week so no time is lost:
 
 **Goal:** replayability and normal Android navigation.
 - Create a `DifficultySettings` ScriptableObject (name, width, height, mines) and three assets: Beginner 9×9/10, Intermediate 16×16/40, Expert **16×30**/99
-- Add a `MainMenu` scene with three big difficulty buttons and make it **scene 0** in Build Profiles, so the game always starts from the difficulty choice. There's **no Quit button**: on Android, players leave with the Back or Home button
+- Add a `MainMenu` scene with three big difficulty buttons and make it **scene 0** in Build Profiles, so the game always starts from the difficulty choice. Add an **Exit** button that leaves Red Flags (`ExitToMenu`); Android Back on this screen does the same
 - Pass the chosen difficulty to the game scene with a static `GameSession` class, then load it with `SceneManager.LoadScene`
 - **Android Back button:** in the game it returns to the menu; in the menu it closes the app. In the Input System the Back button arrives as the **Escape** key
 - Test the layout in the Device Simulator on several shapes: a 16:9 phone, a tall 20:9 phone with a notch, and a 4:3 tablet
@@ -1370,7 +1371,7 @@ Use the same rhythm every week so no time is lost:
 |---|---|---|---|---|---|---|
 | ☐ | MS-37 | Create the `DifficultySettings` ScriptableObject and the Beginner 9×9/10, Intermediate 16×16/40, Expert 16×30/99 assets | 15 | Should | MS-26 | Three assets exist with the correct sizes and mine counts |
 | ☐ | MS-38 | Create the static `GameSession` class and read it in `NewGame()` | 5 | Should | MS-37 | The game uses `GameSession.Selected`, or the default if it's empty |
-| ☐ | MS-39 | Build the `MainMenu` scene (scene 0, the first screen): title, three large difficulty cards, settings button; no Quit button | 30 | Should | MS-38 | The app opens on this screen; the layout matches the sketch in Minesweeper_GDD.md and sits inside the safe area |
+| ☐ | MS-39 | Build the `MainMenu` scene (scene 0, the first screen): title, three large difficulty cards, settings button, Exit button | 30 | Should | MS-38 | The app opens on this screen; the layout matches the sketch in Minesweeper_GDD.md and sits inside the safe area |
 | ☐ | MS-40 | Scene loading, Menu button, and Android Back (Escape key): game → menu, menu → quit | 15 | Should | MS-39 | Back behaves correctly on the phone; Menu → Game → Menu works repeatedly with no errors |
 | ☐ | MS-41 | Test all screens in the Device Simulator on a 16:9 phone, a 20:9 notched phone and a 4:3 tablet | 25 | Should | MS-40 | Board and UI fit on all three with nothing hidden or overlapping |
 
