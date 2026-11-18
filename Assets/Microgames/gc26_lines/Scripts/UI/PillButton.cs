@@ -264,11 +264,10 @@ namespace GC26.Lines.UI
         /// <summary>Makes <paramref name="image"/> a rounded rectangle with corners <paramref name="radiusPixels"/> round.</summary>
         public static void MakeRounded(Image image, float radiusPixels)
         {
-            image.sprite = SpriteFactory.RoundRect(0.5f);
+            // Drawn at its real size and shown pixel for pixel, so the edges stay sharp (see SpriteFactory.ExactRoundRect).
+            image.sprite = SpriteFactory.ExactRoundRect(Mathf.Max(0.5f, radiusPixels), CanvasPpu(image));
             image.type = Image.Type.Sliced;
-            var canvas = image.GetComponentInParent<Canvas>();
-            float canvasPpu = canvas != null ? canvas.referencePixelsPerUnit : 100f;
-            image.pixelsPerUnitMultiplier = image.sprite.border.x * canvasPpu / (image.sprite.pixelsPerUnit * Mathf.Max(0.5f, radiusPixels));
+            image.pixelsPerUnitMultiplier = 1f;
         }
 
         /// <summary>
@@ -277,24 +276,20 @@ namespace GC26.Lines.UI
         /// </summary>
         public static void MakeRing(Image image, float radiusPixels)
         {
-            image.sprite = SpriteFactory.RoundRectRing();
+            float radius = Mathf.Max(0.5f, radiusPixels);
+            image.sprite = SpriteFactory.ExactRoundRing(radius, radius * 3f / 16f, CanvasPpu(image));
             image.type = Image.Type.Sliced;
             image.fillCenter = false;
-            var canvas = image.GetComponentInParent<Canvas>();
-            float canvasPpu = canvas != null ? canvas.referencePixelsPerUnit : 100f;
-            image.pixelsPerUnitMultiplier = image.sprite.border.x * canvasPpu / (image.sprite.pixelsPerUnit * Mathf.Max(0.5f, radiusPixels));
+            image.pixelsPerUnitMultiplier = 1f;
         }
 
         /// <summary>Makes <paramref name="image"/> a pill: a rounded rectangle whose ends are half circles.</summary>
-        public static void MakePill(Image image, float heightPixels)
+        public static void MakePill(Image image, float heightPixels) => MakeRounded(image, Mathf.Max(1f, heightPixels) / 2f);
+
+        static float CanvasPpu(Image image)
         {
-            image.sprite = SpriteFactory.RoundRect(0.5f);
-            image.type = Image.Type.Sliced;
-            // A sliced UI image draws its corners border / (sprite ppu / canvas ppu × multiplier) pixels wide.
             var canvas = image.GetComponentInParent<Canvas>();
-            float canvasPpu = canvas != null ? canvas.referencePixelsPerUnit : 100f;
-            float border = image.sprite.border.x;
-            image.pixelsPerUnitMultiplier = border * canvasPpu / (image.sprite.pixelsPerUnit * Mathf.Max(1f, heightPixels) / 2f);
+            return canvas != null ? canvas.referencePixelsPerUnit : 100f;
         }
     }
 }

@@ -101,11 +101,7 @@ namespace GC26.Lines.UI
             card.sizeDelta = new Vector2(width, height);
             cardGlow.rectTransform.sizeDelta = card.sizeDelta + Vector2.one * 2f * GlowSize * u;
             UiShapes.MakeGlow(cardGlow, GlowSize * u);
-            cardImage.sprite = SpriteFactory.RoundRect(0.5f);
-            cardImage.type = Image.Type.Sliced;
-            var canvas = GetComponentInParent<Canvas>();
-            float canvasPpu = canvas != null ? canvas.referencePixelsPerUnit : 100f;
-            cardImage.pixelsPerUnitMultiplier = cardImage.sprite.border.x * canvasPpu / (cardImage.sprite.pixelsPerUnit * CardRadius * u);
+            UiShapes.MakeRounded(cardImage, CardRadius * u);
 
             // Top to bottom inside the card (positions from the card's bottom-left corner).
             float y = height - PadTop * u - titleH;

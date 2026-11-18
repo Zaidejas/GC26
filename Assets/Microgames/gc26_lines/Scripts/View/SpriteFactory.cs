@@ -72,6 +72,71 @@ namespace GC26.Lines.View
             return sprite;
         }
 
+        // ---- Rounded UI shapes drawn at their real size ----
+        // One small picture stretched to every size made the buttons' edges soft on phones (a 16 px corner
+        // drawn 65 px round). These are drawn for the exact radius they're shown at, so a sliced UI image
+        // shows them pixel for pixel: edges as sharp as the prototype's.
+
+        static readonly Dictionary<(int, int, int), Sprite> ExactShapes = new Dictionary<(int, int, int), Sprite>();
+
+        /// <summary>
+        /// A white rounded rectangle for a sliced UI image (pixelsPerUnitMultiplier 1) whose corners are
+        /// <paramref name="radiusPx"/> screen pixels round (to half a pixel), drawn at that size.
+        /// </summary>
+        public static Sprite ExactRoundRect(float radiusPx, float pixelsPerUnit) => ExactShape(radiusPx, 0f, pixelsPerUnit);
+
+        /// <summary>
+        /// A white rounded outline for a sliced UI image (pixelsPerUnitMultiplier 1, fillCenter off):
+        /// corners <paramref name="radiusPx"/> screen pixels round, the line <paramref name="thicknessPx"/> thick.
+        /// </summary>
+        public static Sprite ExactRoundRing(float radiusPx, float thicknessPx, float pixelsPerUnit) =>
+            ExactShape(radiusPx, Mathf.Max(0.25f, thicknessPx), pixelsPerUnit);
+
+        /// <summary>The corner (slice border) size, in pixels, of the exact shapes for <paramref name="radiusPx"/>.</summary>
+        public static int ExactBorder(float radiusPx) => Mathf.Max(1, Mathf.CeilToInt(Quantize(radiusPx, 2f) - 0.5f));
+
+        static float Quantize(float value, float steps) => Mathf.Max(0.5f, Mathf.Round(value * steps) / steps);
+
+        static Sprite ExactShape(float radiusPx, float thicknessPx, float pixelsPerUnit)
+        {
+            float r = Quantize(radiusPx, 2f);
+            float t = thicknessPx > 0f ? Quantize(thicknessPx, 4f) : 0f;
+            var key = (Mathf.RoundToInt(r * 2f), Mathf.RoundToInt(t * 4f), Mathf.RoundToInt(pixelsPerUnit));
+            if (ExactShapes.TryGetValue(key, out var cached) && cached != null) return cached;
+
+            // The corner piece is b × b with the arc's centre r in from both sides; the one middle row and
+            // column are straight and get stretched. A pill (r = height / 2) fits exactly: 2b ≤ height.
+            int b = ExactBorder(radiusPx), n = 2 * b + 1;
+            var pixels = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                float alpha = Coverage(x, y, n, r, 0f);
+                if (t > 0f) alpha -= Coverage(x, y, n, Mathf.Max(0f, r - t), t);
+                pixels[y * n + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(alpha));
+            }
+            string name = (t > 0f ? "RoundRing " : "RoundRect ") + r;
+            var sprite = Sprite.Create(NewTexture(n, pixels, name), new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f),
+                pixelsPerUnit, 0, SpriteMeshType.FullRect, new Vector4(b, b, b, b));
+            sprite.name = name;
+            ExactShapes[key] = sprite;
+            return sprite;
+        }
+
+        // How much of pixel (x, y) is inside an n × n square inset by `inset` px with corners `radius` round
+        // (a signed distance, smoothed over one pixel: the same soft-but-sharp edge a browser draws).
+        static float Coverage(int x, int y, int n, float radius, float inset)
+        {
+            float half = n / 2f - inset;
+            if (half <= 0f) return 0f;
+            radius = Mathf.Min(radius, half);
+            float qx = Mathf.Abs(x + 0.5f - n / 2f) - (half - radius);
+            float qy = Mathf.Abs(y + 0.5f - n / 2f) - (half - radius);
+            float outside = Mathf.Sqrt(Mathf.Max(qx, 0f) * Mathf.Max(qx, 0f) + Mathf.Max(qy, 0f) * Mathf.Max(qy, 0f));
+            float d = outside + Mathf.Min(Mathf.Max(qx, qy), 0f) - radius;
+            return Mathf.Clamp01(0.5f - d);
+        }
+
         // ---- Soft glows (the prototype's box-shadow glows) ----
 
         // Rounded enough to follow pill-shaped buttons: the middle has 30 px corners, the fade is 26 px.
