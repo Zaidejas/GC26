@@ -578,6 +578,47 @@ body {
 .phone.forest .mini { box-shadow: 0 0 4cqw rgba(120, 230, 210, 0.15); }
 .phone.forest .dots span.on { background: #ffd56b; box-shadow: 0 0 1.6cqw #ffd56b; }
 
+/* ---- Colour roles (forest look). One colour per job, so a glowing thing never means two things:
+   pieces       the mushrooms keep the strongest colours; nothing else uses them at full strength
+   navigation   house, gear: quiet blue-grey, no glow
+   controls     Pause, Reset, Menu, Cancel, switches, tabs: cool silver-lilac; "on" / chosen is lilac
+   gold         reward and the one main action: score, points, puffball ring and badge, main button, new best
+   guidance     tutorial outline, hints, puffball aim: pale moonlight blue
+   time         digits cream; amber from 0:30, red from 0:10; +5s pale mint */
+.phone.forest .screen {
+  --nav: rgba(185, 202, 220, 0.78);
+  --ctl-line: rgba(200, 188, 255, 0.4); --ctl-ink: #ebe6ff; --ctl-glow: rgba(160, 140, 255, 0.16);
+  --on: #c3b2ff; --on-deep: #8f78f0; --on-glow: rgba(170, 150, 255, 0.5);
+  --guide: #cfe7ff; --guide-line: rgba(207, 231, 255, 0.85); --guide-glow: rgba(160, 210, 255, 0.55);
+  --bonus: #b4ffe0; --bonus-glow: rgba(150, 255, 210, 0.6);
+}
+/* navigation */
+.phone.forest .icon-btn.home, .phone.forest .icon-btn.gear { color: var(--nav); }
+/* controls: every button that isn't the main one */
+.phone.forest .screen button.btn:not(.primary) { border-color: var(--ctl-line); color: var(--ctl-ink); box-shadow: 0 0 3cqw var(--ctl-glow); }
+.phone.forest .switch[aria-checked="true"] { background: linear-gradient(180deg, var(--on), var(--on-deep)); border-color: var(--on); }
+.phone.forest .switch[aria-checked="true"] span { background: #f4f0ff; }
+.phone.forest .langs button[aria-checked="true"] { background: linear-gradient(180deg, var(--on), var(--on-deep)); color: #1c1636; }
+.phone.forest .mode-pick .badge[aria-pressed="true"] { color: var(--on); }
+.phone.forest .mode-pick .badge[aria-pressed="true"] .disc { border-color: var(--on); background: rgba(195, 178, 255, 0.12); box-shadow: 0 0 3cqw var(--on-glow); }
+.phone.forest .dots span.on { background: var(--text); box-shadow: 0 0 1.2cqw rgba(255, 255, 255, 0.5); }
+.phone.forest .screen { --focus: var(--guide); }
+/* guidance */
+.phone.forest .aim { background: rgba(190, 225, 255, 0.1); border-color: var(--guide-line);
+  box-shadow: 0 0 3cqw var(--guide-glow), inset 0 0 3cqw rgba(160, 210, 255, 0.3); }
+.phone.forest .slot.doomed .ball { filter: brightness(1.2) drop-shadow(0 0 1.4cqw rgba(190, 228, 255, 0.95)) !important; }
+.phone.forest .coach-hole { box-shadow: 0 0 0 300vmax rgba(5, 6, 18, 0.74), 0 0 0 0.6cqw var(--guide), 0 0 5cqw var(--guide-glow); }
+.phone.forest .coach-text, .phone.forest .bubble { border-color: rgba(207, 231, 255, 0.55); box-shadow: 0 0 4cqw rgba(150, 200, 255, 0.28); }
+.phone.forest .bubble::after { border-top-color: rgba(207, 231, 255, 0.55); }
+.phone.forest .coach-text b, .phone.forest .bubble b { color: var(--guide); }
+/* time */
+.phone.forest .timer .tnum { text-shadow: 0 0 3cqw rgba(255, 246, 225, 0.25); }
+.phone.forest .timer.warn:not(.low) { color: #ffb24a; }
+.phone.forest .timer.warn:not(.low) .tnum { text-shadow: 0 0 3cqw rgba(255, 170, 70, 0.6); }
+.phone.forest .timer.low .tnum { text-shadow: 0 0 3cqw rgba(255, 90, 90, 0.7); }
+.phone.forest .timer .ring.got i { background: var(--bonus); box-shadow: 0 0 1.6cqw var(--bonus); }
+.phone.forest .time-gain { color: var(--bonus); text-shadow: 0 0 2cqw var(--bonus-glow); }
+
 /* The magic font: Mystery Quest (Google Fonts, OFL) for titles, numbers, labels and buttons;
    longer text stays in Nunito so it is easy to read. One weight only, so no fake bold. */
 .phone.forest .screen { --font-display: "Mystery Quest", "Kurale", "Nunito", serif; font-synthesis: none; }
