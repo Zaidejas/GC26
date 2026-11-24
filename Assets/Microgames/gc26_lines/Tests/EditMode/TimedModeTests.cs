@@ -137,7 +137,7 @@ namespace GC26.Lines.Tests
         }
 
         [Test]
-        public void Clock_AtTheTopBetweenTheButtons_PauseTakesUndosPlace()
+        public void Clock_AboveScoreAndNext_PauseTakesUndosPlace()
         {
             var h = MakeHud(out var layout);
             Assert.IsFalse(h.ClockShowing, "Classic: no clock");
@@ -149,8 +149,11 @@ namespace GC26.Lines.Tests
             Assert.AreEqual(((RectTransform)h.UndoButton.transform).anchoredPosition, ((RectTransform)h.PauseButton.transform).anchoredPosition);
             Assert.Greater(h.ResetCentre.x, layout.Actions.center.x, "Reset stays on the right; the puffball is in the middle");
             Assert.AreEqual(layout.Actions.center.x, h.Puffball.Rect.anchoredPosition.x, 0.5f);
-            Assert.AreEqual(layout.BackButton.center.y, h.ClockCentre.y, 0.5f, "On the house and gear's line");
-            Assert.AreEqual(layout.Board.center.x, h.ClockCentre.x, 0.5f, "...in the middle");
+            Assert.Greater(h.ClockCentre.y, layout.Hud.y + h.ScoreLabelY, "Above the SCORE / NEXT labels");
+            Assert.LessOrEqual(h.ClockCentre.y, layout.BackButton.center.y + 0.5f, "Never above the house and gear's line");
+            Assert.AreEqual(layout.Board.center.x, h.ClockCentre.x, 0.5f, "The digits are centred on the screen");
+            Assert.Less(h.RingCentre.x, h.ClockCentre.x - 5f * layout.Unit, "The spore ring hangs to the left of the digits");
+            Assert.AreEqual(h.ClockCentre.y, h.RingCentre.y, 0.5f, "...level with them");
             Assert.LessOrEqual(h.ClockCentre.y, layout.SafeArea.yMax, "Inside the safe area (clear of the camera cut-out)");
             h.SetTimed(false);
             Assert.IsTrue(h.UndoShowing, "Back to Classic: Undo returns");
@@ -178,16 +181,32 @@ namespace GC26.Lines.Tests
             h.SetTimed(true);
             h.SetClock(45f, running: true);
             Assert.AreEqual("0:45", h.ClockReading);
-            Assert.AreEqual(Palette.Text, h.ClockColor);
+            Assert.AreEqual(Palette.Clock, h.ClockColor, "Cool white, never gold (gold means points)");
             h.SetClock(25f, running: true);
             Assert.AreEqual(HudView.ClockWarn, h.ClockColor);
             h.SetClock(9f, running: true);
             Assert.AreEqual(HudView.ClockLow, h.ClockColor);
             h.ShowTimeAdded(5f);
+            Assert.IsTrue(h.RingFlashing, "The spores flash mint");
             for (int i = 0; i < 20; i++) Tween.Tick(0.01f);
             Assert.IsTrue(h.TimeAddedShowing, "+5s floats up");
             for (int i = 0; i < 100; i++) Tween.Tick(0.01f);
             Assert.IsFalse(h.TimeAddedShowing);
+        }
+
+        [Test]
+        public void Clock_SporesGoDarkOneEvery15Seconds()
+        {
+            Assert.AreEqual(12, HudView.SporesLit(180f), "All lit at 3:00");
+            Assert.AreEqual(12, HudView.SporesLit(240f), "...and above (time added)");
+            Assert.AreEqual(12, HudView.SporesLit(166f));
+            Assert.AreEqual(11, HudView.SporesLit(165f));
+            Assert.AreEqual(1, HudView.SporesLit(1f));
+            Assert.AreEqual(0, HudView.SporesLit(0f));
+            var h = MakeHud(out _);
+            h.SetTimed(true);
+            h.SetClock(100f, running: true);
+            Assert.AreEqual(7, h.SporesLitNow);
         }
 
         [Test]
@@ -206,6 +225,8 @@ namespace GC26.Lines.Tests
             dialog.MenuButton.Click();
             dialog.PlayAgainButton.Click();
             Assert.AreEqual((1, 1), (menu, again));
+            Assert.IsTrue(dialog.MenuButton.HasLeadingIcon, "Menu has the house icon");
+            Assert.IsTrue(dialog.PlayAgainButton.HasLeadingIcon, "Play again has Reset's circular arrow");
             dialog.Show(40, "Player1");
             Assert.IsFalse(dialog.IsZero);
             Assert.IsTrue(dialog.NameField.gameObject.activeSelf, "Points: the name field is back");

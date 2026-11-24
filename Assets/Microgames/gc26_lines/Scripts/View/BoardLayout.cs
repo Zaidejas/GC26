@@ -24,8 +24,11 @@ namespace GC26.Lines.View
         public const float ActionsHeight = 12f; // Undo / Reset
         public const float TopPadding = 15f;    // room for the back button
         public const float BottomPadding = 6f;
-        public const float BackButtonTop = 3.5f;
-        public const float BackButtonSize = 10f;
+        // The house and gear: a 12-unit tap area (about 47 pt; Apple asks for 44 pt, Google for 48 dp), 2.5 units
+        // from the top and 3 from the side, so their middles stay where the old 10-unit buttons' were.
+        public const float BackButtonTop = 2.5f;
+        public const float BackButtonSize = 12f;
+        public const float BackButtonSide = 3f;
         public const float BlockHeight = HudHeight + Gap + BoardSize + Gap + ActionsHeight;           // 130
         public const float MinScreenHeight = TopPadding + BlockHeight + BottomPadding;                // 151
 
@@ -38,7 +41,7 @@ namespace GC26.Lines.View
         public Rect Actions { get; }
         public Rect BackButton { get; }
         /// <summary>The gear (Settings) in the top-right corner: the house button's mirror image across the board.</summary>
-        public Rect SettingsButton => new Rect(Board.xMax - BackButton.width, BackButton.y, BackButton.width, BackButton.height);
+        public Rect SettingsButton => new Rect(Board.xMax + (Board.x - BackButton.x) - BackButton.width, BackButton.y, BackButton.width, BackButton.height);
         /// <summary>Distance between neighbouring cell centres, in pixels.</summary>
         public float CellPitch { get; }
 
@@ -82,7 +85,7 @@ namespace GC26.Lines.View
             float boardTop = hud.y - Gap * unit;
             var board = new Rect(left, boardTop - BoardSize * unit, width, BoardSize * unit);
             var actions = new Rect(left + 2f * unit, board.y - Gap * unit - ActionsHeight * unit, width - 4f * unit, ActionsHeight * unit);
-            var back = new Rect(left, safeTop - (BackButtonTop + BackButtonSize) * unit, BackButtonSize * unit, BackButtonSize * unit);
+            var back = new Rect(contentLeft + BackButtonSide * unit, safeTop - (BackButtonTop + BackButtonSize) * unit, BackButtonSize * unit, BackButtonSize * unit);
 
             return new BoardLayout(unit, screen, safeArea, hud, board, actions, back);
         }

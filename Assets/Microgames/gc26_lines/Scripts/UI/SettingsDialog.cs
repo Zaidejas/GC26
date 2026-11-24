@@ -19,7 +19,7 @@ namespace GC26.Lines.UI
         // Prototype sizes (cqw).
         const float CardWidth = 78f, CardRadius = 5f, PadTop = 7f, PadSide = 6f, PadBottom = 6f, GlowSize = 8f;
         const float TitleSize = 7f, TitleGap = 4f, RowHeight = 13f, IconColumn = 7f, IconSize = 6f, ColumnGap = 3f;
-        const float NameSize = 5.4f, LineWidth = 0.3f, ChoiceHeight = 9f, ChoiceBottom = 3f, RowsToButton = 5f;
+        const float NameSize = 4.4f, LineWidth = 0.3f, ChoiceHeight = 9f, ChoiceBottom = 3f, RowsToButton = 5f;
         const float ButtonHeight = 12f, CloseSize = 10f, CloseInset = 3f;
 
         RectTransform root, card;
@@ -126,6 +126,7 @@ namespace GC26.Lines.UI
             row.Icon.preserveAspect = true;
             row.Icon.raycastTarget = false;
             row.Name = NewText("Name " + key, NameSize, TextAlignmentOptions.Left);
+            UiFonts.UseBold(row.Name); // rows are read, not headings: Nunito ExtraBold (GDD → Art → Fonts)
             if (read != null)
             {
                 row.Switch = ToggleSwitch.Create(card, key);
@@ -262,7 +263,7 @@ namespace GC26.Lines.UI
             public LanguageChoice(RectTransform card)
             {
                 outline = NewImage("Languages", card);
-                outline.color = Palette.Line;
+                outline.color = Palette.ControlLine;
                 inside = NewImage("Languages inside", card); // the card colour inside: leaves a thin outline
                 inside.color = Palette.Card;
                 AddOption(card, Language.English, "English");
@@ -303,8 +304,8 @@ namespace GC26.Lines.UI
                 foreach (var (lang, fill, label, _) in options)
                 {
                     bool on = lang == language;
-                    fill.color = on ? Palette.Gold : Color.clear;
-                    label.color = on ? Palette.GoldText : Palette.SoftText;
+                    fill.color = on ? Palette.On : Color.clear; // the chosen language is lilac, like a switch that is on
+                    label.color = on ? Palette.OnText : Palette.SoftText;
                 }
             }
 

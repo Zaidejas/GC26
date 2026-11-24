@@ -8,14 +8,15 @@ using UnityEngine.UI;
 namespace GC26.Lines.UI
 {
     /// <summary>
-    /// A rounded button like the prototype's forest look: dark glass with a warm outline and light text,
-    /// or glowing gold with dark text for the main action. Disabled buttons fade to 40 %; a disabled main
-    /// button turns into plain dark glass instead (as the prototype's Continue). Can also show an icon (the
-    /// back arrow). Labels use the Mystery Quest font. Built from code; sizes in units (1 % of the content width).
+    /// A rounded button like the prototype's forest look, coloured by its job (GDD → Art → Colours): dark glass
+    /// with a silver-lilac outline for ordinary buttons, glowing gold with dark text for the one main action,
+    /// ember red for starting over (<see cref="SetDanger"/>). Disabled buttons fade to 40 %; a disabled main
+    /// button turns into plain dark glass instead. Can also show an icon (the back arrow, the house and gear).
+    /// Labels use Nunito ExtraBold. Built from code; sizes in units (1 % of the content width).
     /// </summary>
     public sealed class PillButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     {
-        const float BorderWidth = 0.4f, FontSize = 5f, GlowBlur = 5f; // the prototype's box-shadow: 0 0 5cqw
+        const float BorderWidth = 0.4f, FontSize = 4.4f, GlowBlur = 5f; // the prototype's box-shadow: 0 0 5cqw
 
         RectTransform rect;
         Image hitArea, glow, border, fill;
@@ -23,7 +24,10 @@ namespace GC26.Lines.UI
         Button button;
         CanvasGroup group;
         Image icon;
-        bool primary;
+        bool primary, danger;
+        /// <summary>The navigation icons' sizes in units (prototype: the house 7, the gear 7.6; tap area 12).</summary>
+        public const float HouseIconSize = 7f, GearIconSize = 7.6f;
+        float iconSize = IconSize;
         const float IconSize = 5.4f, LeadingIconSize = 4.6f, LeadingIconGap = 1.6f;
         Image leadingIcon;
 
@@ -38,19 +42,7 @@ namespace GC26.Lines.UI
             set
             {
                 button.interactable = value;
-                if (primary)
-                {
-                    // Prototype: a disabled main button is plain dark glass with soft text, not faded.
-                    border.color = value ? Palette.Gold : Palette.DisabledRim;
-                    fill.color = value ? Palette.Gold : Palette.DisabledFill;
-                    label.color = value ? Palette.GoldText : Palette.SoftText;
-                    glow.enabled = value;
-                    group.alpha = 1f;
-                }
-                else
-                {
-                    group.alpha = value ? 1f : 0.4f; // prototype: disabled buttons at 40 % opacity
-                }
+                Paint();
             }
         }
 
@@ -69,7 +61,7 @@ namespace GC26.Lines.UI
             b.gameObject.name = "Button " + name;
             b.icon = b.Child("Icon").gameObject.AddComponent<Image>();
             b.icon.sprite = iconSprite;
-            b.icon.color = Palette.Text; // light cream on dark glass
+            b.icon.color = Palette.Text; // light cream on dark glass (the house and gear: blue-grey, see MakeNav)
             b.icon.preserveAspect = true;
             b.icon.raycastTarget = false;
             var r = b.icon.rectTransform;
@@ -86,6 +78,69 @@ namespace GC26.Lines.UI
             border.enabled = false;
             fill.enabled = false;
             glow.enabled = false;
+        }
+
+        /// <summary>
+        /// The house or gear: just the icon, <paramref name="iconUnits"/> big, in the quiet blue-grey of navigation
+        /// (no ring, disc or glow), so it never looks like part of the game.
+        /// </summary>
+        public void MakeNav(float iconUnits)
+        {
+            MakePlain();
+            iconSize = iconUnits;
+            if (icon != null) icon.color = Palette.Nav;
+            if (lastUnit > 0f && icon != null) icon.rectTransform.sizeDelta = Vector2.one * iconSize * lastUnit;
+        }
+
+        /// <summary>The icon's colour (tests).</summary>
+        public Color IconColor => icon != null ? icon.color : Color.clear;
+        /// <summary>The icon's size in pixels (tests).</summary>
+        public float IconPixels => icon != null ? icon.rectTransform.sizeDelta.x : 0f;
+
+        /// <summary>Makes this the gold main button or an ordinary one (the menu: New game is gold when there's nothing to continue).</summary>
+        public void SetPrimary(bool on)
+        {
+            if (primary == on) return;
+            primary = on;
+            Paint();
+        }
+
+        public bool IsPrimary => primary;
+
+        /// <summary>
+        /// Ember red for starting over: <paramref name="filled"/> false is Reset (red outline and text, a step more
+        /// serious than Undo or Pause); true is the question's Yes (a filled red button, since the game is lost).
+        /// <paramref name="on"/> false makes it an ordinary (gold or glass) button again.
+        /// </summary>
+        public void SetDanger(bool filled, bool on = true)
+        {
+            danger = on;
+            if (on) primary = filled;
+            Paint();
+            if (lastUnit > 0f) Place(new Rect(rect.anchoredPosition - rect.sizeDelta / 2f, rect.sizeDelta), lastUnit);
+        }
+
+        public bool IsDanger => danger;
+        public Color LabelColor => label.color;
+        public Color OutlineColor => border.color;
+
+        // Colours by job: gold main button, ember (outline or filled), or ordinary silver-lilac glass.
+        void Paint()
+        {
+            bool on = button == null || button.interactable;
+            Color line, body, ink;
+            if (primary && !on) { line = Palette.DisabledRim; body = Palette.DisabledFill; ink = Palette.SoftText; } // plain dark glass, not faded
+            else if (primary && danger) { line = Palette.EmberText; body = Palette.Ember; ink = Palette.EmberDarkText; }
+            else if (primary) { line = Palette.Gold; body = Palette.Gold; ink = Palette.GoldText; }
+            else if (danger) { line = Palette.EmberLine; body = Palette.Glass; ink = Palette.EmberText; }
+            else { line = Palette.ControlLine; body = Palette.Glass; ink = Palette.ControlText; }
+            if (!IsPlain) { border.color = line; fill.color = body; }
+            label.color = ink;
+            if (leadingIcon != null) leadingIcon.color = ink;
+            var g = danger ? Palette.EmberGlow : Palette.GoldGlow;
+            glow.color = new Color(g.r, g.g, g.b, 1f); // its strength is in the picture
+            glow.enabled = primary && on && !IsPlain; // only the main button glows (GDD → glow means "look here")
+            group.alpha = primary || on ? 1f : 0.4f; // prototype: disabled ordinary buttons at 40 % opacity
         }
 
         /// <summary>True when the button shows no outline and no fill (see <see cref="MakePlain"/>).</summary>
@@ -146,22 +201,18 @@ namespace GC26.Lines.UI
             hitArea.color = Color.clear;
 
             glow = Child("Glow").gameObject.AddComponent<Image>();
-            glow.color = new Color(Palette.GoldGlow.r, Palette.GoldGlow.g, Palette.GoldGlow.b, 1f); // its strength is in the picture
-            glow.enabled = primary; // only the gold main buttons glow; the glass ones stay calm
             glow.raycastTarget = false;
 
             border = Child("Outline").gameObject.AddComponent<Image>();
-            border.color = primary ? Palette.Gold : Palette.Line;
             border.raycastTarget = false;
 
             fill = Child("Fill").gameObject.AddComponent<Image>();
-            fill.color = primary ? Palette.Gold : Palette.Glass;
             fill.raycastTarget = false;
 
             label = Child("Label").gameObject.AddComponent<TextMeshProUGUI>();
             label.text = text;
-            label.color = primary ? Palette.GoldText : Palette.Text;
-            UiFonts.UseDisplay(label);
+            UiFonts.UseBold(label);
+            label.characterSpacing = 1f; // the prototype's 0.01em
             label.alignment = TextAlignmentOptions.Center;
             label.textWrappingMode = TextWrappingModes.NoWrap;
             label.raycastTarget = false;
@@ -170,6 +221,7 @@ namespace GC26.Lines.UI
             button.targetGraphic = hitArea;
             button.transition = Selectable.Transition.None; // the 40 % fade shows the disabled state
             button.onClick.AddListener(() => Clicked?.Invoke());
+            Paint();
         }
 
         /// <summary>Places the button at <paramref name="pixels"/> (origin bottom-left of the parent).</summary>
@@ -178,7 +230,7 @@ namespace GC26.Lines.UI
             rect.anchoredPosition = pixels.center;
             rect.sizeDelta = pixels.size;
             UiShapes.MakePill(border, pixels.height);
-            float reach = UiShapes.MakePillGlow(glow, pixels.height, GlowBlur * unit, Palette.GoldGlow.a);
+            float reach = UiShapes.MakePillGlow(glow, pixels.height, GlowBlur * unit, (danger ? Palette.EmberGlow : Palette.GoldGlow).a);
             glow.rectTransform.offsetMin = new Vector2(-reach, -reach);
             glow.rectTransform.offsetMax = new Vector2(reach, reach);
 
@@ -189,7 +241,7 @@ namespace GC26.Lines.UI
             UiShapes.MakePill(fill, pixels.height - 2f * inset);
 
             label.fontSize = FontSize * unit;
-            if (icon != null) icon.rectTransform.sizeDelta = Vector2.one * IconSize * unit;
+            if (icon != null) icon.rectTransform.sizeDelta = Vector2.one * iconSize * unit;
             lastUnit = unit;
             if (leadingIcon != null) PlaceLeadingIcon(unit);
         }

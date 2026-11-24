@@ -39,7 +39,12 @@ namespace GC26.Lines.UI
         RectTransform root, viewport, content;
         ScrollRect scroll;
         readonly List<Row> rows = new List<Row>();
-        TextMeshProUGUI message, empty;
+        TextMeshProUGUI message, empty, screenTitle;
+        const float ScreenTitleSize = 7f, TabsDisc = 9f, TabsTop = 1f;
+        /// <summary>The screen's name at the top ("Leaderboard"), centred on the house's line (tests).</summary>
+        public TextMeshProUGUI ScreenTitle => screenTitle;
+        /// <summary>The Classic / Timed tabs' middle, in pixels (tests: under the title).</summary>
+        public Vector2 TabsCentre { get; private set; }
         PillButton back, playAgain;
         ModeBadges tabs; // L09: Classic | Timed
         BoardLayout layout;
@@ -92,11 +97,14 @@ namespace GC26.Lines.UI
             root = (RectTransform)transform;
 
             back = PillButton.CreateIcon(root, SpriteFactory.HomeIcon(), "Home");
-            back.MakePlain(); // the same plain house as on the game screen (teacher's feedback)
+            back.MakeNav(PillButton.HouseIconSize); // the same plain blue-grey house as on the game screen (teacher's feedback)
             back.Clicked += () => Closed?.Invoke();
             tabs = ModeBadges.Create(root, sideLabels: true);
             tabs.Chosen += timed => TabChosen?.Invoke(timed);
 
+            screenTitle = NewText("Screen title", root, Palette.Text, true, TextAlignmentOptions.Center); // where the player is
+            UiFonts.UseDisplay(screenTitle);
+            screenTitle.rectTransform.pivot = new Vector2(0.5f, 0.5f);
             message = NewText("Message", root, Palette.Text, true, TextAlignmentOptions.Center);
             UiFonts.UseDisplay(message);
             empty = NewText("Empty", root, Palette.SoftText, false, TextAlignmentOptions.Center);
@@ -143,6 +151,7 @@ namespace GC26.Lines.UI
             }
 
             playAgain = PillButton.Create(root, Texts.Get("playAgain"), primary: true);
+            playAgain.SetLeadingIcon(SpriteFactory.ResetIcon()); // the same circular arrow as Reset
             playAgain.Clicked += () => PlayAgainClicked?.Invoke();
         }
 
@@ -165,6 +174,7 @@ namespace GC26.Lines.UI
             highlightTime = latestTime;
             empty.text = EmptyText; // texts in the language chosen now
             playAgain.SetText(Texts.Get("playAgain"));
+            screenTitle.text = Texts.Get("leaderboard");
             message.text = result ?? "";
             message.gameObject.SetActive(!string.IsNullOrEmpty(result));
             playAgain.gameObject.SetActive(showPlayAgain);
@@ -182,7 +192,11 @@ namespace GC26.Lines.UI
             float left = contentLeft + PadSide * u, width = (100f - 2f * PadSide) * u;
 
             back.Place(layout.BackButton, u);
-            tabs.Place(new Vector2(safe.center.x, layout.BackButton.center.y), u, 9f, 3.6f, 5f);
+            // The title on the house's line, centred on the screen; the Classic / Timed tabs just under it.
+            screenTitle.fontSize = ScreenTitleSize * u;
+            Place(screenTitle.rectTransform, contentLeft + 50f * u, layout.BackButton.center.y, 80f * u, ScreenTitleSize * 1.4f * u);
+            TabsCentre = new Vector2(contentLeft + 50f * u, layout.BackButton.y - (TabsTop + TabsDisc / 2f) * u);
+            tabs.Place(TabsCentre, u, TabsDisc, 3.6f, 5f);
 
             // From the bottom up: Play again; from the top down: the result line.
             float bottom = safe.y + PadBottom * u;
@@ -192,7 +206,7 @@ namespace GC26.Lines.UI
                 bottom += (PlayAgainHeight + Gap) * u;
             }
 
-            float top = layout.BackButton.y - Gap * u;
+            float top = layout.BackButton.y - (TabsTop + TabsDisc + Gap) * u;
             if (message.gameObject.activeSelf)
             {
                 message.fontSize = MessageSize * u;

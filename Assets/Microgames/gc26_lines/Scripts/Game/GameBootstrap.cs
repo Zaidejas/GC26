@@ -447,14 +447,18 @@ namespace GC26.Lines.Game
         void OnGameOver(int score)
         {
             timeUpPending = false;
-            ScorePending = score > 0; // 0 points never go on the leaderboard: the pop-up offers Menu / Play again
+            // Only a score that gets on the board asks for a name (0 points, or one not above a full top 10's 10th,
+            // gets Menu / Play again instead).
+            var board = ScoresFor(Controller != null && Controller.Game.Timed);
+            ScorePending = board.Qualifies(score);
             SaveGame();
             hud.Dialog.Close();
             hud.Settings.Close();
             HideCoach();
             tutorial = null;
             hud.Bubble.Hide();
-            hud.GameOver.Show(score, Scores.DefaultName, Controller != null && Controller.Game.EndedWithNoMoves);
+            hud.GameOver.Show(score, Scores.DefaultName, Controller != null && Controller.Game.EndedWithNoMoves,
+                score > 0 && !ScorePending ? board.TenthScore : -1);
             Sounds.Play(LinesSound.GameOver);
             Haptics.Play(GC26.Lines.Haptics.LinesFeel.GameOver);
         }

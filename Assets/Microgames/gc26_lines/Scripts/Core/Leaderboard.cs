@@ -91,6 +91,16 @@ namespace GC26.Lines.Core
         }
 
         /// <summary>
+        /// Whether <paramref name="score"/> would get on the board: more than 0 points, and either a free place or
+        /// higher than the 10th (an equal score loses: older scores win ties). Game over asks for a name only then.
+        /// </summary>
+        public bool Qualifies(int score) =>
+            score > 0 && (entries.Count < MaxEntries || score > entries[MaxEntries - 1].score);
+
+        /// <summary>The 10th place's score when the board is full, else -1 (game over's "not enough" goal).</summary>
+        public int TenthScore => entries.Count >= MaxEntries ? entries[MaxEntries - 1].score : -1;
+
+        /// <summary>
         /// Repairs data read from a file: drops broken entries, puts them in order (older first on ties)
         /// and keeps the best 10.
         /// </summary>

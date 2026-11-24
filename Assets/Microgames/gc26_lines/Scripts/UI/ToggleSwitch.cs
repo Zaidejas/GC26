@@ -14,7 +14,7 @@ namespace GC26.Lines.UI
     {
         public const float Width = 15f, Height = 8.4f, Knob = 6f, Border = 0.4f, KnobInset = 0.9f, SlideSeconds = 0.2f;
         // Off: the card's dark glass with a hint of white (solid, so the light outline doesn't show through).
-        static readonly Color OffFill = Color.Lerp(Palette.Card, Color.white, 0.08f), KnobOn = Palette.Hex(0xFFF8E6);
+        static readonly Color OffFill = Color.Lerp(Palette.Card, Color.white, 0.08f), KnobOn = Palette.Hex(0xF4F0FF);
 
         RectTransform rect;
         Image outline, fill, knob;
@@ -60,8 +60,8 @@ namespace GC26.Lines.UI
         public void Set(bool on, bool animate)
         {
             IsOn = on;
-            outline.color = on ? Palette.Gold : Palette.Line;
-            fill.color = on ? Palette.Gold : OffFill;
+            outline.color = on ? Palette.On : Palette.ControlLine; // lilac when on (gold is for rewards)
+            fill.color = on ? Palette.OnDeep : OffFill;
             knob.color = on ? KnobOn : Palette.SoftText;
             Tween.Kill(knob.rectTransform);
             var target = KnobPosition(on);

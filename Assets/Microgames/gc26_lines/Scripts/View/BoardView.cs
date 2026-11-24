@@ -48,7 +48,7 @@ namespace GC26.Lines.View
             view.aimGlow = new GameObject("Aim glow").AddComponent<SpriteRenderer>();
             view.aimGlow.transform.SetParent(go.transform, false);
             view.aimGlow.sprite = SpriteFactory.SoftDisc();
-            view.aimGlow.color = new UnityEngine.Color(1f, 0.75f, 0.35f, 0.75f);
+            view.aimGlow.color = new UnityEngine.Color(0.75f, 0.89f, 1f, 0.8f); // about to burst: moonlight blue (guidance)
             view.aimGlow.sortingOrder = BoardView.BallOrder - 1;
             view.aimGlow.enabled = false;
             view.ice = new GameObject("Ice").AddComponent<SpriteRenderer>();
@@ -398,8 +398,8 @@ namespace GC26.Lines.View
             aim = centre;
             if (aimFill == null)
             {
-                aimFill = NewSprite("Aim fill", transform, new Color(1f, 0.78f, 0.35f, 0.14f), DotOrder);
-                aimRing = NewSprite("Aim ring", transform, new Color(1f, 0.84f, 0.42f, 0.95f), BallOrder + 3);
+                aimFill = NewSprite("Aim fill", transform, new Color(0.75f, 0.88f, 1f, 0.1f), DotOrder); // the aim is guidance: moonlight blue
+                aimRing = NewSprite("Aim ring", transform, new Color(0.81f, 0.91f, 1f, 0.85f), BallOrder + 3);
                 SetAimSprites();
             }
             aimFill.gameObject.SetActive(centre.HasValue);

@@ -45,7 +45,7 @@ namespace GC26.Lines.UI
         // Prototype sizes (cqw).
         const float PadSide = 5f, PadBottom = 7f, Gap = 5f, TutGap = 4.5f;
         const float MiniWidth = 78f, MiniPad = 1.2f, MiniGap = 0.8f, MiniRadius = 2.6f, CellRadius = 1.1f;
-        const float TitleSize = 7f, TitleTopMargin = 2f, TextSize = 4.5f, TextWidth = 76f;
+        const float ScreenTitleSize = 7f, TitleSize = 7f, TitleTopMargin = 2f, TextSize = 4.5f, TextWidth = 76f;
         const float DotSize = 2.2f, DotGap = 2.2f, ButtonHeight = 12f, ButtonGap = 3f, TargetRing = 0.6f;
         static readonly Color Focus = Palette.Focus;
         static readonly Color MiniCell = Palette.MiniCell;
@@ -70,7 +70,9 @@ namespace GC26.Lines.UI
         /// <summary>L19: the top-left button is a back arrow (opened from the game), not the house.</summary>
         public bool BackIsArrow { get; private set; }
         readonly List<Image> pageDots = new List<Image>();
-        TextMeshProUGUI title, text;
+        TextMeshProUGUI title, text, screenTitle;
+        /// <summary>The screen's name at the top ("How to play"), centred on the house's line (tests).</summary>
+        public TextMeshProUGUI ScreenTitle => screenTitle;
         PillButton back, previous, next;
         BoardLayout layout;
         PieceSet pieces = PieceSet.Balls();
@@ -114,7 +116,7 @@ namespace GC26.Lines.UI
             root = (RectTransform)transform;
 
             back = PillButton.CreateIcon(root, SpriteFactory.HomeIcon(), "Home");
-            back.MakePlain(); // the same plain house as on the game screen (teacher's feedback)
+            back.MakeNav(PillButton.HouseIconSize); // the same plain blue-grey house as on the game screen (teacher's feedback)
             back.Clicked += () => Closed?.Invoke();
 
             card = NewRect("Card", root);
@@ -140,6 +142,9 @@ namespace GC26.Lines.UI
                 cellIce.Add(ice);
             }
 
+            screenTitle = NewText("Screen title", Palette.Text, true); // where the player is (GDD → Main menu)
+            screenTitle.alignment = TextAlignmentOptions.Center;
+            screenTitle.rectTransform.pivot = new Vector2(0.5f, 0.5f);
             title = NewText("Title", Palette.Text, true);
             text = NewText("Text", Palette.Text, false);
             title.rectTransform.SetParent(card, false);
@@ -198,6 +203,7 @@ namespace GC26.Lines.UI
         public void RefreshTexts()
         {
             previous.SetText(Texts.Get("back"));
+            screenTitle.text = Texts.Get("howToPlay");
             next.SetText(Texts.Get(Step == Cards.Length - 1 ? "gotIt" : "nextButton"));
             if (IsShowing && layout.Unit > 0f) Draw();
         }
@@ -288,6 +294,9 @@ namespace GC26.Lines.UI
             var card = Cards[Step];
 
             back.Place(layout.BackButton, u);
+            screenTitle.text = Texts.Get("howToPlay");
+            screenTitle.fontSize = ScreenTitleSize * u;
+            Place(screenTitle.rectTransform, centerX, layout.BackButton.center.y, 80f * u, ScreenTitleSize * 1.4f * u);
 
             // Bottom: Back / Next buttons, then the page dots above them.
             float innerWidth = (100f - 2f * PadSide) * u;
@@ -304,7 +313,7 @@ namespace GC26.Lines.UI
             for (int i = 0; i < pageDots.Count; i++)
             {
                 Place(pageDots[i].rectTransform, centerX - dotsWidth / 2f + i * (DotSize + DotGap) * u, dotsY, DotSize * u, DotSize * u);
-                pageDots[i].color = i == Step ? Palette.Focus : Palette.Line;
+                pageDots[i].color = i == Step ? Palette.Text : Palette.Line; // the page you are on: plain light, not gold
             }
 
             // The card: mini board, title and text, centred between the back arrow and the dots.

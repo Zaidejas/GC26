@@ -30,13 +30,17 @@ namespace GC26.Lines.Tests
         }
 
         [Test]
-        public void NoSavedGame_ContinueGreyed_WithoutScore()
+        public void NoSavedGame_ContinueHidden_NewGameIsTheGoldButton()
         {
             menu.Show(null, PieceSet.Balls());
             Assert.IsTrue(menu.IsShowing);
             Assert.IsFalse(menu.ContinueButton.Interactable);
-            Assert.AreEqual("Continue", menu.ContinueButton.Text);
-            Assert.AreEqual(1f, menu.ContinueButton.GetComponent<CanvasGroup>().alpha, "Grey, not faded (prototype)");
+            Assert.IsFalse(menu.ContinueButton.gameObject.activeSelf, "Nothing to continue: no Continue at all");
+            Assert.IsTrue(menu.NewGameButton.IsPrimary, "New game is the one gold button");
+            menu.Show(120, PieceSet.Balls());
+            Assert.IsTrue(menu.ContinueButton.gameObject.activeSelf);
+            Assert.IsTrue(menu.ContinueButton.IsPrimary, "A game to go back to: Continue is gold");
+            Assert.IsFalse(menu.NewGameButton.IsPrimary, "...and New game is an ordinary button");
         }
 
         [Test]
@@ -45,7 +49,7 @@ namespace GC26.Lines.Tests
             menu.Show(null, PieceSet.Balls());
             Assert.AreEqual("Glowcaps", menu.TitleText);
             Assert.AreEqual("v" + GC26.Lines.Game.LinesVersion.Number, menu.VersionText);
-            Assert.Less(menu.VersionRect.anchoredPosition.y, ((RectTransform)menu.ContinueButton.transform).anchoredPosition.y, "At the bottom, below the buttons");
+            Assert.Less(menu.VersionRect.anchoredPosition.y, ((RectTransform)menu.NewGameButton.transform).anchoredPosition.y, "At the bottom, below the buttons");
             Texts.Set(Language.Russian);
             menu.RefreshTexts();
             Assert.AreEqual("Грибочки", menu.TitleText);

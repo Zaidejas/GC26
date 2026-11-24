@@ -12,7 +12,9 @@ namespace GC26.Lines.UI
     /// name field with Save, nothing else. The field starts with the last typed name or PlayerN; tapping
     /// it selects the whole name, so typing replaces it. Save (or Done on the keyboard) hands the name on.
     /// A game that ends with 0 points has no name field: "Clear a line to get on the leaderboard." and
-    /// Menu / Play again instead (0 points never go on the leaderboard).
+    /// Menu / Play again instead (0 points never go on the leaderboard). The same for a score that can't get in
+    /// (10 scores already, none lower): "Not enough for the top 10: 10th place has 340 points." Menu has the
+    /// house icon, Play again Reset's circular arrow.
     /// </summary>
     public sealed class GameOverDialog : MonoBehaviour
     {
@@ -30,7 +32,8 @@ namespace GC26.Lines.UI
         TextMeshProUGUI title, note, final, label, placeholder, hint;
         TMP_InputField input;
         PillButton save, menuButton, againButton;
-        bool zero;
+        bool zero, notTop;
+        int tenth;
         float unit = 10f;
 
         /// <summary>Save was pressed; gives what is in the name field (may be empty).</summary>
@@ -46,7 +49,9 @@ namespace GC26.Lines.UI
         public PillButton SaveButton => save;
         public TMP_InputField NameField => input;
         /// <summary>The 0-point version is showing (no name field).</summary>
-        public bool IsZero => zero;
+        public bool IsZero => zero && !notTop;
+        /// <summary>The score can't get into the full top 10: no name field, the 10th place's score as the goal.</summary>
+        public bool IsNotTop => notTop;
         public string HintText => hint.text;
         public PillButton MenuButton => menuButton;
         public PillButton PlayAgainButton => againButton;
@@ -89,6 +94,9 @@ namespace GC26.Lines.UI
             label.characterSpacing = 3f;
             UiFonts.UseDisplay(title);
             UiFonts.UseDisplay(final);
+            final.color = Color.white; // points are gold: the score's gold letters (GDD → Art → Colours)
+            final.enableVertexGradient = true;
+            final.colorGradient = new VertexGradient(Palette.ScoreTop, Palette.ScoreTop, Palette.ScoreBottom, Palette.ScoreBottom);
 
             // The name field: a rounded white box with a thin border, built inactive so the input field
             // has its text parts before it starts.
@@ -130,7 +138,9 @@ namespace GC26.Lines.UI
             hint = NewText("Hint", "", Palette.SoftText, true, TextAlignmentOptions.Center);
             hint.textWrappingMode = TextWrappingModes.Normal;
             menuButton = PillButton.Create(card, "");
+            menuButton.SetLeadingIcon(SpriteFactory.HomeIcon());
             againButton = PillButton.Create(card, "", primary: true);
+            againButton.SetLeadingIcon(SpriteFactory.ResetIcon());
             menuButton.Clicked += () => { if (IsOpen) MenuChosen?.Invoke(); };
             againButton.Clicked += () => { if (IsOpen) PlayAgainChosen?.Invoke(); };
             RefreshTexts();
@@ -205,11 +215,17 @@ namespace GC26.Lines.UI
             save.Place(new Rect(PadSide * u + fieldW + RowGap * u, PadBottom * u, saveW, fieldH), u);
         }
 
-        /// <summary>Opens the pop-up with the final score and the name field filled with <paramref name="defaultName"/>.</summary>
-        public void Show(int score, string defaultName, bool noMovesLeft = false)
+        /// <summary>
+        /// Opens the pop-up with the final score and the name field filled with <paramref name="defaultName"/>.
+        /// <paramref name="tenthScore"/> ≥ 0: the score can't get into the full top 10 (no name field).
+        /// </summary>
+        public void Show(int score, string defaultName, bool noMovesLeft = false, int tenthScore = -1)
         {
             Score = score;
-            zero = score <= 0;
+            notTop = score > 0 && tenthScore >= 0;
+            tenth = tenthScore;
+            zero = score <= 0 || notTop; // both: Menu / Play again instead of the name field
+            hint.text = notTop ? Texts.NotTopHint(tenth) : Texts.Get("zeroHint");
             this.noMovesLeft = noMovesLeft;
             note.text = Texts.Get(noMovesLeft ? "noMovesNote" : "finalScore"); // L15: walled in by ice, not a full board
             final.text = score.ToString();
@@ -227,7 +243,7 @@ namespace GC26.Lines.UI
             note.text = Texts.Get(noMovesLeft ? "noMovesNote" : "finalScore");
             label.text = Texts.Get("nameLabel");
             save.SetText(Texts.Get("save"));
-            hint.text = Texts.Get("zeroHint");
+            hint.text = notTop ? Texts.NotTopHint(tenth) : Texts.Get("zeroHint");
             menuButton.SetText(Texts.Get("menuButton"));
             againButton.SetText(Texts.Get("playAgain"));
             if (string.IsNullOrEmpty(input.text)) placeholder.text = Texts.Get("player");

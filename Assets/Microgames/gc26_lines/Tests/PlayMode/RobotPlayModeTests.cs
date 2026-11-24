@@ -73,12 +73,24 @@ namespace GC26.Lines.Tests
                     Assert.IsTrue(game.Hud.GameOver.IsOpen, "The game-over pop-up opens");
                     Assert.AreEqual(game.Controller.Game.Score, game.Hud.GameOver.Score);
                     int count = game.Scores.Count;
+                    finished++;
+                    lastGameEnd = turns;
+                    if (game.Hud.GameOver.IsZero || game.Hud.GameOver.IsNotTop)
+                    {
+                        // 0 points, or not enough for a full top 10: no name to save, straight to Play again.
+                        Assert.IsFalse(game.Hud.GameOver.SaveButton.gameObject.activeSelf, "Nothing to save");
+                        Assert.AreEqual(game.Controller.Game.Score > 0, game.Hud.GameOver.IsNotTop);
+                        game.Hud.GameOver.PlayAgainButton.Click();
+                        yield return WaitUntilSettled(game);
+                        Assert.AreEqual(count, game.Scores.Count, "Nothing was added");
+                        Assert.IsFalse(game.Controller.Game.IsOver, "Play again starts a new game");
+                        CheckScreenMatchesBoard(game, "new game");
+                        continue;
+                    }
                     game.Hud.GameOver.SaveButton.Click();
                     yield return new WaitForSeconds(0.5f);
                     Assert.IsTrue(game.LeaderboardScreen.IsShowing, "Save opens the leaderboard");
                     Assert.AreEqual(System.Math.Min(count + 1, Leaderboard.MaxEntries), game.Scores.Count, "The score was added");
-                    finished++;
-                    lastGameEnd = turns;
                     game.LeaderboardScreen.PlayAgainButton.Click();
                     yield return WaitUntilSettled(game);
                     Assert.IsFalse(game.Controller.Game.IsOver, "Play again starts a new game");

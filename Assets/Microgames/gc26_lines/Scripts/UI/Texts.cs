@@ -116,7 +116,7 @@ namespace GC26.Lines.UI
             ["howto3Title"] = "Следи, что дальше",
             ["howto3Text"] = "Если ход не собрал линию, появятся 3 новых гриба — там, где видны бледные грибы. Игра заканчивается, когда поле заполнено. «Отменить» возвращает один ход.",
             ["scoresEmpty"] = "Пока нет законченных игр. Твой счёт появится здесь, когда игра закончится.",
-            ["playAgain"] = "Сыграть ещё",
+            ["playAgain"] = "Ещё раз",
             // L09 Timed mode
             ["classic"] = "Классика", ["timed"] = "На время", ["timeUp"] = "Время вышло!", ["secondsShort"] = "с",
             ["howto4Title"] = "Наперегонки со временем",
@@ -183,6 +183,21 @@ namespace GC26.Lines.UI
             return score + " points didn't make the top 10";
         }
 
+        /// <summary>
+        /// Game over with a score that can't get in (10 scores already, none lower): the goal for next time,
+        /// "Not enough for the top 10: 10th place has 340 points." / "Не хватило для топ-10: у 10-го места 340 очков."
+        /// </summary>
+        public static string NotTopHint(int tenth)
+        {
+            if (Current == Language.Russian)
+            {
+                int last = tenth % 10, lastTwo = tenth % 100;
+                string word = last == 1 && lastTwo != 11 ? "очко" : last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? "очка" : "очков";
+                return "Не хватило для топ-10: у 10-го места " + tenth + " " + word + ".";
+            }
+            return "Not enough for the top 10: 10th place has " + tenth + (tenth == 1 ? " point." : " points.");
+        }
+
         /// <summary>L16: the bubble over a puffball that isn't ready: "Puffball in 40 points" / "Дождевик через 40 очков".</summary>
         public static string PuffballIn(int points)
         {
@@ -206,6 +221,7 @@ namespace GC26.Lines.UI
             var all = new System.Text.StringBuilder("0123456789+-·:.,!?%#№ ");
             foreach (var key in Keys) all.Append(In(language, key));
             foreach (var month in language == Language.Russian ? MonthsRu : MonthsEn) all.Append(month);
+            all.Append(language == Language.Russian ? "Не хватило для топ-10: у 10-го места очко очка очков." : "Not enough for the top 10: 10th place has points.");
             var unique = new HashSet<char>();
             var letters = new System.Text.StringBuilder();
             foreach (char c in all.ToString())

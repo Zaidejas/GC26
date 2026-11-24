@@ -16,8 +16,8 @@ namespace GC26.Lines.UI
     public sealed class HudView : MonoBehaviour
     {
         // Prototype sizes (cqw).
-        const float LabelSize = 3.2f, ScoreSize = 10f, GainSize = 5f, PieceSize = 8.5f, PieceGap = 1.6f, Inset = 1f;
-        static readonly Color GainColor = Palette.Gain;
+        const float LabelSize = 3f, ScoreSize = 10f, GainSize = 5f, PieceSize = 8.5f, PieceGap = 1.6f, Inset = 1f;
+        static readonly Color GainColor = Palette.Points; // points: warm gold (time added is mint, Palette.Bonus)
 
         Canvas canvas;
         RectTransform area;
@@ -29,10 +29,19 @@ namespace GC26.Lines.UI
         // L04: the gold crown next to the score above the best, and the "New best!" that pops up over the board.
         public const float CrownSize = 5f, CrownGap = 1.2f, NewBestSize = 8f, NewBestSeconds = 2f, CrownPopSeconds = 0.7f;
         Image crown, crownGlow;
-        // L09 Timed mode: the clock at the top, between the house and the gear; Reset alone in the middle.
-        public const float ClockSize = 7.5f, ClockIconSize = 5.4f, ClockIconGap = 1.6f, TimeGainSize = 4.6f;
-        public static readonly Color ClockWarn = new Color(1f, 0.835f, 0.42f), ClockLow = new Color(1f, 0.42f, 0.42f);
+        // L09 Timed mode: the clock just above SCORE / NEXT, its digits centred on the screen, with a fairy ring of
+        // 12 spores around a small stopwatch hanging to their left (prototype: .time-stat, .ring).
+        public const float ClockSize = 7f, ClockIconSize = 4f, TimeGainSize = 4.6f;
+        public const float RingSize = 9.4f, RingGap = 1.6f, SporeSize = 1.25f, SporeRadius = 4f, SporeGlowSize = 3.6f, ClockAboveLabels = 8.2f;
+        public const int Spores = 12;
+        public static readonly Color ClockWarn = Palette.ClockWarn, ClockLow = Palette.ClockLow;
         Image clockIcon;
+        RectTransform ring;
+        readonly Image[] spores = new Image[Spores], sporeGlows = new Image[Spores];
+        int litSpores = Spores;
+        bool clockLive;
+        float ringGotUntil = -1f;
+        const float RingGotSeconds = 0.6f, BreatheSeconds = 1.1f;
         TextMeshProUGUI clockText, timeGain;
         TweenHandle timeGainTween;
         bool timed;
@@ -105,11 +114,14 @@ namespace GC26.Lines.UI
 
             area = NewRect("Area", (RectTransform)transform);
             scoreLabel = NewText("Score label", "", Palette.SoftText, TextAlignmentOptions.BottomLeft, bold: true);
-            scoreText = NewText("Score", "0", Palette.Text, TextAlignmentOptions.BottomLeft, bold: true);
+            scoreText = NewText("Score", "0", Color.white, TextAlignmentOptions.BottomLeft, bold: true);
             gainText = NewText("Gain", "", GainColor, TextAlignmentOptions.BottomLeft, bold: true);
             gainText.alpha = 0f;
             UiFonts.UseDisplay(scoreText);
             UiFonts.UseDisplay(gainText);
+            // Points are gold: the score's letters have the title's gold gradient (GDD → Art → Colours).
+            scoreText.enableVertexGradient = true;
+            scoreText.colorGradient = new VertexGradient(Palette.ScoreTop, Palette.ScoreTop, Palette.ScoreBottom, Palette.ScoreBottom);
             nextLabel = NewText("Next label", "", Palette.SoftText, TextAlignmentOptions.BottomRight, bold: true);
             crownGlow = NewRect("Crown glow", area).gameObject.AddComponent<Image>();
             crownGlow.sprite = SpriteFactory.SoftDisc();
@@ -121,19 +133,32 @@ namespace GC26.Lines.UI
             crown.raycastTarget = false;
             ((RectTransform)crown.transform).pivot = ((RectTransform)crownGlow.transform).pivot = new Vector2(0.5f, 0.5f);
             SetCrown(false);
-            clockIcon = NewRect("Clock icon", (RectTransform)transform).gameObject.AddComponent<Image>();
+            ring = NewRect("Spore ring", (RectTransform)transform);
+            ring.pivot = new Vector2(0.5f, 0.5f);
+            for (int k = 0; k < Spores; k++)
+            {
+                sporeGlows[k] = NewRect("Spore glow " + k, ring).gameObject.AddComponent<Image>();
+                sporeGlows[k].sprite = SpriteFactory.SoftDisc();
+                sporeGlows[k].raycastTarget = false;
+                spores[k] = NewRect("Spore " + k, ring).gameObject.AddComponent<Image>();
+                spores[k].raycastTarget = false;
+                ((RectTransform)spores[k].transform).pivot = ((RectTransform)sporeGlows[k].transform).pivot = new Vector2(0.5f, 0.5f);
+            }
+            clockIcon = NewRect("Clock icon", ring).gameObject.AddComponent<Image>();
             clockIcon.sprite = SpriteFactory.StopwatchIcon();
             clockIcon.preserveAspect = true;
             clockIcon.raycastTarget = false;
-            clockText = NewText("Clock", "3:00", Palette.Text, TextAlignmentOptions.MidlineLeft, bold: true);
+            ((RectTransform)clockIcon.transform).pivot = new Vector2(0.5f, 0.5f);
+            clockText = NewText("Clock", "3:00", Palette.Clock, TextAlignmentOptions.MidlineLeft, bold: true);
             clockText.rectTransform.SetParent(transform, false);
             UiFonts.UseDisplay(clockText);
             clockText.rectTransform.pivot = new Vector2(0f, 0.5f);
-            timeGain = NewText("Time gain", "", GainColor, TextAlignmentOptions.MidlineLeft, bold: true);
+            timeGain = NewText("Time gain", "", Palette.Bonus, TextAlignmentOptions.MidlineLeft, bold: true);
             timeGain.rectTransform.SetParent(transform, false);
             UiFonts.UseDisplay(timeGain);
             timeGain.alpha = 0f;
-            clockIcon.enabled = clockText.enabled = false; // Classic until SetTimed
+            clockText.enabled = false; // Classic until SetTimed
+            ring.gameObject.SetActive(false);
             newBest = NewText("New best", "", Color.white, TextAlignmentOptions.Center, bold: true);
             newBest.rectTransform.SetParent(transform, false); // over the board, not inside the score area
             UiFonts.UseDisplay(newBest);
@@ -147,6 +172,7 @@ namespace GC26.Lines.UI
             undo.Clicked += () => UndoClicked?.Invoke();
             reset = PillButton.Create((RectTransform)transform, "");
             reset.SetLeadingIcon(SpriteFactory.ResetIcon());
+            reset.SetDanger(filled: false); // ember red: starting over is more serious than Undo or Pause
             reset.Clicked += () => ResetClicked?.Invoke();
             pause = PillButton.Create((RectTransform)transform, "");
             pause.SetLeadingIcon(SpriteFactory.PauseIcon());
@@ -157,10 +183,10 @@ namespace GC26.Lines.UI
             bubble = HintBubble.Create((RectTransform)transform);
             banner = RewardBanner.Create((RectTransform)transform);
             back = PillButton.CreateIcon((RectTransform)transform, SpriteFactory.HomeIcon(), "Home");
-            back.MakePlain(); // just the house, no ring or disc (teacher's feedback, prototype)
+            back.MakeNav(PillButton.HouseIconSize); // just the blue-grey house, no ring or disc (teacher's feedback, prototype)
             back.Clicked += () => BackClicked?.Invoke();
             settingsButton = PillButton.CreateIcon((RectTransform)transform, SpriteFactory.GearIcon(), "Settings");
-            settingsButton.MakePlain(); // just the white gear, opposite the house
+            settingsButton.MakeNav(PillButton.GearIconSize); // just the blue-grey gear, opposite the house
             settingsButton.Clicked += () => SettingsClicked?.Invoke();
 
             popups = new GameObject("Popups");
@@ -404,7 +430,8 @@ namespace GC26.Lines.UI
         public void SetTimed(bool on)
         {
             timed = on;
-            clockIcon.enabled = clockText.enabled = on;
+            clockText.enabled = on;
+            ring.gameObject.SetActive(on);
             undo.gameObject.SetActive(!on);
             pause.gameObject.SetActive(on);
             if (!on) { timeGainTween?.Kill(); timeGain.alpha = 0f; }
@@ -428,20 +455,75 @@ namespace GC26.Lines.UI
             }
         }
         public bool UndoShowing => undo.gameObject.activeSelf;
-        /// <summary>The middle of the clock (icon and time together) and of Reset, in the HUD's pixels (tests).</summary>
+        /// <summary>The middle of the clock's digits and of Reset, in the HUD's pixels (tests).</summary>
         public Vector2 ClockCentre { get; private set; }
         public Vector2 ResetCentre => ((RectTransform)reset.transform).anchoredPosition;
 
-        /// <summary>Shows <paramref name="seconds"/> left: yellow from 0:30, red from 0:10 (while the game runs).</summary>
+        /// <summary>
+        /// Shows <paramref name="seconds"/> left: cool white, amber from 0:30, red from 0:10 (while the game runs).
+        /// The spores go dark one by one, one every 15 s (all lit at 3:00 and above); the last one still lit breathes.
+        /// </summary>
         public void SetClock(float seconds, bool running)
         {
             clockSeconds = seconds;
             clockText.text = ClockMarkup(seconds);
-            var colour = !running || seconds <= 0f ? Palette.Text
+            clockLive = running && seconds > 0f;
+            var colour = !clockLive ? Palette.Clock
                 : seconds <= Core.GameConfig.TimeLow ? ClockLow
-                : seconds <= Core.GameConfig.TimeWarn ? ClockWarn : Palette.Text;
+                : seconds <= Core.GameConfig.TimeWarn ? ClockWarn : Palette.Clock;
             clockText.color = colour;
             clockIcon.color = colour;
+            litSpores = SporesLit(seconds);
+            PaintSpores();
+        }
+
+        /// <summary>How many of the 12 spores still glow with <paramref name="seconds"/> left (prototype: ceil(share × 12)).</summary>
+        public static int SporesLit(float seconds) =>
+            Mathf.Clamp(Mathf.CeilToInt(Mathf.Min(1f, Mathf.Max(0f, seconds) / Core.GameConfig.TimedStart) * Spores - 1e-4f), 0, Spores);
+
+        /// <summary>The spores lit now (tests).</summary>
+        public int SporesLitNow => litSpores;
+        /// <summary>The ring flashes mint after time is added (tests).</summary>
+        public bool RingFlashing => Time.unscaledTime < ringGotUntil;
+        /// <summary>The middle of the spore ring, in the HUD's pixels (tests).</summary>
+        public Vector2 RingCentre => ring.anchoredPosition;
+
+        void PaintSpores()
+        {
+            bool got = RingFlashing;
+            var colour = got ? Palette.Bonus : clockText.color;
+            for (int k = 0; k < Spores; k++)
+            {
+                bool on = k < litSpores;
+                spores[k].color = new Color(colour.r, colour.g, colour.b, on ? 1f : 0.16f);
+                sporeGlows[k].enabled = on;
+                sporeGlows[k].color = new Color(colour.r, colour.g, colour.b, 0.55f);
+            }
+        }
+
+        // The last spore still lit breathes while the clock runs; the ring pops after time is added (no garbage).
+        void Update()
+        {
+            if (!timed || ring == null || !ring.gameObject.activeInHierarchy) return;
+            float now = Time.unscaledTime;
+            float popLeft = ringGotUntil - now;
+            float pop = popLeft > 0f ? 1f + 0.2f * popLeft / RingGotSeconds : 1f; // 1.2 → 1
+            ring.localScale = Vector3.one * pop;
+            if (popLeft > -0.1f) PaintSpores(); // the mint flash ends with the pop
+            int last = litSpores - 1;
+            for (int k = 0; k < Spores; k++)
+            {
+                float s = 1f, a = 1f;
+                if (k == last && clockLive)
+                {
+                    float p = Mathf.PingPong(now / BreatheSeconds, 1f);
+                    p = p * p * (3f - 2f * p); // ease in and out
+                    s = Mathf.Lerp(1.15f, 0.85f, p);
+                    a = Mathf.Lerp(1f, 0.45f, p);
+                }
+                spores[k].rectTransform.localScale = sporeGlows[k].rectTransform.localScale = Vector3.one * s;
+                if (k < litSpores) { var c = spores[k].color; c.a = a; spores[k].color = c; }
+            }
         }
 
         /// <summary>The digits give a small pulse (each second in the last 30).</summary>
@@ -453,9 +535,11 @@ namespace GC26.Lines.UI
                 .OnKilled = () => { if (t != null) t.localScale = Vector3.one; };
         }
 
-        /// <summary>"+5s" floats up to the right of the clock (prototype: like the points, 0.9 s).</summary>
+        /// <summary>"+5s" floats up to the right of the clock in mint, and the spores flash mint (prototype: 0.9 s).</summary>
         public void ShowTimeAdded(float seconds)
         {
+            ringGotUntil = Time.unscaledTime + RingGotSeconds;
+            PaintSpores();
             timeGain.text = "+" + Mathf.RoundToInt(seconds) + Texts.Get("secondsShort");
             timeGainTween?.Kill();
             var rt = timeGain.rectTransform;
@@ -494,7 +578,9 @@ namespace GC26.Lines.UI
             return b.ToString();
         }
 
-        // The stopwatch icon and the time, centred together between the house and the gear.
+        // The clock sits just above the SCORE / NEXT labels with its digits centred on the screen (the eye centres
+        // on the digits); the spore ring hangs to their left and "+5s" floats up to their right. It never goes
+        // above the house and gear's line, so on the shortest screens it shares their line, between them.
         void PlaceClock(BoardLayout layout)
         {
             float u = layout.Unit;
@@ -504,17 +590,34 @@ namespace GC26.Lines.UI
             string space = (widest / clockText.fontSize).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "em";
             if (space != digitSpace) { digitSpace = space; clockStrings = null; }
             float textW = clockText.GetPreferredValues(Monospaced("0:00")).x;
-            float total = ClockIconSize * u + ClockIconGap * u + textW;
-            var centre = new Vector2(layout.Board.center.x, layout.BackButton.center.y);
+            float labelsTop = layout.Hud.y + scoreLabel.rectTransform.anchoredPosition.y + LabelSize * 1.4f * u;
+            float y = Mathf.Min(labelsTop + ClockAboveLabels * u, layout.BackButton.center.y);
+            var centre = new Vector2(layout.Board.center.x, y);
             ClockCentre = centre;
-            float left = centre.x - total / 2f;
-            Place((RectTransform)clockIcon.transform, left, centre.y - ClockIconSize * u / 2f, ClockIconSize * u, ClockIconSize * u);
+            float left = centre.x - textW / 2f;
             var ct = clockText.rectTransform;
-            ct.anchoredPosition = new Vector2(left + (ClockIconSize + ClockIconGap) * u, centre.y);
+            ct.anchoredPosition = new Vector2(left, centre.y);
             ct.sizeDelta = new Vector2(textW * 1.4f, ClockSize * 1.3f * u);
             if (clockText.enabled) clockText.text = ClockMarkup(clockSeconds);
+            // The ring: 12 spores clockwise from the top around a small stopwatch.
+            ring.anchoredPosition = new Vector2(left - RingGap * u - RingSize * u / 2f, centre.y);
+            ring.sizeDelta = Vector2.one * RingSize * u;
+            ((RectTransform)clockIcon.transform).anchoredPosition = Vector2.one * RingSize * u / 2f;
+            ((RectTransform)clockIcon.transform).sizeDelta = Vector2.one * ClockIconSize * u;
+            for (int k = 0; k < Spores; k++)
+            {
+                float a = k * Mathf.PI * 2f / Spores;
+                var at = Vector2.one * RingSize * u / 2f + new Vector2(Mathf.Sin(a), Mathf.Cos(a)) * SporeRadius * u;
+                var s = (RectTransform)spores[k].transform;
+                s.anchoredPosition = at;
+                s.sizeDelta = Vector2.one * SporeSize * u;
+                UiShapes.MakeDisc(spores[k], SporeSize * u);
+                var g = (RectTransform)sporeGlows[k].transform;
+                g.anchoredPosition = at;
+                g.sizeDelta = Vector2.one * SporeGlowSize * u;
+            }
             timeGain.fontSize = TimeGainSize * u;
-            Place(timeGain.rectTransform, left + total + 2f * u, centre.y - TimeGainSize * 0.65f * u, 20f * u, TimeGainSize * 1.3f * u);
+            Place(timeGain.rectTransform, left + textW + 2f * u, centre.y - TimeGainSize * 0.65f * u, 20f * u, TimeGainSize * 1.3f * u);
         }
 
         /// <summary>"Time's up!" over the board, the same way as "New best!".</summary>
@@ -587,7 +690,7 @@ namespace GC26.Lines.UI
             tmp.textWrappingMode = TextWrappingModes.NoWrap;
             tmp.overflowMode = TextOverflowModes.Overflow;
             tmp.raycastTarget = false;
-            if (name.EndsWith("label")) { UiFonts.UseDisplay(tmp); tmp.characterSpacing = 6f; } // letter-spaced Mystery Quest labels
+            if (name.EndsWith("label")) { UiFonts.UseBold(tmp); tmp.characterSpacing = 14f; } // letter-spaced Nunito ExtraBold labels (0.14em)
             return tmp;
         }
 

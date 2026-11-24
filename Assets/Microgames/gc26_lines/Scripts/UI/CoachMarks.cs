@@ -16,7 +16,7 @@ namespace GC26.Lines.UI
     public sealed class CoachMarks : MonoBehaviour, IPointerClickHandler, IDragHandler, IPointerDownHandler
     {
         const float HandSize = 15f, CaptionWidth = 80f, TitleSize = 5f, SubSize = 3.4f, PadX = 4.4f, PadY = 2.6f;
-        static readonly Color Dim = new Color(5 / 255f, 6 / 255f, 18 / 255f, 0.74f), Gold = new Color(1f, 0.835f, 0.42f);
+        static readonly Color Dim = new Color(5 / 255f, 6 / 255f, 18 / 255f, 0.74f);
 
         Canvas canvas;
         RectTransform root, hand, caption;
@@ -80,10 +80,10 @@ namespace GC26.Lines.UI
             }
             ringGlow = NewRect("Glow", root).gameObject.AddComponent<Image>();
             ringGlow.sprite = SpriteFactory.SoftGlow(1f);
-            ringGlow.color = new Color(1f, 0.82f, 0.43f, 0.55f);
+            ringGlow.color = Palette.GuideGlow; // tutorials are guidance: moonlight blue, never reward gold
             ringGlow.raycastTarget = false;
             ring = NewRect("Outline", root).gameObject.AddComponent<Image>();
-            ring.color = Gold;
+            ring.color = Palette.Guide;
             ring.raycastTarget = false;
 
             hand = NewRect("Hand", root);
@@ -98,12 +98,12 @@ namespace GC26.Lines.UI
             caption = NewRect("Caption", root);
             caption.pivot = new Vector2(0.5f, 0f);
             captionBorder = NewRect("Border", caption).gameObject.AddComponent<Image>();
-            captionBorder.color = new Color(1f, 0.835f, 0.42f, 0.6f);
+            captionBorder.color = Palette.GuideLine;
             captionBorder.raycastTarget = false;
             captionBack = NewRect("Background", caption).gameObject.AddComponent<Image>();
             captionBack.color = new Color(20 / 255f, 14 / 255f, 42 / 255f, 0.96f);
             captionBack.raycastTarget = false;
-            title = NewText("Title", Gold);
+            title = NewText("Title", Palette.Guide);
             UiFonts.UseDisplay(title);
             sub = NewText("Text", Palette.SoftText);
             gotIt = PillButton.Create(caption, Texts.Get("gotIt"), primary: true);

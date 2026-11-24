@@ -21,9 +21,9 @@ namespace GC26.Lines.UI
             public TextMeshProUGUI Label;
         }
 
-        static readonly Color Gold = new Color(1f, 0.835f, 0.42f);
+        static readonly Color Gold = Palette.On; // the chosen mode is lilac (gold is for rewards and the main button)
         static readonly Color DiscIdle = new Color(1f, 1f, 1f, 0.05f), RingIdle = new Color(1f, 1f, 1f, 0.14f);
-        static readonly Color DiscChosen = new Color(1f, 0.835f, 0.42f, 0.12f), GlowChosen = new Color(1f, 0.78f, 0.35f, 0.45f);
+        static readonly Color DiscChosen = Palette.Hex(0xC3B2FF, 0.12f), GlowChosen = Palette.Hex(0xAA96FF, 0.45f);
 
         readonly Badge[] badges = new Badge[2]; // 0: Classic, 1: Timed
         bool sideLabels;
@@ -69,7 +69,7 @@ namespace GC26.Lines.UI
             b.Icon.sprite = icon;
             b.Icon.preserveAspect = true;
             b.Label = NewRect("Label", b.Root).gameObject.AddComponent<TextMeshProUGUI>();
-            UiFonts.UseDisplay(b.Label);
+            UiFonts.UseBold(b.Label);
             b.Label.textWrappingMode = TextWrappingModes.NoWrap;
             b.Label.alignment = sideLabels ? TextAlignmentOptions.MidlineLeft : TextAlignmentOptions.Top;
             foreach (var g in new Graphic[] { b.Glow, b.Disc, b.Ring, b.Icon, b.Label }) g.raycastTarget = false;
@@ -87,7 +87,7 @@ namespace GC26.Lines.UI
             badges[1].Label.text = Texts.Get("timed");
         }
 
-        /// <summary>Marks the chosen mode (gold disc, ring, icon and name, with a soft glow).</summary>
+        /// <summary>Marks the chosen mode (lilac disc, ring, icon and name, with a soft glow).</summary>
         public void SetChosen(bool timed)
         {
             TimedChosen = timed;

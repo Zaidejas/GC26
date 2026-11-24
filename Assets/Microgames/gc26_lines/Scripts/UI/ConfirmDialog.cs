@@ -140,6 +140,7 @@ namespace GC26.Lines.UI
             title.text = titleText;
             message.text = messageText;
             confirm.SetText(confirmText);
+            confirm.SetDanger(filled: true, on: !single); // "Start a new game?" Yes is ember red (the game is lost); Pause's Resume stays gold
             onConfirm = onYes;
             LayoutCard();
             root.SetAsLastSibling();

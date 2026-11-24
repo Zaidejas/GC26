@@ -44,9 +44,9 @@ namespace GC26.Lines.UI
             group = gameObject.AddComponent<CanvasGroup>();
             group.alpha = 0f;
             group.blocksRaycasts = false;
-            border = Child("Border", new Color(1f, 0.835f, 0.42f, 0.55f));
+            border = Child("Border", Palette.GuideLine); // hints are guidance: moonlight blue (the progress bar stays gold: a reward)
             background = Child("Background", new Color(20 / 255f, 14 / 255f, 42 / 255f, 0.95f));
-            title = NewText("Title", Gold);
+            title = NewText("Title", Palette.Guide);
             UiFonts.UseDisplay(title);
             text = NewText("Text", Palette.SoftText);
             barBack = Child("Bar", new Color(1f, 1f, 1f, 0.12f));

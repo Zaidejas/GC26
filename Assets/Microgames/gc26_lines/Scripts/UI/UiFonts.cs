@@ -28,9 +28,9 @@ namespace GC26.Lines.UI
 
         /// <summary>Nunito; text with the Bold style is drawn with Nunito ExtraBold.</summary>
         public static TMP_FontAsset Body { get { Load(); return body; } }
-        /// <summary>Kurale: Russian letters in titles, labels and buttons (a fallback of <see cref="Display"/>).</summary>
+        /// <summary>Kurale: Russian letters in titles and headings (a fallback of <see cref="Display"/>).</summary>
         public static TMP_FontAsset CyrillicDisplay { get { Load(); return cyrillicDisplay; } }
-        /// <summary>Mystery Quest (title, numbers, labels, buttons, headings).</summary>
+        /// <summary>Mystery Quest (the title, headings, the score and the clock).</summary>
         public static TMP_FontAsset Display { get { Load(); return display; } }
 
         static void Load()
@@ -110,7 +110,19 @@ namespace GC26.Lines.UI
         }
 
         /// <summary>
-        /// Title, numbers, labels, buttons and headings: Mystery Quest, drawn as designed (thin, like the
+        /// Everything the player reads or taps (buttons, labels, Settings rows, the mode names): Nunito ExtraBold,
+        /// easy to read at small sizes and the same in English and Russian (GDD → Art → Fonts, two jobs).
+        /// </summary>
+        public static void UseBold(TMP_Text text)
+        {
+            if (Body == null) return;
+            text.font = Body;
+            text.fontStyle |= FontStyles.Bold; // drawn with the real ExtraBold letters (see Load)
+        }
+
+        /// <summary>
+        /// The brand and the big things only (the title, screen and pop-up titles, the score, the clock, the
+        /// points that float up): Mystery Quest, drawn as designed (thin, like the
         /// prototype; thickening it filled in its curls and softened its brush edges). One weight, so no fake bold.
         /// </summary>
         public static void UseDisplay(TMP_Text text)

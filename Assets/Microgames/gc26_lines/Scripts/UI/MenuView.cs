@@ -106,7 +106,7 @@ namespace GC26.Lines.UI
             howTo = PillButton.Create(root, "");
             leaderboard = PillButton.Create(root, "");
             settings = PillButton.CreateIcon(root, SpriteFactory.GearIcon(), "Settings");
-            settings.MakePlain(); // just the white gear, like the house on the game screen
+            settings.MakeNav(PillButton.GearIconSize); // just the blue-grey gear, like the house on the game screen
             settings.Clicked += () => SettingsClicked?.Invoke();
             RefreshTexts();
             continueButton.Clicked += () => ContinueClicked?.Invoke();
@@ -125,7 +125,8 @@ namespace GC26.Lines.UI
             float left = contentLeft + SidePadding * u, width = (100f - 2f * SidePadding) * u;
 
             float brandH = DecoHeight + DecoMargin + LogoSize * 0.95f + TagMargin + TagSize * 1.3f;
-            float buttonsH = BadgesHeight + BadgesToButtons + 4f * ButtonHeight + 3f * ButtonGap;
+            var buttons = MenuButtons();
+            float buttonsH = BadgesHeight + BadgesToButtons + buttons.Count * ButtonHeight + (buttons.Count - 1) * ButtonGap;
             float total = (brandH + BrandToButtons + buttonsH) * u;
             float top = safe.center.y + total / 2f;
 
@@ -153,7 +154,7 @@ namespace GC26.Lines.UI
             float y = top - (brandH + BrandToButtons) * u;
             modes.Place(new Vector2(safe.center.x, y - BadgesHeight * u / 2f), u, BadgeDisc, BadgeText, BadgeGap);
             y -= (BadgesHeight + BadgesToButtons) * u;
-            foreach (var b in new[] { continueButton, newGame, howTo, leaderboard })
+            foreach (var b in buttons)
             {
                 y -= ButtonHeight * u;
                 b.Place(new Rect(left, y, width, ButtonHeight * u), u);
@@ -162,6 +163,16 @@ namespace GC26.Lines.UI
             settings.Place(screen.SettingsButton, u);
             clockPlaced = false; // Continue's stopwatch follows the new text size
             if (IsShowing) AdvanceFloating(0f);
+        }
+
+        // The buttons on show: Continue only when there's a game to go back to (GDD → Main menu).
+        readonly System.Collections.Generic.List<PillButton> shownButtons = new System.Collections.Generic.List<PillButton>();
+        System.Collections.Generic.List<PillButton> MenuButtons()
+        {
+            shownButtons.Clear();
+            foreach (var b in new[] { continueButton, newGame, howTo, leaderboard })
+                if (b.gameObject.activeSelf) shownButtons.Add(b);
+            return shownButtons;
         }
 
         /// <summary>Puts every text in the current language (<see cref="Texts"/>).</summary>
@@ -185,8 +196,8 @@ namespace GC26.Lines.UI
         }
 
         /// <summary>
-        /// Shows the menu. <paramref name="savedScore"/> is the unfinished game's score, or null when
-        /// there is none (then Continue is greyed out and shows no score).
+        /// Shows the menu. <paramref name="savedScore"/> is the unfinished game's score, or null when there is
+        /// none: then Continue is hidden and New game is the gold main button, so the menu always has exactly one.
         /// </summary>
         public void Show(int? savedScore, PieceSet pieceSet, bool timed = false, float? timeLeft = null)
         {
@@ -195,7 +206,11 @@ namespace GC26.Lines.UI
             savedTimeLeft = savedScore.HasValue && timed ? timeLeft : null;
             modes.SetChosen(timed);
             continueButton.Interactable = savedScore.HasValue;
+            bool layoutChanges = continueButton.gameObject.activeSelf != savedScore.HasValue;
+            continueButton.gameObject.SetActive(savedScore.HasValue);
+            newGame.SetPrimary(!savedScore.HasValue);
             RefreshTexts();
+            if (layoutChanges && layout.Unit > 0f) ApplyLayout(layout);
             var colors = BallColors.All;
             for (int i = 0; i < deco.Count; i++) deco[i].sprite = pieces.SpriteFor(colors[i]);
             gameObject.SetActive(true);

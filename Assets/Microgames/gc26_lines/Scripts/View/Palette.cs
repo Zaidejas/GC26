@@ -23,7 +23,6 @@ namespace GC26.Lines.View
         public static readonly Color SoftText = Hex(0xA9BCCD);
         public static readonly Color Line = Hex(0xFFE9BE, 0.3f);
         public static readonly Color Focus = Hex(0xFFD56B);
-        public static readonly Color Gain = Hex(0x9CF5B0);
 
         // Buttons and panels: dark glass with a warm outline; main buttons are glowing gold.
         public static readonly Color Glass = Hex(0x1E1640, 0.9f);
@@ -33,10 +32,42 @@ namespace GC26.Lines.View
         public static readonly Color DisabledFill = Hex(0x2A2448, 0.9f);
         public static readonly Color DisabledRim = Hex(0xFFFFFF, 0.15f);
 
+        // Colour roles (GDD → Art → Colours: one job each, so a glowing thing never means two things).
+        /// <summary>Navigation (house, gear): quiet blue-grey, no glow.</summary>
+        public static readonly Color Nav = Hex(0xB9CADC, 0.78f);
+        /// <summary>Ordinary buttons (Undo, Pause, Menu, Cancel…): a cool silver-lilac outline and light text.</summary>
+        public static readonly Color ControlLine = Hex(0xC8BCFF, 0.4f);
+        public static readonly Color ControlText = Hex(0xEBE6FF);
+        /// <summary>Things that are on or chosen (switches, the language, Classic / Timed): lilac.</summary>
+        public static readonly Color On = Hex(0xC3B2FF);
+        public static readonly Color OnDeep = Hex(0x8F78F0);
+        public static readonly Color OnText = Hex(0x1C1636);
+        public static readonly Color OnGlow = Hex(0xAA96FF, 0.5f);
+        /// <summary>Guidance (tutorial outline, hint bubbles, the puffball aim): pale moonlight blue.</summary>
+        public static readonly Color Guide = Hex(0xCFE7FF);
+        public static readonly Color GuideLine = Hex(0xCFE7FF, 0.55f);
+        public static readonly Color GuideGlow = Hex(0xA0D2FF, 0.55f);
+        /// <summary>Start over (Reset and the "Start a new game?" Yes): ember red.</summary>
+        public static readonly Color EmberLine = Hex(0xFF806C, 0.6f);
+        public static readonly Color EmberText = Hex(0xFFC1B5);
+        public static readonly Color Ember = Hex(0xF06A52);
+        public static readonly Color EmberDarkText = Hex(0x2C0B05);
+        public static readonly Color EmberGlow = Hex(0xFF6450, 0.45f);
+        /// <summary>Points: the "+N" that floats up, and the score's gold letters (light at the top, deep amber below).</summary>
+        public static readonly Color Points = Hex(0xFFC93C);
+        public static readonly Color ScoreTop = Hex(0xFFF2C2);
+        public static readonly Color ScoreBottom = Hex(0xFF9F2E);
+        public static readonly Color ScoreGlow = Hex(0xFFBE46, 0.5f);
+        /// <summary>Time: cool white (never gold, so it doesn't look like points), amber from 0:30, red from 0:10; time added is mint.</summary>
+        public static readonly Color Clock = Hex(0xEEF2FF);
+        public static readonly Color ClockWarn = Hex(0xFFB24A);
+        public static readonly Color ClockLow = Hex(0xFF6B6B);
+        public static readonly Color Bonus = Hex(0xB4FFE0);
+
         // Pop-ups.
         public static readonly Color Dim = Hex(0x050712, 0.74f);
         public static readonly Color Card = Hex(0x1C1A36);
-        public static readonly Color CardGlow = Hex(0xA078FF, 0.05f);
+        public static readonly Color CardGlow = Hex(0x000000, 0.3f); // a plain soft shadow: pop-ups don't glow (GDD → glow means "look here")
         public static readonly Color Toast = Hex(0x0E0A1E, 0.9f);
 
         // Panels that let the forest show through (leaderboard rows), and the How to play mini board's cells.
