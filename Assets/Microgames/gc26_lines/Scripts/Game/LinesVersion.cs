@@ -8,7 +8,7 @@ namespace GC26.Lines.Game
     /// </summary>
     public static class LinesVersion
     {
-        public const string Number = "0.2.0";
+        public const string Number = "0.3.0";
 
         /// <summary>What the start screen shows.</summary>
         public const string Label = "v" + Number;
