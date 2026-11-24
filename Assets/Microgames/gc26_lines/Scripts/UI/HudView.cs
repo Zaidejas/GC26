@@ -41,7 +41,8 @@ namespace GC26.Lines.UI
         int litSpores = Spores;
         bool clockLive;
         float ringGotUntil = -1f;
-        const float RingGotSeconds = 0.6f, BreatheSeconds = 1.1f;
+        // The last lit spore breathes clearly enough to see on a phone: half again as big and bright, then small and dim.
+        public const float RingGotSeconds = 0.6f, BreatheSeconds = 1.1f, BreatheBig = 1.5f, BreatheSmall = 0.75f, BreatheDim = 0.25f;
         TextMeshProUGUI clockText, timeGain;
         TweenHandle timeGainTween;
         bool timed;
@@ -149,10 +150,12 @@ namespace GC26.Lines.UI
             clockIcon.preserveAspect = true;
             clockIcon.raycastTarget = false;
             ((RectTransform)clockIcon.transform).pivot = new Vector2(0.5f, 0.5f);
-            clockText = NewText("Clock", "3:00", Palette.Clock, TextAlignmentOptions.MidlineLeft, bold: true);
+            // Centred in its box with the pivot in the middle, so the digits' pulse grows evenly from their middle
+            // (from the left edge it pushed the numbers sideways on every beat).
+            clockText = NewText("Clock", "3:00", Palette.Clock, TextAlignmentOptions.Midline, bold: true);
             clockText.rectTransform.SetParent(transform, false);
             UiFonts.UseDisplay(clockText);
-            clockText.rectTransform.pivot = new Vector2(0f, 0.5f);
+            clockText.rectTransform.pivot = new Vector2(0.5f, 0.5f);
             timeGain = NewText("Time gain", "", Palette.Bonus, TextAlignmentOptions.MidlineLeft, bold: true);
             timeGain.rectTransform.SetParent(transform, false);
             UiFonts.UseDisplay(timeGain);
@@ -518,11 +521,15 @@ namespace GC26.Lines.UI
                 {
                     float p = Mathf.PingPong(now / BreatheSeconds, 1f);
                     p = p * p * (3f - 2f * p); // ease in and out
-                    s = Mathf.Lerp(1.15f, 0.85f, p);
-                    a = Mathf.Lerp(1f, 0.45f, p);
+                    s = Mathf.Lerp(BreatheBig, BreatheSmall, p);
+                    a = Mathf.Lerp(1f, BreatheDim, p);
                 }
                 spores[k].rectTransform.localScale = sporeGlows[k].rectTransform.localScale = Vector3.one * s;
-                if (k < litSpores) { var c = spores[k].color; c.a = a; spores[k].color = c; }
+                if (k < litSpores)
+                {
+                    var c = spores[k].color; c.a = a; spores[k].color = c;
+                    var g = sporeGlows[k].color; g.a = 0.55f * a; sporeGlows[k].color = g; // its glow breathes too
+                }
             }
         }
 
@@ -596,7 +603,7 @@ namespace GC26.Lines.UI
             ClockCentre = centre;
             float left = centre.x - textW / 2f;
             var ct = clockText.rectTransform;
-            ct.anchoredPosition = new Vector2(left, centre.y);
+            ct.anchoredPosition = centre;
             ct.sizeDelta = new Vector2(textW * 1.4f, ClockSize * 1.3f * u);
             if (clockText.enabled) clockText.text = ClockMarkup(clockSeconds);
             // The ring: 12 spores clockwise from the top around a small stopwatch.

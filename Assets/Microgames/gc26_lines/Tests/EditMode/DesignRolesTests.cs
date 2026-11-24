@@ -156,5 +156,20 @@ namespace GC26.Lines.Tests
             hud.SetClock(100f, running: true);
             Assert.AreEqual(Palette.Clock, hud.ClockColor);
         }
+
+        [Test]
+        public void Clock_PulsesFromItsMiddle_SoTheDigitsDontJumpSideways()
+        {
+            hud.SetTimed(true);
+            hud.SetClock(25f, running: true);
+            var clock = System.Array.Find(hud.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true), t => t.name == "Clock");
+            Assert.AreEqual(new Vector2(0.5f, 0.5f), clock.rectTransform.pivot, "Grows from its middle");
+            Assert.AreEqual(TMPro.HorizontalAlignmentOptions.Center, clock.horizontalAlignment, "...and the digits sit in the middle of the box");
+            Assert.AreEqual(hud.ClockCentre, clock.rectTransform.anchoredPosition);
+            hud.PulseClock();
+            Tween.Tick(0.05f);
+            Assert.AreEqual(hud.ClockCentre, clock.rectTransform.anchoredPosition, "The pulse only changes the size");
+            Assert.GreaterOrEqual(HudView.BreatheBig / HudView.BreatheSmall, 2f, "The last spore's breathing is easy to see");
+        }
     }
 }
