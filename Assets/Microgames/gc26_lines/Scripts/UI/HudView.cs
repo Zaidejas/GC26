@@ -460,6 +460,8 @@ namespace GC26.Lines.UI
             }
         }
         public bool UndoShowing => undo.gameObject.activeSelf;
+        /// <summary>The middle of the whole clock (spore ring and digits together), in the HUD's pixels (tests).</summary>
+        public Vector2 ClockGroupCentre { get; private set; }
         /// <summary>The middle of the clock's digits and of Reset, in the HUD's pixels (tests).</summary>
         public Vector2 ClockCentre { get; private set; }
         public Vector2 ResetCentre => ((RectTransform)reset.transform).anchoredPosition;
@@ -587,8 +589,8 @@ namespace GC26.Lines.UI
             return b.ToString();
         }
 
-        // The clock sits just above the SCORE / NEXT labels with its digits centred on the screen (the eye centres
-        // on the digits); the spore ring hangs to their left and "+5s" floats up to their right. It never goes
+        // The clock sits just above the SCORE / NEXT labels, the spore ring and the digits centred together on the
+        // screen; "+5s" floats up to the right of the digits. It never goes
         // above the house and gear's line, so on the shortest screens it shares their line, between them.
         void PlaceClock(BoardLayout layout)
         {
@@ -601,9 +603,13 @@ namespace GC26.Lines.UI
             float textW = clockText.GetPreferredValues(Monospaced("0:00")).x;
             float labelsTop = layout.Hud.y + scoreLabel.rectTransform.anchoredPosition.y + LabelSize * 1.4f * u;
             float y = Mathf.Min(labelsTop + ClockAboveLabels * u, layout.BackButton.center.y);
-            var centre = new Vector2(layout.Board.center.x, y);
+            // The whole clock (the spore ring and the digits together) is centred on the screen (user's choice:
+            // with only the digits centred, the ring made the clock look shifted to the left).
+            float total = (RingSize + RingGap) * u + textW;
+            float left = layout.Board.center.x - total / 2f + (RingSize + RingGap) * u; // the digits' left edge
+            var centre = new Vector2(left + textW / 2f, y);
             ClockCentre = centre;
-            float left = centre.x - textW / 2f;
+            ClockGroupCentre = new Vector2(layout.Board.center.x, y);
             var ct = clockText.rectTransform;
             ct.anchoredPosition = centre;
             ct.sizeDelta = new Vector2(textW * 1.4f, ClockSize * 1.3f * u);

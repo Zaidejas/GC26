@@ -151,8 +151,11 @@ namespace GC26.Lines.Tests
             Assert.AreEqual(layout.Actions.center.x, h.Puffball.Rect.anchoredPosition.x, 0.5f);
             Assert.Greater(h.ClockCentre.y, layout.Hud.y + h.ScoreLabelY, "Above the SCORE / NEXT labels");
             Assert.LessOrEqual(h.ClockCentre.y, layout.BackButton.center.y + 0.5f, "Never above the house and gear's line");
-            Assert.AreEqual(layout.Board.center.x, h.ClockCentre.x, 0.5f, "The digits are centred on the screen");
-            Assert.Less(h.RingCentre.x, h.ClockCentre.x - 5f * layout.Unit, "The spore ring hangs to the left of the digits");
+            Assert.AreEqual(layout.Board.center.x, h.ClockGroupCentre.x, 0.5f, "The whole clock (spores and digits) is centred on the screen");
+            Assert.Less(h.RingCentre.x, h.ClockCentre.x - 5f * layout.Unit, "The spore ring is to the left of the digits");
+            float ringLeft = h.RingCentre.x - HudView.RingSize * layout.Unit / 2f;
+            Assert.AreEqual(layout.Board.center.x - ringLeft, h.ClockGroupCentre.x - ringLeft, 0.5f);
+            Assert.Greater(h.ClockCentre.x, layout.Board.center.x, "...so the digits sit a little right of the middle");
             Assert.AreEqual(h.ClockCentre.y, h.RingCentre.y, 0.5f, "...level with them");
             Assert.LessOrEqual(h.ClockCentre.y, layout.SafeArea.yMax, "Inside the safe area (clear of the camera cut-out)");
             h.SetTimed(false);
