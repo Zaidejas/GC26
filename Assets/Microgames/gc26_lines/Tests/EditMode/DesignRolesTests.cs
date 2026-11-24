@@ -138,6 +138,10 @@ namespace GC26.Lines.Tests
             howTo.Show(PieceSet.Balls());
             Assert.AreEqual("How to play", howTo.ScreenTitle.text);
             Assert.AreEqual(l.BackButton.center.y, howTo.ScreenTitle.rectTransform.anchoredPosition.y, 0.5f);
+            Assert.AreEqual(leaderboard.ScreenTitle.fontSize, howTo.ScreenTitle.fontSize, 0.01f, "Both titles the same size");
+            Assert.AreSame(leaderboard.ScreenTitle.font, howTo.ScreenTitle.font, "...and font");
+            Assert.AreEqual(leaderboard.ScreenTitle.fontStyle, howTo.ScreenTitle.fontStyle);
+            Assert.AreEqual(6f * l.Unit, l.BackButton.y - (leaderboard.TabsCentre.y + 4.5f * l.Unit), 0.5f, "6 units between the title's row and the tabs");
             Texts.Set(Language.Russian);
             howTo.RefreshTexts();
             Assert.AreEqual("Как играть", howTo.ScreenTitle.text);

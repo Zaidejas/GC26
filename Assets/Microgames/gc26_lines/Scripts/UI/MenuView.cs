@@ -88,7 +88,7 @@ namespace GC26.Lines.UI
             version = NewText("Version", Game.LinesVersion.Label, new Color(Palette.SoftText.r, Palette.SoftText.g, Palette.SoftText.b, 0.6f));
             version.fontStyle = FontStyles.Normal;
             UiFonts.UseDisplay(logo);
-            UiFonts.UseDisplay(tagline);
+            UiFonts.UseBold(tagline); // the line under the title is read: Nunito, like the prototype (only the title is the magic font)
             logo.color = Color.white;
             logo.enableVertexGradient = true;
             logo.colorGradient = new VertexGradient(Palette.TitleTop, Palette.TitleTop, Palette.TitleBottom, Palette.TitleBottom);

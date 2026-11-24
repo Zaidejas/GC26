@@ -22,7 +22,7 @@ namespace GC26.Lines.UI
         const float MessageSize = 5.2f, EmptySize = 4.4f, PlayAgainHeight = 13f;
         const float RowHeight = 15f, RowGap = 2f, RowRadius = 3f, RowBorder = 0.5f, RowPadX = 4f;
         /// <summary>On short screens rows get shorter (gaps too), just enough for all 10 places; never below this.</summary>
-        public const float ShortestRow = 12.5f;
+        public const float ShortestRow = 12f; // 16:9: all 10 places still fit under the title and tabs
         const float RankWidth = 8f, ColumnGap = 3f, RankSize = 5f, NameSize = 4.4f, DateSize = 3.6f, PointsSize = 6f;
         /// <summary>The text shown while there are no finished games, in the current language.</summary>
         public static string EmptyText => Texts.Get("scoresEmpty");
@@ -40,7 +40,9 @@ namespace GC26.Lines.UI
         ScrollRect scroll;
         readonly List<Row> rows = new List<Row>();
         TextMeshProUGUI message, empty, screenTitle;
-        const float ScreenTitleSize = 7f, TabsDisc = 9f, TabsTop = 1f;
+        // Under the title: 6 units of space, the tabs, then 6 more before the list (prototype: the screen's 5-unit
+        // gap plus 1 above and below the tabs), so the title, the tabs and the list read as three separate things.
+        const float ScreenTitleSize = 7f, TabsDisc = 9f, TabsTop = 6f, TabsToList = 6f;
         /// <summary>The screen's name at the top ("Leaderboard"), centred on the house's line (tests).</summary>
         public TextMeshProUGUI ScreenTitle => screenTitle;
         /// <summary>The Classic / Timed tabs' middle, in pixels (tests: under the title).</summary>
@@ -206,7 +208,7 @@ namespace GC26.Lines.UI
                 bottom += (PlayAgainHeight + Gap) * u;
             }
 
-            float top = layout.BackButton.y - (TabsTop + TabsDisc + Gap) * u;
+            float top = layout.BackButton.y - (TabsTop + TabsDisc + TabsToList) * u;
             if (message.gameObject.activeSelf)
             {
                 message.fontSize = MessageSize * u;
