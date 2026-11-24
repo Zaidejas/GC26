@@ -622,7 +622,14 @@ body {
 .phone.forest .gain { color: #ffc93c; text-shadow: 0 0 2cqw rgba(255, 170, 40, 0.8); }
 /* time: cool white, so it never looks like points */
 .phone.forest .timer { color: #eef2ff; }
-.phone.forest .timer .tnum { text-shadow: 0 0 3cqw rgba(200, 215, 255, 0.3); }
+.phone.forest .timer .tnum { text-shadow: none; }
+/* Glow budget: glow means "look here", so only the mushrooms, gold rewards, the main button and things that are
+   on or ready glow. Ordinary buttons, pop-ups, the board and the clock don't. */
+.phone.forest .screen button.btn:not(.primary), .phone.forest #reset, .phone.forest .super-btn:not(.ready):not(.armed) { box-shadow: none; }
+.phone.forest .card { box-shadow: 0 3cqw 10cqw rgba(0, 0, 0, 0.55); }
+.phone.forest .board { box-shadow: 0 0 5cqw rgba(150, 110, 255, 0.16), inset 0 0 4cqw rgba(0, 0, 0, 0.4); }
+.phone.forest .mini { box-shadow: none; }
+.phone.forest .coach-text, .phone.forest .bubble { box-shadow: 0 2cqw 6cqw rgba(0, 0, 0, 0.45); }
 .phone.forest .timer.warn:not(.low) { color: #ffb24a; }
 .phone.forest .timer.warn:not(.low) .tnum { text-shadow: 0 0 3cqw rgba(255, 170, 70, 0.6); }
 .phone.forest .timer.low { color: #ff6b6b; }
