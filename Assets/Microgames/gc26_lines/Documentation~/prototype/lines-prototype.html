@@ -311,7 +311,12 @@ body {
 .screen:lang(ru) .logo { font-size: 17cqw; } /* "Грибочки" in the wider Russian font: a little smaller so it fits the width */
 .tag { margin: 2.5cqw 0 0; font-size: 4.2cqw; color: var(--soft); font-weight: 700; }
 .menu-buttons { display: flex; flex-direction: column; gap: 3cqw; }
-.version { position: absolute; left: 0; right: 0; bottom: 3cqw; margin: 0; text-align: center; font-size: 3cqw; color: var(--soft); opacity: 0.6; pointer-events: none; } /* the game's version, small at the bottom */
+.version { position: absolute; left: 50%; bottom: 1.5cqw; transform: translateX(-50%); margin: 0; padding: 1.5cqw 4cqw; text-align: center; font-size: 3cqw; color: var(--soft); opacity: 0.6; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; } /* the game's version, small at the bottom; 5 quick taps open the Debug panel */
+/* Debug panel (hidden: 5 quick taps on the version): test tools for our own phones, English only. */
+.card.debug .debug-group { margin: 3cqw 0 1.4cqw; font: 800 3cqw var(--font-body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--soft); }
+.card.debug .debug-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2cqw; }
+.card.debug .debug-grid button.btn { height: 10cqw; font-size: 3.4cqw; padding: 0 1cqw; white-space: nowrap; }
+.card.debug .debug-note { margin: 3cqw 0 0; font-size: 3.2cqw; color: var(--soft); text-align: center; }
 .menu-buttons .btn { height: 13.5cqw; }
 .btn .sub { font-weight: 700; font-size: 3.6cqw; opacity: 0.75; }
 .btn .sub-clock { white-space: nowrap; } /* plain text on the same line, the icon sits on the text's line */
@@ -704,7 +709,7 @@ body {
             <button type="button" class="btn" id="howto" data-i18n="howToPlay">How to play</button>
             <button type="button" class="btn" id="scores" data-i18n="leaderboard">Leaderboard</button>
           </div>
-          <p class="version" aria-label="Version 0.2.0">v0.2.0</p>
+          <p class="version" id="version" aria-label="Version 0.3.0">v0.3.0</p>
         </div>
 
         <div class="view subview" id="screen-howto" hidden>
@@ -797,6 +802,34 @@ body {
               <button type="button" class="btn" id="cancel" data-i18n="cancel">Cancel</button>
               <button type="button" class="btn primary" id="yes" data-i18n="yes">Yes</button>
             </div>
+          </div>
+        </div>
+
+        <div class="modal" id="debug" hidden>
+          <div class="card settings debug" role="dialog" aria-modal="true" aria-labelledby="debug-title">
+            <button type="button" class="icon-btn gear close" id="debug-close" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+            <h2 id="debug-title">Debug</h2>
+            <p class="debug-group">Next mushroom</p>
+            <div class="debug-grid">
+              <button type="button" class="btn" data-debug="rainbow">Rainbow next</button>
+              <button type="button" class="btn" data-debug="ice">Frozen next</button>
+            </div>
+            <p class="debug-group">Puffball</p>
+            <div class="debug-grid">
+              <button type="button" class="btn" data-debug="super">+1 Puffball</button>
+              <button type="button" class="btn" data-debug="score190">Start at 190</button>
+            </div>
+            <p class="debug-group">Timed and tutorials</p>
+            <div class="debug-grid">
+              <button type="button" class="btn" data-debug="clock35">Clock to 0:35</button>
+              <button type="button" class="btn" data-debug="tips">Tutorials again</button>
+            </div>
+            <p class="debug-group">Leaderboard</p>
+            <div class="debug-grid">
+              <button type="button" class="btn" data-debug="clear">Clear both</button>
+              <button type="button" class="btn" data-debug="fill">Fill top 10</button>
+            </div>
+            <p class="debug-note">Game tools open the game in the chosen mode.</p>
           </div>
         </div>
 
@@ -2323,9 +2356,10 @@ body {
       }
       setAiming(!aiming);
     });
-    // Test tools (prototype only): a rainbow or a frozen mushroom next, or one more puffball.
-    document.querySelectorAll("#test-specials button").forEach((btn) => btn.addEventListener("click", () => {
-      const k = btn.dataset.special;
+    // Test tools: a rainbow or a frozen mushroom next, one more puffball, or a game at 190 points. Used by the
+    // buttons above the phone (prototype only) and by the hidden Debug panel (which the phone builds get too).
+    document.querySelectorAll("#test-specials button").forEach((btn) => btn.addEventListener("click", () => runTest(btn.dataset.special)));
+    function runTest(k) {
       // 190 pts: a new game (in the chosen mode) at 190 points, with 4 red mushrooms in a row and a 5th one below:
       // move it up to make the line, pass 200 and get the first puffball (and its tutorial).
       if (k === "score190") {
@@ -2347,6 +2381,43 @@ body {
       if (k === "ice") { if (S.preview.colors[0] === RAINBOW) S.preview.colors[0] = 0; S.preview.ice[0] = true; forgetTip("ice"); }
       if (k === "super") { S.supers = Math.min(SUPER_MAX, S.supers + 1); forgetTip("super"); queueTip("super"); }
       if (currentScreen() === "game") { render(); checkTips(); } save();
+    }
+
+    // Debug panel: hidden behind 5 quick taps on the version at the bottom of the menu (GDD → Debug).
+    let versionTaps = 0, versionTapAt = 0;
+    $("#version").addEventListener("click", () => {
+      const now = performance.now();
+      versionTaps = now - versionTapAt < 1500 ? versionTaps + 1 : 1;
+      versionTapAt = now;
+      if (versionTaps >= 5) { versionTaps = 0; $("#debug").hidden = false; }
+    });
+    const closeDebug = () => { $("#debug").hidden = true; };
+    $("#debug-close").addEventListener("click", closeDebug);
+    $("#debug").addEventListener("click", (e) => { if (e.target === $("#debug")) closeDebug(); });
+    document.querySelectorAll("#debug [data-debug]").forEach((btn) => btn.addEventListener("click", () => {
+      const k = btn.dataset.debug;
+      closeDebug();
+      if (k === "rainbow" || k === "ice" || k === "super" || k === "score190") { runTest(k); return; }
+      if (k === "clock35") { // a timed game with 35 seconds left: amber at 0:30, red at 0:10, Time's up at 0:00
+        if (mode !== "timed") setMode("timed");
+        if (!S || S.over) newGame();
+        S.timeLeft = 35000;
+        if (currentScreen() !== "game") showScreen("game");
+        render(); save(); toast("Clock: 0:35");
+        return;
+      }
+      if (k === "tips") { // the tutorials show again in the game in progress (and every new game shows them anyway)
+        if (S) { S.tips = {}; save(); }
+        toast("Tutorials will show again");
+        return;
+      }
+      if (k === "clear" || k === "fill") {
+        const fill = (m) => Array.from({ length: 10 }, (_, i) => ({ score: 400 - 30 * i, name: "Test " + (i + 1), time: Date.now() - (i + 1) * 864e5 }));
+        ["classic", "timed"].forEach((m) => { try { localStorage.setItem(scoresKey(m), JSON.stringify(k === "fill" ? fill(m) : [])); } catch (e) {} });
+        bestAtStart = bestScore(); celebrated = !!S && S.score > bestAtStart;
+        if (S && currentScreen() === "game") render();
+        toast(k === "fill" ? "Top 10 filled: 10th place has 130" : "Leaderboards cleared");
+      }
     }));
     $("#continue").addEventListener("click", () => { if (hasSavedGame()) showScreen("game"); });
     $("#new").addEventListener("click", () => { if (hasSavedGame()) $("#confirm").hidden = false; else startNew(); });
