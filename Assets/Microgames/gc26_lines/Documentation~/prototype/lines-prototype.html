@@ -611,10 +611,21 @@ body {
 .phone.forest .coach-text, .phone.forest .bubble { border-color: rgba(207, 231, 255, 0.55); box-shadow: 0 0 4cqw rgba(150, 200, 255, 0.28); }
 .phone.forest .bubble::after { border-top-color: rgba(207, 231, 255, 0.55); }
 .phone.forest .coach-text b, .phone.forest .bubble b { color: var(--guide); }
-/* time */
-.phone.forest .timer .tnum { text-shadow: 0 0 3cqw rgba(255, 246, 225, 0.25); }
+/* start over: Reset and its "Yes" are ember red, a step more serious than Undo or Pause */
+.phone.forest #reset { border-color: rgba(255, 128, 108, 0.6); color: #ffc1b5; box-shadow: 0 0 3cqw rgba(255, 100, 80, 0.2); }
+.phone.forest #confirm #yes { background: linear-gradient(180deg, #ff9c86, #e5553f); border-color: #ffb8a8; color: #2c0b05; box-shadow: 0 0 5cqw rgba(255, 100, 80, 0.45); }
+/* points: real gold letters (the logo's gradient), not cream with a glow */
+.phone.forest .hud .num, .phone.forest .card .final {
+  background: linear-gradient(180deg, #fff2c2, #ffc84a 60%, #ff9f2e); -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: none; filter: drop-shadow(0 0 2cqw rgba(255, 190, 70, 0.5));
+}
+.phone.forest .gain { color: #ffc93c; text-shadow: 0 0 2cqw rgba(255, 170, 40, 0.8); }
+/* time: cool white, so it never looks like points */
+.phone.forest .timer { color: #eef2ff; }
+.phone.forest .timer .tnum { text-shadow: 0 0 3cqw rgba(200, 215, 255, 0.3); }
 .phone.forest .timer.warn:not(.low) { color: #ffb24a; }
 .phone.forest .timer.warn:not(.low) .tnum { text-shadow: 0 0 3cqw rgba(255, 170, 70, 0.6); }
+.phone.forest .timer.low { color: #ff6b6b; }
 .phone.forest .timer.low .tnum { text-shadow: 0 0 3cqw rgba(255, 90, 90, 0.7); }
 .phone.forest .timer .ring.got i { background: var(--bonus); box-shadow: 0 0 1.6cqw var(--bonus); }
 .phone.forest .time-gain { color: var(--bonus); text-shadow: 0 0 2cqw var(--bonus-glow); }
