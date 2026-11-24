@@ -1922,7 +1922,11 @@ body {
 
   function renderMenu() {
     const can = hasSavedGame();
+    // One gold main button on the menu: Continue when there is a game to go back to; otherwise Continue
+    // is hidden and New game becomes the gold one (on the very first launch the player sees where to start).
     $("#continue").disabled = !can;
+    $("#continue").hidden = !can;
+    $("#new").classList.toggle("primary", !can);
     // Timed: the time left gets the clock's stopwatch icon, so it reads as time, not as another number.
     const sub = $("#continue-sub");
     sub.textContent = can ? "· " + t("scoreShort") + " " + S.score + (S.timed ? " · " : "") : "";
