@@ -333,11 +333,14 @@ body {
 .mode-pick .badge svg { width: 6.5cqw; height: 6.5cqw; }
 .mode-pick .badge[aria-pressed="true"] { color: #ffd56b; }
 .mode-pick .badge[aria-pressed="true"] .disc { border-color: #ffd56b; background: rgba(255, 213, 107, 0.12); box-shadow: 0 0 3cqw rgba(255, 200, 90, 0.5); }
-.subhead .mode-pick { position: absolute; left: 50%; transform: translateX(-50%); }
-.subhead .mode-pick .badge .disc { width: 9cqw; height: 9cqw; }
-.subhead .mode-pick .badge svg { width: 5cqw; height: 5cqw; }
-.subhead .mode-pick .badges { gap: 5cqw; }
-.subhead .mode-pick .badge { flex-direction: row; gap: 1.6cqw; }
+/* Screen title (How to play, Leaderboard): centred on the screen (the row starts 2cqw left, hence +1cqw), on the house's line, so the player knows where they are. */
+.subhead .screen-title { position: absolute; left: calc(50% + 1cqw); top: 50%; transform: translate(-50%, -50%); margin: 0; white-space: nowrap;
+  font-family: var(--font-display); font-weight: 600; font-size: 7cqw; line-height: 1; }
+#scores-tabs { margin-top: 1cqw; }
+#scores-tabs .badge .disc { width: 9cqw; height: 9cqw; }
+#scores-tabs .badge svg { width: 5cqw; height: 5cqw; }
+#scores-tabs .badges { gap: 5cqw; }
+#scores-tabs .badge { flex-direction: row; gap: 1.6cqw; }
 /* The clock (Timed mode): in the middle of the SCORE / NEXT row, like a game number. Yellow from 0:30, red from 0:10. */
 .hud { position: relative; }
 /* The clock (Timed): above the SCORE / NEXT row, centred on the board. It keeps one size:
@@ -708,6 +711,7 @@ body {
         <div class="view subview" id="screen-howto" hidden>
           <div class="subhead">
             <button type="button" class="icon-btn home" id="howto-back" data-i18n-aria="backToMenu" aria-label="Back to menu" title="Back to menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 3.8l8.5 7.2"/><path d="M5.8 9.6V19a1.2 1.2 0 0 0 1.2 1.2h3.4v-5.4h3.2v5.4H17a1.2 1.2 0 0 0 1.2-1.2V9.6"/></svg></button>
+            <h2 class="screen-title" data-i18n="howToPlay">How to play</h2>
           </div>
           <div class="tut">
             <div class="mini" id="tut-mini"></div>
@@ -724,8 +728,9 @@ body {
         <div class="view subview" id="screen-scores" hidden>
           <div class="subhead">
             <button type="button" class="icon-btn home" id="scores-back" data-i18n-aria="backToMenu" aria-label="Back to menu" title="Back to menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 3.8l8.5 7.2"/><path d="M5.8 9.6V19a1.2 1.2 0 0 0 1.2 1.2h3.4v-5.4h3.2v5.4H17a1.2 1.2 0 0 0 1.2-1.2V9.6"/></svg></button>
-            <div class="mode-pick" id="scores-tabs" role="group" aria-label="Leaderboard"></div>
+            <h2 class="screen-title" data-i18n="leaderboard">Leaderboard</h2>
           </div>
+          <div class="mode-pick" id="scores-tabs" role="group" aria-label="Leaderboard"></div>
           <p class="scores-msg" id="scores-msg" hidden></p>
           <ol class="scores" id="scores-list"></ol>
           <p class="empty" id="scores-empty" data-i18n="scoresEmpty" hidden>No finished games yet. Your score is added here when a game ends.</p>
