@@ -88,7 +88,7 @@ The whole game is played with two taps: tap a ball, then tap an empty cell.
 | Tap a frozen mushroom | It shakes with a small ice crack, and "Frozen — can't move" appears with "Make a line through it to break the ice" under it. A ball already selected stays selected |
 | Puffball button | See Special mushrooms → Puffball bomb |
 | Undo button | Restores the board, the score and the preview to how they were before the last move. Only one step, as in the classic game: after an undo, the button is disabled until the next move. Also disabled at the start of a game |
-| Reset button | Asks for confirmation, then clears the board and starts a new game |
+| Reset button | Asks for confirmation, then clears the board and starts a new game. It is ember red (outline and text), a step more serious than Undo or Pause, and so is the question's Yes, since the game is lost |
 
 Input is ignored while a move, clear or spawn animation is playing.
 
@@ -129,7 +129,7 @@ Longer lines are worth much more than short ones, which rewards the player for t
 - **Undo:** removes the points scored by the move it takes back.
 - **Leaderboard (MVP):** a local top 10 of finished games, each with a player name, score and date (see Screens and UI).
   - Only finished games count: a game abandoned with Reset or New game never reaches the leaderboard.
-  - A game that ends with 0 points never goes on the leaderboard: the game-over pop-up then has no name field, only "Clear a line to get on the leaderboard." and two buttons, Menu and Play again.
+  - A game that ends with 0 points never goes on the leaderboard: the game-over pop-up then has no name field, only "Clear a line to get on the leaderboard." and two buttons: Menu (with the house icon) and Play again (with Reset's circular-arrow icon; "Ещё раз" in Russian).
   - **Ties:** the older score keeps its place. A new score must be higher than the 10th place to get in.
   - A score that can't get in (10 scores already, and it isn't higher than the 10th) isn't asked for a name either: the game-over pop-up shows "Not enough for the top 10: 10th place has 340 points." (the goal for next time) and the same Menu and Play again buttons as a 0-point game. Nothing is saved.
   - After saving, the leaderboard says "New best score, Anna!" or "You're #3, Anna!".
@@ -152,13 +152,13 @@ A second, faster way to play next to the normal game (called **Classic** from no
 | Pause (task L18) | Stops the clock and opens a "Paused" card ("The clock is stopped and the board is hidden.") with Resume. While paused, the board and NEXT are hidden, so a pause gives no free thinking time. Settings hides them the same way in Timed mode, and coming back from another app the game is paused |
 | Points | The same table as Classic |
 
-**Choosing the mode.** Two round badges sit on the main menu right above Continue: a mushroom (**Classic**) and a stopwatch (**Timed**), each with its name under it; the chosen one glows gold. The choice is remembered. Continue, New game and Leaderboard all follow the chosen mode.
+**Choosing the mode.** Two round badges sit on the main menu right above Continue: a mushroom (**Classic**) and a stopwatch (**Timed**), each with its name under it; the chosen one is lilac with a soft glow. The choice is remembered. Continue, New game and Leaderboard all follow the chosen mode.
 
 **Each mode has its own game in progress.** A Classic game and a Timed game are saved separately and never replace each other. Leaving a timed game or closing the app stops its clock; Continue (with Timed chosen) picks it up with the time that was left, and shows it next to the score with the clock's stopwatch icon ("· score 40 · ⏱ 1:20"), so it reads as time, all on one line.
 
-**The clock** sits at the top of the game screen, centred between the house and the gear (above SCORE and NEXT), inside the safe area, so the iPhone's camera cut-out never covers it: a stopwatch icon and the time left as m:ss in the score's font. "+5s" (or "+10s") floats up to its right when time is added. From 0:30 it turns yellow and ticks softly each second, its digits giving a small pulse; from 0:10 it turns red and the tick is sharper. At 0:00 a glowing gold "Time's up!" shows over the board, and a moment later the game-over pop-up opens as in Classic.
+**The clock** sits just above the SCORE / NEXT row, below the house and the gear, with its digits centred on the screen and inside the safe area, so the iPhone's camera cut-out never covers it. No label, outline or background: the time left as m:ss in the title font, cool white (never gold, so it doesn't look like points), each digit in a slot of its own so the time never shifts as it changes. Just to the left of the digits hangs a fairy ring of 12 glowing spores around a small stopwatch: one spore goes dark every 15 seconds (all lit at 3:00 and above), and the last one still lit breathes. When time is added, "+5s" (or "+10s") floats up to the right of the digits in pale mint and the spores flash mint. From 0:30 the clock turns amber and ticks softly each second, its digits giving a small pulse; from 0:10 it turns red and the tick is sharper. At 0:00 a glowing gold "Time's up!" shows over the board, and a moment later the game-over pop-up opens as in Classic.
 
-**Leaderboard.** The same two badges, smaller and side by side next to the house, are the Leaderboard's tabs: **Classic** and **Timed**, each a top 10 with the same rules (finished games only, older scores win ties). It opens on the tab of the game just finished, or of the mode chosen on the menu. The "New best" celebration (fireworks and the crown, see Scoring) compares with the best of the mode being played.
+**Leaderboard.** The same two badges, smaller and side by side under the screen's title, are the Leaderboard's tabs: **Classic** and **Timed**, each a top 10 with the same rules (finished games only, older scores win ties). It opens on the tab of the game just finished, or of the mode chosen on the menu. The "New best" celebration (fireworks and the crown, see Scoring) compares with the best of the mode being played.
 
 **How to play** has a card "Race the clock" (the last one): "Choose Timed on the menu to play against the clock: 3 minutes, and every cleared line adds 5 seconds. The clock stops while mushrooms move."
 
@@ -197,7 +197,7 @@ Three bits of forest magic on top of the classic rules, the same in Classic and 
 | The button | A round button in the middle of the bottom row (Classic: Undo, puffball, Reset; Timed: Pause, puffball, Reset), showing a cream puffball with a fuse. A gold ring around it fills towards the next puffball; a small gold number shows how many are ready, and the fuse sparkles while one is |
 | Not ready yet | Tapping it shows a bubble above it: "Puffball in 40 points", "You get one every 200 points and can keep 2", and a gold progress bar |
 | Earned | The button pops, a gold banner over the board says "A puffball for you!" / "Tap it below the board to use it" (the first one of a game shows the tutorial instead, see Tutorials on the board) |
-| Aiming | Tap the button: it pulses gold, and a gold dashed 3×3 square lights up on the spot with the most mushrooms; the mushrooms in it glow and tremble. Tap another cell to move the square there (sliding a finger works too); tap the lit spot to burst. Tap the button again to cancel. A bubble says "Where to burst? Tap another cell to move it, tap the lit spot to burst. The puffball button cancels." |
+| Aiming | Tap the button: it pulses gold, and a pale moonlight-blue dashed 3×3 square lights up on the spot with the most mushrooms; the mushrooms in it glow moonlight blue and tremble. Tap another cell to move the square there (sliding a finger works too); tap the lit spot to burst. Tap the button again to cancel. A bubble says "Where to burst? Tap another cell to move it, tap the lit spot to burst. The puffball button cancels." |
 | The burst | The 3×3 square around the lit cell bursts in a cloud of golden-green spores, frozen mushrooms included. It scores nothing and is **not a move**: like a cleared line, no new mushrooms come after it and NEXT stays the same. Undo can take it back (and gives the puffball back). An empty square can't be burst ("Nothing to burst here") |
 | Rescue | When no ball can move (the board is full, or the free cells are walled in by ice) and a puffball is in stock, the game doesn't end: the screen dims, a hand points at the puffball, "The board is full!" (or "No moves left!") / "Use your puffball to keep going", with an End game button. Cancelling the aim brings the offer back |
 | In Pause or Settings | Pause while aiming cancels the aim and hides its bubble |
@@ -206,7 +206,7 @@ Three bits of forest magic on top of the classic rules, the same in Classic and 
 
 ## Tutorials on the board (task L17)
 
-The first time each special mushroom appears **in a game**, the game introduces it right on the board (coach marks): the screen dims except one spot with a gold outline, an animated hand taps on it, and a short caption explains. Each one shows once per game: Continue doesn't repeat them (they are saved with the game), but a new game or Reset shows them again. The clock stops while one is showing.
+The first time each special mushroom appears **in a game**, the game introduces it right on the board (coach marks): the screen dims except one spot with a pale moonlight-blue outline, an animated hand taps on it, and a short caption explains. Each one shows once per game: Continue doesn't repeat them (they are saved with the game), but a new game or Reset shows them again. The clock stops while one is showing.
 
 | When | What |
 | :---- | :---- |
@@ -263,27 +263,27 @@ The game has four screens and four pop-ups (Pause, only in Timed mode, is the fo
 
 | Screen | Contents | Opens from |
 | :---- | :---- | :---- |
-| Main menu | Game title, the Classic / Timed badges, Continue (with the saved game's score), New game, How to play, Leaderboard; a gear icon (Settings) in the top-right corner; the game's version (e.g. "v0.2.0") small and faint at the very bottom | App launch; back buttons |
-| Game | House button (main menu) top-left and gear (Settings) top-right, score, preview of the next 3 balls, board, and the bottom row: Undo (Pause in Timed), the round puffball button, Reset. In Timed the clock sits at the top between the house and the gear. The SCORE and NEXT labels share one line, and the score number sits on the same line as the 3 next mushrooms (the middle of its digits level with their middle) | Continue or New game |
-| How to play | House button (a back arrow when opened from the game, see below), then 7 short cards with a small board picture each: move a ball along a free path; make lines of five; the next balls, game over and Undo; the rainbow mushroom; frozen mushrooms; the puffball bomb; race the clock (Timed). Back / Next, and "Got it" on the last card; a swipe left or right also changes the card (the card follows the finger, slides out and the next one slides in; a short swipe springs back; the first and last card only stretch a little, and a swipe never closes How to play). The buttons use the same slide. The picture and title stay in the same place on every card | Main menu |
-| Leaderboard | House button and the Classic / Timed tabs, then the local top 10 finished games, each with rank, name, date and score; the game just finished is highlighted, with a result line above the list and a Play again button below it. Shows a short explanation while it's empty | Main menu; Save on the game-over pop-up |
+| Main menu | Game title, the Classic / Timed badges, Continue (with the saved game's score; only when there's a game to continue), New game, How to play, Leaderboard; a gear icon (Settings) in the top-right corner; the game's version (e.g. "v0.2.0") small and faint at the very bottom | App launch; back buttons |
+| Game | House button (main menu) top-left and gear (Settings) top-right, score, preview of the next 3 balls, board, and the bottom row: Undo (Pause in Timed), the round puffball button, Reset. In Timed the clock sits above the SCORE / NEXT row, centred. The SCORE and NEXT labels share one line, and the score number sits on the same line as the 3 next mushrooms (the middle of its digits level with their middle) | Continue or New game |
+| How to play | House button (a back arrow when opened from the game, see below) and the title "How to play", then 7 short cards with a small board picture each: move a ball along a free path; make lines of five; the next balls, game over and Undo; the rainbow mushroom; frozen mushrooms; the puffball bomb; race the clock (Timed). Back / Next, and "Got it" on the last card; a swipe left or right also changes the card (the card follows the finger, slides out and the next one slides in; a short swipe springs back; the first and last card only stretch a little, and a swipe never closes How to play). The buttons use the same slide. The picture and title stay in the same place on every card | Main menu |
+| Leaderboard | House button and the title "Leaderboard", the Classic / Timed tabs under it, then the local top 10 finished games, each with rank, name, date and score; the game just finished is highlighted in gold, with a result line above the list and a Play again button (with Reset's icon) below it. Shows a short explanation while it's empty | Main menu; Save on the game-over pop-up |
 | New game confirmation | "Start a new game?" with Yes and Cancel; the current game is lost | Reset button, or New game on the menu while a game is unfinished |
 | Settings | A pop-up card with on/off switches for Music, Sounds and Vibration, the Language (English / Русский), and a How to play button. Closes with ✕ or a tap outside the card | The gear on the main menu or the game screen |
 | Game over | Final score and a name field with Save, nothing else (no label above the field; it's still named for screen readers). When the game ended because the free cells are walled in by ice, the line above the score says "No moves left. Final score". Save adds the score to the leaderboard and opens the Leaderboard screen | Game, when no ball can move (or Time's up) |
 
 **Main menu**
 
-- **Continue** resumes the saved game and shows its score. It is disabled when there's no unfinished game.
+- **Continue** resumes the saved game and shows its score; it is then the gold main button. When there's no unfinished game in the chosen mode, Continue is hidden and **New game** becomes the gold button, so on the very first launch the player sees where to start. The menu always has exactly one gold button.
 - **New game** starts right away when there's no unfinished game; otherwise it asks for confirmation first.
-- The game screen, How to play and Leaderboard all have the same house icon in the top-left corner (just the white icon, no ring or disc behind it). It returns to the main menu, except How to play opened from Settings during a game: there the button is a back arrow (←, "Back to the game") and returns to the game, so the icon always says where it goes (task L19). Leaving the game saves it, so Continue picks it up exactly where it was (Undo included).
-- How to play and Leaderboard have no title at the top, only the house button.
+- The game screen, How to play and Leaderboard all have the same house icon in the top-left corner (just the icon in a quiet blue-grey, no ring or disc behind it), in exactly the same spot on all three. Its tap area is about 47 pt (Apple asks for 44 pt, Google for 48 dp); the house is about 27 pt and the gear about 30 pt. It returns to the main menu, except How to play opened from Settings during a game: there the button is a back arrow (←, "Back to the game") and returns to the game, so the icon always says where it goes (task L19). Leaving the game saves it, so Continue picks it up exactly where it was (Undo included).
+- How to play and Leaderboard show their name at the top ("How to play", "Leaderboard"), in the title font, centred on the screen on the house's line, so the player always knows where they are.
 - While a pop-up is open (game over, the Reset or New game question, Pause, Settings), its dim covers the whole screen, the house and the gear included: they can't be tapped until it closes.
 - On shorter screens (16:9) the leaderboard rows get a little shorter, so all 10 places fit without scrolling when it's opened from the menu. Right after a game the result line and Play again take some room, so the list may scroll a little; it opens on the game just finished.
 
 **Settings** (teacher's feedback, pulled forward from the later features)
 
-- The gear is a plain white icon like the house (no ring or disc). The pop-up is the same dark card as the other pop-ups; the game stays visible behind it (in Timed mode the board and NEXT are hidden behind it, like in Pause, since the clock is stopped).
-- **Music, Sounds, Vibration:** on/off switches (gold when on), all on by default, remembered on the device. Music and Sounds switch the game's sounds and music (see Sounds and music) on and off at once; Vibration switches the vibration (see Controls and feedback).
+- The gear is a plain blue-grey icon like the house (no ring or disc). The pop-up is the same dark card as the other pop-ups; the game stays visible behind it (in Timed mode the board and NEXT are hidden behind it, like in Pause, since the clock is stopped).
+- **Music, Sounds, Vibration:** on/off switches (lilac when on), all on by default, remembered on the device. Music and Sounds switch the game's sounds and music (see Sounds and music) on and off at once; Vibration switches the vibration (see Controls and feedback).
 - **Language:** English or Русский. Everything changes at once (menu, game screen, pop-ups, How to play, leaderboard messages and dates); the game's name changes too: Glowcaps in English, Грибочки in Russian. The name under the app icon and on the splash screen is always Glowcaps. The first time, the game uses Russian on a phone set to Russian, English otherwise; the choice is remembered.
 - **How to play** closes Settings and opens the How to play cards; their back button and "Got it" return to where Settings was opened (the game or the menu). How to play also stays on the main menu.
 - Later, in the shared GC26 app, this pop-up can also be the game's pause, with a "Back to games" button.
@@ -295,7 +295,7 @@ The game has four screens and four pop-ups (Pause, only in Timed mode, is the fo
 
 **Game screen layout (portrait, top to bottom)**
 
-1. House button (main menu) in the top-left corner: only the white house icon, no ring or disc.
+1. House button (main menu) in the top-left corner: only the blue-grey house icon, no ring or disc.
 2. Score and the preview of the next 3 ball colors.
 3. The board, filling the screen width, with "ghost" mushrooms (preview dots) in the cells where the next balls will appear.
 4. Undo (Pause in Timed), the round puffball button and Reset, within easy reach of the thumb.
@@ -315,7 +315,7 @@ The game has four screens and four pop-ups (Pause, only in Timed mode, is the fo
 - The saved game is resumed with Continue on the main menu.
 - Closing the app during a game keeps it for Continue.
 - When a game ends, the score waits on the game-over pop-up and is kept in the save. If the app is closed before Save is tapped, the score goes to the leaderboard under the pre-filled name at the next launch.
-- After a game ends, Continue is disabled until a new game starts. Reset also starts a new save.
+- After a game ends, Continue is hidden until a new game starts. Reset also starts a new save.
 - The leaderboards (top 10 scores with dates, one for each mode) are saved on the device separately from the games in progress (one for each mode, see Timed mode).
 
 ## Art
@@ -340,9 +340,19 @@ The look is a dark, magical mushroom forest at night: glowing mushrooms on a dar
 - **Backgrounds:** a dim magic forest (misty trees, soft light beams, vines with glowing buds, ferns, fireflies) that fills the whole screen on both 16:9 and 20:9 and never competes with the board. There are two versions:
   - **Start screen:** tall glowing mushrooms on long stems at the sides and smaller ones along the bottom, placed in the free space around the title and buttons.
   - **Game, How to play and Leaderboard:** the same forest without mushrooms, and with nothing glowing near the bottom, so nothing sits behind the board, the buttons or the page dots.
-- **Board:** dark purple glass with a soft violet-and-turquoise glow around the edge; each cell glows faintly from inside.
-- **Buttons and pop-ups:** dark glass with a warm outline; main buttons (Continue, Yes, Save, Play again) are glowing gold. Text is light cream; the title (Glowcaps / Грибочки) is a glowing gold gradient, in one line.
-- **Fonts:** Mystery Quest (playful, witchy) for the title, numbers, labels, buttons and headings; it has only Latin letters, so Russian text in those places uses Kurale (a fairy-tale serif with Cyrillic letters, also a free Google Font); Nunito for longer text (How to play explanations, pop-up messages, leaderboard names). Both are free Google Fonts under the SIL Open Font License, so they can be included in the game.
+- **Board:** dark purple glass with a soft violet glow around the edge; each cell glows faintly from inside.
+- **Colours: one job each**, so a glowing thing never means two things (agreed Nov 2026 from common game-UI practice: the pieces carry the strongest colours, the interface stays calmer, one accent colour is kept for the most important things):
+  - **Mushrooms:** the strongest, most saturated colours on the screen; nothing else uses them at full strength.
+  - **Stage** (background, board, cells): cool purple-blue glass.
+  - **Navigation** (house, gear): quiet blue-grey, no glow.
+  - **Controls** (Undo, Pause, Menu, Cancel, How to play and other ordinary buttons): dark glass with a cool silver-lilac outline and light text. Things that are on or chosen (Settings switches, the language, the Classic / Timed badges and tabs) are lilac.
+  - **Gold: rewards and the main action only:** the score (gold letters with the title's gradient), the points that float up, the final score, the puffball's ring and count, the one main button of each screen or pop-up (Continue or New game, Resume, Save, Play again after a game), the "New best" crown and the highlighted leaderboard row.
+  - **Guidance** (tutorial outline, hint bubbles, the puffball aim, mushrooms about to burst): pale moonlight blue, so a lesson or a target never looks like a reward.
+  - **Start over:** Reset and the "Start a new game?" Yes are ember red.
+  - **Time:** the clock is cool white, amber from 0:30, red from 0:10; time added is pale mint.
+- **Glow means "look here":** only the mushrooms, gold rewards, the main button, and things that are on or ready (the puffball when one is ready) glow. Ordinary buttons, the clock and the board's edge don't (the board keeps one soft violet glow); pop-ups and bubbles cast a plain soft shadow.
+- **Buttons and pop-ups:** dark glass; the colour of each button follows its job (above). Text is light cream; the title (Glowcaps / Грибочки) is a glowing gold gradient, in one line.
+- **Fonts, two jobs:** Mystery Quest (playful, witchy) only for the brand and the big things: the title, screen and pop-up titles, the score, the clock and the points that float up. It has only Latin letters, so Russian text in those places uses Kurale (a fairy-tale serif with Cyrillic letters, also a free Google Font). Everything the player reads or taps is Nunito ExtraBold: buttons, the SCORE / NEXT labels, Settings rows, the Classic / Timed names, How to play explanations, pop-up messages, leaderboard names. A decorative font is hard to read at small sizes, and this way the game looks the same in English and Russian. Both are free Google Fonts under the SIL Open Font License, so they can be included in the game.
 - **App icon:** the red spotted mushroom, large and glowing, on the dark forest with a few fireflies. On Android 8+ it is made of two layers (the forest and the mushroom), so each phone can cut it into its own shape.
 - **Splash screen:** while the game loads: the same glowing mushroom and the gold "Glowcaps" title over the plain forest background, for about 2 seconds, with no Unity logo. Before that, iOS shows a plain screen in the game's dark colour.
 - One theme (the dark magic forest) in the MVP.
