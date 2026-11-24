@@ -630,12 +630,15 @@ body {
 .phone.forest .timer .ring.got i { background: var(--bonus); box-shadow: 0 0 1.6cqw var(--bonus); }
 .phone.forest .time-gain { color: var(--bonus); text-shadow: 0 0 2cqw var(--bonus-glow); }
 
-/* The magic font: Mystery Quest (Google Fonts, OFL) for titles, numbers, labels and buttons;
-   longer text stays in Nunito so it is easy to read. One weight only, so no fake bold. */
+/* Two fonts, two jobs. The magic font, Mystery Quest (Google Fonts, OFL), only for the brand and the big things:
+   the logo, titles, the score and the clock. Everything the player reads or taps (buttons, labels, settings,
+   tabs, text) is Nunito ExtraBold: easy to read at small sizes, and the same in English and Russian. */
 .phone.forest .screen { --font-display: "Mystery Quest", "Kurale", "Nunito", serif; font-synthesis: none; }
-.phone.forest .screen button.btn, .phone.forest .label, .phone.forest .tag { font-family: var(--font-display); font-weight: 400; }
-.phone.forest .screen button.btn { font-size: 5cqw; }
-.phone.forest .label { letter-spacing: 0.06em; }
+.phone.forest .screen button.btn { font: 800 4.4cqw var(--font-body); letter-spacing: 0.01em; }
+.phone.forest .label { font-family: var(--font-body); font-weight: 800; font-size: 3cqw; letter-spacing: 0.14em; }
+.phone.forest .tag { font-family: var(--font-body); font-weight: 700; }
+.phone.forest .set-name { font: 800 4.4cqw var(--font-body); }
+.phone.forest .mode-pick button { font-family: var(--font-body); font-weight: 800; }
 
 @media (prefers-reduced-motion: reduce) {
   .selected { animation: none; transform: translateY(-8%); }
