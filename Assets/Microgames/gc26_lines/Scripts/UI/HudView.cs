@@ -151,8 +151,10 @@ namespace GC26.Lines.UI
             clockIcon.raycastTarget = false;
             ((RectTransform)clockIcon.transform).pivot = new Vector2(0.5f, 0.5f);
             // Centred in its box with the pivot in the middle, so the digits' pulse grows evenly from their middle
-            // (from the left edge it pushed the numbers sideways on every beat).
-            clockText = NewText("Clock", "3:00", Palette.Clock, TextAlignmentOptions.Midline, bold: true);
+            // (from the left edge it pushed the numbers sideways on every beat). Vertically "Center" places the line
+            // by the font's fixed line height; "Midline" centred each time's own ink, and Mystery Quest's digits
+            // differ in height (some hang below the line), so the time jumped up and down as it changed.
+            clockText = NewText("Clock", "3:00", Palette.Clock, TextAlignmentOptions.Center, bold: true);
             clockText.rectTransform.SetParent(transform, false);
             UiFonts.UseDisplay(clockText);
             clockText.rectTransform.pivot = new Vector2(0.5f, 0.5f);

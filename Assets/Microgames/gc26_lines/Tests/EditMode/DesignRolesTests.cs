@@ -171,5 +171,21 @@ namespace GC26.Lines.Tests
             Assert.AreEqual(hud.ClockCentre, clock.rectTransform.anchoredPosition, "The pulse only changes the size");
             Assert.GreaterOrEqual(HudView.BreatheBig / HudView.BreatheSmall, 2f, "The last spore's breathing is easy to see");
         }
+
+        [Test]
+        public void Clock_DigitsStayOnOneLine_WhateverTheTime()
+        {
+            hud.SetTimed(true);
+            var clock = System.Array.Find(hud.GetComponentsInChildren<TMPro.TextMeshProUGUI>(true), t => t.name == "Clock");
+            float? baseline = null;
+            foreach (float seconds in new[] { 180f, 179f, 134f, 71f, 45f, 9f, 0f })
+            {
+                hud.SetClock(seconds, running: true);
+                clock.ForceMeshUpdate();
+                float y = clock.textInfo.characterInfo[0].baseLine;
+                if (baseline == null) baseline = y;
+                Assert.AreEqual(baseline.Value, y, 0.01f, "The time stays on the same line at " + hud.ClockReading);
+            }
+        }
     }
 }
