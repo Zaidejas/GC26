@@ -7,24 +7,26 @@ namespace GC26._2048
     {
         /// <summary>No cheese made yet this game.</summary>
         None,
-        /// <summary>The first cheese is made; the mouse comes after <see cref="CheeseRules.MouseDelayMoves"/> moves.</summary>
+        /// <summary>The first cheese is made; the hole opens after <see cref="CheeseRules.MouseDelayMoves"/> moves.</summary>
         Coming,
-        /// <summary>The mouse is on the field and runs every <see cref="CheeseRules.MouseRunEvery"/> moves.</summary>
+        /// <summary>The hole is on the field; the mouse runs out of it every <see cref="CheeseRules.MouseRunEvery"/> moves.</summary>
         Here
     }
 
     /// <summary>
-    /// The mouse: comes <see cref="CheeseRules.MouseDelayMoves"/> moves after the first cheese of the game, sits on an
-    /// outer cell and every <see cref="CheeseRules.MouseRunEvery"/>th move runs from its end of a row or column to the
-    /// other end (the line is picked at random), eating every cheese on the way. It runs over the field and never
-    /// takes a cell: items slide and merge under it as usual. One mouse per game; it stays to the end.
+    /// The mouse and its hole. <see cref="CheeseRules.MouseDelayMoves"/> moves after the first cheese of the game a hole
+    /// opens on a random outer cell (the field shows it as a darker cell). Every <see cref="CheeseRules.MouseRunEvery"/>th
+    /// move the mouse runs out of the hole, from that end of a row or column to the other end (the line is picked at
+    /// random), eating every cheese on the way, and is gone again; then the hole moves to another outer cell.
+    /// The mouse is seen only while it runs and never takes a cell. One mouse per game; it stays to the end.
     /// Plain C#, covered by edit-mode tests.
     /// </summary>
     public sealed class CheeseMouse
     {
         public MouseState State { get; private set; }
-        /// <summary>Moves left until the mouse comes (Coming) or until its next run (Here).</summary>
+        /// <summary>Moves left until the hole opens (Coming) or until the next run (Here).</summary>
         public int Countdown { get; private set; }
+        /// <summary>The hole: an outer cell (valid when <see cref="State"/> is Here).</summary>
         public int Row { get; private set; }
         public int Col { get; private set; }
 
@@ -55,13 +57,13 @@ namespace GC26._2048
 
         /// <summary>
         /// Called after every counted move (the board has moved and the new item has appeared).
-        /// Brings the mouse or makes it run, and notes it all in <paramref name="result"/>.
+        /// Opens the hole or makes the mouse run, and notes it all in <paramref name="result"/>.
         /// </summary>
         public void AfterMove(Board board, Random rng, MoveResult result)
         {
             if (State == MouseState.Coming)
             {
-                if (--Countdown <= 0) Arrive(board.Size, rng, result);
+                if (--Countdown <= 0) OpenHole(board.Size, rng, result);
             }
             else if (State == MouseState.Here)
             {
@@ -76,7 +78,7 @@ namespace GC26._2048
             }
         }
 
-        void Arrive(int size, Random rng, MoveResult result)
+        void OpenHole(int size, Random rng, MoveResult result)
         {
             var outer = OuterCells(size);
             var (r, c) = outer[rng.Next(outer.Count)];
@@ -84,9 +86,9 @@ namespace GC26._2048
             Countdown = CheeseRules.MouseRunEvery;
             Row = r;
             Col = c;
-            result.MouseArrived = true;
-            result.MouseRow = r;
-            result.MouseCol = c;
+            result.HoleOpened = true;
+            result.HoleRow = r;
+            result.HoleCol = c;
         }
 
         void Run(Board board, Random rng, MoveResult result)
@@ -100,6 +102,8 @@ namespace GC26._2048
             result.MouseRan = true;
             result.MouseFromRow = Row;
             result.MouseFromCol = Col;
+            result.MouseToRow = toR;
+            result.MouseToCol = toC;
             int dr = Math.Sign(toR - Row), dc = Math.Sign(toC - Col);
             for (int r = Row, c = Col; ; r += dr, c += dc)
             {
@@ -111,11 +115,14 @@ namespace GC26._2048
                 }
                 if (r == toR && c == toC) break;
             }
-            Row = toR;
-            Col = toC;
+
+            // the hole moves to another outer cell
+            var outer = OuterCells(board.Size);
+            outer.Remove((Row, Col));
+            (Row, Col) = outer[rng.Next(outer.Count)];
             Countdown = CheeseRules.MouseRunEvery;
-            result.MouseRow = Row;
-            result.MouseCol = Col;
+            result.HoleRow = Row;
+            result.HoleCol = Col;
         }
 
         public static bool IsOuter(int row, int col, int size) =>

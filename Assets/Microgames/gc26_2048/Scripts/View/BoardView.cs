@@ -10,18 +10,21 @@ namespace GC26._2048
     /// Draws the 4×4 field in its wooden crate and animates moves: slide 0.1 s, then pulse and glow for merges,
     /// jelly squash for items that bumped into each other without merging, the new item grows in. Cheese is an
     /// ordinary merge result: it stays on the field. Tiles come from a small pool.
-    /// The mouse lives on its own layer above the tiles: it drops in on an outer cell and hops across its row or
-    /// column, and the cheese it passes vanishes.
+    /// The mouse hole and the mouse live on their own layer above the tiles: the hole is a darker cell (an item in it
+    /// stays visible), the mouse is shown only while it runs out of the hole across its line; the cheese it passes
+    /// vanishes, then the hole moves.
     /// </summary>
     public class BoardView : MonoBehaviour
     {
         const float SlideTime = 0.1f;
-        const float MouseStepTime = 0.13f, MouseInset = 0.08f, MouseHop = 0.18f;
+        const float MouseStepTime = 0.13f, MouseInset = 0.08f, MouseHop = 0.18f, PopTime = 0.12f;
+        const float HoleShade = 0.34f, HoleFadeTime = 0.25f;
 
         CheeseArt art;
         RectTransform pan;
         RectTransform mouse;
-        Coroutine mouseArrive;
+        Image hole;
+        Coroutine holeFade;
         readonly Dictionary<int, TileView> tiles = new Dictionary<int, TileView>();
         readonly Stack<TileView> pool = new Stack<TileView>();
         readonly HashSet<TileView> vanishing = new HashSet<TileView>();
@@ -48,20 +51,67 @@ namespace GC26._2048
             for (int i = 0; i < 20; i++)
                 Release(TileView.Create(pan, art));
 
-            // same rect as the pan, above it and all its tiles
+            // same rect as the pan, above it and all its tiles: the hole (a dark veil over its cell), then the mouse
             var layer = CheeseUi.Rect("MouseLayer", crate.transform).Place(0.035f, 0.035f, 0.965f, 0.965f);
+            hole = CheeseUi.Box(layer, "Hole", art.Soft, HoleColor(0f));
+            hole.gameObject.SetActive(false);
             var mouseImage = CheeseUi.Picture(layer, "Mouse", art.MouseRun);
             CheeseUi.AddShadow(mouseImage.gameObject, 6f);
             mouse = mouseImage.rectTransform;
             mouse.gameObject.SetActive(false);
         }
 
-        /// <summary>Shows the mouse where the game says it is (after a new or a loaded game).</summary>
+        static Color HoleColor(float alpha)
+        {
+            Color c = CheeseArt.Ink;
+            c.a = alpha;
+            return c;
+        }
+
+        /// <summary>Shows the hole where the game says it is (after a new or a loaded game); the mouse stays hidden.</summary>
         public void ShowMouse(CheeseMouse m)
         {
+            mouse.gameObject.SetActive(false);
             bool here = m.State == MouseState.Here;
-            mouse.gameObject.SetActive(here);
-            if (here) PlaceMouse(TileView.CellMin(m.Row, m.Col), Vector2.zero, 0f, 1f);
+            hole.gameObject.SetActive(here);
+            if (here)
+            {
+                SetCellRect(hole.rectTransform, TileView.CellMin(m.Row, m.Col));
+                hole.color = HoleColor(HoleShade);
+            }
+        }
+
+        static void SetCellRect(RectTransform rt, Vector2 cellMin)
+        {
+            rt.anchorMin = cellMin;
+            rt.anchorMax = cellMin + TileView.CellSize;
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+        }
+
+        /// <summary>The hole fades out of its old cell (if it had one) and into its new one.</summary>
+        IEnumerator MoveHole(int row, int col, bool fromNowhere)
+        {
+            if (!fromNowhere && hole.gameObject.activeSelf)
+                for (float t = 0; t < HoleFadeTime; t += Time.unscaledDeltaTime)
+                {
+                    hole.color = HoleColor(HoleShade * (1f - t / HoleFadeTime));
+                    yield return null;
+                }
+            hole.gameObject.SetActive(true);
+            SetCellRect(hole.rectTransform, TileView.CellMin(row, col));
+            for (float t = 0; t < HoleFadeTime; t += Time.unscaledDeltaTime)
+            {
+                hole.color = HoleColor(HoleShade * t / HoleFadeTime);
+                yield return null;
+            }
+            hole.color = HoleColor(HoleShade);
+            holeFade = null;
+        }
+
+        void StartHole(int row, int col, bool fromNowhere)
+        {
+            if (holeFade != null) StopCoroutine(holeFade);
+            holeFade = StartCoroutine(MoveHole(row, col, fromNowhere));
         }
 
         /// <summary>Puts the mouse over a cell (given by its lower-left anchor), nudged by a fraction of a cell.</summary>
@@ -76,37 +126,29 @@ namespace GC26._2048
             mouse.localScale = Vector3.one * scale;
         }
 
-        IEnumerator MouseArrive(int row, int col, float duration = 0.4f)
-        {
-            mouse.gameObject.SetActive(true);
-            mouse.SetAsLastSibling();
-            var cell = TileView.CellMin(row, col);
-            for (float t = 0; t < duration; t += Time.unscaledDeltaTime)
-            {
-                float k = t / duration;
-                // drops in from above, lands with a little squash
-                float drop = k < 0.6f ? 1f - k / 0.6f : 0f;
-                float land = k < 0.6f ? 1f : 1f + 0.12f * Mathf.Sin((k - 0.6f) / 0.4f * Mathf.PI);
-                PlaceMouse(cell, new Vector2(0f, 0.9f * drop * drop), 0f, Mathf.Min(1f, k / 0.3f) * land);
-                yield return null;
-            }
-            PlaceMouse(cell, Vector2.zero, 0f, 1f);
-            mouseArrive = null;
-        }
-
-        /// <summary>Hops from one end of the line to the other; each cheese on the way vanishes as the mouse reaches it.</summary>
+        /// <summary>
+        /// Pops out of the hole, hops to the other end of the line (each cheese on the way vanishes as the mouse
+        /// reaches it), dives out of sight; then the hole moves.
+        /// </summary>
         IEnumerator MouseRun(MoveResult r)
         {
-            if (mouseArrive != null) { StopCoroutine(mouseArrive); mouseArrive = null; }
-            mouse.gameObject.SetActive(true);
             var from = TileView.CellMin(r.MouseFromRow, r.MouseFromCol);
-            var to = TileView.CellMin(r.MouseRow, r.MouseCol);
-            int steps = Mathf.Max(Mathf.Abs(r.MouseRow - r.MouseFromRow), Mathf.Abs(r.MouseCol - r.MouseFromCol), 1);
-            float lean = r.MouseCol > r.MouseFromCol ? -12f : r.MouseCol < r.MouseFromCol ? 12f : 0f;
+            var to = TileView.CellMin(r.MouseToRow, r.MouseToCol);
+            int steps = Mathf.Max(Mathf.Abs(r.MouseToRow - r.MouseFromRow), Mathf.Abs(r.MouseToCol - r.MouseFromCol), 1);
+            float lean = r.MouseToCol > r.MouseFromCol ? -12f : r.MouseToCol < r.MouseFromCol ? 12f : 0f;
             var eaten = new List<(int step, TileEvent e)>();
             foreach (var e in r.Eaten)
                 eaten.Add((Mathf.Max(Mathf.Abs(e.Row - r.MouseFromRow), Mathf.Abs(e.Col - r.MouseFromCol)), e));
             int next = 0;
+
+            mouse.gameObject.SetActive(true);
+            mouse.SetAsLastSibling();
+            for (float t = 0; t < PopTime; t += Time.unscaledDeltaTime)
+            {
+                PlaceMouse(from, Vector2.zero, 0f, EaseOut(t / PopTime));
+                yield return null;
+            }
+
             float duration = MouseStepTime * steps;
             for (float t = 0; ; t += Time.unscaledDeltaTime)
             {
@@ -114,13 +156,22 @@ namespace GC26._2048
                 float along = k * steps;
                 while (next < eaten.Count && eaten[next].step <= along + 0.35f) Eat(eaten[next++].e);
                 float hop = Mathf.Abs(Mathf.Sin(along * Mathf.PI)) * MouseHop;
-                PlaceMouse(Vector2.Lerp(from, to, k), new Vector2(0f, hop), lean * (k < 1f ? 1f : 0f), 1f);
+                PlaceMouse(Vector2.Lerp(from, to, k), new Vector2(0f, hop), k < 1f ? lean : 0f, 1f);
                 if (k >= 1f) break;
                 yield return null;
             }
             while (next < eaten.Count) Eat(eaten[next++].e);
-            PlaceMouse(to, Vector2.zero, 0f, 1f);
+
+            for (float t = 0; t < PopTime; t += Time.unscaledDeltaTime)
+            {
+                PlaceMouse(to, Vector2.zero, 0f, 1f - EaseOut(t / PopTime));
+                yield return null;
+            }
+            mouse.gameObject.SetActive(false);
+            StartHole(r.HoleRow, r.HoleCol, false);
         }
+
+        static float EaseOut(float k) => 1f - (1f - k) * (1f - k);
 
         void Eat(TileEvent e)
         {
@@ -140,7 +191,7 @@ namespace GC26._2048
         public void ShowBoard(Board board)
         {
             StopAllCoroutines();
-            mouseArrive = null;
+            holeFade = null;
             Busy = false;
             foreach (var t in tiles.Values) Release(t);
             tiles.Clear();
@@ -207,8 +258,8 @@ namespace GC26._2048
                 StartCoroutine(view.Appear());
             }
 
-            // 3. the mouse: comes, or runs across its line (input waits until it has finished eating)
-            if (result.MouseArrived) mouseArrive = StartCoroutine(MouseArrive(result.MouseRow, result.MouseCol));
+            // 3. the hole opens, or the mouse runs out of it (input waits until it has finished eating)
+            if (result.HoleOpened) StartHole(result.HoleRow, result.HoleCol, true);
             if (result.MouseRan) yield return MouseRun(result);
 
             Busy = false;

@@ -240,10 +240,10 @@ namespace GC26._2048
             else if (r.TopLevel > 0) sound.Play(CheeseSound.Chime, r.TopLevel);
 
             if (r.FirstCheese) StartCoroutine(Toast(loc["cheese_ready"]));
-            if (r.MouseArrived)
+            if (r.HoleOpened)
             {
                 sound.Play(CheeseSound.Chime, CheeseRules.CheeseLevel);
-                StartCoroutine(Toast(loc["mouse_came"], art.MouseRun));
+                StartCoroutine(Toast(loc["hole_opened"], art.MouseRun));
             }
             if (r.MouseRan) sound.Play(r.Eaten.Count > 0 ? CheeseSound.Beep : CheeseSound.Rustle);
             if (r.Points > 0) StartCoroutine(FloatPoints(r.Points));

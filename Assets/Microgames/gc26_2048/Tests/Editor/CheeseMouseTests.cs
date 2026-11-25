@@ -18,7 +18,7 @@ namespace GC26._2048.Tests
         static MoveResult Cheese() => new MoveResult { Cheeses = 1 };
 
         [Test]
-        public void ComesFiveMovesAfterTheFirstCheese()
+        public void HoleOpensFiveMovesAfterTheFirstCheese()
         {
             var board = Field();
             var rng = new Random(3);
@@ -29,11 +29,12 @@ namespace GC26._2048.Tests
             {
                 var r = new MoveResult();
                 mouse.AfterMove(board, rng, r);
-                Assert.IsFalse(r.MouseArrived, $"move {i}");
+                Assert.IsFalse(r.HoleOpened, $"move {i}");
             }
             var arrival = new MoveResult();
             mouse.AfterMove(board, rng, arrival);
-            Assert.IsTrue(arrival.MouseArrived);
+            Assert.IsTrue(arrival.HoleOpened);
+            Assert.AreEqual((mouse.Row, mouse.Col), (arrival.HoleRow, arrival.HoleCol));
             Assert.AreEqual(MouseState.Here, mouse.State);
             Assert.IsTrue(CheeseMouse.IsOuter(mouse.Row, mouse.Col, 4));
         }
@@ -47,7 +48,7 @@ namespace GC26._2048.Tests
         }
 
         [Test]
-        public void AlwaysArrivesOnAnOuterCell()
+        public void HoleIsAlwaysOnAnOuterCell()
         {
             for (int seed = 0; seed < 50; seed++)
             {
@@ -59,7 +60,7 @@ namespace GC26._2048.Tests
         }
 
         [Test]
-        public void RunsEveryThirdMoveToTheOtherEndOfItsLine()
+        public void RunsOutOfTheHoleEveryThirdMoveToTheOtherEndOfItsLine()
         {
             var mouse = new CheeseMouse();
             mouse.Restore(MouseState.Here, CheeseRules.MouseRunEvery, 0, 1); // top edge, not a corner
@@ -75,7 +76,7 @@ namespace GC26._2048.Tests
             mouse.AfterMove(board, rng, run);
             Assert.IsTrue(run.MouseRan);
             Assert.AreEqual((0, 1), (run.MouseFromRow, run.MouseFromCol));
-            Assert.AreEqual((3, 1), (mouse.Row, mouse.Col), "only its column goes edge to edge");
+            Assert.AreEqual((3, 1), (run.MouseToRow, run.MouseToCol), "only its column goes edge to edge");
             Assert.AreEqual(CheeseRules.MouseRunEvery, mouse.Countdown);
         }
 
@@ -87,12 +88,30 @@ namespace GC26._2048.Tests
             {
                 var mouse = new CheeseMouse();
                 mouse.Restore(MouseState.Here, 1, 0, 0);
-                mouse.AfterMove(Field(), new Random(seed), new MoveResult());
-                if ((mouse.Row, mouse.Col) == (0, 3)) row = true;
-                else if ((mouse.Row, mouse.Col) == (3, 0)) column = true;
-                else Assert.Fail($"ran to {mouse.Row},{mouse.Col}");
+                var r = new MoveResult();
+                mouse.AfterMove(Field(), new Random(seed), r);
+                if ((r.MouseToRow, r.MouseToCol) == (0, 3)) row = true;
+                else if ((r.MouseToRow, r.MouseToCol) == (3, 0)) column = true;
+                else Assert.Fail($"ran to {r.MouseToRow},{r.MouseToCol}");
             }
             Assert.IsTrue(row && column, "both directions happen");
+        }
+
+        [Test]
+        public void AfterARunTheHoleMovesToAnotherOuterCell()
+        {
+            for (int seed = 0; seed < 50; seed++)
+            {
+                var mouse = new CheeseMouse();
+                mouse.Restore(MouseState.Here, 1, 0, 2);
+                var r = new MoveResult();
+                mouse.AfterMove(Field(), new Random(seed), r);
+                Assert.IsTrue(r.MouseRan);
+                Assert.AreNotEqual((0, 2), (mouse.Row, mouse.Col), $"seed {seed}");
+                Assert.IsTrue(CheeseMouse.IsOuter(mouse.Row, mouse.Col, 4), $"seed {seed}");
+                Assert.AreEqual((mouse.Row, mouse.Col), (r.HoleRow, r.HoleCol));
+                Assert.AreEqual(MouseState.Here, mouse.State);
+            }
         }
 
         [Test]

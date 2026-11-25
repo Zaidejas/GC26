@@ -52,16 +52,18 @@ namespace GC26._2048
                 "4. Cheese is the last item: it stays on the field and does not merge any further.\n" +
                 "5. After every move, new grass or hay appears on the field.\n" +
                 "6. You have 300 moves. The game ends when you run out of moves or the field is full.\n" +
-                "7. Five moves after your first cheese a mouse comes. Every third move it runs across a row or a column " +
-                "and eats every cheese on its way.",
+                "7. Five moves after your first cheese a mouse hole appears: a darker cell at the edge of the field. " +
+                "Every third move a mouse runs out of it across the row or column, eats every cheese on its way, " +
+                "and the hole moves to another cell.",
                 "1. Проведите пальцем вверх, вниз, влево или вправо — все предметы на поле сдвинутся.\n" +
                 "2. Два одинаковых предмета объединяются в следующий.\n" +
                 "3. За каждое объединение — очки: чем ценнее предмет, тем больше, от 32 до 2048.\n" +
                 "4. Сыр — последний предмет: он остаётся на поле и дальше не объединяется.\n" +
                 "5. После каждого хода на поле появляется новая трава или сено.\n" +
                 "6. У вас 300 ходов. Игра заканчивается, когда ходы кончатся или поле заполнится.\n" +
-                "7. Через 5 ходов после первого сыра приходит мышь. Каждый третий ход она перебегает ряд или столбец " +
-                "и съедает весь сыр на пути."
+                "7. Через 5 ходов после первого сыра появляется мышиная норка — более тёмная клетка с краю поля. " +
+                "Каждый третий ход из неё выбегает мышь, перебегает ряд или столбец, съедает весь сыр на пути, " +
+                "и норка переезжает в другую клетку."
             },
             ["chain_first"] = new[] { "appears on the field", "появляется на поле" },
             ["chain_last"] = new[] { " · the last item", " · последний предмет" },
@@ -82,7 +84,7 @@ namespace GC26._2048
             ["cheese_made"] = new[] { "Cheese made", "Сделано сыров" },
             ["moves_made"] = new[] { "Moves made", "Сделано ходов" },
             ["cheese_ready"] = new[] { "Cheese is ready!", "Сыр готов!" },
-            ["mouse_came"] = new[] { "A mouse came for the cheese!", "Пришла мышь за сыром!" },
+            ["hole_opened"] = new[] { "A mouse hole appeared!", "Появилась мышиная норка!" },
         };
 
         // One name per item, the same on tiles, in the rules and on the results screen.

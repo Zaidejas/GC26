@@ -59,11 +59,16 @@ namespace GC26._2048
         public readonly List<int> Bumped = new List<int>();
         public readonly List<TileEvent> Events = new List<TileEvent>();
 
-        /// <summary>The mouse came this move and sits at (MouseRow, MouseCol).</summary>
-        public bool MouseArrived;
-        /// <summary>The mouse ran from (MouseFromRow, MouseFromCol) to (MouseRow, MouseCol), eating <see cref="Eaten"/>.</summary>
+        /// <summary>The mouse hole opened this move at (HoleRow, HoleCol).</summary>
+        public bool HoleOpened;
+        /// <summary>
+        /// The mouse ran out of its hole at (MouseFromRow, MouseFromCol) to (MouseToRow, MouseToCol), eating
+        /// <see cref="Eaten"/>; the hole then moved to (HoleRow, HoleCol).
+        /// </summary>
         public bool MouseRan;
-        public int MouseFromRow, MouseFromCol, MouseRow, MouseCol;
+        public int MouseFromRow, MouseFromCol, MouseToRow, MouseToCol;
+        /// <summary>Where the hole is after this move (when it opened or moved).</summary>
+        public int HoleRow, HoleCol;
         /// <summary>Cheeses the mouse ate on its run, in the order it reached them.</summary>
         public readonly List<TileEvent> Eaten = new List<TileEvent>();
     }
