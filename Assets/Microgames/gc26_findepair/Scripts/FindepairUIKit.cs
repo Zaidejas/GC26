@@ -154,7 +154,7 @@ namespace GC26.Findepair
             b.transition = Selectable.Transition.None;
             b.targetGraphic = hit;
             if (onClick != null) b.onClick.AddListener(() => onClick());
-            rt.gameObject.AddComponent<FindepairPress>();
+            rt.gameObject.AddComponent<FindepairPress>().pulse = true;
             return b;
         }
 

@@ -69,7 +69,9 @@ namespace GC26.Findepair
         public void Vibrate(long ms)
         {
             if (_save == null || !_save.Vibro) return;
+#if UNITY_ANDROID || UNITY_IOS
             if (_neverTrue) Handheld.Vibrate();
+#endif
 #if UNITY_ANDROID && !UNITY_EDITOR
             try
             {

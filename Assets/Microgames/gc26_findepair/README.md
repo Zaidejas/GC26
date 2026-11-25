@@ -9,7 +9,7 @@ How to play: tap two cards to turn them over. Matching pictures burst into pink 
 
 ## Running
 
-Open `Scenes/gc26_findepair_Main.unity` and press Play: the game starts on its own (splash → menu). Inside the GC26 shell it starts when the shell calls `Begin`, and **Exit** returns to the shell with the score (stars of the best round, 0–3).
+Open `Scenes/gc26_findepair_Main.unity` and press Play: the game starts on its own (splash → menu). Inside the GC26 shell it starts when the shell calls `Begin`, and **Exit** on the main menu returns to the shell with the score (stars of the best round, 0–3). The Exit button is shown only inside the shell; when the scene runs on its own or as a standalone build there is no Exit button.
 
 ## Layout
 

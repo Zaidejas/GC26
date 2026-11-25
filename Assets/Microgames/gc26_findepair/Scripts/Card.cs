@@ -17,7 +17,7 @@ namespace GC26.Findepair
 
         RectTransform _body;
         GameObject _back, _front;
-        Image _frame, _glow;
+        Image _frame, _glow, _shine;
         CanvasGroup _group;
         Button _button;
         Func<float> _delta;
@@ -57,6 +57,11 @@ namespace GC26.Findepair
             pic.rectTransform.Stretch(6, 6, 6, 6);
             card._front = front.gameObject;
             card._front.SetActive(false);
+
+            // Glint: a slanted light band that sweeps across the back while the board sits idle.
+            card._shine = Img("Glint", card._body, null, new Color(1f, 1f, 1f, 0.38f));
+            card._shine.rectTransform.localRotation = Quaternion.Euler(0, 0, -22f);
+            card._shine.enabled = false;
 
             card._frame = Img("Frame", card._body, art.frame, Pink, true, 0.55f);
             card._frame.rectTransform.Stretch();
@@ -127,6 +132,30 @@ namespace GC26.Findepair
             _group.alpha = 0f;
             IsGone = true;
         }
+
+        /// <summary>Idle hint: after <paramref name="delay"/> a glint sweeps across the face-down card.</summary>
+        public IEnumerator PlayShimmer(float delay)
+        {
+            for (float t = 0; t < delay; t += _delta()) yield return null;
+            if (IsUp || IsMatched || IsGone) yield break;
+            var rt = _shine.rectTransform;
+            float w = Rect.rect.width;
+            rt.sizeDelta = new Vector2(w * 0.28f, Rect.rect.height * 1.8f);
+            _shine.enabled = true;
+            yield return Animate(ShimmerSeconds, _delta, t =>
+            {
+                float e = t * t * (3f - 2f * t); // smoothstep
+                rt.anchorMin = rt.anchorMax = new Vector2(Mathf.Lerp(-0.4f, 1.4f, e), 0.5f);
+                rt.anchoredPosition = Vector2.zero;
+                var c = _shine.color;
+                c.a = 0.38f * Mathf.Sin(t * Mathf.PI); // fade in and out at the edges
+                _shine.color = c;
+                _shine.enabled = !IsUp; // hide at once if the card gets turned over mid-sweep
+            });
+            _shine.enabled = false;
+        }
+
+        public const float ShimmerSeconds = 0.7f;
 
         void Refresh() => _button.interactable = !IsUp && !IsMatched;
     }

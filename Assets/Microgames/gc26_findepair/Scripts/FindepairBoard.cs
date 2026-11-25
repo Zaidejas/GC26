@@ -17,6 +17,8 @@ namespace GC26.Findepair
         public const float MatchVanishDelaySeconds = 1f;
         public const float VanishSeconds = 0.25f;
         public const float WinDelaySeconds = 0.5f;
+        /// <summary>Game time without a tap before the cards glint (and again every this many seconds).</summary>
+        public const float IdleShimmerSeconds = 5f;
 
         public event Action CardFlipped;
         public event Action<int> MovesChanged;
@@ -44,6 +46,7 @@ namespace GC26.Findepair
         SparkleBurst _sparkles;
         FindepairArt _art;
         Card _first, _second;
+        float _idle;
 
         public void Setup(RectTransform grid, SparkleBurst sparkles, FindepairArt art)
         {
@@ -68,6 +71,7 @@ namespace GC26.Findepair
 
             Moves = Matches = 0;
             Elapsed = 0;
+            _idle = 0;
             _first = _second = null;
             Locked = false;
             Running = true;
@@ -93,7 +97,15 @@ namespace GC26.Findepair
 
         void Update()
         {
-            if (Running && !Paused) Elapsed += Time.unscaledDeltaTime;
+            if (!Running || Paused) return;
+            Elapsed += Time.unscaledDeltaTime;
+            if (Locked) { _idle = 0; return; } // a pair is being checked: not idle
+            _idle += Time.unscaledDeltaTime;
+            if (_idle >= IdleShimmerSeconds)
+            {
+                _idle = 0;
+                Shimmer();
+            }
         }
 
         void OnApplicationPause(bool paused)
@@ -104,6 +116,7 @@ namespace GC26.Findepair
         public void OnCardClicked(Card card)
         {
             if (Locked || !Running || Paused || card.IsUp || card.IsMatched) return;
+            _idle = 0;
             CardFlipped?.Invoke();
             card.StartCoroutine(card.Flip(true));
             if (_first == null) { _first = card; return; }
@@ -156,6 +169,20 @@ namespace GC26.Findepair
             if (!last) yield break;
             yield return Wait(WinDelaySeconds);
             Won?.Invoke(new FindepairResult(Moves, Mathf.RoundToInt(Elapsed * 1000f)));
+        }
+
+        /// <summary>A glint ripples across the face-down cards, top-left to bottom-right.</summary>
+        void Shimmer()
+        {
+            var layout = _grid.GetComponent<UnityEngine.UI.GridLayoutGroup>();
+            int cols = layout != null && layout.constraint == UnityEngine.UI.GridLayoutGroup.Constraint.FixedColumnCount
+                ? Mathf.Max(1, layout.constraintCount) : 3;
+            for (int i = 0; i < _cards.Count; i++)
+            {
+                var c = _cards[i];
+                if (c == null || c.IsUp || c.IsMatched || c.IsGone) continue;
+                c.StartCoroutine(c.PlayShimmer((i % cols + i / cols) * 0.08f));
+            }
         }
 
         /// <summary>Waits the given game time; stands still while paused.</summary>

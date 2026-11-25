@@ -26,7 +26,9 @@ namespace GC26.Findepair
         public FindepairScreen Current { get; private set; }
 
         TextMeshProUGUI _splashLogo, _menuBest, _moves, _time, _result, _bestLine;
-        GameObject _pause, _win, _rules, _confirm, _badge;
+        GameObject _pause, _win, _rules, _confirm, _badge, _leave;
+        TextMeshProUGUI _leaveQuestion;
+        System.Action _leaveYes;
         Image[] _stars;
         RectTransform _confettiLayer;
         readonly List<(Image track, Image knob, RectTransform knobRt, Image frame, Image glow, System.Func<bool> get)> _toggles =
@@ -37,6 +39,7 @@ namespace GC26.Findepair
         public SparkleBurst Sparkles { get; private set; }
         public bool PauseVisible => _pause != null && _pause.activeSelf;
         public bool WinVisible => _win != null && _win.activeSelf;
+        public bool LeaveConfirmVisible => _leave != null && _leave.activeSelf;
 
         public void Build(FindepairGame game, FindepairArt art, FindepairBoard board, FindepairSave save, FindepairAudio audio)
         {
@@ -57,7 +60,7 @@ namespace GC26.Findepair
             BuildGame();
             BuildSettings();
 
-            _board.PausedChanged += p => _pause.SetActive(p);
+            _board.PausedChanged += p => { _pause.SetActive(p); if (!p) _leave.SetActive(false); };
         }
 
         // ---------- Switching ----------
@@ -68,7 +71,7 @@ namespace GC26.Findepair
             foreach (var kv in _screens) kv.Value.SetActive(kv.Key == screen);
             if (screen == FindepairScreen.Menu) _menuBest.text = _save.BestText;
             if (screen == FindepairScreen.Settings) { RefreshToggles(); _rules.SetActive(false); _confirm.SetActive(false); }
-            if (screen == FindepairScreen.Game) { _pause.SetActive(false); _win.SetActive(false); ClearConfetti(); }
+            if (screen == FindepairScreen.Game) { _pause.SetActive(false); _win.SetActive(false); _leave.SetActive(false); ClearConfetti(); }
             if (screen == FindepairScreen.Splash)
             {
                 if (_splashRoutine != null) StopCoroutine(_splashRoutine);
@@ -91,7 +94,7 @@ namespace GC26.Findepair
         {
             if (Current != FindepairScreen.Game || _moves == null) return;
             _moves.text = _board.Moves.ToString();
-            _time.text = FindepairRules.FormatTime(_board.Elapsed);
+            _time.text = TimerText(FindepairRules.FormatTime(_board.Elapsed));
         }
 
         // ---------- Screens ----------
@@ -181,7 +184,10 @@ namespace GC26.Findepair
 
             Button("Play", col, "Play", Pink, _art, () => _game.StartGame());
             Button("Settings", col, "Settings", Cyan, _art, () => Show(FindepairScreen.Settings));
-            Button("Exit", col, "Exit", Cyan, _art, () => _game.ExitToShell());
+            // Exit exists only inside the GC26 shell (RULES.md: the game must be able to hand control back).
+            // On its own (scene Play, standalone .exe) there is nothing to exit to, so there is no button.
+            if (GC26.Core.MicrogameRunner.IsRunning)
+                Button("Exit", col, "Exit", Cyan, _art, () => _game.ExitToShell());
             _menuBest = Text("Record", col, "", 36, Muted);
             _menuBest.Size(900, 60);
         }
@@ -211,11 +217,13 @@ namespace GC26.Findepair
             row.spacing = 26;
             row.childControlWidth = row.childControlHeight = true;
             row.childForceExpandWidth = false;
-            row.childForceExpandHeight = true;
+            row.childForceExpandHeight = false;
+            row.childAlignment = TextAnchor.MiddleCenter;
             _moves = Stat(hud, "Moves");
-            _time = Stat(hud, "Time");
+            _time = Timer(hud);
             var pause = Button("Pause", hud, "II", Pink2, _art, () => _board.SetPaused(true), 150, 150, 52);
             pause.GetComponent<LayoutElement>().flexibleWidth = 0;
+            pause.GetComponent<FindepairPress>().pulse = false; // no pulsing next to the cards while playing
 
             // Board and sparkles
             Grid = Rect("Board", content).Stretch(0, 40, 0, 220);
@@ -231,6 +239,7 @@ namespace GC26.Findepair
 
             BuildPause(s);
             BuildWin(s);
+            BuildLeaveConfirm(s); // last, so it sits above the pause screen
         }
 
         void BuildPause(RectTransform screen)
@@ -239,9 +248,27 @@ namespace GC26.Findepair
             _pause = o.overlay;
             Text("Title", o.column, "Paused", 88, Color.white, FontStyles.Bold | FontStyles.Italic).Neon(Pink).Size(900, 130);
             Button("Resume", o.column, "Resume", Pink, _art, () => _board.SetPaused(false));
-            Button("Restart", o.column, "Restart", Cyan, _art, () => _game.StartGame());
-            Button("Menu", o.column, "Menu", Cyan, _art, () => _game.ToMenu());
-            Button("Exit", o.column, "Exit", Cyan, _art, () => _game.ExitToShell());
+            Button("Restart", o.column, "Restart", Cyan, _art, () => AskLeave("Restart the round?", _game.StartGame));
+            Button("Menu", o.column, "Menu", Cyan, _art, () => AskLeave("Exit to the menu?", _game.ToMenu));
+        }
+
+        /// <summary>"Are you sure?" over the pause screen: leaving a round throws away its moves and found pairs.</summary>
+        void BuildLeaveConfirm(RectTransform screen)
+        {
+            var o = Overlay(screen, "ConfirmLeave");
+            _leave = o.overlay;
+            _leaveQuestion = Text("Question", o.column, "", 72, Color.white, FontStyles.Bold | FontStyles.Italic).Neon(Pink);
+            _leaveQuestion.Size(1000, 120);
+            Text("Warning", o.column, "Your progress this round will be lost.", 44, Muted).Size(900, 150);
+            Button("Yes", o.column, "Yes", Pink, _art, () => { _leave.SetActive(false); _leaveYes?.Invoke(); });
+            Button("No", o.column, "No", Cyan, _art, () => _leave.SetActive(false));
+        }
+
+        void AskLeave(string question, System.Action yes)
+        {
+            _leaveQuestion.text = question;
+            _leaveYes = yes;
+            _leave.SetActive(true);
         }
 
         void BuildWin(RectTransform screen)
@@ -282,7 +309,6 @@ namespace GC26.Findepair
             _bestLine.Size(900, 50);
             Button("PlayAgain", o.column, "Play again", Pink, _art, () => _game.StartGame());
             Button("Menu", o.column, "Menu", Cyan, _art, () => _game.ToMenu());
-            Button("Exit", o.column, "Exit", Cyan, _art, () => _game.ExitToShell());
         }
 
         void BuildSettings()
@@ -393,6 +419,22 @@ namespace GC26.Findepair
             l.rectTransform.Stretch(0, 80, 0, 18);
             var v = Text("Value", rt, "0", 58, Color.white, FontStyles.Bold);
             v.rectTransform.Stretch(0, 14, 0, 58);
+            return v;
+        }
+
+        /// <summary>Monospaced digits, so the timer doesn't wobble as they change.</summary>
+        static string TimerText(string time) => $"<mspace=0.62em>{time}</mspace>";
+
+        /// <summary>Timer panel: the same look as the Moves counter, just the number, no label, a bit smaller.</summary>
+        TextMeshProUGUI Timer(RectTransform parent)
+        {
+            var rt = Rect("Time", parent);
+            var le = rt.Size(-1, 126);
+            le.flexibleWidth = 1;
+            NeonPanel(rt, _art, Violet, 0.82f, 0.9f, 0.45f);
+            var v = Text("Value", rt, TimerText("00:00"), 54, Color.white, FontStyles.Bold);
+            v.textWrappingMode = TextWrappingModes.NoWrap;
+            v.rectTransform.Stretch();
             return v;
         }
 
