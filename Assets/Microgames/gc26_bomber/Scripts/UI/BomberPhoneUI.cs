@@ -18,7 +18,7 @@ namespace GC26.Bomber
     /// - everything stays inside Screen.safeArea (notch, rounded corners, home bar).
     /// In the Editor the mouse acts as a finger and the keyboard works too (WASD, Space, Shift, R, G, V, Esc).
     /// </summary>
-    public sealed class BomberPhoneUI : MonoBehaviour
+    public sealed partial class BomberPhoneUI : MonoBehaviour
     {
         const float MinW = 544f, MinH = 1086f;            // smallest layout (reference phone)
         const float Top = 126f, PanelH = 220f, Pad = 10f;  // HUD height, control panel height
@@ -45,6 +45,8 @@ namespace GC26.Bomber
 
         RectTransform _panel; Image _panelDim, _card, _cardLine; Text _panelTitle, _panelText; float _btnH = 60f, _btnTop = 270f;
         readonly List<(RectTransform rt, System.Action act)> _panelButtons = new List<(RectTransform, System.Action)>();
+        readonly List<(float top, float h)> _rowPos = new List<(float, float)>();
+        RectTransform _rows; Rect _rowsRect; float _pScroll, _pScrollMax, _pScroll0; int _pDragId = int.MinValue; Vector2 _pDragStart; bool _pDragged;
         string _panelKind;
 
         BomberIntent _intent; float _toastT;
@@ -122,9 +124,11 @@ namespace GC26.Bomber
             _card = Img("Card", _panel, ctx.Art.UiWhite, new Color(0.05f, 0.08f, 0.14f, 1f));
             _cardLine = Img("CardLine", _panel, ctx.Art.UiWhite, new Color(0.5f, 0.89f, 1f));
             _panelTitle = Txt("Title", _panel, 32, TextAnchor.MiddleCenter, new Color(0.5f, 0.89f, 1f), FontStyle.Bold);
-            _panelText = Txt("Body", _panel, 17, TextAnchor.UpperCenter, new Color(0.75f, 0.8f, 0.9f), FontStyle.Normal); _panelText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _panelText = Txt("Body", _panel, 17, TextAnchor.UpperCenter, new Color(0.75f, 0.8f, 0.9f), FontStyle.Normal); _panelText.horizontalOverflow = HorizontalWrapMode.Wrap; _panelText.supportRichText = true;
+            _rows = new GameObject("Rows", typeof(RectTransform)).GetComponent<RectTransform>(); _rows.SetParent(_panel, false); _rows.gameObject.AddComponent<RectMask2D>();
             _panel.gameObject.SetActive(false);
 
+            BuildTutorialCard(t);
             _flash = Img("Flash", t, ctx.Art.UiWhite, new Color(1f, 0.24f, 0.31f, 0f)); Stretch(_flash.rectTransform);
         }
 
@@ -220,13 +224,47 @@ namespace GC26.Bomber
             Place(_toastBg.rectTransform, (fw - tw) / 2f, py - 76, tw, 60); Place(_toast.rectTransform, (fw - tw) / 2f + 10, py - 76, tw - 20, 60);
             Place(_flash.rectTransform, 0, 0, fw, fh + _bottomInset);
 
+            LayoutPanel(fw, fh);
+            LayoutTutorialCard(ww);
+        }
+
+        void LayoutPanel(float fw, float fh)
+        {
             float cw = Mathf.Min(fw - 60, 520f), cx = (fw - cw) / 2f, cy = Mathf.Max(Top, fh / 2f - 260f);
-            float step = _btnH + (_btnH > 100f ? 14f : _btnH < 59f ? 6f : 16f), cardH = _btnTop + 20f + _panelButtons.Count * step;
+            // panel: rows of buttons that scroll with a finger when they do not fit the screen
+            float gap = _btnH > 100f ? 14f : _btnH < 59f ? 6f : 16f, total = 0f; _rowPos.Clear();
+            foreach (var (rt0, act0) in _panelButtons) { float h = act0 == null && _btnH > 56f ? 40f : _btnH; _rowPos.Add((total, h)); total += h + gap; }
             cw = Mathf.Min(fw - 30, _btnH > 100f || _btnH < 59f ? 600f : 520f); cx = (fw - cw) / 2f;
+            float cardH = Mathf.Min(_btnTop + 20f + total, fh - 16f);
             cy = Mathf.Clamp(fh / 2f - cardH / 2f, 8f, Mathf.Max(8f, fh - cardH - 8f));
             Place(_card.rectTransform, cx, cy, cw, cardH); Place(_cardLine.rectTransform, cx, cy, cw, 3);
             Place(_panelTitle.rectTransform, cx + 10, cy + 16, cw - 20, 46); Place(_panelText.rectTransform, cx + 20, cy + 64, cw - 40, _btnTop - 70f);
-            for (int i = 0; i < _panelButtons.Count; i++) Place(_panelButtons[i].rt, cx + 16, cy + _btnTop + i * step, cw - 32, _btnH);
+            _rowsRect = new Rect(cx + 16, cy + _btnTop, cw - 32, Mathf.Max(40f, cardH - _btnTop - 12f));
+            Place(_rows, _rowsRect.x, _rowsRect.y, _rowsRect.width, _rowsRect.height);
+            _pScrollMax = Mathf.Max(0f, total - gap - _rowsRect.height); _pScroll = Mathf.Clamp(_pScroll, 0f, _pScrollMax);
+            LayoutRows();
+        }
+
+        void LayoutRows()
+        {
+            for (int i = 0; i < _panelButtons.Count && i < _rowPos.Count; i++) Place(_panelButtons[i].rt, 0f, _rowPos[i].top - _pScroll, _rowsRect.width, _rowPos[i].h);
+        }
+
+        void PanelPointer(int id, Vector2 p, bool began, bool ended)
+        {
+            if (began) { _pDragId = id; _pDragStart = p; _pScroll0 = _pScroll; _pDragged = false; return; }
+            if (id != _pDragId) return;
+            float dy = p.y - _pDragStart.y;
+            if (Mathf.Abs(dy) > 10f) _pDragged = true;
+            if (_pDragged && _pScrollMax > 0f) { _pScroll = Mathf.Clamp(_pScroll0 - dy, 0f, _pScrollMax); LayoutRows(); }
+            if (!ended) return;
+            _pDragId = int.MinValue;
+            if (_pDragged || !_rowsRect.Contains(p)) return;
+            for (int i = 0; i < _panelButtons.Count && i < _rowPos.Count; i++)
+            {
+                float top = _rowsRect.y + _rowPos[i].top - _pScroll;
+                if (p.y >= top && p.y <= top + _rowPos[i].h) { _panelButtons[i].act?.Invoke(); return; }
+            }
         }
 
         // ================= panels =================
@@ -235,20 +273,22 @@ namespace GC26.Bomber
         /// <summary>Panel with a list of buttons; rich = left-aligned multi-line cards (rewards, workbench). act == null: a header row.</summary>
         void ShowPanelEx(string kind, string title, string body, float btnH, float btnTop, bool rich, params (string label, System.Action act)[] buttons)
         {
+            if (kind != _panelKind) _pScroll = 0f;
+            _panelTitle.color = new Color(0.5f, 0.89f, 1f);
             _panelKind = kind; _panel.gameObject.SetActive(true); _panelTitle.text = title; _panelText.text = body; _btnH = btnH; _btnTop = btnTop;
             foreach (var b in _panelButtons) Destroy(b.rt.gameObject);
             _panelButtons.Clear();
             for (int i = 0; i < buttons.Length; i++)
             {
                 bool header = buttons[i].act == null, primary = !rich && i == 0;
-                var img = Img("Btn", _panel, _ctx.Art.UiWhite, header ? new Color(0, 0, 0, 0) : primary ? new Color(0.5f, 0.89f, 1f) : rich ? new Color(0.09f, 0.13f, 0.22f) : new Color(0.15f, 0.2f, 0.32f));
+                var img = Img("Btn", _rows, _ctx.Art.UiWhite, header ? new Color(0, 0, 0, 0) : primary ? new Color(0.5f, 0.89f, 1f) : rich ? new Color(0.09f, 0.13f, 0.22f) : new Color(0.15f, 0.2f, 0.32f));
                 var tx = Txt("Label", img.transform, rich ? 16 : 20, rich ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter, primary ? new Color(0.02f, 0.07f, 0.1f) : Color.white, rich ? FontStyle.Normal : FontStyle.Bold);
                 tx.supportRichText = true; tx.horizontalOverflow = HorizontalWrapMode.Wrap; tx.text = buttons[i].label; Stretch(tx.rectTransform);
                 if (rich) { tx.rectTransform.offsetMin = new Vector2(14, 4); tx.rectTransform.offsetMax = new Vector2(-14, -4); }
                 if (rich && !header) { var edge = Img("Edge", img.transform, _ctx.Art.UiWhite, new Color(0.5f, 0.89f, 1f, 0.8f)); edge.rectTransform.anchorMin = new Vector2(0, 0); edge.rectTransform.anchorMax = new Vector2(0, 1); edge.rectTransform.offsetMin = Vector2.zero; edge.rectTransform.offsetMax = new Vector2(4, 0); }
                 _panelButtons.Add((img.rectTransform, buttons[i].act));
             }
-            if (_fw > 0f) Layout(_fw, _fh);
+            if (_fw > 0f) LayoutPanel(_fw, _fh);
         }
 
         static string Hex(Color32 c) => $"#{c.r:x2}{c.g:x2}{c.b:x2}";
@@ -299,24 +339,11 @@ namespace GC26.Bomber
 
         void HidePanel() { _panelKind = null; _panel.gameObject.SetActive(false); }
 
-        void Pause() => ShowPanel("pause", "Пауза",
-            $"Размер кнопок: {Mathf.RoundToInt(_btnScale * 100)}%\n\nСтрельба автоматическая. Джойстик — справа, способности — слева. Форсаж разгоняет ядро: больше урона, но можно перегреться.",
-            ("Продолжить", HidePanel), ("Кнопки крупнее", () => SetButtonScale(_btnScale + 0.1f)), ("Кнопки мельче", () => SetButtonScale(_btnScale - 0.1f)), ("В меню", () => _ctx.ExitToMenu()));
-
         void SetButtonScale(float v)
         {
             _btnScale = Mathf.Clamp(Mathf.Round(v * 10f) / 10f, 0.8f, 1.6f);
             PlayerPrefs.SetFloat(MicrogameSave.Key(BomberGame.Id, "button_scale"), _btnScale); PlayerPrefs.Save();
             _fw = -1f; UpdateScale(); Pause();
-        }
-
-        void ShowEnd(BomberWorld w)
-        {
-            bool win = w.Phase == BomberPhase.Victory;
-            ShowPanel("end", win ? "ОРАКУЛ повержен!" : "Дрон уничтожен",
-                (win ? "Последний сигнал отправлен. Станция свободна.\n\n" : $"Сектор {w.Sector + 1}: {BomberData.Sectors[w.Sector].Name}\n\n") +
-                $"Счёт: {w.Score}\nКомнат: {w.Rooms} · Убийств: {w.Kills} · Боссов: {w.Bosses}\nМакс. комбо: {w.MaxCombo} · Скрап: {w.P.Scrap}",
-                ("Заново", () => { HidePanel(); _ctx.Restart(); }), ("В меню", () => _ctx.ExitToMenu()));
         }
 
         public void Toast(string msg, float t) { _toasts.Enqueue((msg, t)); if (_toastT <= 0f) NextToast(); }
@@ -362,6 +389,8 @@ namespace GC26.Bomber
             if (w.Phase != BomberPhase.Play && _panelKind == null) ShowEnd(w);
             if (w.Reward != null && _panelKind == null) ShowReward(w.Reward);
             if (w.BenchOpen && _panelKind == null) ShowBench();
+            if (w.PendingPanel != null) { if (_panelKind == null) ShowStation(w.PendingPanel); w.PendingPanel = null; }
+            if (_panelKind != null && mouse != null) { float wy = mouse.scroll.ReadValue().y; if (Mathf.Abs(wy) > 0.01f && _pScrollMax > 0f) { _pScroll = Mathf.Clamp(_pScroll - Mathf.Sign(wy) * 60f, 0f, _pScrollMax); LayoutRows(); } }
             return _intent;
         }
 
@@ -369,17 +398,10 @@ namespace GC26.Bomber
         {
             if (_fw <= 0f || !RectTransformUtility.ScreenPointToLocalPointInRectangle(_safe, screen, null, out var local)) return;
             var r = _safe.rect; var p = new Vector2(local.x - r.xMin, r.yMax - local.y); // top-left origin, y down
+            if (_panelKind != null) { PanelPointer(id, p, began, ended); return; }
             if (began)
             {
-                if (_panelKind != null)
-                {
-                    foreach (var (rt, act) in _panelButtons)
-                    {
-                        var pos = rt.anchoredPosition; var size = rt.sizeDelta;
-                        if (act != null && p.x > pos.x && p.x < pos.x + size.x && p.y > -pos.y && p.y < -pos.y + size.y) { act(); return; }
-                    }
-                    return;
-                }
+                if (TrySkip(p)) return;
                 foreach (var b in _btns)
                 {
                     if (!b.Visible || Vector2.Distance(b.Pos, p) > b.Rad + 10f) continue;
@@ -424,7 +446,8 @@ namespace GC26.Bomber
             _fade.color = new Color(0, 0, 0, Mathf.Clamp01(w.Room.Fade / 0.35f));
             _lowHp.color = new Color(1f, 0.12f, 0.24f, p.Hp <= 2 && w.Phase == BomberPhase.Play ? 0.35f + 0.2f * Mathf.Sin(w.Time * 6f) : 0f);
             _flash.color = new Color(1f, 0.24f, 0.31f, Mathf.Max(0f, w.Flash));
-            var acc = Color.Lerp((Color)BomberData.Sectors[w.Sector].Accent, Color.white, 0.25f); acc.a = 0.85f;
+            var acc = Color.Lerp((Color)w.Theme.Accent, Color.white, 0.25f); acc.a = 0.85f;
+            bool hub = w.Mode == BomberMode.Hub, tut = w.Mode == BomberMode.Tutorial;
             foreach (var bi in _border) bi.color = p.Hp <= 2 ? new Color(1f, 0.25f, 0.35f, 0.6f + 0.3f * Mathf.Sin(w.Time * 6f)) : acc;
             _hudLine.color = p.Hp <= 2 ? new Color(1f, 0.13f, 0.27f) : new Color(1f, 0.35f, 0.43f);
             for (int i = 0; i < _hp.Count; i++)
@@ -432,25 +455,31 @@ namespace GC26.Bomber
                 bool show = i < p.MaxHp, on = i < p.Hp, low = p.Hp <= 2 && on && Mathf.Sin(w.Time * 8f) > 0f;
                 _hp[i].enabled = show; _hp[i].color = on ? (low ? new Color(1f, 0.6f, 0.66f) : new Color(1f, 0.35f, 0.43f)) : new Color(0.16f, 0.11f, 0.15f);
             }
-            _score.text = w.Score.ToString("N0").Replace(',', ' ');
+            _score.text = hub ? $"{w.Meta.Data} ДАННЫХ" : w.Score.ToString("N0").Replace(',', ' ');
+            _score.color = hub ? new Color(0.71f, 0.55f, 1f) : Color.white;
             _heatFill.rectTransform.sizeDelta = new Vector2(_heatBg.rectTransform.sizeDelta.x * core.Normalized, 20);
             _heatFill.color = core.State == CoreState.Overheated ? (Mathf.Sin(w.Time * 20f) > 0 ? new Color(1f, 0.13f, 0.27f) : new Color(0.4f, 0.06f, 0.13f)) : core.State == CoreState.Overdrive ? new Color(1f, 0.7f, 0.28f) : new Color(0.31f, 0.72f, 1f);
             _heatText.text = $"ЯДРО {Mathf.RoundToInt(core.Heat)}%";
+            _heatBg.enabled = _heatFill.enabled = _odMark.enabled = _heatText.enabled = !hub;
             _scrap.text = p.Scrap.ToString();
             _status.text = w.StatusLine;
             _status.color = core.State == CoreState.Overheated ? new Color(1f, 0.42f, 0.5f) : w.Governor.Forsage || core.State == CoreState.Overdrive ? new Color(1f, 0.7f, 0.28f) : p.AbT > 0f ? new Color(0.5f, 0.89f, 1f) : new Color(0.66f, 0.71f, 0.84f);
-            var plan = w.Plan[w.Sector];
+            var plan = w.Plan[w.Sector] ?? new List<List<string>>();
+            _routeCur.enabled = !hub && !tut;
             for (int i = 0; i < _route.Count; i++)
             {
-                bool show = i < plan.Count; _route[i].enabled = show; if (!show) continue;
+                bool show = i < plan.Count && !hub && !tut; _route[i].enabled = show; if (!show) continue;
                 var col = (Color)BomberData.RoomColor[plan[i][0]];
                 _route[i].color = i == w.Step ? col : i < w.Step ? new Color(col.r, col.g, col.b, 0.35f) : new Color(col.r * 0.45f, col.g * 0.45f, col.b * 0.5f);
             }
             Circle(_routeCur.rectTransform, new Vector2(14 + w.Step * 22 + 7.5f, 108.5f), 12);
             var curT = w.Room.Type == "start" ? "combat" : w.Room.Type;
-            _room.text = $"С{w.Sector + 1} · {BomberData.RoomLabel[curT]}"; _room.color = (Color)BomberData.RoomColor[curT];
-            var wd = p.Weapon.Def; _weapon.text = wd.Name + (p.Weapon.UpSum > 0 ? $" ▲{p.Weapon.UpSum}" : "") + (p.Weapons.Count > 1 ? $"  {p.Cur + 1}/2" : "");
-            _weapon.color = wd.Fused ? new Color(1f, 0.84f, 0.36f) : new Color(0.5f, 0.89f, 1f);
+            float roomX = hub || tut ? 14f : 14 + 7 * 22 + 6; _room.rectTransform.anchoredPosition = new Vector2(roomX, -98f);
+            _room.text = hub ? "ХАБ СТАНЦИИ" : tut ? "ОБУЧЕНИЕ" : $"С{w.Sector + 1} · {BomberData.RoomLabel[curT]}";
+            _room.color = hub ? new Color(0.43f, 1f, 0.69f) : tut ? new Color(0.71f, 0.55f, 1f) : (Color)BomberData.RoomColor[curT];
+            var wd = p.Weapon.Def; var chd = w.CharDef;
+            _weapon.text = (hub ? chd.Name + " · " : "") + wd.Name + (p.Weapon.UpSum > 0 ? $" ▲{p.Weapon.UpSum}" : "") + (p.Weapons.Count > 1 ? $"  {p.Cur + 1}/2" : "");
+            _weapon.color = hub ? (Color)chd.Color : wd.Fused ? new Color(1f, 0.84f, 0.36f) : new Color(0.5f, 0.89f, 1f);
             _combo.text = w.Combo >= 2 ? $"КОМБО ×{w.Combo}{(w.Combo >= 10 ? " · В УДАРЕ" : "")}" : "";
             var boss = w.CurrentBoss;
             foreach (var g in new Graphic[] { _bossBg, _bossLine, _bossBack, _bossFill, _bossName }) g.enabled = boss != null;
@@ -468,18 +497,20 @@ namespace GC26.Bomber
 
             foreach (var b in _btns)
             {
-                float ready = 1f; string sub = "";
+                float ready = 1f; string sub = ""; b.Visible = true;
                 switch (b.Id)
                 {
-                    case "dash": ready = Mathf.Clamp01(1f - p.DashCd / 0.8f); break;
-                    case "ab": if (p.AbT > 0f) sub = p.AbT.ToString("0.0"); else { ready = Mathf.Clamp01(1f - p.AbCd / 16f); if (ready < 1f) sub = Mathf.CeilToInt(p.AbCd).ToString(); } break;
+                    case "dash": ready = Mathf.Clamp01(1f - p.DashCd / Mathf.Max(0.2f, 0.8f * p.DashK)); break;
+                    case "ab": (ready, sub) = w.AbilityState; b.Label.text = w.AbilityLabel; b.Col = (Color)w.CharDef.Color; break;
                     case "tac": ready = Mathf.Clamp01(1f - p.TacCd / 8f); if (ready < 1f) sub = Mathf.CeilToInt(p.TacCd).ToString(); break;
                     case "emp": ready = p.Emp > 0 ? 1f : 0f; sub = "×" + p.Emp; break;
                     case "od": ready = core.CanFire ? 1f : 0f; b.Label.text = w.Governor.Forsage ? "ФОРСАЖ\nВКЛ" : "ФОРСАЖ"; if (!core.CanFire) sub = core.OverheatLeft.ToString("0.0"); break;
                     case "alt": ready = p.AltCd <= 0f ? 1f : 0.3f; b.Visible = w.AltLabel != null; if (b.Visible) b.Label.text = w.AltLabel; break;
-                    case "use": b.Visible = w.NearProp() != null; break;
+                    case "use": b.Visible = w.NearProp() != null || w.NearNpc() != null; break;
                     case "swap": b.Visible = p.Weapons.Count > 1; break;
                 }
+                if (hub && (b.Id == "tac" || b.Id == "emp" || b.Id == "od" || b.Id == "ab" || b.Id == "alt" || b.Id == "swap")) b.Visible = false;
+                if (!w.TutShows(b.Id)) b.Visible = false;
                 foreach (var g in new Graphic[] { b.Bg, b.Cd, b.Rim, b.Glow, b.Label, b.Sub }) g.enabled = b.Visible;
                 bool down = _held.ContainsValue(b.Id), isReady = ready >= 1f;
                 b.Cd.fillAmount = 1f - ready;
@@ -488,7 +519,7 @@ namespace GC26.Bomber
                 b.Label.color = isReady ? Color.white : new Color(0.54f, 0.59f, 0.71f);
                 Place(b.Label.rectTransform, b.Pos.x - b.Rad, b.Pos.y - b.Rad + (sub.Length > 0 ? -2 : 4) * b.Rad / b.R, b.Rad * 2, b.Rad * 2 - 10 * b.Rad / b.R);
                 b.Sub.text = sub;
-                b.Glow.color = new Color(b.Col.r, b.Col.g, b.Col.b, b.Id == "od" && w.Governor.Forsage ? 0.35f + 0.25f * Mathf.Sin(w.Time * 10f) : 0f);
+                b.Glow.color = new Color(b.Col.r, b.Col.g, b.Col.b, tut && w.TutButton == b.Id ? 0.45f + 0.4f * Mathf.Sin(Time.unscaledTime * 8f) : b.Id == "od" && w.Governor.Forsage ? 0.35f + 0.25f * Mathf.Sin(w.Time * 10f) : 0f);
             }
 
             bool joy = _joyId != int.MinValue;
@@ -521,6 +552,8 @@ namespace GC26.Bomber
                 string txt; Color col;
                 switch (pr.Kind)
                 {
+                    case "station": { var st = BomberMetaData.Station(pr.Id); txt = pr == near ? $"{st.Name}\n<size=12>нажми E</size>" : st.Name; col = (Color)st.Color; break; }
+                    case "cell": { var npc = BomberMetaData.Npc(pr.Id); txt = w.Room.Cleared ? $"{npc.Name}\n<size=12>{(pr == near ? "E — освободить" : "камера открыта")}</size>" : $"{npc.Name}\n<size=12>зачисти комнату</size>"; col = (Color)npc.Color; break; }
                     case "shop": int price = w.PriceOf(pr); txt = $"{pr.Item.Name}\n<color={(p.Scrap >= price ? "#ffd65c" : "#ff8a8a")}>{price} скрапа</color>" + (pr == near ? $"\n<size=12><color=#a9b6d6>{pr.Item.Desc}</color>\n<color=#ffb347>{w.SlotInfo(pr.Item)}</color></size>" : ""); col = new Color(0.86f, 0.9f, 1f); break;
                     case "chest": txt = pr == near ? "Сундук · нажми E" : "Сундук"; col = new Color(0.5f, 0.89f, 1f); break;
                     case "altar": txt = pr == near ? "Алтарь: −1 корпус за награду · E" : "Алтарь риска"; col = new Color(1f, 0.35f, 0.82f); break;
@@ -530,7 +563,14 @@ namespace GC26.Bomber
                 var tx = GetText(_propLabels, q++); tx.supportRichText = true; tx.text = txt; tx.fontSize = 14; tx.color = col; tx.alignment = TextAnchor.LowerCenter;
                 Place(tx.rectTransform, _wx + pr.X * _ws - 140, _wy + ty * _ws - 90, 280, 90);
             }
+            foreach (var hn in w.Npcs)
+            {
+                var d = BomberMetaData.Npc(hn.Id); float ty = hn.Y - 18f - _scroll0; if (ty < 0f || ty > _viewH) continue;
+                var tx = GetText(_propLabels, q++); tx.supportRichText = true; tx.text = d.Name + (w.NearNpc() == hn ? "\n<size=12>E — поговорить</size>" : ""); tx.fontSize = 13; tx.color = (Color)d.Color; tx.alignment = TextAnchor.LowerCenter;
+                Place(tx.rectTransform, _wx + hn.X * _ws - 140, _wy + ty * _ws - 90, 280, 90);
+            }
             for (int i = q; i < _propLabels.Count; i++) _propLabels[i].enabled = false;
+            SyncTutorialCard(w);
             // elite affix tags and floor hazard hints
             int g2 = 0;
             foreach (var e in w.Enemies)

@@ -19,19 +19,21 @@ namespace GC26.Bomber
         {
             Game = game;
             Art = new BomberArt();
-            World = new BomberWorld();
+            World = new BomberWorld { Meta = BomberMeta.Load() };
+            World.MetaChanged += () => World.Meta.Save();
             View = Spawn("gc26_bomber_View").AddComponent<BomberView>();
             View.Init(this);
             UI = Spawn("gc26_bomber_UI").AddComponent<BomberPhoneUI>();
             UI.Init(this, View.Target);
             World.Toast += (m, t) => UI.Toast(m, t);
             World.Shake += a => View.AddShake(a);
-            Restart();
+            if (World.Meta.TutorialDone) World.EnterHub(); else World.EnterTutorial();
         }
 
+        /// <summary>Straight into a new run (end screen "Новый забег").</summary>
         public void Restart() => World.StartRun((uint)Random.Range(1, int.MaxValue));
 
-        public void ExitToMenu() => Game.ExitToMenu(World.Score);
+        public void ExitToMenu() { World.Meta.Save(); Game.ExitToMenu(Mathf.Max(World.Score, 0)); }
 
         /// <summary>Creates a child object of the context (so it stays in our scene).</summary>
         public GameObject Spawn(string name, Transform parent = null)

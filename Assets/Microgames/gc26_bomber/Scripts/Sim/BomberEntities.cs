@@ -24,7 +24,8 @@ namespace GC26.Bomber
     {
         public int Hp, MaxHp, BaseHp, AltarLoss;
         public float MuzzleT, Aim, ITime, DashT, DashCd, Dx, Dy = -1f, AltCd, TacCd, AbCd, AbT, Bob, Shield, ShieldT, TrailT;
-        public int Emp, Scrap, Cur, ModSlots = 4, CompSlots = 1;
+        public int Emp, Scrap, Cur, ModSlots = 4, CompSlots = 1, Charges = 3, LeechK;
+        public string Char = "spark"; public float Speed = 192f, DmgK = 1f, CoolK = 1f, DashK = 1f, AbilityCd = 16f, ChargeT, VortT;
         public bool Firing;
         public readonly List<BomberWeapon> Weapons = new List<BomberWeapon>();
         public readonly List<string> Mods = new List<string>();
@@ -38,7 +39,7 @@ namespace GC26.Bomber
         public string Kind; public BomberEnemyDef Def;
         public float Hp, MaxHp, Tm, Face, AimA, LosT, ShootT, Flash, Stun, Slow, Burn, BurnT, Alpha = 1f, SpdMul = 1f, Orbit = 1f;
         public bool Elite, Los; public string St = "idle"; public int Cnt, Wave;
-        public string Affix; public float ShieldHp; public BomberEnemy Tgt;
+        public string Affix; public float ShieldHp, SlamT; public BomberEnemy Tgt;
         // boss only
         public BomberBossDef Boss; public int Phase, Seq, Beams = 1, Fan; public string Act = "idle"; public float SummonT = 5f, Sdir = 1f, Emit;
         public readonly List<Vector2> Targets = new List<Vector2>();
@@ -66,7 +67,7 @@ namespace GC26.Bomber
         public string Tag => Type == "weapon" ? "Оружие" : Type == "module" ? "Модуль · " + BomberItems.Mods[Id].Cat : Type == "companion" ? "Компаньон" : "Расходник";
     }
 
-    public sealed class BomberProp { public string Kind; public float X, Y; public BomberItem Item; public int Price; public bool Opened, Sold; }
+    public sealed class BomberProp { public string Kind, Id; public float X, Y; public BomberItem Item; public int Price; public bool Opened, Sold; }
 
     public sealed class BomberReward { public string Title, Sub; public readonly List<BomberItem> Options = new List<BomberItem>(); }
 

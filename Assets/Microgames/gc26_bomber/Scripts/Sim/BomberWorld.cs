@@ -61,17 +61,36 @@ namespace GC26.Bomber
         float _flowTimer;
         readonly List<(BomberBarrel b, float t)> _barrelQueue = new List<(BomberBarrel, float)>();
 
+        public BomberWorld() { Core.Overheated += OnOverheat; }
+
+        void ResetRngs(int s)
+        {
+            _rngL = new BomberRng(BomberRng.Hash(Seed, (uint)(1 + s * 7)));
+            _rngE = new BomberRng(BomberRng.Hash(Seed, (uint)(2 + s * 7)));
+            _rngLoot = new BomberRng(BomberRng.Hash(Seed, (uint)(3 + s * 7)));
+            _rngC = new BomberRng(BomberRng.Hash(Seed, (uint)(4 + s * 7)));
+        }
+
+        void ClearRoom()
+        {
+            Enemies.Clear(); Shots.Clear(); Pickups.Clear(); Effects.Clear(); Particles.Clear(); Texts.Clear(); Walls.Clear(); Doors.Clear(); Barrels.Clear(); _barrelQueue.Clear();
+            NewDecals.Clear(); Zones.Clear(); Props.Clear(); Bolts.Clear(); Trails.Clear(); Npcs.Clear(); Throws.Clear(); Turrets.Clear(); BenchOpen = false;
+        }
+
         // ================= run setup =================
         public void StartRun(uint seed)
         {
+            Mode = BomberMode.Run; _ended = false; NewAch.Clear(); RescuedNow.Clear(); Elites = 0; _bossDamaged = false; PendingPanel = null;
             Seed = seed == 0 ? 1u : seed;
             Phase = BomberPhase.Play;
             Score = Kills = Rooms = Combo = MaxCombo = DamageTaken = 0; ComboT = Time = 0f;
-            P.R = 9f; P.BaseHp = P.MaxHp = P.Hp = 6; P.AltarLoss = 0; P.Emp = 1; P.Scrap = 0; P.ITime = 0f; P.AbCd = P.AbT = 0f; P.TacCd = 0f; P.Shield = 0f; P.ShieldT = 0f;
-            P.Weapons.Clear(); P.Weapons.Add(new BomberWeapon { Id = "blaster" }); P.Cur = 0; P.Mods.Clear(); P.Comps.Clear(); _medic = 0;
+            P.R = 9f; P.Mods.Clear(); P.Comps.Clear(); SetupPlayer();
+            P.AltarLoss = 0; P.ITime = 0f; P.AbCd = P.AbT = 0f; P.TacCd = 0f; P.Shield = 0f; P.ShieldT = 0f; _medic = 0;
             Reward = null; BenchOpen = false; ApplyCoreMods(); _later.Clear(); Bosses = 0; PickBosses();
             Core.Vent(HeatModel.Max); Governor.Forsage = false;
             for (int s = 0; s < 3; s++) Plan[s] = MakePlan(new BomberRng(BomberRng.Hash(Seed, (uint)(100 + s))));
+            PlanRescues();
+            Meta.Runs++; SaveMeta();
             EnterSector(0);
         }
 
@@ -94,10 +113,9 @@ namespace GC26.Bomber
         void EnterSector(int s)
         {
             Sector = s; Step = 0;
-            _rngL = new BomberRng(BomberRng.Hash(Seed, (uint)(1 + s * 7)));
-            _rngE = new BomberRng(BomberRng.Hash(Seed, (uint)(2 + s * 7)));
-            _rngLoot = new BomberRng(BomberRng.Hash(Seed, (uint)(3 + s * 7)));
-            _rngC = new BomberRng(BomberRng.Hash(Seed, (uint)(4 + s * 7)));
+            ResetRngs(s);
+            if (s == 1) Unlock("sector2"); if (s == 2) Unlock("sector3");
+            if (s + 1 > Meta.BestSector) { Meta.BestSector = s + 1; SaveMeta(); }
             EnterRoom("start");
             Toast?.Invoke($"Сектор {s + 1}: {BomberData.Sectors[s].Name}. {BomberData.Sectors[s].Line}", 3.5f);
         }
@@ -111,7 +129,7 @@ namespace GC26.Bomber
         void EnterRoom(string type)
         {
             Room = new BomberRoomState { Type = type };
-            Enemies.Clear(); Shots.Clear(); Pickups.Clear(); Effects.Clear(); Particles.Clear(); Texts.Clear(); Walls.Clear(); Doors.Clear(); Barrels.Clear(); _barrelQueue.Clear(); NewDecals.Clear(); Zones.Clear(); Props.Clear(); Bolts.Clear(); Trails.Clear(); BenchOpen = false;
+            ClearRoom();
             Room.Exits = NextOptions();
             var gaps = BuildBorder(Room.Exits);
             bool calm = type == "shop" || type == "chest" || type == "workbench" || type == "altar";
@@ -121,15 +139,16 @@ namespace GC26.Bomber
             ComputeBlocked();
             P.X = W / 2f; P.Y = H - 120f; P.Vx = P.Vy = 0f; P.DashT = 0f; P.Beam.On = false; // just inside the entrance
             var free = FreeCells();
-            if (type == "combat" || type == "elite" || type == "start")
+            if (type == "combat" || type == "elite" || type == "start" || type == "rescue")
             {
+                if (type == "rescue" && _rescueFor[Sector] != null) Props.Add(new BomberProp { Kind = "cell", Id = _rescueFor[Sector], X = W / 2f, Y = H / 2f });
                 if (Sector == 0) { int n = 2 + _rngL.Range(2); for (int i = 0; i < n && free.Count > 0; i++) { int k = _rngL.Range(free.Count); var c = free[k]; free.RemoveAt(k); Barrels.Add(new BomberBarrel { X = c.x * Cell + 16, Y = c.y * Cell + 16 }); } }
                 if (Sector == 1) AddHotZones(free, 2);
                 Room.Waves = MakeWaves(type); Room.Locked = true;
             }
             else if (type == "boss")
             {
-                Room.Locked = true; Room.StartDelay = 1.2f; RoomDamaged = false;
+                Room.Locked = true; Room.StartDelay = 1.2f; RoomDamaged = false; _bossDamaged = false;
                 if (Sector == 1) AddHotZones(free, 2);
                 Toast?.Invoke($"Босс: {BomberData.Bosses[BossOrder[Sector]].Name}", 2.2f);
             }
@@ -299,23 +318,26 @@ namespace GC26.Bomber
             if (Flash > 0f) Flash -= dt;
             if (ComboT > 0f) { ComboT -= dt; if (ComboT <= 0f) Combo = 0; }
             Core.Tick(dt, CoolMul);
+            if (Mode == BomberMode.Hub) { TickHub(dt, intent); return; }
             UpdatePlayer(dt, intent);
-            if (Phase != BomberPhase.Play) return;
+            if (Phase != BomberPhase.Play || Mode == BomberMode.Hub) return;
+            float eDt = dt * EnemyTimeK;
 
             _flowTimer -= dt; if (_flowTimer <= 0f) { _flowTimer = 0.2f; ComputeFlow(); }
 
             for (int i = Effects.Count - 1; i >= 0; i--)
             {
-                var e = Effects[i]; e.T -= dt;
+                var e = Effects[i]; e.T -= e.Kind == "mine" || e.Kind == "shell" ? eDt : dt;
                 if (e.T > 0f) continue;
                 Effects.RemoveAt(i);
                 if (e.Kind == "spawn") Enemies.Add(MakeEnemy(e.Spawn, e.X, e.Y, e.Elite));
                 else if (e.Kind == "mine" || e.Kind == "shell") Detonate(e);
             }
-            UpdateZones(dt);
-            foreach (var e in Enemies.ToArray()) UpdateEnemy(e, dt);
+            UpdateZones(eDt);
+            foreach (var e in Enemies.ToArray()) UpdateEnemy(e, eDt);
             UpdateShots(dt);
             UpdateCompanions(dt);
+            UpdateGadgets(dt);
             for (int i = _barrelQueue.Count - 1; i >= 0; i--)
             {
                 var (b, t) = _barrelQueue[i]; t -= dt;
@@ -327,6 +349,7 @@ namespace GC26.Bomber
             for (int i = Texts.Count - 1; i >= 0; i--) { var t = Texts[i]; t.T -= dt; t.Y -= 22f * dt; if (t.T <= 0f) Texts.RemoveAt(i); }
             UpdateRoom(dt);
             TickLater(dt);
+            if (Mode == BomberMode.Tutorial && Phase == BomberPhase.Play) TickTutorial(dt, intent);
         }
 
         // ================= player =================
@@ -338,7 +361,8 @@ namespace GC26.Bomber
             get
             {
                 if (Core.State == CoreState.Overheated) return $"ПЕРЕГРЕВ {Core.OverheatLeft:0.0} с — нет оружия";
-                if (P.AbT > 0f) return "РАЗГОН — выстрелы не греют ядро";
+                if (Mode == BomberMode.Hub) return "ХАБ · у терминала нажми E · дверь наверху — забег";
+                if (P.AbT > 0f && !Is("sapper")) return Is("spark") ? "РАЗГОН — выстрелы не греют ядро" : $"{CharDef.Ability.ToUpper()} — {P.AbT:0.0} с";
                 if (Core.State == CoreState.Overdrive) return "ФОРСАЖ — урон +30%";
                 if (Governor.Forsage) return Core.Heat >= 88f ? "Почти перегрев! Сбрось или выключи" : "ФОРСАЖ — ядро греется";
                 return "Безопасная зона";
@@ -349,12 +373,13 @@ namespace GC26.Bomber
         {
             var mv = it.Move; if (mv.sqrMagnitude > 1f) mv.Normalize();
             P.DashCd -= dt; P.ITime -= dt; P.MuzzleT -= dt; P.TacCd -= dt; P.Bob += dt;
-            if (P.AbT > 0f) P.AbT -= dt; else P.AbCd -= dt;
+            UpdateAbility(dt);
 
             if (it.Dash && P.DashCd <= 0f && Core.CanFire)
             {
                 var dir = mv.sqrMagnitude > 0.01f ? mv.normalized : new Vector2(Mathf.Cos(P.Aim), Mathf.Sin(P.Aim));
-                P.Dx = dir.x; P.Dy = dir.y; P.DashT = DashTime; P.ITime = Mathf.Max(P.ITime, 0.2f); P.DashCd = Mathf.Max(0.2f, DashCooldown - (SetOn("Движение") ? 0.2f : 0f));
+                P.Dx = dir.x; P.Dy = dir.y; P.DashT = DashTime * (Is("dart") ? 1.4f : 1f); P.ITime = Mathf.Max(P.ITime, 0.2f);
+                P.DashCd = Adrenaline ? 0.15f : Mathf.Max(0.2f, DashCooldown * P.DashK - (SetOn("Движение") ? 0.2f : 0f));
             }
             if (P.DashT > 0f)
             {
@@ -363,7 +388,7 @@ namespace GC26.Bomber
             }
             else
             {
-                float sp = Speed * (Core.CanFire ? 1f : 0.55f) * (Combo >= 10 ? 1.1f : 1f), k = Mathf.Min(1f, dt * 18f);
+                float sp = P.Speed * (Adrenaline ? 1.6f : 1f) * (Core.CanFire ? 1f : 0.55f) * (Combo >= 10 ? 1.1f : 1f), k = Mathf.Min(1f, dt * 18f);
                 P.Vx += (mv.x * sp - P.Vx) * k; P.Vy += (mv.y * sp - P.Vy) * k;
                 if (mv.sqrMagnitude > 0.01f && UnityEngine.Random.value < 0.55f) Particle(P.X - P.Vx * 0.04f, P.Y - P.Vy * 0.04f, -P.Vx * 0.3f, -P.Vy * 0.3f, 0.22f, new Color32(127, 227, 255, 140), 2.5f);
             }
@@ -371,10 +396,11 @@ namespace GC26.Bomber
             if (Core.State == CoreState.Overheated && UnityEngine.Random.value < 0.4f) Spark(P.X + (UnityEngine.Random.value - 0.5f) * 12f, P.Y + (UnityEngine.Random.value - 0.5f) * 12f, new Color32(255, 154, 92, 255), 60f);
             MoveBody(P, P.Vx * dt, P.Vy * dt);
 
-            if (it.ForsageToggle && Core.CanFire) { Governor.Forsage = !Governor.Forsage; Toast?.Invoke(Governor.Forsage ? "ФОРСАЖ: ядро разгоняется, урон +30%. Следи за перегревом!" : "Ядро в безопасной зоне", 1.4f); }
+            if (it.ForsageToggle && Is("forge")) Toast?.Invoke("Кузня: ядро без Форсажа, зато греется на 40% медленнее", 1.6f);
+            else if (it.ForsageToggle && Core.CanFire) { Governor.Forsage = !Governor.Forsage; Toast?.Invoke(Governor.Forsage ? "ФОРСАЖ: ядро разгоняется, урон +30%. Следи за перегревом!" : "Ядро в безопасной зоне", 1.4f); }
             if (it.Vent && P.TacCd <= 0f && Core.CanFire) Vent();
             if (it.Emp && P.Emp > 0) Emp();
-            if (it.Ability && P.AbCd <= 0f && P.AbT <= 0f) { P.AbT = AbilityTime; P.AbCd = AbilityCooldown; AddRing(P.X, P.Y, 40f, new Color32(127, 227, 255, 255), 0.4f); Toast?.Invoke("Разгон: выстрелы не греют ядро", 1f); }
+            if (it.Ability && Mode != BomberMode.Hub) UseAbility();
 
             // auto aim: nearest enemy, preferring ones in line of sight
             BomberEnemy best = null; float bs = 1e9f;
@@ -385,8 +411,10 @@ namespace GC26.Bomber
             if (it.Swap) SwapWeapon();
             if (it.Use) Interact();
             var cur = Stats(P.Weapon); float range = cur.Kind == "arc" ? cur.Range : cur.Kind == "beam" ? 700f : 600f;
-            P.Firing = best != null && bs < range && Governor.AllowShot(Core, P.AbT > 0f ? 0f : cur.Heat);
+            P.Firing = best != null && bs < range && Governor.AllowShot(Core, Is("spark") && P.AbT > 0f ? 0f : cur.Heat);
+            bool wasCloaked = Cloaked;
             UpdateWeapons(dt, it);
+            if (wasCloaked && (P.MuzzleT > 0.05f || P.Beam.On || Bolts.Count > 0)) { P.AbT = 0f; Toast?.Invoke("Удар из тени ×3", 1f); }
             if (!Core.CanFire) Governor.Forsage = false;
 
             // pickups
@@ -428,13 +456,14 @@ namespace GC26.Bomber
 
         void Hurt()
         {
-            if (P.ITime > 0f || Phase != BomberPhase.Play) return;
+            if (P.ITime > 0f || Phase != BomberPhase.Play || Mode != BomberMode.Run) return;
+            if (Is("bastion") && P.AbT > 0f) return;
             if (P.Shield > 0f) { P.Shield = 0f; P.ShieldT = 6f; P.ITime = 0.5f; AddRing(P.X, P.Y, 30f, new Color32(159, 208, 255, 255), 0.3f); return; }
-            P.Hp--; DamageTaken++; RoomDamaged = true; P.ITime = BomberData.IFrames; Shake?.Invoke(1f); Flash = 0.15f;
+            P.Hp--; DamageTaken++; RoomDamaged = true; _bossDamaged = true; P.ITime = BomberData.IFrames * (Is("bastion") ? 1.5f : 1f); Shake?.Invoke(1f); Flash = 0.15f;
             if (Combo >= 5) Texts.Add(new BomberText { X = P.X, Y = P.Y - 30, S = "КОМБО ПОТЕРЯНО", T = 0.9f, Color = new Color32(255, 138, 154, 255) });
             Combo = 0; ComboT = 0f;
             for (int i = 0; i < 14; i++) Spark(P.X, P.Y, new Color32(255, 90, 110, 255), 200f);
-            if (P.Hp <= 0) Phase = BomberPhase.Dead;
+            if (P.Hp <= 0) EndRun(false);
         }
 
         // ================= rooms & waves =================
@@ -443,7 +472,7 @@ namespace GC26.Bomber
         List<List<(string, bool)>> MakeWaves(string type)
         {
             int s = Sector;
-            float mult = BomberData.SectorMult[s] * (type == "elite" ? 1.3f : 1f) * (type == "start" ? 0.6f : 1f) * (0.9f + _rngE.Next() * 0.3f);
+            float mult = BomberData.SectorMult[s] * (type == "elite" ? 1.3f : 1f) * (type == "rescue" ? 1.25f : 1f) * (type == "start" ? 0.6f : 1f) * (0.9f + _rngE.Next() * 0.3f);
             int budget = Mathf.Max(3, Mathf.RoundToInt(BomberData.Budget * mult));
             var pool = new List<string>(); for (int k = 0; k <= s; k++) pool.AddRange(BomberData.Pools[k]);
             int n = budget < 8 ? 1 : budget < 14 ? 2 : 3;
@@ -499,7 +528,12 @@ namespace GC26.Bomber
         void RoomCleared()
         {
             if (Room.Cleared) return;
-            Room.Cleared = true; Rooms++; Score += 100;
+            Room.Cleared = true; Rooms++; Score += 100; if (Room.Type == "elite") Elites++;
+            if (Mode == BomberMode.Run)
+            {
+                if (!RoomDamaged) { Meta.NoDmg++; if (Meta.NoDmg >= 10) Unlock("nodmg10"); }
+                if (Rooms >= 12) Unlock("rooms12");
+            }
             if (!RoomDamaged) { Score += 50; Texts.Add(new BomberText { X = P.X, Y = P.Y - 24, S = "БЕЗ УРОНА +50", T = 1.4f, Color = new Color32(109, 255, 176, 255) }); }
             Texts.Add(new BomberText { X = W / 2f, Y = H / 2f - 40f, S = "КОМНАТА ЗАЧИЩЕНА", T = 1.2f, Color = new Color32(127, 227, 255, 255), Big = true });
             for (int k = 0; k < 5; k++) Pickups.Add(new BomberPickup { Kind = "scrap", Value = 2, X = W / 2f + (_rngC.Next() - 0.5f) * 60f, Y = H / 2f + (_rngC.Next() - 0.5f) * 60f });
@@ -511,6 +545,8 @@ namespace GC26.Bomber
 
         void LeaveRoom(int i)
         {
+            if (Mode == BomberMode.Hub) { StartRun((uint)UnityEngine.Random.Range(1, int.MaxValue)); return; }
+            if (Mode == BomberMode.Tutorial) { CompleteTutorial(); return; }
             RoomDamaged = false;
             if (Doors[i].Type == "next") { EnterSector(Sector + 1); return; }
             Step++;

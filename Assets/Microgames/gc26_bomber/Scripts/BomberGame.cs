@@ -20,7 +20,7 @@ namespace GC26.Bomber
         {
             _started = true;
             _exit = exit;
-            // TODO: load meta progress from MicrogameSave.Folder(Id) when the hub is ported
+            // meta progress is loaded by BomberContext (BomberMeta, PlayerPrefs via MicrogameSave.Key)
             if (_context == null)
             {
                 var go = new GameObject("gc26_bomber_Context");
@@ -40,7 +40,7 @@ namespace GC26.Bomber
         /// <summary>Call from the pause menu ("To menu") or the game-over screen.</summary>
         public void ExitToMenu(int score)
         {
-            // TODO: save progress before leaving
+            // progress is saved by BomberContext before it calls this
             Time.timeScale = 1f;
             var exit = _exit;
             _exit = null;

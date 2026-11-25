@@ -259,6 +259,7 @@ namespace GC26.Bomber
         void BossDefeated(BomberEnemy b)
         {
             Score += 1000; Bosses++; Shake?.Invoke(1.4f);
+            if (Mode == BomberMode.Run) { Meta.Bosses++; Unlock("boss_" + b.Boss.Key); if (!_bossDamaged) Unlock("flawless"); SaveMeta(); }
             for (int k = 0; k < 60; k++) Spark(b.X, b.Y, k % 3 != 0 ? new Color32(255, 214, 92, 255) : new Color32(255, 255, 255, 255), 420f);
             AddRing(b.X, b.Y, 140f, b.Boss.Color, 0.6f);
             foreach (var s in Shots) if (s.Enemy) s.Dead = true;
@@ -266,7 +267,7 @@ namespace GC26.Bomber
             Effects.RemoveAll(e => e.Kind == "spawn" || e.Kind == "mine" || e.Kind == "shell");
             Zones.RemoveAll(z => z.Kind == "lava" || z.Kind == "acid");
             RoomCleared();
-            if (Sector >= 2) { Later(1.6f, () => Phase = BomberPhase.Victory); return; }
+            if (Sector >= 2) { Later(1.6f, () => EndRun(true)); return; }
             const int heal = 2; P.Hp = Mathf.Min(P.MaxHp, P.Hp + heal);
             var name = b.Boss.Name;
             Later(0.7f, () => OfferReward($"{name} уничтожен", $"Починено {heal} ячейки. Выбери модуль или компаньона.", "module", "companion"));

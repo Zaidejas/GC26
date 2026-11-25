@@ -18,8 +18,8 @@ namespace GC26.Bomber
         public bool HasMod(string id) => P.Mods.Contains(id);
         public bool HasComp(string id) => P.Comps.Exists(c => c.Id == id);
         public bool SetOn(string cat) { int n = 0; foreach (var m in P.Mods) if (BomberItems.Mods[m].Cat == cat) n++; return n >= 2; }
-        float CoolMul => (HasMod("radiator") ? 1.4f : 1f) * (SetOn("Ядро") ? 1.15f : 1f) * (Combo >= 10 ? 1.2f : 1f);
-        float DmgMul => Core.DamageMultiplier * (HasMod("heavy") ? 1.25f : 1f) * (SetOn("Снаряды") ? 1.1f : 1f);
+        float CoolMul => P.CoolK * (HasMod("radiator") ? 1.4f : 1f) * (SetOn("Ядро") ? 1.15f : 1f) * (Combo >= 10 ? 1.2f : 1f);
+        float DmgMul => P.DmgK * (Cloaked ? 3f : 1f) * Core.DamageMultiplier * (HasMod("heavy") ? 1.25f : 1f) * (SetOn("Снаряды") ? 1.1f : 1f);
         float Discount => HasMod("discount") ? 0.75f : 1f;
         public int PriceOf(BomberProp p) => Mathf.RoundToInt(p.Price * Discount);
 
@@ -71,7 +71,7 @@ namespace GC26.Bomber
             if (firing && s.Grow > 0f) w.Grow = Mathf.Min(0.35f, w.Grow + dt * s.Grow); else w.Grow = Mathf.Max(0f, w.Grow - dt * 0.6f);
             if (s.Kind == "mini") { float sp = 1f + w.Up["spec"]; if (firing && Core.CanFire) w.Spin = Mathf.Min(1f, w.Spin + dt * sp); else w.Spin = Mathf.Max(0f, w.Spin - dt * 1.5f); }
             P.Beam.On = false;
-            float rateMul = (Governor.Forsage ? 1.15f : 1f) * (HasMod("heavy") ? 0.85f : 1f) * (s.Kind == "mini" ? 0.2f + 0.8f * w.Spin : 1f);
+            float rateMul = (Adrenaline ? 1.3f : 1f) * (Governor.Forsage ? 1.15f : 1f) * (HasMod("heavy") ? 0.85f : 1f) * (s.Kind == "mini" ? 0.2f + 0.8f * w.Spin : 1f);
             if (firing && Core.CanFire)
             {
                 if (s.Kind == "beam") FireBeam(s, w);
@@ -98,7 +98,7 @@ namespace GC26.Bomber
             P.AltCd = w.AltCd;
         }
 
-        void AddCoreHeat(float h) { if (P.AbT <= 0f) Core.AddHeat(h); }
+        void AddCoreHeat(float h) { if (!(Is("spark") && P.AbT > 0f)) Core.AddHeat(h * (Is("forge") ? 0.6f : 1f)); }
 
         void Fire(BomberWeaponDef s, BomberWeapon w, float dm, float spd, int pellets, float rOverride = 0f, float? spreadOverride = null, bool heavy = false)
         {
@@ -200,13 +200,14 @@ namespace GC26.Bomber
             return best;
         }
 
-        void UpdateShots(float dt)
+        void UpdateShots(float dt0)
         {
             int count = Shots.Count;
             for (int bi = 0; bi < count; bi++)
             {
                 var b = Shots[bi];
                 if (b.Dead) continue;
+                float dt = b.Enemy ? dt0 * EnemyTimeK : dt0;
                 b.Life -= dt; if (b.Life <= 0f) { b.Dead = true; if (b.Aoe > 0 && !b.Enemy) Explode(b.X, b.Y, b.Aoe, b.Dmg, false, true, b.Slow); continue; }
                 if (b.Homing)
                 {
@@ -304,16 +305,16 @@ namespace GC26.Bomber
         List<BomberItem> LootOptions(int n, params string[] kinds)
         {
             var pool = new List<BomberItem>();
-            if (System.Array.IndexOf(kinds, "weapon") >= 0) foreach (var id in BomberItems.BaseWeapons) if (!P.Weapons.Exists(w => w.Id == id)) pool.Add(new BomberItem { Type = "weapon", Id = id });
+            if (System.Array.IndexOf(kinds, "weapon") >= 0) foreach (var id in BomberItems.BaseWeapons) if (Meta.WeaponUnlocked(id) && !P.Weapons.Exists(w => w.Id == id)) pool.Add(new BomberItem { Type = "weapon", Id = id });
             if (System.Array.IndexOf(kinds, "module") >= 0) foreach (var id in BomberItems.Mods.Keys) if (!HasMod(id)) pool.Add(new BomberItem { Type = "module", Id = id });
-            if (System.Array.IndexOf(kinds, "companion") >= 0) foreach (var id in BomberItems.Comps.Keys) if (!HasComp(id)) pool.Add(new BomberItem { Type = "companion", Id = id });
+            if (System.Array.IndexOf(kinds, "companion") >= 0) foreach (var id in BomberItems.Comps.Keys) if (Meta.CompUnlocked(id) && !HasComp(id)) pool.Add(new BomberItem { Type = "companion", Id = id });
             _rngLoot.Shuffle(pool);
             return pool.GetRange(0, Mathf.Min(n, pool.Count));
         }
 
         void OfferReward(string title, string sub, params string[] kinds)
         {
-            var opts = LootOptions(3, kinds);
+            var opts = LootOptions(Meta.Up("luck") > 0 ? 4 : 3, kinds);
             if (opts.Count == 0) return;
             Reward = new BomberReward { Title = title, Sub = sub }; Reward.Options.AddRange(opts);
         }
@@ -376,7 +377,7 @@ namespace GC26.Bomber
         // ================= rooms with props =================
         void MakeShop()
         {
-            int n = 3; var items = LootOptions(n, "weapon", "module", "companion");
+            int n = Meta.IsRescued("gunsmith") ? 4 : 3; var items = LootOptions(n, "weapon", "module", "companion");
             for (int i = 0; i <= items.Count; i++)
             {
                 float x = W / 2f + (i % 2 == 1 ? 90f : -90f), y = 190f + (i / 2) * 150f;
@@ -397,9 +398,13 @@ namespace GC26.Bomber
 
         void Interact()
         {
-            var p = NearProp(); if (p == null) return;
+            var p = NearProp(); var npc = NearNpc();
+            if (npc != null && (p == null || Dist(npc.X, npc.Y, P.X, P.Y) < Dist(p.X, p.Y, P.X, P.Y))) { PendingPanel = "npc:" + npc.Id; return; }
+            if (p == null) return;
             switch (p.Kind)
             {
+                case "station": PendingPanel = p.Id; break;
+                case "cell": if (Room.Cleared) Rescue(p); else Toast?.Invoke("Сначала зачисти комнату — замок камеры откроется", 1.8f); break;
                 case "chest": p.Opened = true; OfferReward("Сундук снабжения", "Выбери один предмет.", "weapon", "module", "companion"); break;
                 case "altar":
                     if (P.MaxHp <= 2) { Toast?.Invoke("Алтарю нужна жертва, а у тебя слишком мало корпуса", 2f); return; }
@@ -421,7 +426,7 @@ namespace GC26.Bomber
         public int UpgradePrice(BomberWeapon w, string key)
         {
             var u = System.Array.Find(BomberItems.Upgrades, x => x.id == key); int l = w.Up[key];
-            return l >= 3 ? 0 : Mathf.RoundToInt(u.cost[l] * Discount * (Room.BenchFree ? 0.5f : 1f));
+            return l >= 3 ? 0 : Mathf.RoundToInt(u.cost[l] * Discount * (Room.BenchFree ? 0.5f : 1f) * (Meta.IsRescued("mechanic") ? 0.8f : 1f));
         }
 
         public bool BuyUpgrade(int wi, string key)
@@ -451,6 +456,7 @@ namespace GC26.Bomber
             P.Weapons.Clear(); P.Weapons.Add(nw); P.Cur = 0;
             Shake?.Invoke(0.6f); for (int i = 0; i < 40; i++) Spark(P.X, P.Y, new Color32(255, 214, 92, 255), 300f);
             Toast?.Invoke($"Слияние: {nw.Def.Name}! Второй слот свободен.", 3f);
+            if (Mode == BomberMode.Run) { Meta.Fusions++; Unlock("fusion"); SaveMeta(); }
             return true;
         }
     }

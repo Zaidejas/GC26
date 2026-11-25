@@ -26,7 +26,7 @@ namespace GC26.Bomber
 
         void EnemyShot(float x, float y, float a, float speed, Color32? color = null, float r = 5f)
         {
-            float s = speed * BomberData.BulletMul;
+            float s = speed * BomberData.BulletMul * (Is("chrono") ? 0.88f : 1f);
             Shots.Add(new BomberShot { X = x, Y = y, Vx = Mathf.Cos(a) * s, Vy = Mathf.Sin(a) * s, Enemy = true, Dmg = 1, R = r, Life = 5f, Color = color ?? new Color32(255, 79, 106, 255) });
         }
 
@@ -45,7 +45,7 @@ namespace GC26.Bomber
             return new Vector2(Mathf.Cos(a), Mathf.Sin(a));
         }
 
-        Vector2 Toward(BomberEnemy e) => e.Los ? new Vector2(Mathf.Cos(Ang(e, P)), Mathf.Sin(Ang(e, P))) : FlowDir(e);
+        Vector2 Toward(BomberEnemy e) => Cloaked ? Wander(e) : e.Los ? new Vector2(Mathf.Cos(Ang(e, P)), Mathf.Sin(Ang(e, P))) : FlowDir(e);
 
         Vector2 KeepAt(BomberEnemy e, float d, float a, float near, float far)
         {
@@ -70,7 +70,7 @@ namespace GC26.Bomber
             e.Flash -= dt; if (e.Slow > 0f) e.Slow -= dt;
             if (e.Affix == "regen" && e.Hp > 0f) e.Hp = Mathf.Min(e.MaxHp, e.Hp + e.MaxHp * 0.04f * dt);
             if (e.Burn > 0f) { e.Burn -= dt; e.BurnT -= dt; if (e.BurnT <= 0f) { e.BurnT = 0.33f; DamageEnemy(e, 1f, 0f, 0f, true); if (e.Hp <= 0f) return; } }
-            e.LosT -= dt; if (e.LosT <= 0f) { e.LosT = 0.2f; e.Los = Los(e.X, e.Y, P.X, P.Y); }
+            e.LosT -= dt; if (e.LosT <= 0f) { e.LosT = 0.2f; e.Los = !Cloaked && Los(e.X, e.Y, P.X, P.Y); }
             if (e.Stun > 0f) { e.Stun -= dt; e.Vx *= 0.8f; e.Vy *= 0.8f; MoveBody(e, e.Vx * dt, e.Vy * dt); return; }
             if (e.IsBoss) { UpdateBoss(e, dt); return; }
             float d = Dist(e, P), a = Ang(e, P), spd = e.Def.Speed;
@@ -128,7 +128,7 @@ namespace GC26.Bomber
                     break;
                 case "mortar":
                     Steer(e, KeepAt(e, d, a, 260f, 400f), spd, dt);
-                    if (e.Tm <= 0f)
+                    if (e.Tm <= 0f && !Cloaked)
                     {
                         int n = e.Elite ? 3 : 1;
                         for (int i = 0; i < n; i++)
@@ -190,7 +190,7 @@ namespace GC26.Bomber
                         break;
                     }
                     e.St = "chase"; e.Alpha = 1f; Steer(e, Toward(e), spd, dt);
-                    if (e.Tm <= 0f && d < 460f) { e.St = "out"; e.Tm = 0.35f; }
+                    if (e.Tm <= 0f && d < 460f && !Cloaked) { e.St = "out"; e.Tm = 0.35f; }
                     break;
                 case "laser":
                     e.Vx = e.Vy = 0f;
@@ -225,6 +225,7 @@ namespace GC26.Bomber
         {
             if (e.Hp <= 0f) return;
             if (e.Affix == "armored") amt *= 0.6f;
+            if (Is("whisper") && (e.Elite || e.IsBoss)) amt *= 1.25f;
             if (e.ShieldHp > 0f) { float ab = Mathf.Min(e.ShieldHp, amt); e.ShieldHp -= ab; amt -= ab; if (!burnTick) Spark(e.X, e.Y, new Color32(159, 208, 255, 255), 120f); }
             e.Hp -= amt; if (!burnTick) e.Flash = 0.08f;
             if (kb > 0f && !Anchored(e)) { e.Vx += Mathf.Cos(a) * kb; e.Vy += Mathf.Sin(a) * kb; }
@@ -246,6 +247,8 @@ namespace GC26.Bomber
             if (e.IsBoss) { BossDefeated(e); return; }
             if (e.Affix == "volatile") Effects.Add(new BomberEffect { Kind = "mine", X = e.X, Y = e.Y, T = 0.5f, Max = 0.5f, R = 70f });
             Kills++; Combo++; ComboT = 2.6f; MaxCombo = Mathf.Max(MaxCombo, Combo);
+            if (Mode == BomberMode.Run) { Meta.Kills++; if (Meta.Kills >= 300) Unlock("kills300"); if (Combo >= 25) Unlock("combo25"); }
+            if (Is("leech") && ++P.LeechK % 12 == 0 && P.Hp < P.MaxHp) { P.Hp++; Texts.Add(new BomberText { X = P.X, Y = P.Y - 26, S = "+1", T = 0.9f, Color = new Color32(255, 77, 141, 255) }); }
             if (Combo % 5 == 0)
             {
                 for (int k = 0; k < 3; k++) Pickups.Add(new BomberPickup { Kind = "scrap", Value = 2, X = e.X + (_rngC.Next() - 0.5f) * 20f, Y = e.Y + (_rngC.Next() - 0.5f) * 20f });
@@ -257,7 +260,7 @@ namespace GC26.Bomber
             if (e.Burn > 0f && HasMod("napalm")) Explode(e.X, e.Y, 60f, 15f, false, true);
             if (e.Burn > 0f && SetOn("Огонь")) foreach (var o in Enemies) if (Dist(o, e) < 80f) o.Burn = 3f;
             if (e.Kind == "mini") return;
-            int n = 1 + _rngLoot.Range(3) + (e.Elite ? 4 : 0) + (SetOn("Экономика") ? 1 : 0);
+            int n = 1 + _rngLoot.Range(3) + (e.Elite ? 4 : 0) + (SetOn("Экономика") ? 1 : 0) + (Is("spark") ? 1 : 0);
             for (int k = 0; k < n; k++) Pickups.Add(new BomberPickup { Kind = "scrap", Value = 2, X = e.X + (_rngC.Next() - 0.5f) * 16f, Y = e.Y + (_rngC.Next() - 0.5f) * 16f });
             float r = _rngLoot.Next();
             if (r < 0.03f) Pickups.Add(new BomberPickup { Kind = "repair", X = e.X, Y = e.Y }); else if (r < 0.05f) Pickups.Add(new BomberPickup { Kind = "emp", X = e.X, Y = e.Y });
@@ -265,6 +268,7 @@ namespace GC26.Bomber
 
         void Explode(float x, float y, float r, float dmg, bool hurtsPlayer, bool fromPlayer, float slow = 0f)
         {
+            if (fromPlayer && Is("sapper")) r *= 1.25f;
             Shake?.Invoke(0.7f);
             Effects.Add(new BomberEffect { Kind = "blast", X = x, Y = y, R = r, T = 0.35f, Max = 0.35f });
             Effects.Add(new BomberEffect { Kind = "ring", X = x, Y = y, R = r * 1.3f, T = 0.45f, Max = 0.45f, Color = new Color32(255, 200, 120, 255) });

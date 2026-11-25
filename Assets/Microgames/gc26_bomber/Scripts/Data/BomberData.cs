@@ -98,11 +98,13 @@ namespace GC26.Bomber
         {
             ["combat"] = "БОЙ", ["elite"] = "ЭЛИТА", ["shop"] = "МАГАЗИН", ["chest"] = "СУНДУК", ["boss"] = "БОСС", ["next"] = "СЛЕД. СЕКТОР",
             ["start"] = "БОЙ", ["workbench"] = "ВЕРСТАК", ["altar"] = "АЛТАРЬ", ["rescue"] = "СПАСЕНИЕ",
+            ["launch"] = "НАЧАТЬ ЗАБЕГ", ["hub"] = "В ХАБ", ["tutorial"] = "ОБУЧЕНИЕ",
         };
         public static readonly Dictionary<string, Color32> RoomColor = new Dictionary<string, Color32>
         {
             ["combat"] = C("#8fb4ff"), ["elite"] = C("#ffd65c"), ["shop"] = C("#6dffb0"), ["chest"] = C("#7fe3ff"), ["boss"] = C("#ff5a6e"), ["next"] = C("#7fe3ff"),
             ["start"] = C("#8fb4ff"), ["workbench"] = C("#ffb347"), ["altar"] = C("#ff5ad1"), ["rescue"] = C("#ff9adf"),
+            ["launch"] = C("#6dffb0"), ["hub"] = C("#6dffb0"), ["tutorial"] = C("#b48cff"),
         };
 
         public static Color32 C(string hex) { ColorUtility.TryParseHtmlString(hex, out var c); return c; }

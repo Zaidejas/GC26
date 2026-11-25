@@ -19,6 +19,7 @@ namespace GC26.Bomber
 
         public Sprite Drone, Rotor, Gun, Lens, Shot, ShotHeavy, EnemyShot, Pixel, Ring, Disc, Scrap, Repair, EmpPickup, Barrel, Wall, TurretHead;
         public Sprite UiCircle, UiRing, UiWhite, UiGradient, UiVignette, Glow;
+        public Sprite Terminal, Cell, Dynamite, ForgeTurret, Npc;
         public Sprite Chest, ChestOpen, Altar, AltarUsed, Bench, Stand, Rocket, Saw, Flame, CompGunner, CompGuard, CompMedic, CompStriker;
         readonly Dictionary<string, Sprite> _enemy = new Dictionary<string, Sprite>();
         readonly List<UnityEngine.Object> _owned = new List<UnityEngine.Object>();
@@ -61,6 +62,11 @@ namespace GC26.Bomber
             CompGuard = Build(9, 9, c => { c.Fill(c.Disc(4.5f, 4.5f, 4f), Hex("#9fd0ff")); c.Px(4, 4, MW); });
             CompMedic = Build(9, 9, c => { c.Fill((x, y) => (x > 3 && x < 6) || (y > 3 && y < 6), Hex("#6dffb0")); });
             CompStriker = Build(10, 8, c => { c.Fill(c.Poly(new[] { (10f, 4f), (0f, 0f), (2f, 4f), (0f, 8f) }), Hex("#ffb347")); });
+            Terminal = Build(22, 22, c => { c.Fill(c.Box(0, 4, 22, 22), MN); c.Fill(c.Box(2, 0, 20, 14), Hex("#101a2c")); c.Fill(c.Box(4, 2, 18, 12), Hex("#e8f0ff"), false); c.Rect(4, 16, 14, 2, MM); c.Rect(6, 19, 3, 2, ML); c.Rect(13, 19, 3, 2, ML); });
+            Cell = Build(26, 26, c => { c.Fill(c.Box(0, 0, 26, 26), Hex("#1a1024")); for (int x = 2; x < 26; x += 4) c.Rect(x, 1, 2, 24, MM); c.Rect(0, 0, 26, 2, ML); c.Rect(0, 24, 26, 2, ML); });
+            Dynamite = Build(5, 8, c => { c.Fill(c.Box(0, 2, 5, 8), Hex("#ff4d4d")); c.Rect(2, 0, 1, 2, MY); });
+            ForgeTurret = Build(18, 18, c => { c.Fill(c.Box(0, 0, 18, 18), Hex("#2a1e10")); c.Fill(c.Box(2, 2, 16, 16), Hex("#ff9f43")); c.Fill(c.Disc(9, 9, 4f), Hex("#3a2a14")); c.Rect(8, 8, 2, 2, Hex("#ffcf8a")); });
+            Npc = Build(10, 12, c => { c.Fill(c.Disc(5, 3.5f, 3.2f), Hex("#f0f4ff")); c.Fill(c.Box(1.5f, 6, 8.5f, 12), Hex("#f0f4ff")); c.Rect(3, 3, 4, 1, MK); });
             UiCircle = Smooth(128, ring: false, 100, ui: true); UiRing = Smooth(128, ring: true, 100, ui: true);
             UiWhite = Build(1, 1, c => c.Px(0, 0, new Color32(255, 255, 255, 255)), outline: false);
             UiGradient = Build(1, 64, c => { for (int y = 0; y < 64; y++) c.Px(0, y, new Color32(255, 255, 255, (byte)(Mathf.SmoothStep(0f, 1f, y / 63f) * 255))); }, outline: false); UiGradient.texture.filterMode = FilterMode.Bilinear;
@@ -78,6 +84,15 @@ namespace GC26.Bomber
         {
             foreach (var o in _owned) if (o) UnityEngine.Object.Destroy(o);
             _owned.Clear(); _enemy.Clear();
+        }
+
+        /// <summary>Drone sprite in the colours of a playable character.</summary>
+        public Sprite DroneOf(BomberCharDef c)
+        {
+            var key = "drone_" + c.Id;
+            if (_enemy.TryGetValue(key, out var s)) return s;
+            s = c.Id == "spark" ? Drone : MakeDrone(c.Color);
+            _enemy[key] = s; return s;
         }
 
         // ---------- drone ----------
