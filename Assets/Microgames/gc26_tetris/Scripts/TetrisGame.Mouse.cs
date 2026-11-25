@@ -210,9 +210,10 @@ namespace GC26.Tetris
         void DrawGameOverButtons(float unit)
         {
             bool battleMode = game.Mode == GameMode.Battle;
+            bool hardcoreMode = game.Mode == GameMode.Hardcore;
             for (int i = 0; i < OverItems.Length; i++)
             {
-                string text = OverItems[i] == OverItem.Again ? (battleMode ? T("Новый бой", "New battle") : T("Новая игра", "New game")) : T("В меню", "Menu");
+                string text = OverItems[i] == OverItem.Again ? (battleMode ? T("Новый бой", "New battle") : hardcoreMode ? T("Ещё раз", "Again") : T("Новая игра", "New game")) : T("В меню", "Menu");
                 DrawButton(text, null, OverTopY - i * OverStepY, OverItemWidth, OverItemHeight, overGlow[i], TitleColors[i], unit);
             }
         }

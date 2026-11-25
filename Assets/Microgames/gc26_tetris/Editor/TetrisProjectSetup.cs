@@ -250,6 +250,8 @@ namespace GC26.Tetris.EditorTools
                 { "Lines during the warning cancel garbage rows", LinesBlockAttack },
                 { "Defeating the bot calls off its attack", DefeatStopsAttack },
                 { "Garbage lifts the falling piece, or ends the game", MatchTakesGarbage },
+                { "Hardcore starts as fast as level 10", HardcoreSpeed },
+                { "Hardcore pays lines times combo", HardcorePay },
                 { "A wider well works the same", WiderWell },
                 { "Achievement keys are unique and targets make sense", AchievementsWellFormed },
                 { "Totals add up and unlock once", AchievementTotals },
@@ -1309,6 +1311,25 @@ namespace GC26.Tetris.EditorTools
             {
                 Board.SetWidth(Board.DefaultWidth);
             }
+        }
+
+        static void HardcoreSpeed()
+        {
+            var marathon = new TetrisMatch(3, false);
+            var hardcore = new TetrisMatch(3, false, GameMode.Hardcore);
+            Check(hardcore.Level == 1, "hardcore still shows level 1");
+            Check(Mathf.Abs(hardcore.GravityInterval - TetrisMatch.GravityAt(10)) < 0.0001f, "level 1 falls like level 10: " + hardcore.GravityInterval);
+            Check(hardcore.GravityInterval < marathon.GravityInterval / 4f, "much faster than marathon: " + hardcore.GravityInterval + " vs " + marathon.GravityInterval);
+            Check(TetrisMatch.GravityAt(1) > TetrisMatch.GravityAt(2) && TetrisMatch.GravityAt(99) == 0.05f, "speeds up, then caps");
+        }
+
+        static void HardcorePay()
+        {
+            Check(TetrisMatch.HardcoreCoins(1, 1) == 1, "one line, no combo");
+            Check(TetrisMatch.HardcoreCoins(2, 3) == 6, "two lines on combo 3");
+            Check(TetrisMatch.HardcoreCoins(4, 1) == 8, "four lines get the bonus");
+            Check(TetrisMatch.HardcoreCoins(4, 5) == 24, "four lines on combo 5");
+            Check(TetrisMatch.HardcoreCoins(0, 9) == 0, "no lines, no coins");
         }
 
         // Finds a seed that spawns the wanted piece first.

@@ -5,7 +5,8 @@ namespace GC26.Tetris.Logic
 {
     public enum GameState { Playing, Paused, GameOver }
 
-    public enum GameMode { Marathon, Battle }
+    /// <summary>Hardcore: pieces fall from the first level as fast as on level 10, and every clear pays coins.</summary>
+    public enum GameMode { Marathon, Battle, Hardcore }
 
     /// <summary>What one line clear earned, for the score popups and effects.</summary>
     public readonly struct LineClear
@@ -37,6 +38,9 @@ namespace GC26.Tetris.Logic
         const float MaxComboMultiplier = 4f;
         const int SpecialPointsPerCell = 10;
         const int BombRadius = 2;
+        /// <summary>Hardcore's level 1 falls like marathon's level 1 + this.</summary>
+        public const int HardcoreHeadStart = 9;
+        const int FourLineCoinBonus = 4;
 
 
         /// <summary>The cell of a piece that carries its special. Rotations keep the cell order.</summary>
@@ -132,16 +136,27 @@ namespace GC26.Tetris.Logic
             upcomingSpecials.Add(specialDeck != null ? specialDeck.Next() : SpecialKind.None);
         }
 
-        /// <summary>Seconds per row at the current level.</summary>
+        /// <summary>Seconds per row at the current level (hardcore counts its head start too).</summary>
         public float GravityInterval
         {
-            get
-            {
-                float interval = 0.85f;
-                for (int i = 1; i < Level; i++)
-                    interval *= 0.82f;
-                return Math.Max(0.05f, interval);
-            }
+            get { return GravityAt(Level + (Mode == GameMode.Hardcore ? HardcoreHeadStart : 0)); }
+        }
+
+        /// <summary>Seconds per row at a speed level: 0.85 s at level 1, 18% faster each level, never under 0.05 s.</summary>
+        public static float GravityAt(int speedLevel)
+        {
+            float interval = 0.85f;
+            for (int i = 1; i < speedLevel; i++)
+                interval *= 0.82f;
+            return Math.Max(0.05f, interval);
+        }
+
+        /// <summary>Hardcore pay for one clear: a coin per line times the combo, and a bonus for four lines at once.</summary>
+        public static int HardcoreCoins(int lines, int combo)
+        {
+            if (lines <= 0)
+                return 0;
+            return lines * Math.Max(1, combo) + (lines >= 4 ? FourLineCoinBonus : 0);
         }
 
         public int GhostY

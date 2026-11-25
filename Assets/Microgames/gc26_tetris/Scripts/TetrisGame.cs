@@ -21,6 +21,7 @@ namespace GC26.Tetris
         const string BestScoreName = "BestScore";
         const string MarathonTableName = "MarathonTable";
         const string BattleTableName = "BattleTable";
+        const string HardcoreTableName = "HardcoreTable";
         const string CoinsName = "Coins";
         const float RepeatDelay = 0.17f;
         const float RepeatInterval = 0.045f;
@@ -41,6 +42,8 @@ namespace GC26.Tetris
         string recordsPrefix = RecordsPrefix;
         Leaderboard marathonTable;
         Leaderboard battleTable;
+        Leaderboard hardcoreTable;
+        int hardcoreCoins;
         int lastPlace;
         int heldDirection;
         float repeatTimer;
@@ -50,7 +53,7 @@ namespace GC26.Tetris
         bool hardDropping;
 
         // A new popup replaces the previous one in its slot, so fast clears never stack text on text.
-        enum PopupSlot { Points, Lines, Combo, Level, Special, Damage, Defeat, Attack }
+        enum PopupSlot { Points, Lines, Combo, Level, Special, Damage, Defeat, Attack, Coins }
 
         sealed class Popup
         {
@@ -63,10 +66,11 @@ namespace GC26.Tetris
         readonly List<Popup> popups = new List<Popup>();
 
         // Main menu. Items are laid out in world units so they scale with the window, like the rest of the HUD.
-        enum MenuItem { Marathon, Battle, Shop, Achievements, Stats, Sound, Exit }
+        enum MenuItem { Marathon, Battle, Hardcore, Shop, Achievements, Stats, Sound, Exit }
 
-        static readonly MenuItem[] AllMenuItems = { MenuItem.Marathon, MenuItem.Battle, MenuItem.Shop, MenuItem.Achievements, MenuItem.Stats, MenuItem.Sound, MenuItem.Exit };
-        static readonly MenuItem[] PhoneMenuItems = { MenuItem.Marathon, MenuItem.Battle, MenuItem.Shop, MenuItem.Achievements, MenuItem.Stats, MenuItem.Sound };
+        // The bot battle is set aside while hardcore is tried out in its place; its code stays for now.
+        static readonly MenuItem[] AllMenuItems = { MenuItem.Marathon, MenuItem.Hardcore, MenuItem.Shop, MenuItem.Achievements, MenuItem.Stats, MenuItem.Sound, MenuItem.Exit };
+        static readonly MenuItem[] PhoneMenuItems = { MenuItem.Marathon, MenuItem.Hardcore, MenuItem.Shop, MenuItem.Achievements, MenuItem.Stats, MenuItem.Sound };
 
         /// <summary>
         /// A phone app is closed by the system, so the phone menu has no Exit. Inside the GC26 shell the last item
@@ -197,6 +201,7 @@ namespace GC26.Tetris
             coinsTotal = PlayerPrefs.GetInt(recordsPrefix + CoinsName, 0);
             marathonTable = Leaderboard.Parse(PlayerPrefs.GetString(recordsPrefix + MarathonTableName, ""), false);
             battleTable = Leaderboard.Parse(PlayerPrefs.GetString(recordsPrefix + BattleTableName, ""), false);
+            hardcoreTable = Leaderboard.Parse(PlayerPrefs.GetString(recordsPrefix + HardcoreTableName, ""), false);
 
             LoadShop();
             LoadAchievements();
@@ -230,6 +235,16 @@ namespace GC26.Tetris
             PlayerPrefs.SetString(recordsPrefix + BattleTableName, battleTable.Serialize());
             PlayerPrefs.Save();
             Debug.Log("[BlockDrop] Battle result " + game.Score + " place=" + lastPlace + " table=" + battleTable.Serialize());
+        }
+
+        void SaveHardcoreResult()
+        {
+            if (autoplay || noRecords)
+                return;
+            lastPlace = hardcoreTable.Add(game.Score);
+            PlayerPrefs.SetString(recordsPrefix + HardcoreTableName, hardcoreTable.Serialize());
+            PlayerPrefs.Save();
+            Debug.Log("[BlockDrop] Hardcore result " + game.Score + " coins=" + hardcoreCoins + " place=" + lastPlace + " table=" + hardcoreTable.Serialize());
         }
 
         static int Best(Leaderboard table)
@@ -267,7 +282,9 @@ namespace GC26.Tetris
             {
                 case MenuItem.Marathon:
                 case MenuItem.Battle:
-                    mode = MenuItems[menuIndex] == MenuItem.Battle ? GameMode.Battle : GameMode.Marathon;
+                case MenuItem.Hardcore:
+                    MenuItem picked = MenuItems[menuIndex];
+                    mode = picked == MenuItem.Battle ? GameMode.Battle : picked == MenuItem.Hardcore ? GameMode.Hardcore : GameMode.Marathon;
                     Debug.Log("[BlockDrop] Menu: play " + mode);
                     // Out of the menu first: a battle that really starts uses up the bought boosters.
                     inMenu = false;
@@ -315,6 +332,7 @@ namespace GC26.Tetris
             {
                 case MenuItem.Marathon: return T("Марафон", "Marathon");
                 case MenuItem.Battle: return T("Бой с ботом", "Bot battle");
+                case MenuItem.Hardcore: return T("Хардкор", "Hardcore");
                 case MenuItem.Shop: return T("Магазин", "Shop");
                 case MenuItem.Achievements: return T("Достижения", "Achievements") + "  " + achievements.UnlockedCount + "/" + TetrisAchievements.All.Length;
                 case MenuItem.Stats: return T("Статистика", "Statistics");
@@ -353,6 +371,7 @@ namespace GC26.Tetris
             scoreKick = 0f;
             comboKick = 0f;
             popups.Clear();
+            hardcoreCoins = 0;
             view.ResetForNewGame();
             ResetBattle();
             assistPending = assist;
@@ -360,7 +379,7 @@ namespace GC26.Tetris
             // The menu's background game is not one the player started.
             if (!inMenu)
             {
-                CountStat(mode == GameMode.Battle ? PlayStat.Battles : PlayStat.MarathonGames, 1);
+                CountStat(mode == GameMode.Battle ? PlayStat.Battles : mode == GameMode.Hardcore ? PlayStat.HardcoreGames : PlayStat.MarathonGames, 1);
                 CountStat(PlayStat.BestLevel, game.Level);
                 SaveStats();
             }
@@ -445,6 +464,8 @@ namespace GC26.Tetris
             scoreKick = 1f;
             if (battle != null)
                 ApplyBattleHit(clear);
+            if (game.Mode == GameMode.Hardcore)
+                PayHardcoreCoins(clear, worldY);
             AddPopup(PopupSlot.Points, "+" + clear.Points.ToString("N0"), worldY, 1.25f + count * 0.14f, PopupLife, 2.6f, Color.white);
 
             if (count >= 4)
@@ -493,6 +514,8 @@ namespace GC26.Tetris
             // Each mode keeps its own table: a battle scores extra for the bot, so the two do not compare.
             if (game.Mode == GameMode.Marathon)
                 SaveMarathonResult();
+            else if (game.Mode == GameMode.Hardcore)
+                SaveHardcoreResult();
             else
                 SaveBattleResult();
         }
@@ -521,6 +544,8 @@ namespace GC26.Tetris
             shownScore = Mathf.MoveTowards(shownScore, game.Score, Mathf.Max(60f, (game.Score - shownScore) * 8f) * deltaTime);
             scoreKick = Mathf.Max(0f, scoreKick - deltaTime * 4f);
             comboKick = Mathf.Max(0f, comboKick - deltaTime * 3f);
+            if (battle == null)
+                coinKick = Mathf.Max(0f, coinKick - deltaTime * 5f);
             UpdateBattleLooks(deltaTime);
 
             GameStateForAudio music = inMenu ? GameStateForAudio.Paused
@@ -779,6 +804,11 @@ namespace GC26.Tetris
                     Stat(T("МОНЕТЫ", "COINS"), Mathf.RoundToInt(shownCoins).ToString("N0"), StatSlot.Second, unit, 1f + coinKick * 0.25f);
                 }
             }
+            else if (game.Mode == GameMode.Hardcore)
+            {
+                Stat(T("РЕКОРД", "BEST"), Mathf.Max(Best(hardcoreTable), game.Score).ToString("N0"), StatSlot.Second, unit);
+                DrawHardcoreCoins(unit);
+            }
             else
             {
                 Stat(T("РЕКОРД", "BEST"), Mathf.Max(bestScore, game.Score).ToString("N0"), StatSlot.Second, unit);
@@ -834,6 +864,9 @@ namespace GC26.Tetris
             else if (game.State == GameState.GameOver && game.Mode == GameMode.Battle)
                 Overlay(T("БОЙ ОКОНЧЕН", "BATTLE OVER"), T("Счёт: ", "Score: ") + game.Score.ToString("N0") + "\n" + PlaceText() +
                     T("Ботов: ", "Bots: ") + battle.BotsDefeated + T("    монет: +", "    coins: +") + battle.CoinsEarned, unit);
+            else if (game.State == GameState.GameOver && game.Mode == GameMode.Hardcore)
+                Overlay(T("ХАРДКОР ОКОНЧЕН", "HARDCORE OVER"), T("Счёт: ", "Score: ") + game.Score.ToString("N0") + "\n" + PlaceText() +
+                    T("Монет: +", "Coins: +") + hardcoreCoins, unit);
             else if (game.State == GameState.GameOver)
                 Overlay(T("ИГРА ОКОНЧЕНА", "GAME OVER"), T("Счёт: ", "Score: ") + game.Score.ToString("N0") + "\n" + PlaceText().TrimEnd('\n'), unit);
         }
@@ -940,6 +973,10 @@ namespace GC26.Tetris
                 {
                     mode = GameMode.Battle;
                 }
+                else if (args[i] == "-hardcore")
+                {
+                    mode = GameMode.Hardcore;
+                }
                 else if (args[i] == "-noRecords")
                 {
                     noRecords = true;
@@ -973,6 +1010,7 @@ namespace GC26.Tetris
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + BestScoreName);
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + MarathonTableName);
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + BattleTableName);
+                    PlayerPrefs.DeleteKey(TestRecordsPrefix + HardcoreTableName);
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + CoinsName);
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + ShopName);
                     PlayerPrefs.DeleteKey(TestRecordsPrefix + AchievementsName);

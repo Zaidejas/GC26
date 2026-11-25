@@ -20,7 +20,8 @@ namespace GC26.Tetris.Logic
         Bots,
         AttacksBlocked,
         GarbageRows,     // garbage rows the bots managed to push in
-        Coins,           // every coin earned: battles and achievement rewards
+        Coins,           // every coin earned: battles, hardcore and achievement rewards
+        HardcoreGames,
     }
 
     /// <summary>
@@ -33,7 +34,7 @@ namespace GC26.Tetris.Logic
         static readonly string[] Keys =
         {
             "marathons", "battles", "seconds", "pieces", "lines", "fours", "combo", "level",
-            "bombs", "lightnings", "bots", "blocked", "garbage", "coins",
+            "bombs", "lightnings", "bots", "blocked", "garbage", "coins", "hardcore",
         };
 
         public static readonly int Count = Enum.GetValues(typeof(PlayStat)).Length;

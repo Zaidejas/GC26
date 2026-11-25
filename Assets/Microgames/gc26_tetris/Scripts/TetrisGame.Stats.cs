@@ -108,7 +108,7 @@ namespace GC26.Tetris
             return new[]
             {
                 new StatsRow(T("Марафонов сыграно", "Marathons played"), Number(PlayStat.MarathonGames), 2),
-                new StatsRow(T("Боёв сыграно", "Battles played"), Number(PlayStat.Battles), 2),
+                new StatsRow(T("Хардкоров сыграно", "Hardcore games"), Number(PlayStat.HardcoreGames), 2),
                 new StatsRow(T("Время в игре", "Time played"), Duration(playStats.Get(PlayStat.Seconds)), 2),
                 new StatsRow(T("Фигур поставлено", "Pieces placed"), Number(PlayStat.Pieces), 2),
                 new StatsRow(T("Линий очищено", "Lines cleared"), Number(PlayStat.Lines), 6),
@@ -116,7 +116,7 @@ namespace GC26.Tetris
                 new StatsRow(T("Лучшее комбо", "Best combo"), Number(PlayStat.BestCombo), 6),
                 new StatsRow(T("Лучший уровень", "Best level"), Number(PlayStat.BestLevel), 6),
                 new StatsRow(T("Рекорд марафона", "Marathon best"), Best(marathonTable).ToString("N0"), 3),
-                new StatsRow(T("Рекорд боя", "Battle best"), Best(battleTable).ToString("N0"), 3),
+                new StatsRow(T("Рекорд хардкора", "Hardcore best"), Best(hardcoreTable).ToString("N0"), 3),
                 new StatsRow(T("Бомб взорвано", "Bombs set off"), Number(PlayStat.Bombs), 0),
                 new StatsRow(T("Ударов молнии", "Lightning strikes"), Number(PlayStat.Lightnings), 0),
                 new StatsRow(T("Ботов повержено", "Bots beaten"), Number(PlayStat.Bots), 1),

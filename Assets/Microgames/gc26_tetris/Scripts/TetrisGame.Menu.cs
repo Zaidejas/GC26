@@ -93,7 +93,7 @@ namespace GC26.Tetris
                 DrawMenuButton(i, unit);
 
             DrawTablePanel(T("Марафон: лучшие очки", "Marathon: best scores"), HudLayout.MenuTable(0), marathonTable, unit);
-            DrawTablePanel(T("Бой: лучшие очки", "Battle: best scores"), HudLayout.MenuTable(1), battleTable, unit);
+            DrawTablePanel(T("Хардкор: лучшие очки", "Hardcore: best scores"), HudLayout.MenuTable(1), hardcoreTable, unit);
             string menuHint = IsPhone ? TouchHint()
                 : T("↑ ↓ выбрать    Enter подтвердить    или мышью    L — English", "↑ ↓ select    Enter confirm    or use the mouse    L — русский");
             Label(menuHint, 0f, HudLayout.MenuHintY, unit, IsPhone ? 0.36f : 0.42f, TextAnchor.MiddleCenter, Muted);
@@ -325,7 +325,8 @@ namespace GC26.Tetris
         {
             if (game.Mode == GameMode.Battle)
                 return T("Бой     счёт ", "Battle     score ") + game.Score.ToString("N0") + T("     бот ", "     bot ") + battle.Level + T("     монет +", "     coins +") + battle.CoinsEarned;
-            return T("Марафон    счёт ", "Marathon    score ") + game.Score.ToString("N0") + T("     линий ", "     lines ") + game.Lines + T("     уровень ", "     level ") + game.Level;
+            string modeName = game.Mode == GameMode.Hardcore ? T("Хардкор", "Hardcore") : T("Марафон", "Marathon");
+            return modeName + T("    счёт ", "    score ") + game.Score.ToString("N0") + T("     линий ", "     lines ") + game.Lines + T("     уровень ", "     level ") + game.Level;
         }
 
         string MenuHint(MenuItem item)
@@ -334,6 +335,7 @@ namespace GC26.Tetris
             {
                 case MenuItem.Marathon: return T("играй, пока хватит места", "play for as long as there is room");
                 case MenuItem.Battle: return T("линии бьют бота, комбо сильнее, падают монетки", "lines hit the bot, combos hit harder, coins drop");
+                case MenuItem.Hardcore: return T("быстро с первого уровня, линии дают монеты", "fast from level one, lines pay coins");
                 case MenuItem.Shop: return T("бусты для боя и скины блоков за монеты", "battle boosters and block skins for coins");
                 case MenuItem.Achievements: return T("цели с наградой в монетах", "goals that pay coins");
                 case MenuItem.Stats: return T("сколько сыграно, линий, ботов и времени", "games, lines, bots and time, all counted");
