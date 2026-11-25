@@ -85,6 +85,10 @@ namespace GC26._2048
             ["moves_made"] = new[] { "Moves made", "Сделано ходов" },
             ["cheese_ready"] = new[] { "Cheese is ready!", "Сыр готов!" },
             ["hole_opened"] = new[] { "A mouse hole appeared!", "Появилась мышиная норка!" },
+            ["debug"] = new[] { "Debug", "Отладка" },
+            ["debug_title"] = new[] { "Cheats", "Читы" },
+            ["cheat_cheese"] = new[] { "Add 1 cheese", "Добавить 1 сыр" },
+            ["cheat_no_room"] = new[] { "No free cell", "Нет свободной клетки" },
         };
 
         // One name per item, the same on tiles, in the rules and on the results screen.

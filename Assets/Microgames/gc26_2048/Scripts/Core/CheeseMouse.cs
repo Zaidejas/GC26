@@ -72,11 +72,15 @@ namespace GC26._2048
             }
 
             // a new cheese (that the mouse did not just eat) starts the countdown from the next move
-            if (State == MouseState.None && MadeCheeseLeft(result))
-            {
-                State = MouseState.Coming;
-                Countdown = CheeseRules.MouseDelayMoves;
-            }
+            if (MadeCheeseLeft(result)) CheeseAppeared();
+        }
+
+        /// <summary>A cheese is on the field that the mouse has not reacted to: with no hole yet, start the countdown.</summary>
+        public void CheeseAppeared()
+        {
+            if (State != MouseState.None) return;
+            State = MouseState.Coming;
+            Countdown = CheeseRules.MouseDelayMoves;
         }
 
         void OpenHole(int size, Random rng, MoveResult result)

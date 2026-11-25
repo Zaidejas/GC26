@@ -22,7 +22,11 @@ namespace GC26._2048
     {
         public const string Id = "gc26_2048";
 
-        const string Pause = "pause", Settings = "settings", Rules = "rules", Confirm = "confirm", Results = "results";
+        const string Pause = "pause", Settings = "settings", Rules = "rules", Confirm = "confirm", Results = "results",
+            Cheats = "cheats";
+
+        /// <summary>The debug button and its cheats exist only in the Editor and in development builds.</summary>
+        static bool DebugTools => Debug.isDebugBuild;
 
         Action<int> _exit;
         bool _started;
@@ -207,6 +211,7 @@ namespace GC26._2048
                 else if (sheets[Settings].gameObject.activeSelf) Show(settingsReturn);
                 else if (sheets[Rules].gameObject.activeSelf) Show(rulesReturn);
                 else if (sheets[Confirm].gameObject.activeSelf) Show(confirmReturn);
+                else if (sheets.TryGetValue(Cheats, out var cheats) && cheats.gameObject.activeSelf) Show(null);
                 return;
             }
             if (gameScreen.gameObject.activeSelf && playing) Show(Pause);
@@ -402,6 +407,25 @@ namespace GC26._2048
             if (sound.Enabled) sound.Play(CheeseSound.Chime, 3);
         }
 
+        // ---------------- debug cheats (Editor and development builds) ----------------
+
+        void CheatAddCheese()
+        {
+            Show(null);
+            if (!playing || boardView.Busy) return;
+            var e = session.CheatAddCheese();
+            if (!e.HasValue)
+            {
+                StartCoroutine(Toast(loc["cheat_no_room"]));
+                return;
+            }
+            boardView.AddTile(e.Value);
+            sound.Play(CheeseSound.Fanfare);
+            StartCoroutine(Bump(cheeseCard));
+            RenderHud();
+            storage.SaveGame(session);
+        }
+
         // ---------------- small effects ----------------
 
         IEnumerator Bump(RectTransform card)
@@ -587,6 +611,12 @@ namespace GC26._2048
                 else NewGame();
             });
             ((RectTransform)restart.transform).Place(0.66f, 0.893f, 0.95f, 0.952f);
+
+            if (DebugTools)
+            {
+                var debug = LocButton(s, "debug", false, () => { if (playing) Show(Cheats); }, 28f);
+                ((RectTransform)debug.transform).Place(0.05f, 0.957f, 0.3f, 0.993f);
+            }
             return s;
         }
 
@@ -640,6 +670,13 @@ namespace GC26._2048
             Bind(CheeseUi.Label(confirm, "", 40f, CheeseArt.InkDim, TextAlignmentOptions.Left), "confirm_text");
             Btn(confirm, "confirm_yes", true, NewGame);
             Btn(confirm, "cancel", false, () => Show(confirmReturn));
+
+            if (DebugTools)
+            {
+                var cheats = Sheet(o, Cheats, "debug_title");
+                Btn(cheats, "cheat_cheese", true, CheatAddCheese);
+                Btn(cheats, "close", false, () => Show(null));
+            }
 
             var results = Sheet(o, Results, null);
             resultTitle = Bind(results.GetChild(0).GetComponent<TextMeshProUGUI>(),

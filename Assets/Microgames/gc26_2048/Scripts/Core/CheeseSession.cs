@@ -85,6 +85,18 @@ namespace GC26._2048
             return result;
         }
 
+        /// <summary>
+        /// Debug cheat: puts one cheese into a random empty cell (null when the field is full). Not a move: score,
+        /// moves and records stay as they are; the mouse treats it like any new cheese.
+        /// </summary>
+        public TileEvent? CheatAddCheese()
+        {
+            if (IsOver) return null;
+            var e = Board.SpawnRandom(rng, CheeseRules.CheeseLevel);
+            if (e.HasValue) Mouse.CheeseAppeared();
+            return e;
+        }
+
         TileEvent? Spawn(int level)
         {
             var e = Board.SpawnRandom(rng, level);

@@ -175,6 +175,34 @@ namespace GC26._2048.Tests
         }
 
         [Test]
+        public void CheatAddsOneCheeseToAnEmptyCellAndNothingElse()
+        {
+            var s = new CheeseSession(1);
+            s.Restore(new[] { 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 100, 50, false, 2);
+            var e = s.CheatAddCheese();
+            Assert.IsTrue(e.HasValue);
+            Assert.AreEqual(CheeseRules.CheeseLevel, e.Value.Level);
+            Assert.AreEqual(CheeseRules.CheeseLevel, s.Board.LevelAt(e.Value.Row, e.Value.Col));
+            Assert.AreEqual(e.Value.Id, s.Board.IdAt(e.Value.Row, e.Value.Col));
+            Assert.AreEqual(1, s.Cheeses);
+            Assert.AreEqual(1, s.Board.LevelAt(0, 0), "items already there stay");
+            Assert.AreEqual(2, s.Board.LevelAt(0, 1));
+            Assert.AreEqual(100, s.Score);
+            Assert.AreEqual(50, s.MovesLeft);
+            Assert.AreEqual(2, s.BestLevel, "a cheat is not a record");
+            Assert.AreEqual(MouseState.Coming, s.Mouse.State, "the mouse reacts like to any new cheese");
+        }
+
+        [Test]
+        public void CheatDoesNothingOnAFullField()
+        {
+            var s = new CheeseSession(1);
+            s.Restore(new[] { 1, 2, 1, 2, 2, 1, 2, 1, 1, 2, 1, 2, 2, 1, 2, 1 }, 0, 50, false, 2);
+            Assert.IsFalse(s.CheatAddCheese().HasValue);
+            Assert.AreEqual(0, s.Cheeses);
+        }
+
+        [Test]
         public void SessionEndsWhenMovesRunOut()
         {
             var s = new CheeseSession(1);

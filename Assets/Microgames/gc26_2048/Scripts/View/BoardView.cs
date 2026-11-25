@@ -240,6 +240,15 @@ namespace GC26._2048
 
         public void Play(MoveResult result, Action onDone) => StartCoroutine(Animate(result, onDone));
 
+        /// <summary>An item put on the field outside a move (debug cheats): grows in and glows.</summary>
+        public void AddTile(TileEvent e)
+        {
+            var view = Take(e.Level);
+            view.SetCell(e.Row, e.Col);
+            tiles[e.Id] = view;
+            view.PlayMerge();
+        }
+
         IEnumerator Animate(MoveResult result, Action onDone)
         {
             Busy = true;
