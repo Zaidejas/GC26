@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace GC26._2048
 {
     /// <summary>
-    /// The field: item levels 0–7 per cell (0 = empty) and a stable id per item for the animations.
+    /// The field: item levels 0–8 per cell (0 = empty, 8 = cheese) and a stable id per item for the animations.
     /// Plain C#, no Unity types, covered by edit-mode tests.
     /// </summary>
     public class Board
@@ -46,7 +46,7 @@ namespace GC26._2048
         {
             Clear();
             for (int i = 0; i < levels.Length && i < cells.Length; i++)
-                if (cells[i] > 0 && cells[i] < CheeseRules.CheeseLevel)
+                if (cells[i] > 0 && cells[i] <= CheeseRules.CheeseLevel)
                     Place(i / Size, i % Size, cells[i]);
         }
 
@@ -57,6 +57,7 @@ namespace GC26._2048
             {
                 int level = LevelAt(r, c);
                 if (level == 0) return true;
+                if (level == CheeseRules.CheeseLevel) continue; // cheese never merges
                 if (c < Size - 1 && LevelAt(r, c + 1) == level) return true;
                 if (r < Size - 1 && LevelAt(r + 1, c) == level) return true;
             }
@@ -65,7 +66,7 @@ namespace GC26._2048
 
         /// <summary>
         /// Slides every item to the side of <paramref name="dir"/>. Two equal neighbours merge once per move,
-        /// starting from that side; two level-7 items make cheese, which leaves the field at once.
+        /// starting from that side; two level-7 items make cheese, the last item: it stays and never merges again.
         /// Does not spawn a new item and leaves the board untouched when nothing moved.
         /// </summary>
         public MoveResult Move(Direction dir)
@@ -91,28 +92,18 @@ namespace GC26._2048
                     int i = r * Size + c, level = levels[i], id = ids[i];
                     if (level == 0) continue;
 
-                    if (canMerge && lastLevel == level)
+                    if (canMerge && lastLevel == level && level < CheeseRules.CheeseLevel)
                     {
                         var (tr, tc) = line[p - 1];
                         int t = tr * Size + tc;
                         result.Points += CheeseRules.PointsForMerge(level);
                         result.Changed = true;
                         result.Events.Add(TileEvent.Moved(id, tr, tc));
-                        if (level + 1 == CheeseRules.CheeseLevel)
-                        {
-                            newLevels[t] = 0;
-                            newIds[t] = 0;
-                            p--;
-                            result.Cheeses++;
-                            result.Events.Add(TileEvent.ToHole(lastId, id, tr, tc));
-                        }
-                        else
-                        {
-                            newLevels[t] = level + 1;
-                            slots[p - 1].merged = true;
-                            slots[p - 1].back = k;
-                            result.Events.Add(TileEvent.Merged(lastId, id, tr, tc, level + 1));
-                        }
+                        newLevels[t] = level + 1;
+                        slots[p - 1].merged = true;
+                        slots[p - 1].back = k;
+                        if (level + 1 == CheeseRules.CheeseLevel) result.Cheeses++;
+                        result.Events.Add(TileEvent.Merged(lastId, id, tr, tc, level + 1));
                         result.TopLevel = Math.Max(result.TopLevel, level + 1);
                         canMerge = false;
                     }

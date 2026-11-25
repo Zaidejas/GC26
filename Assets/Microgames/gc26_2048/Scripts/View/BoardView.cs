@@ -8,8 +8,8 @@ namespace GC26._2048
 {
     /// <summary>
     /// Draws the 4×4 field in its wooden crate and animates moves: slide 0.1 s, then pulse and glow for merges,
-    /// jelly squash for items that bumped into each other without merging, cheese flies to the hole, the new item
-    /// grows in. Tiles come from a small pool.
+    /// jelly squash for items that bumped into each other without merging, the new item grows in. Cheese is an
+    /// ordinary merge result: it stays on the field. Tiles come from a small pool.
     /// </summary>
     public class BoardView : MonoBehaviour
     {
@@ -72,7 +72,7 @@ namespace GC26._2048
                 if (e.Kind == TileEventKind.Moved && tiles.TryGetValue(e.Id, out var v))
                     moving.Add((v, v.AnchorMin, TileView.CellMin(e.Row, e.Col)));
             foreach (var e in result.Events)
-                if ((e.Kind == TileEventKind.Merged || e.Kind == TileEventKind.ToHole) && tiles.TryGetValue(e.OtherId, out var gone))
+                if (e.Kind == TileEventKind.Merged && tiles.TryGetValue(e.OtherId, out var gone))
                     gone.transform.SetSiblingIndex(CheeseRules.Size * CheeseRules.Size); // just above the slots
 
             for (float t = 0; t < SlideTime; t += Time.unscaledDeltaTime)
@@ -83,7 +83,7 @@ namespace GC26._2048
             }
             foreach (var m in moving) m.view.SetAnchor(m.to);
 
-            // 2. merges, cheese, new item
+            // 2. merges (cheese included), new item
             foreach (var e in result.Events)
             {
                 if (e.Kind == TileEventKind.Merged)
@@ -93,16 +93,6 @@ namespace GC26._2048
                     {
                         keep.Show(e.Level, art);
                         keep.PlayMerge();
-                    }
-                }
-                else if (e.Kind == TileEventKind.ToHole)
-                {
-                    foreach (int id in new[] { e.Id, e.OtherId })
-                    {
-                        if (!tiles.TryGetValue(id, out var cheese)) continue;
-                        tiles.Remove(id);
-                        cheese.Show(CheeseRules.CheeseLevel, art);
-                        StartCoroutine(FlyAndRelease(cheese));
                     }
                 }
             }
@@ -122,13 +112,6 @@ namespace GC26._2048
 
             Busy = false;
             onDone?.Invoke();
-        }
-
-        IEnumerator FlyAndRelease(TileView view)
-        {
-            view.transform.SetAsLastSibling();
-            yield return view.FlyToHole();
-            Release(view);
         }
 
         TileView Take(int level)

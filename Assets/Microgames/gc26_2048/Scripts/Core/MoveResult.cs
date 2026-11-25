@@ -8,8 +8,6 @@ namespace GC26._2048
         Moved,
         /// <summary>Item <c>OtherId</c> merged into <c>Id</c>, which becomes <c>Level</c>.</summary>
         Merged,
-        /// <summary>Items <c>Id</c> and <c>OtherId</c> became cheese at (Row, Col); the mouse takes it to the hole.</summary>
-        ToHole,
         /// <summary>New item <c>Id</c> of <c>Level</c> appears at (Row, Col).</summary>
         Spawned
     }
@@ -35,7 +33,6 @@ namespace GC26._2048
 
         public static TileEvent Moved(int id, int row, int col) => new TileEvent(TileEventKind.Moved, id, 0, row, col, 0);
         public static TileEvent Merged(int id, int otherId, int row, int col, int level) => new TileEvent(TileEventKind.Merged, id, otherId, row, col, level);
-        public static TileEvent ToHole(int id, int otherId, int row, int col) => new TileEvent(TileEventKind.ToHole, id, otherId, row, col, CheeseRules.CheeseLevel);
         public static TileEvent Spawned(int id, int row, int col, int level) => new TileEvent(TileEventKind.Spawned, id, 0, row, col, level);
     }
 
@@ -44,6 +41,7 @@ namespace GC26._2048
     {
         public bool Changed;
         public int Points;
+        /// <summary>Cheeses made by this move (they stay on the field).</summary>
         public int Cheeses;
         /// <summary>Highest level created by a merge this move (8 = cheese), 0 if none.</summary>
         public int TopLevel;

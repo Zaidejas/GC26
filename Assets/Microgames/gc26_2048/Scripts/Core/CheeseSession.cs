@@ -9,7 +9,7 @@ namespace GC26._2048
         BoardFull
     }
 
-    /// <summary>One game: the board plus score, moves left and cheeses in the hole. Plain C#.</summary>
+    /// <summary>One game: the board plus score, moves left and cheeses made. Plain C#.</summary>
     public class CheeseSession
     {
         readonly Random rng;
@@ -17,6 +17,7 @@ namespace GC26._2048
         public Board Board { get; } = new Board();
         public int Score { get; private set; }
         public int MovesLeft { get; private set; }
+        /// <summary>Cheeses made this game (they stay on the field).</summary>
         public int Cheeses { get; private set; }
         public bool CheeseShown { get; private set; }
         /// <summary>Most valuable item seen this game (8 = cheese).</summary>

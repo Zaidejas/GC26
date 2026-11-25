@@ -31,7 +31,7 @@ namespace GC26._2048
             ["menu"] = new[] { "Menu", "Меню" },
             ["score_caps"] = new[] { "SCORE", "ОЧКИ" },
             ["moves_caps"] = new[] { "MOVES", "ХОДЫ" },
-            ["hole_caps"] = new[] { "HOLE", "НОРКА" },
+            ["cheese_caps"] = new[] { "CHEESE", "СЫР" },
             ["hint"] = new[] { "Swipe the field or use the arrows", "Свайп по полю или стрелки" },
             ["restart"] = new[] { "Restart", "Заново" },
             ["resume"] = new[] { "Resume", "Продолжить" },
@@ -49,18 +49,18 @@ namespace GC26._2048
                 "1. Swipe up, down, left or right — every item on the field slides.\n" +
                 "2. Two identical items merge into the next one.\n" +
                 "3. Every merge scores points: the more valuable the item, the more points — from 32 to 2048.\n" +
-                "4. The mouse takes finished cheese to its hole right away, and the cell is freed.\n" +
+                "4. Cheese is the last item: it stays on the field and does not merge any further.\n" +
                 "5. After every move, new grass or hay appears on the field.\n" +
                 "6. You have 300 moves. The game ends when you run out of moves or the field is full.",
                 "1. Проведите пальцем вверх, вниз, влево или вправо — все предметы на поле сдвинутся.\n" +
                 "2. Два одинаковых предмета объединяются в следующий.\n" +
                 "3. За каждое объединение — очки: чем ценнее предмет, тем больше, от 32 до 2048.\n" +
-                "4. Готовый сыр мышка сразу уносит в норку, и место освобождается.\n" +
+                "4. Сыр — последний предмет: он остаётся на поле и дальше не объединяется.\n" +
                 "5. После каждого хода на поле появляется новая трава или сено.\n" +
                 "6. У вас 300 ходов. Игра заканчивается, когда ходы кончатся или поле заполнится."
             },
             ["chain_first"] = new[] { "appears on the field", "появляется на поле" },
-            ["chain_to_hole"] = new[] { " → the mouse takes it home", " → мышка уносит в норку" },
+            ["chain_last"] = new[] { " · the last item", " · последний предмет" },
             ["confirm_title"] = new[] { "Start over?", "Начать заново?" },
             ["confirm_text"] = new[]
             {
@@ -75,7 +75,7 @@ namespace GC26._2048
             ["score"] = new[] { "Score", "Очки" },
             ["best"] = new[] { "Best", "Рекорд" },
             ["best_item"] = new[] { "Best item", "Лучший предмет" },
-            ["cheese_in_hole"] = new[] { "Cheese in the hole", "Сыров в норке" },
+            ["cheese_made"] = new[] { "Cheese made", "Сделано сыров" },
             ["moves_made"] = new[] { "Moves made", "Сделано ходов" },
             ["cheese_ready"] = new[] { "Cheese is ready!", "Сыр готов!" },
         };

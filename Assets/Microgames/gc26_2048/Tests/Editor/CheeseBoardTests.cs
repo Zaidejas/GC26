@@ -52,22 +52,56 @@ namespace GC26._2048.Tests
         }
 
         [Test]
-        public void TwoCottageCheeseBowlsMakeCheeseThatLeavesTheField()
+        public void TwoCurdsMakeCheeseThatStaysOnTheField()
         {
             var b = Row(7, 7, 1, 0);
             var r = b.Move(Direction.Left);
-            Assert.AreEqual(new[] { 1, 0, 0, 0 }, FirstRow(b));
+            Assert.AreEqual(new[] { 8, 1, 0, 0 }, FirstRow(b));
             Assert.AreEqual(2048, r.Points);
             Assert.AreEqual(1, r.Cheeses);
-            Assert.IsTrue(r.Events.Any(e => e.Kind == TileEventKind.ToHole));
+            Assert.IsTrue(r.Events.Any(e => e.Kind == TileEventKind.Merged && e.Level == CheeseRules.CheeseLevel));
         }
 
         [Test]
-        public void ItemsBeforeTheCheeseCannotMergeAcrossIt()
+        public void ItemsAroundTheCheeseStayApart()
         {
             var b = Row(1, 7, 7, 1);
             b.Move(Direction.Left);
-            Assert.AreEqual(new[] { 1, 1, 0, 0 }, FirstRow(b));
+            Assert.AreEqual(new[] { 1, 8, 1, 0 }, FirstRow(b));
+        }
+
+        [Test]
+        public void TwoCheesesNeverMerge()
+        {
+            var b = Row(8, 8, 0, 0);
+            var r = b.Move(Direction.Left);
+            Assert.IsFalse(r.Changed);
+            Assert.AreEqual(new[] { 8, 8, 0, 0 }, FirstRow(b));
+            b = Row(0, 8, 0, 8);
+            r = b.Move(Direction.Left);
+            Assert.AreEqual(new[] { 8, 8, 0, 0 }, FirstRow(b));
+            Assert.AreEqual(0, r.Points);
+            Assert.AreEqual(0, r.Cheeses);
+        }
+
+        [Test]
+        public void FullFieldWithNeighbouringCheesesHasNoMoves()
+        {
+            // checkerboard of cheese and grass/hay, plus two cheeses side by side: still no move
+            var cells = new int[16];
+            for (int i = 0; i < 16; i++) cells[i] = (i / 4 + i % 4) % 2 == 0 ? 8 : (i / 4) % 2 == 0 ? 1 : 2;
+            cells[1] = 8;
+            var b = new Board();
+            b.Load(cells);
+            Assert.AreEqual(8, b.LevelAt(0, 0));
+            Assert.AreEqual(8, b.LevelAt(0, 1));
+            Assert.IsFalse(b.HasMoves());
+        }
+
+        [Test]
+        public void SavedCheeseLoadsBackOntoTheField()
+        {
+            Assert.AreEqual(new[] { 8, 3, 0, 0 }, FirstRow(Row(8, 3, 0, 0)));
         }
 
         [TestCase(1, 32)]

@@ -6,7 +6,7 @@ namespace GC26._2048
 {
     /// <summary>
     /// One item on the field: tinted box with the item icon only (names live in the rules window).
-    /// Effects: appear, pulse, glow after a merge, jelly squash after a bump, flight to the hole.
+    /// Effects: appear, pulse, glow after a merge, jelly squash after a bump.
     /// Effects run on the tile itself, so a tile going back to the pool stops them; <see cref="Show"/> resets the look.
     /// </summary>
     public class TileView : MonoBehaviour
@@ -166,25 +166,6 @@ namespace GC26._2048
                 yield return null;
             }
             rect.localScale = Vector3.one;
-        }
-
-        /// <summary>The cheese flies up towards the hole and fades out.</summary>
-        public IEnumerator FlyToHole(float duration = 0.45f)
-        {
-            var start = rect.anchoredPosition;
-            float height = rect.rect.height;
-            for (float t = 0; t < duration; t += Time.unscaledDeltaTime)
-            {
-                float k = t / duration;
-                float e = k * k;
-                rect.anchoredPosition = start + new Vector2(0, height * 1.6f * e);
-                rect.localScale = Vector3.one * Mathf.Lerp(1f, 0.35f, e);
-                rect.localRotation = Quaternion.Euler(0, 0, -20f * e);
-                group.alpha = 1f - e;
-                yield return null;
-            }
-            rect.anchoredPosition = start;
-            rect.localRotation = Quaternion.identity;
         }
 
         static float EaseOut(float k) => 1f - (1f - k) * (1f - k);

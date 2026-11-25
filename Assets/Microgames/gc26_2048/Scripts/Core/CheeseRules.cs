@@ -4,7 +4,7 @@ namespace GC26._2048
     public static class CheeseRules
     {
         public const int Size = 4;
-        /// <summary>Level 8 is the cheese: it never stays on the field, the mouse takes it to the hole.</summary>
+        /// <summary>Level 8 is the cheese, the last item: it stays on the field and never merges any further.</summary>
         public const int CheeseLevel = 8;
         public const int MoveLimit = 300;
         /// <summary>Chance that a new item is hay (level 2) instead of grass (level 1).</summary>

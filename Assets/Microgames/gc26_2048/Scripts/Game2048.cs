@@ -39,15 +39,15 @@ namespace GC26._2048
         readonly Dictionary<string, RectTransform> sheets = new Dictionary<string, RectTransform>();
         readonly List<(TextMeshProUGUI label, Func<string> text)> bound = new List<(TextMeshProUGUI, Func<string>)>();
 
-        TextMeshProUGUI scoreText, bestText, movesText, holeText;
+        TextMeshProUGUI scoreText, bestText, movesText, cheeseText;
         Image movesCard;
-        RectTransform scoreCard, holeCard;
+        RectTransform scoreCard, cheeseCard;
 
         Button continueButton, playButton, exitButton, soundButton;
         TextMeshProUGUI menuBestText, menuFindText;
         Image menuFindIcon;
 
-        TextMeshProUGUI resultTitle, resultScore, resultBest, resultFind, resultHole, resultMoves;
+        TextMeshProUGUI resultTitle, resultScore, resultBest, resultFind, resultCheese, resultMoves;
         Image resultFindIcon;
         GameObject resultRecord;
 
@@ -234,7 +234,7 @@ namespace GC26._2048
             if (r.Cheeses > 0)
             {
                 sound.Play(CheeseSound.Fanfare);
-                StartCoroutine(Bump(holeCard));
+                StartCoroutine(Bump(cheeseCard));
             }
             else if (r.TopLevel == 3) sound.Play(CheeseSound.Moo);
             else if (r.TopLevel > 0) sound.Play(CheeseSound.Chime, r.TopLevel);
@@ -345,7 +345,7 @@ namespace GC26._2048
             resultFindIcon.gameObject.SetActive(level > 0);
             resultFindIcon.sprite = art.Item(level);
             resultFind.text = level > 0 ? loc.ItemName(level) : "—";
-            resultHole.text = session.Cheeses.ToString();
+            resultCheese.text = session.Cheeses.ToString();
             resultMoves.text = session.MovesMade.ToString();
         }
 
@@ -357,7 +357,7 @@ namespace GC26._2048
             bool warn = session.MovesLeft <= CheeseRules.WarnMovesLeft;
             movesText.color = warn ? (Color)CheeseArt.Warn : CheeseArt.Ink;
             movesCard.color = warn ? new Color(1f, 0.86f, 0.82f) : (Color)CheeseArt.Panel;
-            holeText.text = session.Cheeses.ToString();
+            cheeseText.text = session.Cheeses.ToString();
         }
 
         void Show(string sheet)
@@ -552,8 +552,8 @@ namespace GC26._2048
             bestText = Card(hud, "best_caps", out _, out _);
             movesText = Card(hud, "moves_caps", out var movesRect, out _);
             movesCard = movesRect.GetComponent<Image>();
-            holeText = Card(hud, "hole_caps", out holeCard, out var holeIcon, withIcon: true);
-            holeIcon.sprite = art.Item(CheeseRules.CheeseLevel);
+            cheeseText = Card(hud, "cheese_caps", out cheeseCard, out var cheeseIcon, withIcon: true);
+            cheeseIcon.sprite = art.Item(CheeseRules.CheeseLevel);
 
             var area = CheeseUi.Rect("FieldArea", s).Place(0.04f, 0.18f, 0.96f, 0.875f);
             var hit = area.gameObject.AddComponent<Image>();
@@ -619,7 +619,7 @@ namespace GC26._2048
                 Bind(CheeseUi.Label(line, "", 32f, CheeseArt.Ink, TextAlignmentOptions.Left), () =>
                 {
                     string from = level == 1 ? loc["chain_first"]
-                        : $"2 × {loc.ItemName(level - 1).ToLower()}{(level == CheeseRules.CheeseLevel ? loc["chain_to_hole"] : "")}";
+                        : $"2 × {loc.ItemName(level - 1).ToLower()}{(level == CheeseRules.CheeseLevel ? loc["chain_last"] : "")}";
                     return $"<b>{loc.ItemName(level)}</b>\n<size=24><color=#6e5a45>{from}</color></size>";
                 }).Size(84f, -1f, 1f);
                 CheeseUi.Label(line, level > 1 ? "+" + CheeseRules.PointsForMerge(level - 1) : "", 34f,
@@ -644,7 +644,7 @@ namespace GC26._2048
             resultScore = CheeseUi.Label(results, "0", 110f, CheeseArt.Ink, TextAlignmentOptions.Left, true);
             resultBest = ResultRow(results, "best", out _);
             resultFind = ResultRow(results, "best_item", out resultFindIcon);
-            resultHole = ResultRow(results, "cheese_in_hole", out _);
+            resultCheese = ResultRow(results, "cheese_made", out _);
             resultMoves = ResultRow(results, "moves_made", out _);
             Btn(results, "restart", true, NewGame);
             Btn(results, "main_menu", false, ShowTitle);
