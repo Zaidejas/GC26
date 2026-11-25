@@ -1,12 +1,12 @@
 namespace GC26._2048
 {
-    /// <summary>Game rules from the GDD: 4×4 field, 8 item levels, 7 merges; 300 moves (the GDD had 150).</summary>
+    /// <summary>Game rules from the GDD: 4×4 field, 8 item levels, 7 merges; 200 moves (the GDD had 150).</summary>
     public static class CheeseRules
     {
         public const int Size = 4;
         /// <summary>Level 8 is the cheese, the last item: it stays on the field and never merges any further.</summary>
         public const int CheeseLevel = 8;
-        public const int MoveLimit = 300;
+        public const int MoveLimit = 200;
         /// <summary>Chance that a new item is hay (level 2) instead of grass (level 1).</summary>
         public const double HayChance = 0.1;
         public const int WarnMovesLeft = 10;

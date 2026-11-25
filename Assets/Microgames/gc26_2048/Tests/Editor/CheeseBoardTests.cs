@@ -212,9 +212,9 @@ namespace GC26._2048.Tests
         }
 
         [Test]
-        public void NewGameStartsWithTwoGrassAnd300Moves()
+        public void NewGameStartsWithTwoGrassAnd200Moves()
         {
-            Assert.AreEqual(300, CheeseRules.MoveLimit);
+            Assert.AreEqual(200, CheeseRules.MoveLimit);
             var s = new CheeseSession(7);
             s.StartNew();
             var cells = s.Board.ToArray();

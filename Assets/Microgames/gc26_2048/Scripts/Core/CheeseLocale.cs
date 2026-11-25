@@ -27,7 +27,7 @@ namespace GC26._2048
             ["rules"] = new[] { "Rules", "Правила" },
             ["settings"] = new[] { "Settings", "Настройки" },
             ["exit"] = new[] { "Exit", "Выход" },
-            ["facts"] = new[] { "4×4 field · 8 items · 300 moves", "Поле 4×4 · 8 предметов · 300 ходов" },
+            ["facts"] = new[] { "4×4 field · 8 items · 200 moves", "Поле 4×4 · 8 предметов · 200 ходов" },
             ["menu"] = new[] { "Menu", "Меню" },
             ["score_caps"] = new[] { "SCORE", "ОЧКИ" },
             ["moves_caps"] = new[] { "MOVES", "ХОДЫ" },
@@ -51,7 +51,7 @@ namespace GC26._2048
                 "3. Every merge scores points: the more valuable the item, the more points — from 32 to 2048.\n" +
                 "4. Cheese is the last item: it stays on the field and does not merge any further.\n" +
                 "5. After every move, new grass or hay appears on the field.\n" +
-                "6. You have 300 moves. The game ends when you run out of moves or the field is full.\n" +
+                "6. You have 200 moves. The game ends when you run out of moves or the field is full.\n" +
                 "7. Five moves after a cheese is made a mouse hole appears: a darker framed cell at the edge of the field. " +
                 "Every third move a mouse runs out of it across the row or column and eats every cheese on its way. " +
                 "If it got cheese, the hole is gone until the next cheese; if not, the hole moves to another cell.",
@@ -60,7 +60,7 @@ namespace GC26._2048
                 "3. За каждое объединение — очки: чем ценнее предмет, тем больше, от 32 до 2048.\n" +
                 "4. Сыр — последний предмет: он остаётся на поле и дальше не объединяется.\n" +
                 "5. После каждого хода на поле появляется новая трава или сено.\n" +
-                "6. У вас 300 ходов. Игра заканчивается, когда ходы кончатся или поле заполнится.\n" +
+                "6. У вас 200 ходов. Игра заканчивается, когда ходы кончатся или поле заполнится.\n" +
                 "7. Через 5 ходов после появления сыра возникает мышиная норка — тёмная клетка в рамке с краю поля. " +
                 "Каждый третий ход из неё выбегает мышь, перебегает ряд или столбец и съедает весь сыр на пути. " +
                 "Если мышь забрала сыр, норка исчезает до следующего сыра; если нет — переезжает в другую клетку."
