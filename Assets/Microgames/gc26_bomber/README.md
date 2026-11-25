@@ -6,7 +6,7 @@ Top-down shooter / roguelite: ремонтный дрон пробивается
 - Ветка: `game/gc26_bomber`
 - Неймспейс: `GC26.Bomber`
 - Стартовая сцена: `Scenes/gc26_bomber_Main.unity` — один объект с компонентом `BomberGame`, всё остальное игра создаёт сама
-- Команда:
+- Команда: Karol Rodevič
 
 ## Документы
 
