@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace GC26.Bomber
 {
-    public enum BomberPhase { Play, Dead, SectorClear }
+    public enum BomberPhase { Play, Dead, Victory }
 
     /// <summary>What the phone controls ask for this frame.</summary>
     public struct BomberIntent
@@ -69,7 +69,7 @@ namespace GC26.Bomber
             Score = Kills = Rooms = Combo = MaxCombo = DamageTaken = 0; ComboT = Time = 0f;
             P.R = 9f; P.BaseHp = P.MaxHp = P.Hp = 6; P.AltarLoss = 0; P.Emp = 1; P.Scrap = 0; P.ITime = 0f; P.AbCd = P.AbT = 0f; P.TacCd = 0f; P.Shield = 0f; P.ShieldT = 0f;
             P.Weapons.Clear(); P.Weapons.Add(new BomberWeapon { Id = "blaster" }); P.Cur = 0; P.Mods.Clear(); P.Comps.Clear(); _medic = 0;
-            Reward = null; BenchOpen = false; ApplyCoreMods();
+            Reward = null; BenchOpen = false; ApplyCoreMods(); _later.Clear(); Bosses = 0; PickBosses();
             Core.Vent(HeatModel.Max); Governor.Forsage = false;
             for (int s = 0; s < 3; s++) Plan[s] = MakePlan(new BomberRng(BomberRng.Hash(Seed, (uint)(100 + s))));
             EnterSector(0);
@@ -102,12 +102,16 @@ namespace GC26.Bomber
             Toast?.Invoke($"Сектор {s + 1}: {BomberData.Sectors[s].Name}. {BomberData.Sectors[s].Line}", 3.5f);
         }
 
-        List<string> NextOptions() => Step + 1 < Plan[Sector].Count ? Plan[Sector][Step + 1] : new List<string>();
+        List<string> NextOptions()
+        {
+            if (Room != null && Room.Type == "boss") return Sector < 2 ? new List<string> { "next" } : new List<string>();
+            return Step + 1 < Plan[Sector].Count ? Plan[Sector][Step + 1] : new List<string>();
+        }
 
         void EnterRoom(string type)
         {
             Room = new BomberRoomState { Type = type };
-            Enemies.Clear(); Shots.Clear(); Pickups.Clear(); Effects.Clear(); Particles.Clear(); Texts.Clear(); Walls.Clear(); Doors.Clear(); Barrels.Clear(); _barrelQueue.Clear(); NewDecals.Clear(); Props.Clear(); Bolts.Clear(); Trails.Clear(); BenchOpen = false;
+            Enemies.Clear(); Shots.Clear(); Pickups.Clear(); Effects.Clear(); Particles.Clear(); Texts.Clear(); Walls.Clear(); Doors.Clear(); Barrels.Clear(); _barrelQueue.Clear(); NewDecals.Clear(); Zones.Clear(); Props.Clear(); Bolts.Clear(); Trails.Clear(); BenchOpen = false;
             Room.Exits = NextOptions();
             var gaps = BuildBorder(Room.Exits);
             bool calm = type == "shop" || type == "chest" || type == "workbench" || type == "altar";
@@ -120,12 +124,14 @@ namespace GC26.Bomber
             if (type == "combat" || type == "elite" || type == "start")
             {
                 if (Sector == 0) { int n = 2 + _rngL.Range(2); for (int i = 0; i < n && free.Count > 0; i++) { int k = _rngL.Range(free.Count); var c = free[k]; free.RemoveAt(k); Barrels.Add(new BomberBarrel { X = c.x * Cell + 16, Y = c.y * Cell + 16 }); } }
+                if (Sector == 1) AddHotZones(free, 2);
                 Room.Waves = MakeWaves(type); Room.Locked = true;
             }
             else if (type == "boss")
             {
-                // Bosses are the next porting step: for now reaching the boss room completes the sector.
-                Phase = BomberPhase.SectorClear;
+                Room.Locked = true; Room.StartDelay = 1.2f; RoomDamaged = false;
+                if (Sector == 1) AddHotZones(free, 2);
+                Toast?.Invoke($"Босс: {BomberData.Bosses[BossOrder[Sector]].Name}", 2.2f);
             }
             else
             {
@@ -304,7 +310,9 @@ namespace GC26.Bomber
                 if (e.T > 0f) continue;
                 Effects.RemoveAt(i);
                 if (e.Kind == "spawn") Enemies.Add(MakeEnemy(e.Spawn, e.X, e.Y, e.Elite));
+                else if (e.Kind == "mine" || e.Kind == "shell") Detonate(e);
             }
+            UpdateZones(dt);
             foreach (var e in Enemies.ToArray()) UpdateEnemy(e, dt);
             UpdateShots(dt);
             UpdateCompanions(dt);
@@ -318,6 +326,7 @@ namespace GC26.Bomber
             for (int i = Particles.Count - 1; i >= 0; i--) { var p = Particles[i]; p.Life -= dt; p.X += p.Vx * dt; p.Y += p.Vy * dt; p.Vx *= 0.9f; p.Vy *= 0.9f; if (p.Life <= 0f) Particles.RemoveAt(i); }
             for (int i = Texts.Count - 1; i >= 0; i--) { var t = Texts[i]; t.T -= dt; t.Y -= 22f * dt; if (t.T <= 0f) Texts.RemoveAt(i); }
             UpdateRoom(dt);
+            TickLater(dt);
         }
 
         // ================= player =================
@@ -405,7 +414,7 @@ namespace GC26.Bomber
         {
             P.Emp--;
             AddRing(P.X, P.Y, 160f, new Color32(159, 208, 255, 255), 0.5f);
-            foreach (var e in Enemies) if (Dist(P, e) < 160f) e.Stun = 2f;
+            foreach (var e in Enemies) if (Dist(P, e) < 160f) e.Stun = e.IsBoss ? 0.6f : 2f;
             foreach (var b in Shots) if (b.Enemy && Dist(b.X, b.Y, P.X, P.Y) < 160f) b.Dead = true;
             Toast?.Invoke("ЭМИ", 1f);
         }
@@ -436,7 +445,7 @@ namespace GC26.Bomber
             int s = Sector;
             float mult = BomberData.SectorMult[s] * (type == "elite" ? 1.3f : 1f) * (type == "start" ? 0.6f : 1f) * (0.9f + _rngE.Next() * 0.3f);
             int budget = Mathf.Max(3, Mathf.RoundToInt(BomberData.Budget * mult));
-            var pool = new List<string>(BomberData.Pools[0]);
+            var pool = new List<string>(); for (int k = 0; k <= s; k++) pool.AddRange(BomberData.Pools[k]);
             int n = budget < 8 ? 1 : budget < 14 ? 2 : 3;
             float[] split = n == 1 ? new[] { 1f } : n == 2 ? new[] { 0.6f, 0.4f } : new[] { 0.4f, 0.33f, 0.27f };
             float eliteChance = BomberData.EliteChance[s];
@@ -445,11 +454,12 @@ namespace GC26.Bomber
             {
                 int b = Mathf.Max(1, Mathf.RoundToInt(budget * split[wi])); var list = new List<(string, bool)>();
                 if (wi == 0 && type == "elite") { var opts0 = pool.FindAll(t => t != "kamikaze"); var et = _rngE.Pick(opts0); list.Add((et, true)); b -= BomberData.Enemies[et].Cost * 2; }
+                var cnt = new Dictionary<string, int>();
                 for (int guard = 0; b > 0 && guard < 80; guard++)
                 {
-                    var opts = pool.FindAll(t => BomberData.Enemies[t].Cost <= b);
+                    var opts = pool.FindAll(t => BomberData.Enemies[t].Cost <= b && (!cnt.TryGetValue(t, out var c) || c < (BomberData.WaveCap.TryGetValue(t, out var cap) ? cap : 99)));
                     if (opts.Count == 0) break;
-                    var t = _rngE.Pick(opts);
+                    var t = _rngE.Pick(opts); cnt[t] = cnt.TryGetValue(t, out var c0) ? c0 + 1 : 1;
                     list.Add((t, type != "start" && t != "kamikaze" && _rngE.Next() < eliteChance)); b -= BomberData.Enemies[t].Cost;
                 }
                 waves.Add(list);
@@ -472,7 +482,13 @@ namespace GC26.Bomber
         void UpdateRoom(float dt)
         {
             if (!Room.Locked || Room.Cleared) return;
-            if (Room.StartDelay > 0f) { Room.StartDelay -= dt; if (Room.StartDelay <= 0f) SpawnWave(0); return; }
+            if (Room.StartDelay > 0f)
+            {
+                Room.StartDelay -= dt;
+                if (Room.StartDelay <= 0f) { if (Room.Type == "boss") Enemies.Add(MakeBoss(BossOrder[Sector])); else SpawnWave(0); }
+                return;
+            }
+            if (Room.Type == "boss") return; // cleared when the boss dies
             Room.WaveT += dt;
             bool pending = Effects.Exists(e => e.Kind == "spawn");
             float cur = 0f; foreach (var e in Enemies) if (e.Wave == Room.Wave) cur += Mathf.Max(0f, e.Hp);
@@ -496,6 +512,7 @@ namespace GC26.Bomber
         void LeaveRoom(int i)
         {
             RoomDamaged = false;
+            if (Doors[i].Type == "next") { EnterSector(Sector + 1); return; }
             Step++;
             EnterRoom(Doors[i].Type);
         }

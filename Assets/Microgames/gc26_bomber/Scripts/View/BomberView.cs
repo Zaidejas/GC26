@@ -123,8 +123,9 @@ namespace GC26.Bomber
                 if (pr.Kind == "shop" && !pr.Sold) { var ic = _pools["pickup"].Get(); ic.sprite = pr.Item.Type == "weapon" ? art.Gun : pr.Item.Type == "companion" ? art.CompGunner : pr.Item.Type == "module" ? art.EmpPickup : art.Repair; ic.transform.position = U(pr.X, pr.Y - 4f); ic.transform.localScale = Vector3.one * 1.6f; ic.sortingOrder = 2; }
             }
             foreach (var t in w.Trails) { var sr = _pools["fxUnder"].Get(); sr.sprite = art.Glow; sr.color = new Color(0.5f, 0.89f, 1f, t.T * 0.4f); sr.transform.position = U(t.X, t.Y); sr.transform.localScale = Vector3.one * (12f / 32f); }
+            foreach (var z in w.Zones) DrawZone(z, art, time);
             foreach (var e in w.Effects) DrawEffect(e, art);
-            foreach (var e in w.Enemies) DrawEnemy(e, art, time);
+            foreach (var e in w.Enemies) { if (e.IsBoss) DrawBoss(e, art, time); else DrawEnemy(e, art, time); }
             DrawPlayer(w, art, time);
             if (w.P.Beam.On) { var bm = w.P.Beam; Line(bm.Sx, bm.Sy, bm.Ex, bm.Ey, bm.Zap ? new Color(0.85f, 0.94f, 1f, 0.5f) : new Color(1f, 0.6f, 0.87f, 0.5f), 5f, "glow"); Line(bm.Sx, bm.Sy, bm.Ex, bm.Ey, Color.white, 1.5f, "shot"); }
             foreach (var bo in w.Bolts) for (int i = 1; i < bo.Pts.Count; i++) { var a0 = bo.Pts[i - 1]; var a1 = bo.Pts[i]; for (int k = 0; k < 4; k++) { float t0 = k / 4f, t1 = (k + 1) / 4f; var j0 = k == 0 ? Vector2.zero : Random.insideUnitCircle * 7f; var j1 = k == 3 ? Vector2.zero : Random.insideUnitCircle * 7f; var q0 = Vector2.Lerp(a0, a1, t0) + j0; var q1 = Vector2.Lerp(a0, a1, t1) + j1; Line(q0.x, q0.y, q1.x, q1.y, new Color(0.85f, 0.94f, 1f), 2f, "fx"); } }
@@ -155,11 +156,71 @@ namespace GC26.Bomber
             foreach (var p in _pools.Values) p.End();
         }
 
+        void DrawZone(BomberZone z, BomberArt art, float time)
+        {
+            float cx = z.X + z.W / 2f, cy = z.Y + z.H / 2f;
+            Color fill, edge;
+            if (z.Kind == "hot") { fill = new Color(1f, 0.47f, 0.24f, 0.1f + 0.04f * Mathf.Sin(time * 3f)); edge = new Color(1f, 0.55f, 0.24f, 0.5f); }
+            else
+            {
+                bool acid = z.Kind == "acid";
+                if (z.Tele > 0f) { fill = new Color(0, 0, 0, 0f); edge = acid ? new Color(0.63f, 1f, 0.35f, 0.4f + 0.4f * Mathf.Sin(time * 20f)) : new Color(1f, 0.35f, 0.24f, 0.4f + 0.4f * Mathf.Sin(time * 20f)); }
+                else { fill = acid ? new Color(0.47f, (200f + Mathf.Sin(time * 6f) * 30f) / 255f, 0.24f, 0.42f) : new Color(1f, (80f + Mathf.Sin(time * 6f) * 30f) / 255f, 0.16f, 0.45f); edge = fill; edge.a = 0.8f; }
+                var lg = _pools["light"].Get(); lg.sprite = art.Glow; var lc = acid ? new Color(0.61f, 1f, 0.43f, 0.18f) : new Color(1f, 0.35f, 0.16f, 0.2f); lg.color = lc;
+                lg.transform.position = U(cx, cy); lg.transform.localScale = Vector3.one * (Mathf.Max(z.W, z.H) * 1.6f / 32f);
+            }
+            if (fill.a > 0f) { var f = _pools["fxUnder"].Get(); f.sprite = art.Pixel; f.color = fill; f.transform.position = U(cx, cy); f.transform.localScale = new Vector3(z.W / 2f, z.H / 2f, 1f); }
+            Line(z.X, z.Y + 1f, z.X + z.W, z.Y + 1f, edge, 2f, "fxUnder"); Line(z.X, z.Y + z.H - 1f, z.X + z.W, z.Y + z.H - 1f, edge, 2f, "fxUnder");
+            Line(z.X + 1f, z.Y, z.X + 1f, z.Y + z.H, edge, 2f, "fxUnder"); Line(z.X + z.W - 1f, z.Y, z.X + z.W - 1f, z.Y + z.H, edge, 2f, "fxUnder");
+        }
+
+        void DrawBoss(BomberEnemy b, BomberArt art, float time)
+        {
+            var d = b.Boss; var col = (Color)d.Color;
+            if (b.Act == "chargeTele") { Line(b.X, b.Y, b.X + Mathf.Cos(b.AimA) * 1100f, b.Y + Mathf.Sin(b.AimA) * 1100f, new Color(1f, 0.35f, 0.43f, 0.2f), b.R * 1.6f, "fxUnder"); }
+            if (b.Act == "snipe") foreach (var o in new[] { -0.12f, 0f, 0.12f }) Line(b.X, b.Y, b.X + Mathf.Cos(b.AimA + o) * 1200f, b.Y + Mathf.Sin(b.AimA + o) * 1200f, b.Tm < 0.3f ? new Color(1f, 0.13f, 0.27f) : new Color(1f, 0.24f, 0.35f, 0.5f), b.Tm < 0.3f ? 2.5f : 1f, "fx");
+            if (b.Act == "sweepTele" || b.Act == "sweep")
+                for (int k = 0; k < b.Beams; k++)
+                {
+                    float aa = b.AimA + k * Mathf.PI * 2f / b.Beams; var end = _ctx.World.RayEndPublic(b.X, b.Y, aa, 1100f);
+                    if (b.Act == "sweepTele") Line(b.X, b.Y, end.x, end.y, new Color(0.43f, 0.78f, 1f, 0.3f + 0.3f * Mathf.Sin(time * 25f)), 2f, "fx");
+                    else { Line(b.X, b.Y, end.x, end.y, new Color(0.43f, 0.78f, 1f, 0.5f), 7f, "glow"); Line(b.X, b.Y, end.x, end.y, Color.white, 2f, "fx"); }
+                }
+            if (b.Act == "throwTele")
+            {
+                float k = 1f - b.Tm / 0.85f;
+                foreach (var t in b.Targets)
+                {
+                    Ring(t.x, t.y, 46f, new Color(1f, 0.35f, 0.43f, 0.9f), "fxUnder");
+                    var f = _pools["fxUnder"].Get(); f.sprite = art.Disc; f.color = new Color(1f, 0.35f, 0.43f, 0.18f); f.transform.position = U(t.x, t.y); f.transform.localScale = Vector3.one * (46f * Mathf.Max(0f, k) / 32f);
+                }
+            }
+            var glow = _pools["light"].Get(); glow.sprite = art.Glow; var gc = col; gc.a = 0.3f * b.Alpha; glow.color = gc; glow.transform.position = U(b.X, b.Y); glow.transform.localScale = Vector3.one * (b.R * 6f / 32f);
+            var shadow = _pools["fxUnder"].Get(); shadow.sprite = art.Disc; shadow.color = new Color(0, 0, 0, 0.35f * b.Alpha); shadow.transform.position = U(b.X, b.Y + b.R * 0.5f); shadow.transform.localScale = new Vector3(b.R / 32f, b.R * 0.4f / 32f, 1f);
+            var sr = _pools["enemy"].Get(); sr.sprite = art.Boss(d); sr.transform.position = U(b.X, b.Y);
+            float spin = time * (d.Key == "oracle" ? 0.6f : d.Key == "warden" ? 0.3f : 0.15f); sr.transform.localRotation = Quaternion.Euler(0, 0, -spin * Mathf.Rad2Deg);
+            sr.color = b.Flash > 0f ? new Color(1f, 0.6f, 0.6f, b.Alpha) : b.Stun > 0f ? new Color(0.7f, 0.85f, 1f, b.Alpha) : new Color(1f, 1f, 1f, b.Alpha);
+            if ((b.Act == "ring" || b.Act == "aimed") && b.Tm > 0.2f) { var core = _pools["enemyFx"].Get(); core.sprite = art.Pixel; core.transform.position = U(b.X, b.Y); core.transform.localScale = Vector3.one * 6f; }
+            if (b.Burn > 0f) { var bg2 = _pools["glow"].Get(); bg2.sprite = art.Glow; bg2.color = new Color(1f, 0.55f, 0.15f, 0.35f); bg2.transform.position = U(b.X, b.Y); bg2.transform.localScale = Vector3.one * (b.R * 2.4f / 32f); }
+        }
+
         void DrawEffect(BomberEffect e, BomberArt art)
         {
             float k = e.K;
             switch (e.Kind)
             {
+                case "mine": case "shell":
+                {
+                    var col = e.Kind == "shell" ? new Color(1f, 0.66f, 0.3f) : new Color(0.43f, 0.78f, 1f); float r = e.R > 0f ? e.R : 52f;
+                    Ring(e.X, e.Y, r, col, "fxUnder");
+                    var f = _pools["fxUnder"].Get(); f.sprite = art.Disc; var fc = col; fc.a = 0.12f + 0.25f * k; f.color = fc; f.transform.position = U(e.X, e.Y); f.transform.localScale = Vector3.one * (r * k / 32f);
+                    var lg = _pools["light"].Get(); lg.sprite = art.Glow; var lc = col; lc.a = 0.15f; lg.color = lc; lg.transform.position = U(e.X, e.Y); lg.transform.localScale = Vector3.one * (r * 2.8f / 32f);
+                    if (e.Kind == "mine") { var m = _pools["fx"].Get(); m.sprite = art.Pixel; m.color = Mathf.Sin(_ctx.World.Time * (10f + 20f * k)) > 0f ? Color.white : col; m.transform.position = U(e.X, e.Y); m.transform.localScale = Vector3.one * 3f; }
+                    break;
+                }
+                case "beam":
+                    Line(e.X, e.Y, e.X2, e.Y2, new Color(0.49f, 1f, 0.66f, 1f - k), 3f, "fx");
+                    break;
                 case "spawn":
                 {
                     var sr = _pools["fxUnder"].Get(); sr.sprite = art.Ring; var c = e.Elite ? new Color(1f, 0.84f, 0.36f) : new Color(1f, 0.35f, 0.43f); c.a = 0.4f + 0.6f * k; sr.color = c;
@@ -192,17 +253,29 @@ namespace GC26.Bomber
             var w = _ctx.World;
             float a = Mathf.Atan2(w.P.Y - e.Y, w.P.X - e.X);
             bool frame = (e.Kind == "beetle" || e.Kind == "mini") && Mathf.Sin(time * 22f + e.X * 0.1f) > 0f;
-            float rot = e.Kind == "turret" || e.Kind == "kamikaze" || e.Kind == "splitter" ? 0f : a;
+            float rot = e.Kind == "brute" ? (e.St == "charge" || e.St == "tele" ? e.AimA : a) : e.Kind == "laser" ? time : e.Kind == "sniper" ? (e.St == "aim" ? e.AimA : a)
+                : e.Kind == "turret" || e.Kind == "kamikaze" || e.Kind == "splitter" || e.Kind == "mortar" ? 0f : a;
+            if (e.Kind == "laser" && (e.St == "tele" || e.St == "sweep"))
+            {
+                var end = w.RayEndPublic(e.X, e.Y, e.AimA, 900f);
+                if (e.St == "tele") Line(e.X, e.Y, end.x, end.y, new Color(1f, 0.24f, 0.95f, 0.3f + 0.3f * Mathf.Sin(time * 25f)), 2f, "fx");
+                else { Line(e.X, e.Y, end.x, end.y, new Color(1f, 0.24f, 0.95f, 0.5f), 6f, "glow"); Line(e.X, e.Y, end.x, end.y, Color.white, 2f, "fx"); }
+            }
+            if (e.Kind == "sniper" && e.St == "aim") Line(e.X, e.Y, e.X + Mathf.Cos(e.AimA) * 1200f, e.Y + Mathf.Sin(e.AimA) * 1200f, e.Tm < 0.3f ? new Color(1f, 0.13f, 0.27f) : new Color(1f, 0.24f, 0.35f, 0.55f), e.Tm < 0.3f ? 2.5f : 1f, "fx");
+            if (e.Kind == "brute" && e.St == "tele") Line(e.X, e.Y, e.X + Mathf.Cos(e.AimA) * 260f, e.Y + Mathf.Sin(e.AimA) * 260f, new Color(1f, 0.42f, 0.24f, 0.35f), e.R * 1.6f, "fxUnder");
             var shadow = _pools["fxUnder"].Get(); shadow.sprite = art.Pixel; shadow.color = new Color(0, 0, 0, 0.35f);
             shadow.transform.position = U(e.X, e.Y + e.R * 0.8f); shadow.transform.localScale = new Vector3(e.R, 2f, 1f);
             var sr = _pools["enemy"].Get(); sr.sprite = art.Enemy(e.Kind, e.R, frame); sr.transform.position = U(e.X, e.Y); sr.transform.localRotation = Rot(rot);
-            sr.color = e.Flash > 0f ? new Color(3f, 3f, 3f) : e.Stun > 0f ? new Color(0.7f, 0.85f, 1f) : Color.white;
-            if (e.Flash > 0f) sr.color = new Color(1f, 0.55f, 0.55f);
+            sr.color = e.Flash > 0f ? new Color(1f, 0.55f, 0.55f, e.Alpha) : e.Stun > 0f ? new Color(0.7f, 0.85f, 1f, e.Alpha) : new Color(1f, 1f, 1f, e.Alpha);
+            shadow.color = new Color(0, 0, 0, 0.35f * e.Alpha);
+            if (e.Kind == "shield") for (int i = 0; i < 7; i++) { float a0 = e.Face - 1.05f + i * 0.35f, a1 = a0 + 0.35f, rr = e.R + 5f; Line(e.X + Mathf.Cos(a0) * rr, e.Y + Mathf.Sin(a0) * rr, e.X + Mathf.Cos(a1) * rr, e.Y + Mathf.Sin(a1) * rr, new Color(0.91f, 0.84f, 1f), 3f, "enemyFx"); }
+            if (e.ShieldHp > 0f) Ring(e.X, e.Y, e.R + 3f, new Color(0.62f, 0.82f, 1f, 0.9f), "enemyFx");
+            if (e.Kind == "phantom" && e.St == "slash") Ring(e.X, e.Y, e.R + 28f, new Color(1f, 1f, 1f, 0.5f + 0.5f * Mathf.Sin(time * 40f)), "enemyFx");
             if (e.Kind == "turret") { var h = _pools["enemyFx"].Get(); h.sprite = art.TurretHead; h.transform.position = U(e.X, e.Y); h.transform.localRotation = Rot(e.St == "fire" ? e.AimA : e.Face); }
             if (e.Burn > 0f) { var bg2 = _pools["glow"].Get(); bg2.sprite = art.Glow; bg2.color = new Color(1f, 0.55f, 0.15f, 0.45f); bg2.transform.position = U(e.X, e.Y); bg2.transform.localScale = Vector3.one * (e.R * 2.4f / 32f); }
             if (e.Slow > 0f) Ring(e.X, e.Y, e.R + 3f, new Color(0.62f, 0.9f, 1f, 0.8f), "enemyFx");
-            if (e.Elite) Ring(e.X, e.Y, e.R + 6f, new Color(1f, 0.84f, 0.36f, 0.5f + 0.3f * Mathf.Sin(time * 6f)), "enemyFx");
-            if (e.St == "tele") { Ring(e.X, e.Y, e.R + 3f, new Color(1f, 1f, 1f, 0.5f + 0.5f * Mathf.Sin(time * 40f)), "enemyFx"); var tg = _pools["glow"].Get(); tg.sprite = art.Glow; tg.color = new Color(1f, 0.4f, 0.45f, 0.45f); tg.transform.position = U(e.X, e.Y); tg.transform.localScale = Vector3.one * (e.R * 3f / 32f); }
+            if (e.Elite) { var ac = e.Affix != null ? (Color)BomberData.Affixes[e.Affix].Color : new Color(1f, 0.84f, 0.36f); ac.a = (0.5f + 0.3f * Mathf.Sin(time * 6f)) * e.Alpha; Ring(e.X, e.Y, e.R + 6f, ac, "enemyFx"); }
+            if (e.St == "tele" && e.Kind != "brute") { Ring(e.X, e.Y, e.R + 3f, new Color(1f, 1f, 1f, 0.5f + 0.5f * Mathf.Sin(time * 40f)), "enemyFx"); var tg = _pools["glow"].Get(); tg.sprite = art.Glow; tg.color = new Color(1f, 0.4f, 0.45f, 0.45f); tg.transform.position = U(e.X, e.Y); tg.transform.localScale = Vector3.one * (e.R * 3f / 32f); }
             if (e.St == "tele" && e.Kind == "kamikaze") { float kk = 1f - e.Tm / 0.55f; Ring(e.X, e.Y, 80f, new Color(1f, 0.3f, 0.3f, 0.9f), "fxUnder"); var f = _pools["fxUnder"].Get(); f.sprite = art.Disc; f.color = new Color(1f, 0.3f, 0.3f, 0.15f); f.transform.position = U(e.X, e.Y); f.transform.localScale = Vector3.one * (80f * Mathf.Max(0f, kk) / 32f); }
             if (e.Kind == "kamikaze") { var core = _pools["enemyFx"].Get(); core.sprite = art.Pixel; core.color = Mathf.Sin(time * (e.St == "tele" ? 40f : 10f)) > 0f ? Color.white : new Color(1f, 0.16f, 0.16f); core.transform.position = U(e.X, e.Y); core.transform.localScale = Vector3.one * 2f; }
             if (e.Hp < e.MaxHp)

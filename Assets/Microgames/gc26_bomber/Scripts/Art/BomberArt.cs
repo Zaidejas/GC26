@@ -96,7 +96,7 @@ namespace GC26.Bomber
         {
             var key = kind + "_" + radius + "_" + (frame ? 1 : 0);
             if (_enemy.TryGetValue(key, out var s)) return s;
-            int size = Mathf.CeilToInt(radius * 2f / 2f) + 5;
+            int size = Mathf.CeilToInt(radius * 2f / 2f) + (kind == "sniper" ? 10 : kind == "brute" ? 6 : 5);
             var col = BomberData.Enemies[kind].Color;
             s = Build(size, size, c => DrawEnemy(c, kind, col, frame ? 1 : 0));
             _enemy[key] = s;
@@ -134,10 +134,70 @@ namespace GC26.Bomber
                     c.Fill(c.Ell(cx - 2.4f, cy, 4, 4.6f), b); c.Fill(c.Ell(cx + 2.4f, cy, 4, 4.6f), b); c.Line(cx - 0.5f, cy - 4, cx - 0.5f, cy + 3.5f, Tone(b, -0.6f));
                     c.Fill(c.Disc(cx - 2.5f, cy - 0.5f, 1.3f), MW, false); c.Fill(c.Disc(cx + 2.5f, cy + 0.5f, 1.3f), MW, false);
                     break;
+                case "shield":
+                    c.Fill(c.Disc(cx, cy, 5.6f), b); c.Fill(c.Box(cx + 0.5f, cy - 3, cx + 4.5f, cy + 3), MN); c.Px((int)(cx + 3), (int)(cy - 1), MC); c.Px((int)(cx + 3), (int)cy, MC);
+                    c.Fill(c.Disc(cx - 2, cy, 1.5f), Tone(b, 0.5f), false);
+                    break;
+                case "sniper":
+                    foreach (var t in new[] { 2.2f, 3.4f, 4.6f }) c.Line(cx - 0.5f, cy - 0.5f, cx - 0.5f + Mathf.Cos(t) * 5.5f, cy - 0.5f + Mathf.Sin(t) * 5.5f, MN);
+                    c.Fill(c.Box(cx, cy - 1, cx + 8, cy + 1), MN); c.Fill(c.Disc(cx, cy, 3.2f), b); c.Px((int)(cx + 1), (int)(cy - 0.5f), MR); c.Px((int)(cx + 7), (int)(cy - 0.5f), ML);
+                    break;
+                case "mortar":
+                {
+                    const float r = 6f, q = 2.6f;
+                    c.Fill(c.Poly(new[] { (cx - q, cy - r), (cx + q, cy - r), (cx + r, cy - q), (cx + r, cy + q), (cx + q, cy + r), (cx - q, cy + r), (cx - r, cy + q), (cx - r, cy - q) }), MM);
+                    c.Fill(c.Disc(cx, cy, 3.8f), b); c.Fill(c.Disc(cx, cy, 2.2f), MK, false); c.Px((int)(cx - 5), (int)(cy - 0.5f), MY); c.Px((int)(cx + 4), (int)(cy - 0.5f), MY);
+                    break;
+                }
+                case "brute":
+                    c.Fill(c.Ell(cx - 1, cy - 6, 4, 2.6f), Tone(b, -0.2f)); c.Fill(c.Ell(cx - 1, cy + 6, 4, 2.6f), Tone(b, -0.2f));
+                    c.Fill(c.Box(cx - 6, cy - 5, cx + 5, cy + 5), b); c.Fill(c.Box(cx + 4, cy - 6.5f, cx + 7.5f, cy - 2.5f), MM); c.Fill(c.Box(cx + 4, cy + 2.5f, cx + 7.5f, cy + 6.5f), MM);
+                    for (int y = -3; y <= 2; y += 2) c.Line(cx + 1, cy + y, cx + 3, cy + y, MK);
+                    c.Px((int)(cx + 3), (int)(cy - 2.5f), MY); c.Px((int)(cx + 3), (int)(cy + 1.5f), MY);
+                    break;
+                case "repair":
+                    c.Line(cx - 6, cy - 0.5f, cx - 4, cy - 0.5f, MN, 2); c.Line(cx + 4, cy - 0.5f, cx + 6, cy - 0.5f, MN, 2);
+                    c.Fill(c.Disc(cx, cy, 4.8f), b); c.Fill(c.Box(cx - 0.9f, cy - 3.4f, cx + 0.9f, cy + 3.4f), MW, false); c.Fill(c.Box(cx - 3.4f, cy - 0.9f, cx + 3.4f, cy + 0.9f), MW, false);
+                    break;
+                case "phantom":
+                    c.Fill(c.Poly(new[] { (cx + 6.5f, cy), (cx, cy - 4), (cx - 6, cy - 5.5f), (cx - 3, cy), (cx - 6, cy + 5.5f), (cx, cy + 4) }), b); c.Px((int)(cx + 3), (int)(cy - 0.5f), MW); c.Px((int)(cx + 4), (int)(cy - 0.5f), MW);
+                    break;
+                case "laser":
+                    foreach (var (x0, y0, x1, y1) in new[] { (-7, -2, -4, 2), (4, -2, 7, 2), (-2, -7, 2, -4), (-2, 4, 2, 7) }) c.Fill(c.Box(cx + x0, cy + y0, cx + x1, cy + y1), b);
+                    c.Fill(c.Box(cx - 4.5f, cy - 4.5f, cx + 4.5f, cy + 4.5f), MM); c.Fill(c.Disc(cx, cy, 2.6f), MK, false); c.Fill(c.Disc(cx, cy, 1.4f), MW, false);
+                    break;
                 default:
                     c.Fill(c.Disc(cx, cy, Mathf.Min(cx, cy) - 1), b);
                     break;
             }
+        }
+
+        // ---------- bosses: a regular polygon with a reactor core, rivets and red vents (bossSprite in the prototype) ----------
+        public Sprite Boss(BomberBossDef d)
+        {
+            var key = "boss_" + d.Key;
+            if (_enemy.TryGetValue(key, out var s)) return s;
+            float R = d.R / 2f * 1.08f; int size = Mathf.CeilToInt(R * 2f) + 3, n = d.Sides;
+            s = Build(size, size, c =>
+            {
+                float cx = c.W / 2f - 1f, cy = c.H / 2f - 1f, seg = Mathf.PI * 2f / n;
+                var pts = new (float, float)[n]; for (int i = 0; i < n; i++) pts[i] = (cx + Mathf.Cos(i * seg) * R, cy + Mathf.Sin(i * seg) * R);
+                var poly = c.Poly(pts); c.Fill(poly, d.Color);
+                Color32 dark = Tone(d.Color, -0.4f), light = Tone(d.Color, 0.45f);
+                for (int y = 0; y < size; y++) for (int x = 0; x < size; x++)
+                {
+                    float px = x + 0.5f, py = y + 0.5f; if (!poly(px, py)) continue;
+                    float dx = px - cx, dy = py - cy, r = Mathf.Sqrt(dx * dx + dy * dy), t = Mathf.Atan2(dy, dx), m = ((t % seg) + seg) % seg;
+                    Color32? col = null;
+                    if (r < R * 0.22f) col = MW; else if (r < R * 0.32f) col = light; else if (r < R * 0.4f) col = MK;
+                    else if (r > R * 0.48f && r < R * 0.6f && Mathf.Abs(m - seg / 2f) < 0.18f) col = MR;
+                    else if (r > R * 0.4f && (m < 0.06f || m > seg - 0.06f)) col = MO;
+                    else if (r > R * 0.68f && r < R * 0.76f) col = dark;
+                    if (col.HasValue) c.Px(x, y, col.Value);
+                }
+            });
+            _enemy[key] = s;
+            return s;
         }
 
         // ---------- floor ----------

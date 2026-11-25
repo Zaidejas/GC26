@@ -34,7 +34,8 @@ namespace GC26.Bomber
         RawImage _world; Image _fade, _flash, _vignette, _lowHp, _hudBg, _hudLine, _panelBg, _panelLine; readonly Image[] _border = new Image[4];
         readonly List<Image> _hp = new List<Image>(); Image _heatBg, _heatFill, _odMark, _scrapIcon, _routeCur; Text _score, _heatText, _scrap, _status, _room, _combo, _toast, _weapon; Image _toastBg;
         readonly List<Image> _route = new List<Image>();
-        readonly List<Text> _floatTexts = new List<Text>(), _doorLabels = new List<Text>(), _propLabels = new List<Text>();
+        readonly List<Text> _floatTexts = new List<Text>(), _doorLabels = new List<Text>(), _propLabels = new List<Text>(), _tagLabels = new List<Text>();
+        Image _bossBg, _bossBack, _bossFill, _bossLine; readonly Image[] _bossMarks = new Image[2]; Text _bossName; float _ww, _bossW;
 
         sealed class Btn { public string Id; public bool AtTop; public Vector2 Local; public Vector2 Pos; public float R, Rad; public int LabelFont; public bool Visible = true; public Color Col; public Image Bg, Cd, Rim, Glow; public Text Label, Sub; }
         readonly List<Btn> _btns = new List<Btn>();
@@ -88,6 +89,12 @@ namespace GC26.Bomber
             _room = Txt("Room", t, 16, TextAnchor.MiddleLeft, Color.white, FontStyle.Bold);
             _weapon = Txt("Weapon", t, 15, TextAnchor.MiddleRight, new Color(0.5f, 0.89f, 1f), FontStyle.Bold);
             _combo = Txt("Combo", t, 22, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
+            _bossBg = Img("BossBg", t, ctx.Art.UiWhite, new Color(0.027f, 0.043f, 0.086f, 0.86f));
+            _bossLine = Img("BossLine", t, ctx.Art.UiWhite, Color.white);
+            _bossBack = Img("BossBack", t, ctx.Art.UiWhite, new Color(0.1f, 0.06f, 0.09f));
+            _bossFill = Img("BossFill", t, ctx.Art.UiWhite, Color.white);
+            for (int i = 0; i < _bossMarks.Length; i++) _bossMarks[i] = Img("BossMark", t, ctx.Art.UiWhite, Color.white);
+            _bossName = Txt("BossName", t, 16, TextAnchor.MiddleCenter, Color.white, FontStyle.Bold);
 
             // control panel
             _panelBg = Img("ControlShade", t, ctx.Art.UiGradient, new Color(0.01f, 0.015f, 0.03f, 0.5f));
@@ -204,6 +211,10 @@ namespace GC26.Bomber
             Place(_border[0].rectTransform, _wx - bw, _wy - bw, ww + bw * 2, bw); Place(_border[1].rectTransform, _wx - bw, _wy + wh, ww + bw * 2, 0);
             Place(_border[2].rectTransform, _wx - bw, _wy, bw, wh); Place(_border[3].rectTransform, _wx + ww, _wy, bw, wh);
             Place(_combo.rectTransform, 0, _wy + 6, fw, 30);
+            _ww = ww; _bossW = Mathf.Min(ww - 40f, 520f); float bx = (fw - _bossW) / 2f;
+            Place(_bossBg.rectTransform, bx - 10f, _wy + 6f, _bossW + 20f, 52f); Place(_bossLine.rectTransform, bx - 10f, _wy + 6f, _bossW + 20f, 3f);
+            Place(_bossBack.rectTransform, bx, _wy + 16f, _bossW, 12f); Place(_bossFill.rectTransform, bx, _wy + 16f, _bossW, 12f);
+            Place(_bossName.rectTransform, bx, _wy + 30f, _bossW, 24f);
 
             float tw = Mathf.Min(fw - 80, 520f);
             Place(_toastBg.rectTransform, (fw - tw) / 2f, py - 76, tw, 60); Place(_toast.rectTransform, (fw - tw) / 2f + 10, py - 76, tw - 20, 60);
@@ -301,9 +312,10 @@ namespace GC26.Bomber
 
         void ShowEnd(BomberWorld w)
         {
-            bool win = w.Phase == BomberPhase.SectorClear;
-            ShowPanel("end", win ? "Сектор пройден!" : "Дрон уничтожен",
-                $"Счёт: {w.Score}\nКомнат: {w.Rooms} · Убийств: {w.Kills} · Макс. комбо: {w.MaxCombo}\nСкрап: {w.P.Scrap}" + (win ? "\n\nБоссы, награды и следующие секторы — следующие этапы переноса." : ""),
+            bool win = w.Phase == BomberPhase.Victory;
+            ShowPanel("end", win ? "ОРАКУЛ повержен!" : "Дрон уничтожен",
+                (win ? "Последний сигнал отправлен. Станция свободна.\n\n" : $"Сектор {w.Sector + 1}: {BomberData.Sectors[w.Sector].Name}\n\n") +
+                $"Счёт: {w.Score}\nКомнат: {w.Rooms} · Убийств: {w.Kills} · Боссов: {w.Bosses}\nМакс. комбо: {w.MaxCombo} · Скрап: {w.P.Scrap}",
                 ("Заново", () => { HidePanel(); _ctx.Restart(); }), ("В меню", () => _ctx.ExitToMenu()));
         }
 
@@ -440,6 +452,18 @@ namespace GC26.Bomber
             var wd = p.Weapon.Def; _weapon.text = wd.Name + (p.Weapon.UpSum > 0 ? $" ▲{p.Weapon.UpSum}" : "") + (p.Weapons.Count > 1 ? $"  {p.Cur + 1}/2" : "");
             _weapon.color = wd.Fused ? new Color(1f, 0.84f, 0.36f) : new Color(0.5f, 0.89f, 1f);
             _combo.text = w.Combo >= 2 ? $"КОМБО ×{w.Combo}{(w.Combo >= 10 ? " · В УДАРЕ" : "")}" : "";
+            var boss = w.CurrentBoss;
+            foreach (var g in new Graphic[] { _bossBg, _bossLine, _bossBack, _bossFill, _bossName }) g.enabled = boss != null;
+            for (int i = 0; i < _bossMarks.Length; i++) _bossMarks[i].enabled = boss != null && i < boss.Boss.Phases.Length;
+            _combo.rectTransform.anchoredPosition = new Vector2(0f, -(_wy + (boss != null ? 64f : 6f)));
+            if (boss != null)
+            {
+                var bc = (Color)boss.Boss.Color; float bx = (_fw - _bossW) / 2f;
+                _bossLine.color = bc; _bossFill.color = bc;
+                _bossFill.rectTransform.sizeDelta = new Vector2(_bossW * Mathf.Clamp01(boss.Hp / boss.MaxHp), 12f);
+                for (int i = 0; i < boss.Boss.Phases.Length && i < _bossMarks.Length; i++) Place(_bossMarks[i].rectTransform, bx + _bossW * boss.Boss.Phases[i] - 1f, _wy + 14f, 2f, 16f);
+                _bossName.text = $"{boss.Boss.Name.ToUpper()} · ФАЗА {boss.Phase + 1}";
+            }
             _combo.color = w.Combo >= 10 ? new Color(1f, 0.84f, 0.36f) : Color.white;
 
             foreach (var b in _btns)
@@ -507,6 +531,24 @@ namespace GC26.Bomber
                 Place(tx.rectTransform, _wx + pr.X * _ws - 140, _wy + ty * _ws - 90, 280, 90);
             }
             for (int i = q; i < _propLabels.Count; i++) _propLabels[i].enabled = false;
+            // elite affix tags and floor hazard hints
+            int g2 = 0;
+            foreach (var e in w.Enemies)
+            {
+                if (!e.Elite || e.Alpha < 0.5f) continue;
+                float ty = e.Y - e.R - 12f - _scroll0; if (ty < 0f || ty > _viewH) continue;
+                var tx = GetText(_tagLabels, g2++); tx.text = e.Affix != null ? BomberData.Affixes[e.Affix].Name.ToUpper() : "ЭЛИТА"; tx.fontSize = 12;
+                tx.color = e.Affix != null ? (Color)BomberData.Affixes[e.Affix].Color : new Color(1f, 0.84f, 0.36f);
+                Place(tx.rectTransform, _wx + e.X * _ws - 80, _wy + ty * _ws - 10, 160, 20);
+            }
+            foreach (var z in w.Zones)
+            {
+                if (z.Kind != "hot") continue;
+                float ty = z.Y + 10f - _scroll0; if (ty < 0f || ty > _viewH) continue;
+                var tx = GetText(_tagLabels, g2++); tx.text = "ЖАР +НАГРЕВ"; tx.fontSize = 12; tx.color = new Color(1f, 0.67f, 0.35f, 0.8f);
+                Place(tx.rectTransform, _wx + (z.X + z.W / 2f) * _ws - 80, _wy + ty * _ws - 10, 160, 20);
+            }
+            for (int i = g2; i < _tagLabels.Count; i++) _tagLabels[i].enabled = false;
         }
 
         Text GetText(List<Text> list, int i)

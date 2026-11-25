@@ -38,7 +38,15 @@ namespace GC26.Bomber
         public string Kind; public BomberEnemyDef Def;
         public float Hp, MaxHp, Tm, Face, AimA, LosT, ShootT, Flash, Stun, Slow, Burn, BurnT, Alpha = 1f, SpdMul = 1f, Orbit = 1f;
         public bool Elite, Los; public string St = "idle"; public int Cnt, Wave;
+        public string Affix; public float ShieldHp; public BomberEnemy Tgt;
+        // boss only
+        public BomberBossDef Boss; public int Phase, Seq, Beams = 1, Fan; public string Act = "idle"; public float SummonT = 5f, Sdir = 1f, Emit;
+        public readonly List<Vector2> Targets = new List<Vector2>();
+        public bool IsBoss => Boss != null;
     }
+
+    /// <summary>Floor hazard: hot (adds heat), lava / acid (hurts after a warning).</summary>
+    public sealed class BomberZone { public string Kind; public float X, Y, W, H, Tele, Life; public bool Contains(float x, float y) => x >= X && x <= X + W && y >= Y && y <= Y + H; }
 
     public sealed class BomberShot
     {

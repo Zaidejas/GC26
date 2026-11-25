@@ -125,6 +125,9 @@ namespace GC26.Bomber
             Shots.Add(o);
         }
 
+        /// <summary>Where a ray from (x, y) at angle a hits a wall (used by the view to draw beams).</summary>
+        public Vector2 RayEndPublic(float x, float y, float a, float max) => RayEnd(x, y, a, max);
+
         Vector2 RayEnd(float x, float y, float a, float max)
         {
             float dx = Mathf.Cos(a), dy = Mathf.Sin(a), d = 0f;
@@ -233,6 +236,7 @@ namespace GC26.Bomber
                         BomberEnemy hitE = null;
                         foreach (var e in Enemies) { if (e.Hp <= 0f || e.Alpha < 0.5f || (b.Hit != null && b.Hit.Contains(e))) continue; if (Dist(e.X, e.Y, b.X, b.Y) < e.R + b.R) { hitE = e; break; } }
                         if (hitE == null) continue;
+                        if (hitE.Kind == "shield" && Mathf.Abs(AngDiff(Mathf.Atan2(b.Y - hitE.Y, b.X - hitE.X), hitE.Face)) < 1.05f) { for (int k = 0; k < 5; k++) Spark(b.X, b.Y, new Color32(201, 139, 255, 255), 160f); b.Dead = true; break; }
                         if (b.Aoe > 0) { Explode(b.X, b.Y, b.Aoe, b.Dmg, false, true, b.Slow); b.Dead = true; break; }
                         DamageEnemy(hitE, b.Dmg, Mathf.Atan2(b.Vy, b.Vx), b.Kb, false, b.Burn, b.Slow);
                         if (b.Zap) ChainZap(hitE, b.Dmg * 0.3f, 1);

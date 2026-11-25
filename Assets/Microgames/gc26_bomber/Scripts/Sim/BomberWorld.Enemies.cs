@@ -8,12 +8,21 @@ namespace GC26.Bomber
         BomberEnemy MakeEnemy(string kind, float x, float y, bool elite)
         {
             var d = BomberData.Enemies[kind]; float hp = d.Hp * HpMul * (elite ? 1.5f : 1f);
-            return new BomberEnemy
+            var e = new BomberEnemy
             {
                 Kind = kind, Def = d, X = x, Y = y, R = d.R + (elite ? 2f : 0f), Hp = hp, MaxHp = hp, Elite = elite, Tm = 0.4f + _rngC.Next() * 0.8f,
                 Orbit = _rngC.Next() < 0.5f ? 1f : -1f, ShootT = 2f + _rngC.Next() * 1.5f, SpdMul = BomberData.EnemySpeed, Wave = Room != null ? Room.Wave : 0,
             };
+            if (elite)
+            {
+                e.Affix = _rngE.Pick(BomberData.AffixKeys);
+                if (e.Affix == "fast") e.SpdMul *= 1.35f;
+                if (e.Affix == "shielded") e.ShieldHp = hp * 0.5f;
+            }
+            return e;
         }
+
+        static float AngDiff(float a, float b) => Mathf.Repeat(a - b + Mathf.PI, Mathf.PI * 2f) - Mathf.PI;
 
         void EnemyShot(float x, float y, float a, float speed, Color32? color = null, float r = 5f)
         {
@@ -59,11 +68,13 @@ namespace GC26.Bomber
         void UpdateEnemy(BomberEnemy e, float dt)
         {
             e.Flash -= dt; if (e.Slow > 0f) e.Slow -= dt;
+            if (e.Affix == "regen" && e.Hp > 0f) e.Hp = Mathf.Min(e.MaxHp, e.Hp + e.MaxHp * 0.04f * dt);
             if (e.Burn > 0f) { e.Burn -= dt; e.BurnT -= dt; if (e.BurnT <= 0f) { e.BurnT = 0.33f; DamageEnemy(e, 1f, 0f, 0f, true); if (e.Hp <= 0f) return; } }
             e.LosT -= dt; if (e.LosT <= 0f) { e.LosT = 0.2f; e.Los = Los(e.X, e.Y, P.X, P.Y); }
             if (e.Stun > 0f) { e.Stun -= dt; e.Vx *= 0.8f; e.Vy *= 0.8f; MoveBody(e, e.Vx * dt, e.Vy * dt); return; }
+            if (e.IsBoss) { UpdateBoss(e, dt); return; }
             float d = Dist(e, P), a = Ang(e, P), spd = e.Def.Speed;
-            float el = (e.Elite ? 0.75f : 1f) * BomberData.Interval * (e.Slow > 0f ? 1.5f : 1f);
+            float el = (e.Elite ? 0.75f : 1f) * (e.Affix == "fast" ? 0.8f : 1f) * BomberData.Interval * (e.Slow > 0f ? 1.5f : 1f);
             e.Tm -= dt;
             switch (e.Kind)
             {
@@ -97,16 +108,126 @@ namespace GC26.Bomber
                     if (e.St == "idle") { if (e.Tm <= 0f && e.Los) { e.St = "tele"; e.Tm = 0.4f; } }
                     else if (e.St == "tele") { if (e.Tm <= 0f) { foreach (var o in new[] { -0.12f, 0.12f }) EnemyShot(e.X, e.Y, a + o, 230f, new Color32(127, 209, 255, 255)); e.St = "idle"; e.Tm = 2f * el; } }
                     break;
+                // ---- sector 2 ----
+                case "shield":
+                {
+                    e.Face += Mathf.Clamp(AngDiff(a, e.Face), -1.5f * dt, 1.5f * dt);
+                    if (e.St == "tele") { Steer(e, Vector2.zero, 0, dt); if (e.Tm <= 0f) { if (d < e.R + P.R + 24f) Hurt(); e.St = "rec"; e.Tm = 0.7f; } }
+                    else if (e.St == "rec") { Steer(e, Vector2.zero, 0, dt); if (e.Tm <= 0f) e.St = "chase"; }
+                    else { e.St = "chase"; Steer(e, Toward(e), spd, dt); if (d < e.R + P.R + 14f) { e.St = "tele"; e.Tm = 0.45f; } }
+                    e.ShootT -= dt;
+                    if (e.ShootT <= 0f && e.Los && e.St == "chase") { e.ShootT = 2.8f * el; int n = e.Elite ? 5 : 3; for (int i = 0; i < n; i++) EnemyShot(e.X, e.Y, e.Face + (i - (n - 1) / 2f) * 0.22f, 210f, Orange); }
+                    break;
+                }
+                case "sniper":
+                    if (e.St == "aim" || e.St == "shot") Steer(e, Vector2.zero, 0, dt);
+                    else { Steer(e, KeepAt(e, d, a, 280f, 380f), spd, dt); if (SolidAt(e.X + e.Vx * 0.15f, e.Y + e.Vy * 0.15f, e.R)) e.Orbit *= -1f; }
+                    if (e.St == "idle") { if (e.Tm <= 0f && e.Los) { e.St = "aim"; e.Tm = 1f; e.AimA = a; } }
+                    else if (e.St == "aim") { if (e.Tm > 0.3f) e.AimA = a; if (e.Tm <= 0f) { EnemyShot(e.X, e.Y, e.AimA, 900f, null, 4f); if (e.Elite) { e.St = "shot"; e.Tm = 0.15f; } else { e.St = "idle"; e.Tm = 2.1f * el; } } }
+                    else if (e.St == "shot") { if (e.Tm <= 0f) { EnemyShot(e.X, e.Y, e.AimA, 900f, null, 4f); e.St = "idle"; e.Tm = 2.1f * el; } }
+                    break;
+                case "mortar":
+                    Steer(e, KeepAt(e, d, a, 260f, 400f), spd, dt);
+                    if (e.Tm <= 0f)
+                    {
+                        int n = e.Elite ? 3 : 1;
+                        for (int i = 0; i < n; i++)
+                        {
+                            float tx = Mathf.Clamp(P.X + (i > 0 ? (_rngC.Next() - 0.5f) * 140f : P.Vx * 0.4f), 40f, W - 40f), ty = Mathf.Clamp(P.Y + (i > 0 ? (_rngC.Next() - 0.5f) * 140f : P.Vy * 0.4f), 40f, H - 40f);
+                            Effects.Add(new BomberEffect { Kind = "shell", X = tx, Y = ty, T = 1.05f, Max = 1.05f, R = 46f });
+                        }
+                        e.Tm = 2.8f * el;
+                    }
+                    break;
+                case "brute":
+                    if (e.St == "charge")
+                    {
+                        float ox = e.X, oy = e.Y, sp = 470f * dt * e.SpdMul; MoveBody(e, Mathf.Cos(e.AimA) * sp, Mathf.Sin(e.AimA) * sp); if (Dist(e, P) < e.R + P.R + 2f) Hurt();
+                        if (e.Tm <= 0f || Dist(e.X, e.Y, ox, oy) < sp * 0.4f) { e.St = "rec"; e.Tm = 0.8f; Shake?.Invoke(0.4f); for (int k = 0; k < 10; k++) Spark(e.X, e.Y, new Color32(255, 107, 61, 255), 200f); }
+                        break;
+                    }
+                    if (e.St == "tele") { Steer(e, Vector2.zero, 0, dt); if (e.Tm > 0.25f) e.AimA = a; if (e.Tm <= 0f) { e.St = "charge"; e.Tm = 0.55f; } break; }
+                    if (e.St == "rec") { Steer(e, Vector2.zero, 0, dt); if (e.Tm <= 0f) { e.St = "chase"; e.Tm = 2.2f * el; } break; }
+                    e.St = "chase"; Steer(e, Toward(e), spd, dt);
+                    if (e.Los && d < 280f && e.Tm <= 0f) { e.St = "tele"; e.Tm = 0.7f; e.AimA = a; }
+                    e.ShootT -= dt; if (e.ShootT <= 0f && e.Los) { e.ShootT = 3f * el; for (int i = 0; i < 7; i++) EnemyShot(e.X, e.Y, a + (i - 3) * 0.12f, 230f, Orange); }
+                    break;
+                // ---- sector 3 ----
+                case "repair":
+                {
+                    BomberEnemy target = null, anchor = null;
+                    foreach (var o in Enemies) { if (o == e || o.IsBoss) continue; if (anchor == null) anchor = o; if (o.Hp < o.MaxHp && (target == null || o.Hp / o.MaxHp < target.Hp / target.MaxHp)) target = o; }
+                    if (target != null) anchor = target;
+                    Vector2 dir;
+                    if (d < 220f) dir = new Vector2(-Mathf.Cos(a), -Mathf.Sin(a));
+                    else if (anchor != null && Dist(e, anchor) > 120f) { float aa = Ang(e, anchor); dir = new Vector2(Mathf.Cos(aa), Mathf.Sin(aa)); }
+                    else dir = Vector2.zero;
+                    Steer(e, dir, spd, dt);
+                    if (e.St == "idle") { if (e.Tm <= 0f && target != null && Dist(e, target) < 260f) { e.St = "tele"; e.Tm = 0.4f; e.Tgt = target; } }
+                    else if (e.St == "tele" && e.Tm <= 0f)
+                    {
+                        Heal(e, e.Tgt);
+                        if (e.Elite) foreach (var o in Enemies) if (o != e && o != e.Tgt && !o.IsBoss && o.Hp < o.MaxHp) { Heal(e, o); break; }
+                        e.St = "idle"; e.Tm = 2f * el; e.Tgt = null;
+                    }
+                    break;
+                }
+                case "phantom":
+                    if (e.St == "out")
+                    {
+                        e.Alpha = Mathf.Max(0.08f, e.Tm / 0.35f); Steer(e, Vector2.zero, 0, dt);
+                        if (e.Tm <= 0f)
+                        {
+                            float aa = _rngC.Next() * Mathf.PI * 2f; e.X = Mathf.Clamp(P.X + Mathf.Cos(aa) * 72f, 40f, W - 40f); e.Y = Mathf.Clamp(P.Y + Mathf.Sin(aa) * 72f, 40f, H - 40f); PushOut(e);
+                            e.St = "slash"; e.Tm = 0.42f; e.Alpha = 1f; for (int k = 0; k < 10; k++) Spark(e.X, e.Y, new Color32(217, 140, 255, 255), 160f);
+                        }
+                        break;
+                    }
+                    if (e.St == "slash")
+                    {
+                        Steer(e, Vector2.zero, 0, dt);
+                        if (e.Tm <= 0f) { if (Dist(e, P) < e.R + P.R + 28f) Hurt(); float sa = Ang(e, P); for (int k = 0; k < 8; k++) Spark(e.X + Mathf.Cos(sa) * 20f, e.Y + Mathf.Sin(sa) * 20f, new Color32(255, 255, 255, 255), 200f); e.St = "chase"; e.Tm = 3f * el; }
+                        break;
+                    }
+                    e.St = "chase"; e.Alpha = 1f; Steer(e, Toward(e), spd, dt);
+                    if (e.Tm <= 0f && d < 460f) { e.St = "out"; e.Tm = 0.35f; }
+                    break;
+                case "laser":
+                    e.Vx = e.Vy = 0f;
+                    if (e.St == "idle") { e.Face = a; if (e.Tm <= 0f && e.Los) { e.St = "tele"; e.Tm = 1f; e.AimA = a - 0.55f * e.Orbit; } }
+                    else if (e.St == "tele") { if (e.Tm <= 0f) { e.St = "sweep"; e.Tm = 1.4f; } }
+                    else if (e.St == "sweep")
+                    {
+                        e.AimA += dt * 0.85f * e.Orbit * (e.Elite ? 1.4f : 1f);
+                        var end = RayEnd(e.X, e.Y, e.AimA, 900f); if (SegDist(P.X, P.Y, e.X, e.Y, end.x, end.y) < P.R + 4f && P.DashT <= 0f) Hurt();
+                        if (e.Tm <= 0f) { e.St = "idle"; e.Tm = 2.4f * el; e.Orbit *= -1f; }
+                    }
+                    break;
             }
         }
+
+        static readonly Color32 Orange = new Color32(255, 154, 92, 255);
+
+        void Heal(BomberEnemy from, BomberEnemy t)
+        {
+            if (t == null || !Enemies.Contains(t)) return;
+            t.Hp = Mathf.Min(t.MaxHp, t.Hp + t.MaxHp * 0.35f);
+            Effects.Add(new BomberEffect { Kind = "beam", X = from.X, Y = from.Y, X2 = t.X, Y2 = t.Y, T = 0.3f, Max = 0.3f, Color = new Color32(125, 255, 168, 255) });
+            Texts.Add(new BomberText { X = t.X, Y = t.Y - 12f, S = "+", T = 0.7f, Color = new Color32(109, 255, 176, 255) });
+        }
+
+        /// <summary>Enemies that cannot be knocked back.</summary>
+        static bool Anchored(BomberEnemy e) => e.Kind == "turret" || e.Kind == "laser" || e.IsBoss;
 
         /// <param name="burnTick">damage from burning (no number, no flash)</param>
         /// <param name="ignite">sets the enemy on fire (or the Glue module does)</param>
         public void DamageEnemy(BomberEnemy e, float amt, float a = 0f, float kb = 0f, bool burnTick = false, bool ignite = false, float slow = 0f)
         {
             if (e.Hp <= 0f) return;
+            if (e.Affix == "armored") amt *= 0.6f;
+            if (e.ShieldHp > 0f) { float ab = Mathf.Min(e.ShieldHp, amt); e.ShieldHp -= ab; amt -= ab; if (!burnTick) Spark(e.X, e.Y, new Color32(159, 208, 255, 255), 120f); }
             e.Hp -= amt; if (!burnTick) e.Flash = 0.08f;
-            if (kb > 0f && e.Kind != "turret") { e.Vx += Mathf.Cos(a) * kb; e.Vy += Mathf.Sin(a) * kb; }
+            if (kb > 0f && !Anchored(e)) { e.Vx += Mathf.Cos(a) * kb; e.Vy += Mathf.Sin(a) * kb; }
             if (!burnTick && (ignite || HasMod("glue"))) e.Burn = 3f;
             if (slow > 0f) e.Slow = Mathf.Max(e.Slow, slow);
             if (burnTick) { if (e.Hp <= 0f) KillEnemy(e); return; }
@@ -122,6 +243,8 @@ namespace GC26.Bomber
             for (int k = 0; k < 16; k++) Spark(e.X, e.Y, e.Def.Color, 260f);
             AddRing(e.X, e.Y, e.R + 16f, e.Def.Color, 0.25f);
             NewDecals.Add((e.X, e.Y, e.R, e.Def.Color));
+            if (e.IsBoss) { BossDefeated(e); return; }
+            if (e.Affix == "volatile") Effects.Add(new BomberEffect { Kind = "mine", X = e.X, Y = e.Y, T = 0.5f, Max = 0.5f, R = 70f });
             Kills++; Combo++; ComboT = 2.6f; MaxCombo = Mathf.Max(MaxCombo, Combo);
             if (Combo % 5 == 0)
             {
