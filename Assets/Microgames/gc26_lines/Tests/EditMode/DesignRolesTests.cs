@@ -177,6 +177,18 @@ namespace GC26.Lines.Tests
         }
 
         [Test]
+        public void AimingHint_StandsAboveTheBoard_NotOverIt()
+        {
+            var l = Layout;
+            hud.Bubble.Show("Where to burst?", "Tap another cell to move it, tap the lit spot to burst.", overBoard: true);
+            Assert.IsTrue(hud.Bubble.AboveBoard);
+            for (int i = 0; i < 30; i++) Tween.Tick(0.01f);
+            Assert.GreaterOrEqual(hud.Bubble.BottomY, l.Board.yMax, "Its bottom is above the board's top: no cell is hidden");
+            hud.Bubble.Show("Puffball in 40 points", "You get one every 200 points");
+            Assert.IsFalse(hud.Bubble.AboveBoard, "Other hints stay above the puffball button");
+        }
+
+        [Test]
         public void Clock_DigitsStayOnOneLine_WhateverTheTime()
         {
             hud.SetTimed(true);

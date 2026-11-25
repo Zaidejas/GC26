@@ -243,7 +243,7 @@ namespace GC26.Lines.EditorTools
                 case 2:
                     view.ShowAim(new Cell(4, 4));
                     hud.Puffball.SetArmed(true);
-                    hud.Bubble.Show(T("aimTitle"), T("aimText"));
+                    hud.Bubble.Show(T("aimTitle"), T("aimText"), overBoard: true);
                     break;
                 case 3:
                     view.ShowAim(new Cell(4, 4));

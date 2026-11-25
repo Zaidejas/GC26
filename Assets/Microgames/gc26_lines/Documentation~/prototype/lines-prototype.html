@@ -462,6 +462,11 @@ body {
 }
 .bubble::after { content: ""; position: absolute; left: 50%; top: 100%; margin-left: -1.6cqw; border: 1.6cqw solid transparent; border-top-color: rgba(255, 213, 107, 0.55); }
 .bubble.show { opacity: 1; transform: translate(-50%, 0); }
+/* While aiming the hint can't sit over the board (it hid the bottom rows and caught their taps): it rises above the
+   board, over SCORE / NEXT, without its tail. */
+.bubble.above { transform: translate(-50%, calc(-1 * var(--lift, 0px) + 1cqw)); }
+.bubble.show.above { transform: translate(-50%, calc(-1 * var(--lift, 0px))); }
+.bubble.above::after { display: none; }
 .bubble b { display: block; font-family: var(--font-body); font-weight: 800; font-size: 4.4cqw; color: #ffd56b; } /* read mid-game: Nunito */
 .bubble span { display: block; font-size: 3.4cqw; color: var(--soft); margin-top: 0.6cqw; }
 .bubble .bar { height: 1.2cqw; border-radius: 999px; background: rgba(255, 255, 255, 0.12); margin-top: 1.8cqw; overflow: hidden; }
@@ -1463,11 +1468,17 @@ body {
   // busiest spot; tap another cell to move it, tap the lit spot to burst the 3×3 square (no points, no new mushrooms). ----
   let aiming = false, aimCell = -1, bubbleTimer = 0;
   // A bubble above the puffball button. progress: 0–1 for a bar, or null.
-  function showBubble(title, text, progress, ms) {
-    const b = $("#bubble"); b.textContent = "";
+  function showBubble(title, text, progress, ms, above) {
+    const b = $("#bubble"); b.textContent = ""; b.classList.remove("above");
     const h = document.createElement("b"); h.textContent = title; b.appendChild(h);
     const p = document.createElement("span"); p.textContent = text; b.appendChild(p);
     if (progress != null) { const bar = document.createElement("div"); bar.className = "bar"; const i = document.createElement("i"); i.style.width = Math.round(progress * 100) + "%"; bar.appendChild(i); b.appendChild(bar); }
+    if (above) { // its bottom 2cqw above the board's top
+      const board = $(".board").getBoundingClientRect(), home = b.getBoundingClientRect(), cq = $("#phone").getBoundingClientRect().width / 100;
+      const shown = home.bottom - (b.classList.contains("show") ? 0 : cq); // where its bottom is once shown
+      b.style.setProperty("--lift", (shown - board.top + 2 * cq) + "px");
+      b.classList.add("above");
+    }
     b.classList.add("show");
     clearTimeout(bubbleTimer); if (ms) bubbleTimer = setTimeout(hideBubble, ms);
   }
@@ -1612,7 +1623,7 @@ body {
     aiming = on && S.supers > 0 && !S.over;
     aimCell = -1; // set again below when aiming starts (on the busiest spot)
     $("#grid").style.touchAction = aiming ? "none" : ""; // the finger can drag the square around
-    if (aiming) { selected = -1; aimCell = bestBurstCell(); showBubble(t("aimTitle"), t("aimText"), null, 0); Sound.play("arm"); buzz("tick"); }
+    if (aiming) { selected = -1; aimCell = bestBurstCell(); showBubble(t("aimTitle"), t("aimText"), null, 0, true); Sound.play("arm"); buzz("tick"); }
     else { hideBubble(); if (was) Sound.play("disarm"); }
     render();
     if (!aiming && S.stuck) setTimeout(offerRescue, 250); // still no move: offer the puffball again

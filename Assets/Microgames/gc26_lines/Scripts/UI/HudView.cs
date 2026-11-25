@@ -285,7 +285,7 @@ namespace GC26.Lines.UI
             reset.Place(new Rect(actions.xMax - side, actions.y, side, actions.height), u);
             var puffballCentre = new Vector2(actions.center.x, actions.center.y);
             puffball.Place(puffballCentre, u);
-            bubble.ApplyLayout(puffballCentre + new Vector2(0f, round / 2f), u);
+            bubble.ApplyLayout(puffballCentre + new Vector2(0f, round / 2f), u, new Vector2(layout.Board.center.x, layout.Board.yMax));
             // The banner a little above the board's middle (prototype: 30 % down the screen).
             banner.ApplyLayout(new Vector2(layout.Board.center.x, layout.Board.center.y + layout.Board.height * 0.2f), u);
             PlaceClock(layout);

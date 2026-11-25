@@ -558,7 +558,7 @@ namespace GC26.Lines.Game
             if (on)
             {
                 aimStartPuffballs = Controller.Game.Puffballs;
-                if (!coach.IsShowing) hud.Bubble.Show(Texts.Get("aimTitle"), Texts.Get("aimText"));
+                if (!coach.IsShowing) hud.Bubble.Show(Texts.Get("aimTitle"), Texts.Get("aimText"), overBoard: true); // above the board, clear of the aim
                 Sounds.Play(LinesSound.Arm);
                 Haptics.Play(GC26.Lines.Haptics.LinesFeel.Tick);
                 return;

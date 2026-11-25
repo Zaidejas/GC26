@@ -19,7 +19,13 @@ namespace GC26.Lines.UI
         TextMeshProUGUI title, text;
         CanvasGroup group;
         float unit = 10f, progress = -1f;
-        Vector2 anchor;
+        Vector2 anchor, boardTop;
+        bool aboveBoard;
+        const float AboveBoardGap = 2f;
+        /// <summary>The bubble sits above the board (while aiming), not above the puffball button (tests).</summary>
+        public bool AboveBoard => aboveBoard;
+        /// <summary>The bubble's bottom edge, in the HUD's pixels (tests).</summary>
+        public float BottomY => root.anchoredPosition.y;
         TweenHandle fade, timer;
 
         public bool IsShowing { get; private set; }
@@ -79,9 +85,13 @@ namespace GC26.Lines.UI
         }
 
         /// <summary>The bubble's tail points down at <paramref name="buttonTop"/> (the button's top middle, pixels).</summary>
-        public void ApplyLayout(Vector2 buttonTop, float unitPixels)
+        public void ApplyLayout(Vector2 buttonTop, float unitPixels) => ApplyLayout(buttonTop, unitPixels, buttonTop);
+
+        /// <summary><paramref name="boardTopMiddle"/>: where an "above the board" bubble stands (the board's top middle).</summary>
+        public void ApplyLayout(Vector2 buttonTop, float unitPixels, Vector2 boardTopMiddle)
         {
             anchor = buttonTop;
+            boardTop = boardTopMiddle;
             unit = unitPixels;
             if (IsShowing) Layout();
         }
@@ -89,9 +99,12 @@ namespace GC26.Lines.UI
         /// <summary>
         /// Shows <paramref name="titleText"/> and <paramref name="lineText"/>; <paramref name="bar"/>: a progress bar
         /// (0–1) or below 0 for none; <paramref name="seconds"/>: hides by itself after that long (0: stays).
+        /// <paramref name="overBoard"/>: the bubble rises above the board, over SCORE / NEXT (while aiming: over the
+        /// board it hid the bottom rows the player aims at).
         /// </summary>
-        public void Show(string titleText, string lineText, float bar = -1f, float seconds = 0f)
+        public void Show(string titleText, string lineText, float bar = -1f, float seconds = 0f, bool overBoard = false)
         {
+            aboveBoard = overBoard;
             title.text = titleText;
             text.text = lineText;
             progress = bar;
@@ -103,10 +116,13 @@ namespace GC26.Lines.UI
             fade = Tween.To(this, 0.18f, p =>
             {
                 group.alpha = Mathf.Lerp(start, 1f, p);
-                root.anchoredPosition = anchor + new Vector2(0f, Gap * unit - unit * (1f - p));
+                root.anchoredPosition = Home() - new Vector2(0f, unit * (1f - p));
             });
             if (seconds > 0f) timer = Tween.Delay(seconds, Hide);
         }
+
+        // Where the bubble's bottom middle stands: above the puffball button, or above the board while aiming.
+        Vector2 Home() => aboveBoard ? boardTop + new Vector2(0f, AboveBoardGap * unit) : anchor + new Vector2(0f, Gap * unit);
 
         public void Hide()
         {
@@ -131,7 +147,7 @@ namespace GC26.Lines.UI
             float barH = bar ? BarHeight * u + 1.8f * u : 0f;
             float boxW = width + 2f * PadX * u, boxH = PadY * u + titleH + 0.6f * u + textH + barH + PadY * u;
             root.sizeDelta = new Vector2(boxW, boxH);
-            root.anchoredPosition = anchor + new Vector2(0f, Gap * u);
+            root.anchoredPosition = Home();
             Place(border.rectTransform, -0.35f * u, -0.35f * u, boxW + 0.7f * u, boxH + 0.7f * u);
             Place(background.rectTransform, 0f, 0f, boxW, boxH);
             UiShapes.MakeRounded(border, 3.3f * u);
