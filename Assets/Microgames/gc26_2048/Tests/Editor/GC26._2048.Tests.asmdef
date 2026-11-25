@@ -3,6 +3,7 @@
   "rootNamespace": "GC26._2048.Tests",
   "references": [
     "GC26._2048",
+    "GC26._2048.Editor",
     "UnityEngine.TestRunner",
     "UnityEditor.TestRunner"
   ],

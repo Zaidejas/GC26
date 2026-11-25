@@ -25,9 +25,21 @@
 
 ## Версия
 
-Текущая версия — в `Scripts/Core/CheeseVersion.cs` (сейчас 0.0.1), видна на главном экране и в настройках.
-При выпуске новой версии обновите её там, в поле `version` файла `microgame.json` и в `CHANGELOG.md`
-(тест `CheeseVersionTests` проверяет, что всё совпадает).
+Версия `MAJOR.MINOR.PATCH` и номер сборки — в `Scripts/Core/CheeseVersion.cs`; игрок видит их на главном экране
+и в настройках (`0.0.1` в релизе, `0.0.1-dev.N` в development-сборке и в редакторе).
+
+Поднимать версию и собирать — меню **GC26 → gc26_2048 → Build** (собирает под текущую платформу, Windows или
+Android; сначала выйдите из Play):
+
+| Пункт | Что делает |
+| --- | --- |
+| Development Build | номер сборки +1, development-сборка |
+| Release: Patch / Minor / Major | версия +1 в нужной части, номер сборки +1, раздел «Не выпущено» в `CHANGELOG.md` становится новой версией, `microgame.json` обновляется, релизная сборка |
+| Show Version · Open Builds Folder · Change Builds Folder… | текущая версия, папка сборок (по умолчанию `Builds/gc26_2048`, её не видит git) |
+
+Меню меняет только `CheeseVersion.cs`, `microgame.json` и `CHANGELOG.md` (Player Settings и Build Settings — нет);
+если сборка не удалась, файлы возвращаются как были. После сборки закоммитьте эти файлы.
+Тест `CheeseVersionTests` проверяет, что версия в коде, `microgame.json` и `CHANGELOG.md` совпадает.
 
 ## Языки
 

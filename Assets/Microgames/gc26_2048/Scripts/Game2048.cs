@@ -525,7 +525,7 @@ namespace GC26._2048
 
             Bind(CheeseUi.Label(s, "", 36f, CheeseArt.Light, TextAlignmentOptions.Center, true), "facts")
                 .rectTransform.Place(0.05f, 0.905f, 0.95f, 0.945f);
-            var version = CheeseUi.Label(s, "v" + CheeseVersion.Current, 26f, CheeseArt.Light, TextAlignmentOptions.Center);
+            var version = CheeseUi.Label(s, "v" + CheeseVersion.Display, 26f, CheeseArt.Light, TextAlignmentOptions.Center);
             version.alpha = 0.75f;
             version.rectTransform.Place(0.05f, 0.95f, 0.95f, 0.98f);
             return s;
@@ -600,7 +600,7 @@ namespace GC26._2048
             Btn(settings, "rules", false, () => OpenRules(Settings));
             Btn(settings, "close", true, () => Show(settingsReturn));
             Bind(CheeseUi.Label(settings, "", 30f, CheeseArt.InkDim, TextAlignmentOptions.Center),
-                () => $"{loc["version"]} {CheeseVersion.Current}");
+                () => $"{loc["version"]} {CheeseVersion.Display}");
 
             var rules = Sheet(o, Rules, "rules");
             var text = Bind(CheeseUi.Label(rules, "", 32f, CheeseArt.Ink, TextAlignmentOptions.TopLeft), "rules_text");

@@ -12,8 +12,8 @@ namespace GC26._2048.EditorTools
     /// </summary>
     public static class CheeseSceneBuilder
     {
-        const string Folder = "Assets/Microgames/gc26_2048";
-        const string ScenePath = Folder + "/Scenes/gc26_2048_Main.unity";
+        internal const string Folder = "Assets/Microgames/gc26_2048";
+        internal const string ScenePath = Folder + "/Scenes/gc26_2048_Main.unity";
 
         [MenuItem("GC26/gc26_2048/Build Main Scene")]
         public static void Build()
