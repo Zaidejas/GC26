@@ -9,7 +9,7 @@ namespace GC26._2048
         BoardFull
     }
 
-    /// <summary>One game: the board plus score, moves left and cheeses made. Plain C#.</summary>
+    /// <summary>One game: the board plus score, moves left, cheese on the field and the mouse. Plain C#.</summary>
     public class CheeseSession
     {
         readonly Random rng;
@@ -17,8 +17,8 @@ namespace GC26._2048
         public Board Board { get; } = new Board();
         public int Score { get; private set; }
         public int MovesLeft { get; private set; }
-        /// <summary>Cheeses made this game (they stay on the field).</summary>
-        public int Cheeses { get; private set; }
+        /// <summary>Cheese on the field right now: grows with every cheese made, drops by what the mouse steals.</summary>
+        public int Cheeses => Board.Count(CheeseRules.CheeseLevel);
         public bool CheeseShown { get; private set; }
         /// <summary>Most valuable item seen this game (8 = cheese).</summary>
         public int BestLevel { get; private set; }
@@ -41,7 +41,6 @@ namespace GC26._2048
             Score = 0;
             MoveLimit = CheeseRules.MoveLimit;
             MovesLeft = MoveLimit;
-            Cheeses = 0;
             CheeseShown = false;
             BestLevel = 0;
             Ended = EndReason.None;
@@ -50,14 +49,13 @@ namespace GC26._2048
             Spawn(1);
         }
 
-        public void Restore(int[] cells, int score, int movesLeft, int cheeses, bool cheeseShown, int bestLevel,
+        public void Restore(int[] cells, int score, int movesLeft, bool cheeseShown, int bestLevel,
             int moveLimit = CheeseRules.MoveLimit)
         {
             Board.Load(cells);
             MoveLimit = Math.Max(moveLimit, movesLeft);
             Score = score;
             MovesLeft = movesLeft;
-            Cheeses = cheeses;
             CheeseShown = cheeseShown;
             BestLevel = bestLevel;
             Ended = EndReason.None;
@@ -73,7 +71,6 @@ namespace GC26._2048
 
             MovesLeft--;
             Score += result.Points;
-            Cheeses += result.Cheeses;
             Note(result.TopLevel);
             if (result.Cheeses > 0 && !CheeseShown)
             {

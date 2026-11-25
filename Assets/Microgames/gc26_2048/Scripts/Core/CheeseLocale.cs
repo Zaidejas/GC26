@@ -81,7 +81,7 @@ namespace GC26._2048
             ["score"] = new[] { "Score", "Очки" },
             ["best"] = new[] { "Best", "Рекорд" },
             ["best_item"] = new[] { "Best item", "Лучший предмет" },
-            ["cheese_made"] = new[] { "Cheese made", "Сделано сыров" },
+            ["cheese_on_field"] = new[] { "Cheese on the field", "Сыра на поле" },
             ["moves_made"] = new[] { "Moves made", "Сделано ходов" },
             ["cheese_ready"] = new[] { "Cheese is ready!", "Сыр готов!" },
             ["hole_opened"] = new[] { "A mouse hole appeared!", "Появилась мышиная норка!" },

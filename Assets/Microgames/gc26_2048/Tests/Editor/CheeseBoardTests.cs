@@ -146,7 +146,7 @@ namespace GC26._2048.Tests
         public void SessionSpendsAMoveAndSpawnsOnlyOnChange()
         {
             var s = new CheeseSession(1);
-            s.Restore(new[] { 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 0, 150, 0, false, 2);
+            s.Restore(new[] { 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 0, 150, false, 2);
             s.Move(Direction.Left);
             Assert.AreEqual(150, s.MovesLeft);
             s.Move(Direction.Right);
@@ -158,7 +158,7 @@ namespace GC26._2048.Tests
         public void SessionCountsCheeseAndFlagsTheFirstOne()
         {
             var s = new CheeseSession(1);
-            s.Restore(new[] { 7, 7, 0, 0, 7, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 0, 150, 0, false, 7);
+            s.Restore(new[] { 7, 7, 0, 0, 7, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 0, 150, false, 7);
             var r = s.Move(Direction.Left);
             Assert.AreEqual(2, s.Cheeses);
             Assert.AreEqual(4096, s.Score);
@@ -167,10 +167,18 @@ namespace GC26._2048.Tests
         }
 
         [Test]
+        public void CheeseCounterIsTheCheeseOnTheField()
+        {
+            var s = new CheeseSession(1);
+            s.Restore(new[] { 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8 }, 0, 100, true, 8);
+            Assert.AreEqual(2, s.Cheeses, "a loaded game counts the cheese it has");
+        }
+
+        [Test]
         public void SessionEndsWhenMovesRunOut()
         {
             var s = new CheeseSession(1);
-            s.Restore(new[] { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 0, 1, 0, false, 1);
+            s.Restore(new[] { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 0, 1, false, 1);
             s.Move(Direction.Right);
             Assert.AreEqual(EndReason.OutOfMoves, s.Ended);
         }
@@ -191,7 +199,7 @@ namespace GC26._2048.Tests
         public void GameSavedUnderTheOldLimitCountsMovesMadeFromIt()
         {
             var s = new CheeseSession(7);
-            s.Restore(new[] { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 0, 40, 0, false, 1,
+            s.Restore(new[] { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 0, 40, false, 1,
                 CheeseSaveData.LegacyMoveLimit);
             Assert.AreEqual(150, s.MoveLimit);
             Assert.AreEqual(110, s.MovesMade);

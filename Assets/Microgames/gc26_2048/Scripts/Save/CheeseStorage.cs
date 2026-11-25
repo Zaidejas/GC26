@@ -11,6 +11,7 @@ namespace GC26._2048
         public int[] cells;
         public int score;
         public int moves;
+        /// <summary>Cheese on the field when saved (for reading the file; the game counts it from the cells).</summary>
         public int cheeses;
         public bool cheeseShown;
         public int bestLevel;

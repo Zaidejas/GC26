@@ -227,7 +227,7 @@ namespace GC26._2048.Tests
         public void MouseWaitsWhenAMoveChangesNothing()
         {
             var s = new CheeseSession(5);
-            s.Restore(new[] { 8, 8, 8, 8, 1, 2, 1, 2, 2, 1, 2, 1, 1, 2, 1, 3 }, 0, 100, 4, true, 8);
+            s.Restore(new[] { 8, 8, 8, 8, 1, 2, 1, 2, 2, 1, 2, 1, 1, 2, 1, 3 }, 0, 100, true, 8);
             s.Mouse.Restore(MouseState.Here, 1, 0, 0);
             var r = s.Move(Direction.Left);
             Assert.IsFalse(r.Changed);
@@ -239,13 +239,14 @@ namespace GC26._2048.Tests
         public void RunInsideAMoveEatsCheeseBeforeTheEndCheck()
         {
             var s = new CheeseSession(5);
-            s.Restore(new[] { 8, 8, 8, 8, 1, 2, 1, 2, 2, 3, 2, 1, 1, 1, 2, 3 }, 0, 100, 4, true, 8);
+            s.Restore(new[] { 8, 8, 8, 8, 1, 2, 1, 2, 2, 3, 2, 1, 1, 1, 2, 3 }, 0, 100, true, 8);
             s.Mouse.Restore(MouseState.Here, 1, 0, 0);
             var r = s.Move(Direction.Left);
             Assert.IsTrue(r.Changed);
             Assert.IsTrue(r.MouseRan);
             Assert.IsTrue(r.Eaten.Any(e => e.Row == 0 && e.Col == 0));
             Assert.AreEqual(0, s.Board.LevelAt(0, 0));
+            Assert.AreEqual(4 - r.Eaten.Count, s.Cheeses, "the counter drops by what the mouse stole");
             Assert.AreEqual(EndReason.None, s.Ended);
         }
     }

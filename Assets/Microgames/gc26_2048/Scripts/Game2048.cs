@@ -246,6 +246,7 @@ namespace GC26._2048
                 StartCoroutine(Toast(loc["hole_opened"], art.MouseRun));
             }
             if (r.MouseRan) sound.Play(r.Eaten.Count > 0 ? CheeseSound.Beep : CheeseSound.Rustle);
+            if (r.Eaten.Count > 0 && r.Cheeses == 0) StartCoroutine(Bump(cheeseCard)); // the count just dropped
             if (r.Points > 0) StartCoroutine(FloatPoints(r.Points));
             if (session.Score > storage.Best) storage.Best = session.Score;
             if (session.BestLevel > storage.BestLevel) storage.BestLevel = session.BestLevel;
@@ -327,7 +328,7 @@ namespace GC26._2048
                 NewGame();
                 return;
             }
-            session.Restore(d.cells, d.score, d.moves, d.cheeses, d.cheeseShown, d.bestLevel, d.MoveLimit);
+            session.Restore(d.cells, d.score, d.moves, d.cheeseShown, d.bestLevel, d.MoveLimit);
             session.Mouse.Restore((MouseState)d.mouse, d.mouseCountdown, d.mouseRow, d.mouseCol);
             recordAtStart = storage.Best;
             lastScore = session.Score;
@@ -652,7 +653,7 @@ namespace GC26._2048
             resultScore = CheeseUi.Label(results, "0", 110f, CheeseArt.Ink, TextAlignmentOptions.Left, true);
             resultBest = ResultRow(results, "best", out _);
             resultFind = ResultRow(results, "best_item", out resultFindIcon);
-            resultCheese = ResultRow(results, "cheese_made", out _);
+            resultCheese = ResultRow(results, "cheese_on_field", out _);
             resultMoves = ResultRow(results, "moves_made", out _);
             Btn(results, "restart", true, NewGame);
             Btn(results, "main_menu", false, ShowTitle);

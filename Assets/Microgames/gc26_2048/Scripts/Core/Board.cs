@@ -42,6 +42,15 @@ namespace GC26._2048
 
         public int[] ToArray() => (int[])levels.Clone();
 
+        /// <summary>How many items of <paramref name="level"/> are on the field.</summary>
+        public int Count(int level)
+        {
+            int n = 0;
+            foreach (int l in levels)
+                if (l == level) n++;
+            return n;
+        }
+
         public void Load(int[] cells)
         {
             Clear();
