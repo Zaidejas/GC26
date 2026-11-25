@@ -10,20 +10,20 @@ namespace GC26._2048
     /// Draws the 4×4 field in its wooden crate and animates moves: slide 0.1 s, then pulse and glow for merges,
     /// jelly squash for items that bumped into each other without merging, the new item grows in. Cheese is an
     /// ordinary merge result: it stays on the field. Tiles come from a small pool.
-    /// The mouse hole and the mouse live on their own layer above the tiles: the hole is a darker cell (an item in it
-    /// stays visible), the mouse is shown only while it runs out of the hole across its line; the cheese it passes
-    /// vanishes, then the hole moves.
+    /// The mouse hole and the mouse live on their own layer above the tiles: the hole is a darker cell with a bright
+    /// frame around it (an item in it stays visible), the mouse is shown only while it runs out of the hole across its
+    /// line; the cheese it passes vanishes, then the hole moves, or closes if the mouse got cheese.
     /// </summary>
     public class BoardView : MonoBehaviour
     {
         const float SlideTime = 0.1f;
         const float MouseStepTime = 0.13f, MouseInset = 0.08f, MouseHop = 0.18f, PopTime = 0.12f;
-        const float HoleShade = 0.34f, HoleFadeTime = 0.25f;
+        const float HoleShade = 0.34f, HoleFadeTime = 0.25f, FrameOutset = 0.06f;
 
         CheeseArt art;
         RectTransform pan;
         RectTransform mouse;
-        Image hole;
+        Image hole, holeFrame;
         Coroutine holeFade;
         readonly Dictionary<int, TileView> tiles = new Dictionary<int, TileView>();
         readonly Stack<TileView> pool = new Stack<TileView>();
@@ -55,6 +55,12 @@ namespace GC26._2048
             var layer = CheeseUi.Rect("MouseLayer", crate.transform).Place(0.035f, 0.035f, 0.965f, 0.965f);
             hole = CheeseUi.Box(layer, "Hole", art.Soft, HoleColor(0f));
             hole.gameObject.SetActive(false);
+            // the frame sits just outside the cell, in the gap between cells, so it shows around an item too
+            holeFrame = CheeseUi.Box(hole.transform, "Frame", art.Ring, FrameColor(0f));
+            var frt = holeFrame.rectTransform;
+            frt.anchorMin = new Vector2(-FrameOutset, -FrameOutset);
+            frt.anchorMax = new Vector2(1f + FrameOutset, 1f + FrameOutset);
+            frt.offsetMin = frt.offsetMax = Vector2.zero;
             var mouseImage = CheeseUi.Picture(layer, "Mouse", art.MouseRun);
             CheeseUi.AddShadow(mouseImage.gameObject, 6f);
             mouse = mouseImage.rectTransform;
@@ -68,6 +74,21 @@ namespace GC26._2048
             return c;
         }
 
+        /// <summary>Warm red frame, fully opaque when the veil is at full shade.</summary>
+        static Color FrameColor(float shade)
+        {
+            Color c = CheeseArt.Warn;
+            c.a = Mathf.Clamp01(shade / HoleShade);
+            return c;
+        }
+
+        /// <summary>Veil and frame together; 0 = invisible, <see cref="HoleShade"/> = fully shown.</summary>
+        void ShadeHole(float shade)
+        {
+            hole.color = HoleColor(shade);
+            holeFrame.color = FrameColor(shade);
+        }
+
         /// <summary>Shows the hole where the game says it is (after a new or a loaded game); the mouse stays hidden.</summary>
         public void ShowMouse(CheeseMouse m)
         {
@@ -77,7 +98,7 @@ namespace GC26._2048
             if (here)
             {
                 SetCellRect(hole.rectTransform, TileView.CellMin(m.Row, m.Col));
-                hole.color = HoleColor(HoleShade);
+                ShadeHole(HoleShade);
             }
         }
 
@@ -88,30 +109,39 @@ namespace GC26._2048
             rt.offsetMin = rt.offsetMax = Vector2.zero;
         }
 
-        /// <summary>The hole fades out of its old cell (if it had one) and into its new one.</summary>
-        IEnumerator MoveHole(int row, int col, bool fromNowhere)
+        /// <summary>
+        /// The hole fades out of its old cell (if it had one), then into its new one; with <paramref name="close"/>
+        /// it only fades out and is gone.
+        /// </summary>
+        IEnumerator MoveHole(int row, int col, bool fromNowhere, bool close)
         {
             if (!fromNowhere && hole.gameObject.activeSelf)
                 for (float t = 0; t < HoleFadeTime; t += Time.unscaledDeltaTime)
                 {
-                    hole.color = HoleColor(HoleShade * (1f - t / HoleFadeTime));
+                    ShadeHole(HoleShade * (1f - t / HoleFadeTime));
                     yield return null;
                 }
+            if (close)
+            {
+                hole.gameObject.SetActive(false);
+                holeFade = null;
+                yield break;
+            }
             hole.gameObject.SetActive(true);
             SetCellRect(hole.rectTransform, TileView.CellMin(row, col));
             for (float t = 0; t < HoleFadeTime; t += Time.unscaledDeltaTime)
             {
-                hole.color = HoleColor(HoleShade * t / HoleFadeTime);
+                ShadeHole(HoleShade * t / HoleFadeTime);
                 yield return null;
             }
-            hole.color = HoleColor(HoleShade);
+            ShadeHole(HoleShade);
             holeFade = null;
         }
 
-        void StartHole(int row, int col, bool fromNowhere)
+        void StartHole(int row, int col, bool fromNowhere, bool close = false)
         {
             if (holeFade != null) StopCoroutine(holeFade);
-            holeFade = StartCoroutine(MoveHole(row, col, fromNowhere));
+            holeFade = StartCoroutine(MoveHole(row, col, fromNowhere, close));
         }
 
         /// <summary>Puts the mouse over a cell (given by its lower-left anchor), nudged by a fraction of a cell.</summary>
@@ -168,7 +198,7 @@ namespace GC26._2048
                 yield return null;
             }
             mouse.gameObject.SetActive(false);
-            StartHole(r.HoleRow, r.HoleCol, false);
+            StartHole(r.HoleRow, r.HoleCol, false, r.HoleClosed);
         }
 
         static float EaseOut(float k) => 1f - (1f - k) * (1f - k);

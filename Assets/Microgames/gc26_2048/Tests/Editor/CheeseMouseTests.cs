@@ -15,7 +15,13 @@ namespace GC26._2048.Tests
             return board;
         }
 
-        static MoveResult Cheese() => new MoveResult { Cheeses = 1 };
+        /// <summary>A move that made one cheese (tile <paramref name="id"/> at row 3, col 3).</summary>
+        static MoveResult Cheese(int id = 999)
+        {
+            var r = new MoveResult { Cheeses = 1 };
+            r.Events.Add(TileEvent.Merged(id, id + 1, 3, 3, CheeseRules.CheeseLevel));
+            return r;
+        }
 
         [Test]
         public void HoleOpensFiveMovesAfterTheFirstCheese()
@@ -133,6 +139,68 @@ namespace GC26._2048.Tests
             Assert.AreEqual(0, board.LevelAt(2, 1));
             Assert.AreEqual(3, board.LevelAt(3, 1));
             Assert.AreEqual(8, board.LevelAt(0, 3), "not on its way");
+        }
+
+        [Test]
+        public void GettingCheeseClosesTheHoleUntilTheNextCheese()
+        {
+            var board = Field(0, 8, 0, 0);
+            var rng = new Random(0);
+            var mouse = new CheeseMouse();
+            mouse.Restore(MouseState.Here, 1, 0, 0); // corner: the cheese at (0,1) is on the row run only
+            var run = new MoveResult();
+            for (int seed = 0; !run.MouseRan || run.Eaten.Count == 0; seed++)
+            {
+                board = Field(0, 8, 0, 0);
+                mouse.Restore(MouseState.Here, 1, 0, 0);
+                run = new MoveResult();
+                mouse.AfterMove(board, new Random(seed), run);
+                Assert.Less(seed, 50, "the row run never happened");
+            }
+            Assert.IsTrue(run.HoleClosed);
+            Assert.AreEqual(MouseState.None, mouse.State);
+
+            // moves without cheese: no hole
+            for (int i = 0; i < 10; i++)
+            {
+                var r = new MoveResult();
+                mouse.AfterMove(board, rng, r);
+                Assert.IsFalse(r.HoleOpened || r.MouseRan, $"move {i}");
+            }
+            // the next cheese brings it back after the usual delay
+            mouse.AfterMove(board, rng, Cheese());
+            Assert.AreEqual(MouseState.Coming, mouse.State);
+            for (int i = 1; i < CheeseRules.MouseDelayMoves; i++) mouse.AfterMove(board, rng, new MoveResult());
+            var back = new MoveResult();
+            mouse.AfterMove(board, rng, back);
+            Assert.IsTrue(back.HoleOpened);
+        }
+
+        [Test]
+        public void RunWithoutCheeseKeepsTheHoleOpen()
+        {
+            var mouse = new CheeseMouse();
+            mouse.Restore(MouseState.Here, 1, 0, 1);
+            var r = new MoveResult();
+            mouse.AfterMove(Field(1, 2, 3, 4), new Random(0), r);
+            Assert.IsTrue(r.MouseRan);
+            Assert.IsFalse(r.HoleClosed);
+            Assert.AreEqual(MouseState.Here, mouse.State);
+        }
+
+        [Test]
+        public void CheeseEatenOnTheMoveItWasMadeDoesNotReopenTheHole()
+        {
+            // the move made cheese at (0,1) and the mouse ate it on the same move
+            var board = Field(0, 8, 0, 0);
+            int id = board.IdAt(0, 1);
+            var mouse = new CheeseMouse();
+            mouse.Restore(MouseState.Here, 1, 3, 1); // bottom edge: runs up column 1
+            var r = new MoveResult { Cheeses = 1 };
+            r.Events.Add(TileEvent.Merged(id, id + 100, 0, 1, CheeseRules.CheeseLevel));
+            mouse.AfterMove(board, new Random(0), r);
+            Assert.IsTrue(r.HoleClosed);
+            Assert.AreEqual(MouseState.None, mouse.State);
         }
 
         [Test]

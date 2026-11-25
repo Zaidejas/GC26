@@ -67,6 +67,8 @@ namespace GC26._2048
         /// </summary>
         public bool MouseRan;
         public int MouseFromRow, MouseFromCol, MouseToRow, MouseToCol;
+        /// <summary>The mouse got cheese on this run, so its hole closed (until the next cheese).</summary>
+        public bool HoleClosed;
         /// <summary>Where the hole is after this move (when it opened or moved).</summary>
         public int HoleRow, HoleCol;
         /// <summary>Cheeses the mouse ate on its run, in the order it reached them.</summary>

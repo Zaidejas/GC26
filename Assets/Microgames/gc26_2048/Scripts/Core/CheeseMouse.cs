@@ -5,20 +5,21 @@ namespace GC26._2048
 {
     public enum MouseState
     {
-        /// <summary>No cheese made yet this game.</summary>
+        /// <summary>No hole: no cheese made yet, or the mouse got cheese and waits for the next one.</summary>
         None,
-        /// <summary>The first cheese is made; the hole opens after <see cref="CheeseRules.MouseDelayMoves"/> moves.</summary>
+        /// <summary>A cheese is made; the hole opens after <see cref="CheeseRules.MouseDelayMoves"/> moves.</summary>
         Coming,
         /// <summary>The hole is on the field; the mouse runs out of it every <see cref="CheeseRules.MouseRunEvery"/> moves.</summary>
         Here
     }
 
     /// <summary>
-    /// The mouse and its hole. <see cref="CheeseRules.MouseDelayMoves"/> moves after the first cheese of the game a hole
-    /// opens on a random outer cell (the field shows it as a darker cell). Every <see cref="CheeseRules.MouseRunEvery"/>th
+    /// The mouse and its hole. <see cref="CheeseRules.MouseDelayMoves"/> moves after a cheese is made a hole opens on a
+    /// random outer cell (the field shows it as a darker, framed cell). Every <see cref="CheeseRules.MouseRunEvery"/>th
     /// move the mouse runs out of the hole, from that end of a row or column to the other end (the line is picked at
-    /// random), eating every cheese on the way, and is gone again; then the hole moves to another outer cell.
-    /// The mouse is seen only while it runs and never takes a cell. One mouse per game; it stays to the end.
+    /// random), eating every cheese on the way, and is gone again. If it got cheese, the hole closes and opens again
+    /// only after the next cheese is made; if not, the hole moves to another outer cell.
+    /// The mouse is seen only while it runs and never takes a cell.
     /// Plain C#, covered by edit-mode tests.
     /// </summary>
     public sealed class CheeseMouse
@@ -70,8 +71,8 @@ namespace GC26._2048
                 if (--Countdown <= 0) Run(board, rng, result);
             }
 
-            // the first cheese starts the countdown from the next move
-            if (State == MouseState.None && result.Cheeses > 0)
+            // a new cheese (that the mouse did not just eat) starts the countdown from the next move
+            if (State == MouseState.None && MadeCheeseLeft(result))
             {
                 State = MouseState.Coming;
                 Countdown = CheeseRules.MouseDelayMoves;
@@ -116,13 +117,37 @@ namespace GC26._2048
                 if (r == toR && c == toC) break;
             }
 
-            // the hole moves to another outer cell
+            if (result.Eaten.Count > 0)
+            {
+                // fed: the hole closes until the next cheese
+                result.HoleClosed = true;
+                State = MouseState.None;
+                Countdown = 0;
+                return;
+            }
+
+            // no cheese on the way: the hole moves to another outer cell
             var outer = OuterCells(board.Size);
             outer.Remove((Row, Col));
             (Row, Col) = outer[rng.Next(outer.Count)];
             Countdown = CheeseRules.MouseRunEvery;
             result.HoleRow = Row;
             result.HoleCol = Col;
+        }
+
+        /// <summary>A cheese made this move is still on the field (the mouse may have eaten it on the same move).</summary>
+        static bool MadeCheeseLeft(MoveResult result)
+        {
+            if (result.Cheeses <= 0) return false;
+            foreach (var e in result.Events)
+            {
+                if (e.Kind != TileEventKind.Merged || e.Level != CheeseRules.CheeseLevel) continue;
+                bool eaten = false;
+                foreach (var g in result.Eaten)
+                    if (g.Id == e.Id) eaten = true;
+                if (!eaten) return true;
+            }
+            return false;
         }
 
         public static bool IsOuter(int row, int col, int size) =>

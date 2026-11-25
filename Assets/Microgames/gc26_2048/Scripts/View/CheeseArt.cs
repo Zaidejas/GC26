@@ -54,6 +54,8 @@ namespace GC26._2048
         public Sprite MouseRun { get; }
         /// <summary>Soft round light, white in the middle and fading out to the edge; tint it with Image.color.</summary>
         public Sprite Glow { get; }
+        /// <summary>Rounded frame, outline only (transparent inside), 9-sliced; tint it with Image.color.</summary>
+        public Sprite Ring { get; }
 
         public CheeseArt(string gameId)
         {
@@ -66,6 +68,7 @@ namespace GC26._2048
             Box = MakeRounded(96, 30, 7, true);
             Soft = MakeRounded(96, 30, 0, false);
             Glow = MakeGlow(128);
+            Ring = MakeRing(96, 30, 10);
         }
 
         public Sprite Item(int level) => level > 0 && level < items.Length ? items[level] : null;
@@ -102,6 +105,36 @@ namespace GC26._2048
                 return null;
             }
             sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+            owned.Add(sprite);
+            return sprite;
+        }
+
+        Sprite MakeRing(int size, int radius, int thickness)
+        {
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+                name = "gc26_2048_ring"
+            };
+            var px = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float fx = x + 0.5f, fy = y + 0.5f;
+                float dx = Mathf.Max(radius - fx, 0f, fx - (size - radius));
+                float dy = Mathf.Max(radius - fy, 0f, fy - (size - radius));
+                float d = Mathf.Sqrt(dx * dx + dy * dy) - radius; // < 0 inside the outer edge
+                float outer = Mathf.Clamp01(0.5f - d);
+                float inner = Mathf.Clamp01(0.5f - (d + thickness)); // inside the inner edge
+                px[y * size + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(255f * outer * (1f - inner)));
+            }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+            owned.Add(tex);
+            float b = radius + 2;
+            var sprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0,
+                SpriteMeshType.FullRect, new Vector4(b, b, b, b));
             owned.Add(sprite);
             return sprite;
         }
