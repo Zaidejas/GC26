@@ -13,24 +13,31 @@ namespace GC26.Tanki.Game
     /// </summary>
     public sealed class Controls
     {
-        const float DeadZoneShare = 0.3f;
-        const float StickRadiusShare = 0.165f;
+        const float DeadZoneShare = 0.25f;
+        const float StickRadiusShare = 0.22f;
 
-        public bool FireHeld { get; private set; }
         public bool SuperHeld { get; private set; }
         public Dir? Direction { get; private set; }
         public Vector2 KnobOffset { get; private set; }
         public float StickRadius => Mathf.Min(Screen.width, Screen.height) * StickRadiusShare;
 
         // Screen coordinates, y up.
-        public Vector2 StickCentre => new Vector2(Screen.safeArea.xMin + StickRadius * 1.25f, Screen.safeArea.yMin + StickRadius * 1.15f);
-        public Vector2 FireCentre => new Vector2(Screen.safeArea.xMax - StickRadius * 1.25f, Screen.safeArea.yMin + StickRadius * 1.15f);
+        // The stick and the fire button sit a little above the bottom edge, so a thumb pulling down stays on the screen.
+        public Vector2 HomeCentre => new Vector2(Screen.safeArea.xMin + StickRadius * 1.25f, Screen.safeArea.yMin + StickRadius * 1.25f);
+        /// <summary>The stick floats: it sits where the thumb landed in the lower left, and goes home when let go.</summary>
+        public Vector2 StickCentre => floating ?? HomeCentre;
+        Vector2? floating;
 
-        // The reactor strike sits low between the stick and the fire button, below the map.
-        public float SuperRadius => StickRadius * 0.5f;
-        public Vector2 SuperCentre => new Vector2((StickCentre.x + FireCentre.x) / 2f, Screen.safeArea.yMin + StickRadius * 0.75f);
+        // There is no fire button: the gun fires by itself (GameSim.TargetAhead). The tank's ability sits on the right.
+        public float SuperRadius => StickRadius * 0.55f;
+        public Vector2 SuperCentre => new Vector2(Screen.safeArea.xMax - StickRadius * 0.95f, Screen.safeArea.yMin + StickRadius * 1.25f);
 
         int stickFinger = -1;
+#if UNITY_EDITOR_WIN
+        int mouseUpFrames;
+        bool stickGhost;
+        [System.Runtime.InteropServices.DllImport("user32.dll")] static extern short GetAsyncKeyState(int key);
+#endif
         readonly System.Collections.Generic.HashSet<int> ignored = new System.Collections.Generic.HashSet<int>();
         bool ignoreMouse;
 
@@ -49,6 +56,7 @@ namespace GC26.Tanki.Game
             ignoreMouse = mouse != null && mouse.leftButton.isPressed;
             if (stickFinger >= 0) TankiLog.Info("Джойстик сброшен");
             stickFinger = -1;
+            floating = null;
             Direction = null;
             KnobOffset = Vector2.zero;
         }
@@ -56,7 +64,6 @@ namespace GC26.Tanki.Game
         public PlayerInput Read()
         {
             var input = new PlayerInput();
-            FireHeld = false;
             SuperHeld = false;
 
             bool stickSeen = false;
@@ -79,6 +86,31 @@ namespace GC26.Tanki.Game
                             TankiLog.Info("Касание " + id + " не было отпущено, считаю его отпущенным");
                     }
                 }
+#if UNITY_EDITOR_WIN
+                // The simulator can also lose a release with the mouse still over the phone: the knob then freezes
+                // and the tank drives on by itself. So check the real mouse button: a touch held while the button
+                // has been up for a few frames is over.
+                bool held = false;
+                foreach (TouchControl touch in screen.touches)
+                    if (touch.press.isPressed && !ignored.Contains(touch.touchId.ReadValue())) held = true;
+                mouseUpFrames = held && (GetAsyncKeyState(0x01) & 0x8000) == 0 ? mouseUpFrames + 1 : 0;
+                if (mouseUpFrames >= 3)
+                {
+                    foreach (TouchControl touch in screen.touches)
+                    {
+                        int id = touch.touchId.ReadValue();
+                        if (touch.press.isPressed && ignored.Add(id))
+                            TankiLog.Info("Касание " + id + " залипло (кнопка мыши уже отпущена), сбрасываю");
+                    }
+                    mouseUpFrames = 0;
+                }
+#endif
+                // A touch we stopped listening to can't keep holding the stick.
+                if (stickFinger >= 0 && stickFinger != int.MaxValue && ignored.Contains(stickFinger))
+                {
+                    stickFinger = -1;
+                    floating = null;
+                }
 #endif
                 foreach (TouchControl touch in screen.touches)
                 {
@@ -87,8 +119,11 @@ namespace GC26.Tanki.Game
                     bool ended = phase == UnityEngine.InputSystem.TouchPhase.Ended || phase == UnityEngine.InputSystem.TouchPhase.Canceled;
                     if (ignored.Contains(id))
                     {
+                        // A fresh press with the same id (the simulator reuses its one finger) is listened to again.
+                        bool again = phase == UnityEngine.InputSystem.TouchPhase.Began || touch.press.wasPressedThisFrame;
                         if (ended || phase == UnityEngine.InputSystem.TouchPhase.None || !touch.press.isPressed) ignored.Remove(id);
-                        continue;
+                        if (!again) continue;
+                        ignored.Remove(id);
                     }
                     if (phase == UnityEngine.InputSystem.TouchPhase.None) continue;
                     if (ended && !touch.press.wasReleasedThisFrame) continue;
@@ -103,10 +138,25 @@ namespace GC26.Tanki.Game
             {
                 HandlePointer(int.MaxValue, mouse.position.ReadValue(), mouse.leftButton.wasPressedThisFrame, mouse.leftButton.wasReleasedThisFrame, ref stickSeen);
             }
+#if UNITY_EDITOR_WIN
+            // The simulator ends the touch when the mouse leaves the phone's screen, even with the button still down.
+            // While the real button is held, the stick keeps its last direction.
+            if (!stickSeen && stickFinger >= 0 && stickFinger != int.MaxValue && (GetAsyncKeyState(0x01) & 0x8000) != 0)
+            {
+                if (!stickGhost) TankiLog.Info("Мышь ушла за экран телефона, джойстик держит направление");
+                stickGhost = true;
+                stickSeen = true;
+            }
+            else if (stickSeen) stickGhost = false;
+#endif
             if (!stickSeen && stickFinger >= 0) TankiLog.Info("Джойстик отпущен");
             if (!stickSeen)
             {
+#if UNITY_EDITOR_WIN
+                stickGhost = false;
+#endif
                 stickFinger = -1;
+                floating = null;
                 Direction = null;
                 KnobOffset = Vector2.zero;
             }
@@ -115,7 +165,7 @@ namespace GC26.Tanki.Game
             Dir? keys = KeyboardDirection();
             if (keys != null) input.Move = keys;
             Keyboard keyboard = Keyboard.current;
-            input.Fire = FireHeld || (keyboard != null && keyboard.spaceKey.isPressed);
+            input.Fire = keyboard != null && keyboard.spaceKey.isPressed;
             input.Super = SuperHeld || (keyboard != null && (keyboard.eKey.isPressed || keyboard.leftShiftKey.isPressed));
             return input;
         }
@@ -130,24 +180,26 @@ namespace GC26.Tanki.Game
                 return;
             }
 
-            // The strike button straddles the middle, so it is checked before the halves.
-            if (!ended && Vector2.Distance(position, SuperCentre) <= SuperRadius * 1.25f)
+            if (!ended && Vector2.Distance(position, SuperCentre) <= SuperRadius * 1.3f)
             {
                 SuperHeld = true;
                 return;
             }
 
-            bool leftSide = position.x < Screen.width * 0.5f;
+            // Anywhere on the left 60% of the screen grabs the stick.
+            bool leftSide = position.x < Screen.width * 0.6f;
             if (began && leftSide && stickFinger < 0 && !ended)
             {
                 stickFinger = finger;
                 TankiLog.Info(finger == int.MaxValue ? "Джойстик: мышь" : "Джойстик: касание " + finger);
+                // A thumb landing low on the left becomes the stick's centre, kept fully on screen.
+                Rect safe = Screen.safeArea;
+                if (position.y < safe.yMin + safe.height * 0.42f)
+                    floating = new Vector2(
+                        Mathf.Clamp(position.x, safe.xMin + StickRadius * 1.1f, Screen.width * 0.6f - StickRadius * 0.6f),
+                        Mathf.Max(position.y, safe.yMin + StickRadius * 1.2f));
                 MoveStick(position);
                 stickSeen = true;
-            }
-            else if (!leftSide && !ended)
-            {
-                FireHeld = true;
             }
         }
 

@@ -494,6 +494,35 @@ namespace GC26.Tanki.Rules
         public int PlayerMaxBullets => Tuning.FireBullets[Stats[Stat.FireRate]] + (StarLevel >= 2 ? 1 : 0);
         public bool PlayerPierces => StarLevel >= 3;
 
+        /// <summary>For auto-fire (the game has no fire button): an enemy tank, a turret or the enemy reactor straight
+        /// ahead of the barrel, within reach, with no concrete (unless the gun breaks it) and not our own reactor in between;
+        /// or a crate right in front when the tank is driving into it.</summary>
+        public bool TargetAhead(Dir? pushing = null, int reach = 9)
+        {
+            if (Player == null || !Player.Alive || Player.Spawning) return false;
+            float dx = DirX(Player.Dir), dy = DirY(Player.Dir);
+            bool horizontal = dx != 0f;
+            int cx = (int)Math.Floor(Player.X), cy = (int)Math.Floor(Player.Y);
+            float limit = reach + 0.5f;
+            for (int i = 1; i <= reach; i++)
+            {
+                int x = cx + (int)dx * i, y = cy + (int)dy * i;
+                if (!InBounds(x, y)) { limit = i - 0.5f; break; }
+                Tile tile = Tiles[x, y];
+                if (tile == Tile.Turret || tile == Tile.Core) return true;
+                if (i == 1 && tile == Tile.Crate && pushing == Player.Dir) return true;
+                if (tile == Tile.Base || (tile == Tile.Concrete && !PlayerPierces)) { limit = i - 0.5f; break; }
+            }
+            foreach (Tank enemy in Enemies)
+            {
+                if (!enemy.Alive || enemy.Spawning) continue;
+                float along = horizontal ? (enemy.X - Player.X) * dx : (enemy.Y - Player.Y) * dy;
+                float side = horizontal ? Math.Abs(enemy.Y - Player.Y) : Math.Abs(enemy.X - Player.X);
+                if (along > 0.3f && along <= limit + 0.5f && side < 0.55f) return true;
+            }
+            return false;
+        }
+
         void UpdatePlayer(float dt, PlayerInput input)
         {
             if (!Player.Alive)

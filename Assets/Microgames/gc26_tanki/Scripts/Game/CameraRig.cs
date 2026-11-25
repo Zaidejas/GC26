@@ -10,7 +10,7 @@ namespace GC26.Tanki.Game
 
         // Screen share kept free for the status bar and, in portrait, for the thumb controls.
         const float PortraitTopShare = 0.08f;
-        const float PortraitBottomShare = 0.2f;
+        const float PortraitBottomShare = 0.26f;
         const float LandscapeTopShare = 0.11f;
         const float LandscapeBottomShare = 0.01f;
 

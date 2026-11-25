@@ -15,6 +15,7 @@ static class Program
         Test("maps have the right size and exactly one base and player spawn", MapsAreWellFormed);
         Test("every enemy spawn can reach the player and the base", MapsAreConnected);
         Test("a crate takes two ordinary hits", CrateTakesTwoHits);
+        Test("auto-fire sees an enemy straight ahead but not past concrete or off the line", AutoFireSeesTargets);
         Test("survival puts the arena's crates and concrete back before each wave", SurvivalRestoresArena);
         Test("concrete stops a shot until the top upgrade", ConcreteNeedsTopUpgrade);
         Test("shots cross water and tanks cannot", WaterStopsTanksOnly);
@@ -794,6 +795,32 @@ static class Program
                     sim.Bullets.Add(new Bullet { OwnerId = sim.Player.Id, FromPlayer = true, X = enemy.X, Y = enemy.Y, Dir = Dir.Up, Speed = 1f, Damage = 50 });
             sim.Tick(Dt, default);
         }
+    }
+
+    static void AutoFireSeesTargets()
+    {
+        var sim = SimWith(PlayerTank.Guard, "");
+        sim.Enemies.Clear();
+        sim.Player.Dir = Dir.Up;
+        sim.Player.SpawnTimer = 0f;
+        float px = sim.Player.X, py = sim.Player.Y;
+        Check(!sim.TargetAhead(), "nothing ahead yet");
+        Tank enemy = PlaceEnemy(sim, EnemyKind.Raider, px, py - 4f);
+        Check(sim.TargetAhead(), "enemy straight ahead");
+        enemy.X = px + 2f;
+        Check(!sim.TargetAhead(), "enemy off the line");
+        enemy.X = px;
+        sim.Tiles[(int)px, (int)py - 2] = Tile.Concrete;
+        Check(!sim.TargetAhead(), "concrete in the way");
+        sim.Tiles[(int)px, (int)py - 2] = Tile.Empty;
+        sim.Player.Dir = Dir.Down;
+        Check(!sim.TargetAhead(), "enemy behind");
+        sim.Enemies.Clear();
+        sim.Player.Dir = Dir.Up;
+        sim.Tiles[(int)px, (int)py - 1] = Tile.Crate;
+        Check(!sim.TargetAhead(), "a crate ahead alone is no target");
+        Check(sim.TargetAhead(Dir.Up), "a crate the tank drives into is shot");
+        Check(!sim.TargetAhead(Dir.Left), "not while steering away from it");
     }
 
     static void SurvivalRestoresArena()

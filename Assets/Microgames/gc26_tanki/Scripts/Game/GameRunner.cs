@@ -43,7 +43,7 @@ namespace GC26.Tanki.Game
                 switch (TutorialStep)
                 {
                     case 0: return "Двигайся: джойстик слева или стрелки / WASD. Проедь пару клеток.";
-                    case 1: return "Огонь: круглая кнопка справа или пробел. Разбей ящик перед собой, ему нужно два попадания.";
+                    case 1: return "Танк стреляет сам. Упрись в ящик перед собой, и танк его разобьёт: ему нужно два попадания.";
                     case 2: return "Враг! Подбей его. Здесь враги не стреляют, в бою стреляют.";
                     case 3: return "Из подсвеченных танков выпадают бонусы. Подъедь к бонусу, чтобы взять его.";
                     case 4: return "Подбитые враги заряжают способность танка. Она заряжена: нажми «" + AbilityLabel(Sim.Ability) + "» внизу или E.";
@@ -157,6 +157,8 @@ namespace GC26.Tanki.Game
             }
 
             PlayerInput input = Controls.Read();
+            // No fire button: the gun fires by itself at what is ahead, and at a crate the tank drives into.
+            if (Sim.TargetAhead(input.Move)) input.Fire = true;
             accumulator += Mathf.Min(Time.deltaTime, 0.1f);
             while (accumulator >= GameSim.FixedStep)
             {

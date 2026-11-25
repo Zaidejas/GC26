@@ -12,7 +12,6 @@ namespace GC26.Tanki.Game
         Texture2D heart;
         Texture2D arrow;
         Texture2D pixel;
-        GUIStyle fireLabel;
         GUIStyle chosenButton;
         GUIStyle rightLabel;
         GUIStyle label;
@@ -128,7 +127,6 @@ namespace GC26.Tanki.Game
                 label.normal.textColor = new Color(1f, 0.95f, 0.85f);
                 title = new GUIStyle(label) { alignment = TextAnchor.MiddleCenter };
                 small = new GUIStyle(label) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Normal, wordWrap = true };
-                fireLabel = new GUIStyle(label) { alignment = TextAnchor.MiddleCenter };
                 rightLabel = new GUIStyle(label) { alignment = TextAnchor.MiddleRight };
                 superLabel = new GUIStyle(label) { alignment = TextAnchor.MiddleCenter };
                 noteLabel = new GUIStyle(label) { alignment = TextAnchor.UpperLeft, fontStyle = FontStyle.Normal, wordWrap = true };
@@ -144,7 +142,6 @@ namespace GC26.Tanki.Game
                 chosenButton.active.textColor = chosenButton.normal.textColor;
             }
             label.fontSize = Mathf.RoundToInt(15 * unit);
-            fireLabel.fontSize = Mathf.RoundToInt(16 * unit);
             rightLabel.fontSize = label.fontSize;
             title.fontSize = Mathf.RoundToInt(28 * unit);
             small.fontSize = Mathf.RoundToInt(14 * unit);
@@ -335,12 +332,6 @@ namespace GC26.Tanki.Game
             Vector2 knob = new Vector2(centre.x + controls.KnobOffset.x, centre.y - controls.KnobOffset.y);
             DrawCircle(disc, knob, radius * 0.42f, new Color(1f, 0.95f, 0.85f, 0.8f));
 
-            Vector2 fire = ToGui(controls.FireCentre);
-            float fireRadius = radius * (controls.FireHeld ? 0.8f : 0.85f);
-            Color fireColor = controls.FireHeld ? new Color(0.91f, 0.39f, 0.23f, 1f) : new Color(0.91f, 0.39f, 0.23f, 0.82f);
-            DrawCircle(disc, fire, fireRadius, fireColor);
-            DrawCircle(ring, fire, fireRadius, new Color(1f, 0.95f, 0.85f, 0.6f));
-            GUI.Label(new Rect(fire.x - fireRadius, fire.y - fireRadius, fireRadius * 2f, fireRadius * 2f), "ОГОНЬ", fireLabel);
 
             DrawSuperButton(controls);
         }
@@ -1057,7 +1048,7 @@ namespace GC26.Tanki.Game
         {
             DrawArt(game.Paused ? PauseArt : Art.Menu);
             float textWidth = PlateWidth - Pad * 2f;
-            string help = "Слева джойстик, справа огонь, внизу способность танка";
+            string help = "Слева джойстик, справа способность танка. Танк стреляет сам по врагам на линии ствола";
             float helpHeight = TextHeight(help, plateText, textWidth);
             float buttons = ColumnHeight(3, ButtonHeight, 10f * unit);
             float inner = helpHeight + 12f * unit + 22f * unit + 6f * unit + 44f * unit + 16f * unit + buttons;
@@ -1164,7 +1155,7 @@ namespace GC26.Tanki.Game
         {
             DrawArt(PauseArt);
             float textWidth = PlateWidth - Pad * 2f;
-            string help = "Слева джойстик, справа огонь, внизу способность танка";
+            string help = "Слева джойстик, справа способность танка. Танк стреляет сам по врагам на линии ствола";
             float helpHeight = TextHeight(help, plateText, textWidth);
             float buttons = ColumnHeight(4, ButtonHeight, 10f * unit);
             float inner = helpHeight + 14f * unit + buttons;
