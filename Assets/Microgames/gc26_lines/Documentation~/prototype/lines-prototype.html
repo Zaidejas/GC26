@@ -317,7 +317,7 @@ body {
 .card.debug .debug-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2cqw; }
 .card.debug { width: 88cqw; padding-left: 5cqw; padding-right: 5cqw; } /* a little wider than other pop-ups: two buttons side by side */
 .card.debug .debug-grid button.btn { height: 10cqw; font-size: 3.2cqw; padding: 0 1cqw; white-space: nowrap; }
-.card.debug .debug-grid button.wide { grid-column: 1 / -1; }
+.card.debug .debug-grid.three { grid-template-columns: 1fr 1fr 1fr; }
 .card.debug .debug-note { margin: 3cqw 0 0; font-size: 3.2cqw; color: var(--soft); text-align: center; }
 .menu-buttons .btn { height: 13.5cqw; }
 .btn .sub { font-weight: 700; font-size: 3.6cqw; opacity: 0.75; }
@@ -821,11 +821,16 @@ body {
               <button type="button" class="btn" data-debug="super">+1 Puffball</button>
               <button type="button" class="btn" data-debug="score190">Start at 190</button>
             </div>
+            <p class="debug-group">Game over now</p>
+            <div class="debug-grid three">
+              <button type="button" class="btn" data-debug="over-top">Top 10</button>
+              <button type="button" class="btn" data-debug="over-short">Not top 10</button>
+              <button type="button" class="btn" data-debug="over-zero">0 points</button>
+            </div>
             <p class="debug-group">Game</p>
             <div class="debug-grid">
               <button type="button" class="btn" data-debug="clock35">Clock to 0:35</button>
-              <button type="button" class="btn" data-debug="over">Game over now</button>
-              <button type="button" class="btn wide" data-debug="forget">Forget saved games</button>
+              <button type="button" class="btn" data-debug="forget">Forget games</button>
             </div>
             <p class="debug-group">Leaderboard</p>
             <div class="debug-grid">
@@ -2395,6 +2400,8 @@ body {
       if (versionTaps >= 5) { versionTaps = 0; $("#debug").hidden = false; }
     });
     const closeDebug = () => { $("#debug").hidden = true; };
+    // 10 test scores, 400 down to 130, a day apart.
+    const testScores = () => Array.from({ length: 10 }, (_, i) => ({ score: 400 - 30 * i, name: "Test " + (i + 1), time: Date.now() - (i + 1) * 864e5 }));
     $("#debug-close").addEventListener("click", closeDebug);
     $("#debug").addEventListener("click", (e) => { if (e.target === $("#debug")) closeDebug(); });
     document.querySelectorAll("#debug [data-debug]").forEach((btn) => btn.addEventListener("click", () => {
@@ -2409,9 +2416,17 @@ body {
         render(); save(); toast("Clock: 0:35");
         return;
       }
-      if (k === "over") { // ends the game in progress now, with its score (0 for a new one): the game-over pop-up
+      if (k.startsWith("over-")) { // ends the game in progress now with a score that tests one game-over case
         if (!S || S.over) newGame();
         if (currentScreen() !== "game") showScreen("game");
+        let list = loadScores(playMode());
+        if (k === "over-short" && list.length < 10) { // "not enough" needs a full top 10: fill this mode's first
+          try { localStorage.setItem(scoresKey(playMode()), JSON.stringify(testScores())); } catch (e) {}
+          list = loadScores(playMode());
+        }
+        if (k === "over-zero") S.score = 0; // no name, "Clear a line to get on the leaderboard."
+        if (k === "over-top") S.score = list.length >= 10 ? list[9].score + 10 : Math.max(S.score, 50); // asks for a name
+        if (k === "over-short") S.score = list.length >= 10 ? Math.max(1, list[9].score - 10) : 1; // the 10th place as the goal
         S.over = true; S.undo = null; selected = -1; aiming = false;
         render(); save(); showOver();
         return;
@@ -2423,8 +2438,7 @@ body {
         return;
       }
       if (k === "clear" || k === "fill") {
-        const fill = (m) => Array.from({ length: 10 }, (_, i) => ({ score: 400 - 30 * i, name: "Test " + (i + 1), time: Date.now() - (i + 1) * 864e5 }));
-        ["classic", "timed"].forEach((m) => { try { localStorage.setItem(scoresKey(m), JSON.stringify(k === "fill" ? fill(m) : [])); } catch (e) {} });
+        ["classic", "timed"].forEach((m) => { try { localStorage.setItem(scoresKey(m), JSON.stringify(k === "fill" ? testScores() : [])); } catch (e) {} });
         bestAtStart = bestScore(); celebrated = !!S && S.score > bestAtStart;
         if (S && currentScreen() === "game") render();
         toast(k === "fill" ? "Top 10 filled: 10th place has 130" : "Leaderboards cleared");
