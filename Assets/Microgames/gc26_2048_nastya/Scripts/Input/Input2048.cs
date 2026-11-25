@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 namespace GC26._2048Nastya
 {
@@ -8,6 +11,8 @@ namespace GC26._2048Nastya
     /// Turns the gc26_2048_nastya_Gameplay action map into game events (TDD 7).
     /// Keys are separate button actions, so rolling from one arrow to the next never drops a move.
     /// The gamepad stick has a 0.5 deadzone and must return to center before the next move.
+    /// Swipe / mouse drag (TDD 7.2): on release, a drag longer than 5% of the short screen side is a move
+    /// along its dominant axis. A press that starts on a button or another control is not a swipe.
     /// The map is enabled in OnEnable and disabled in OnDisable, so nothing stays active after the scene unloads.
     /// </summary>
     public sealed class Input2048 : MonoBehaviour
@@ -16,6 +21,7 @@ namespace GC26._2048Nastya
 
         [SerializeField] InputActionAsset actions;
         [SerializeField, Range(0.1f, 0.9f)] float stickDeadzone = 0.5f;
+        [SerializeField, Range(0.01f, 0.2f)] float swipeThreshold = 0.05f;
 
         public event Action<Direction2048> Moved;
         public event Action PausePressed;
@@ -23,8 +29,13 @@ namespace GC26._2048Nastya
         public event Action UndoPressed;
 
         InputActionMap _map;
-        InputAction _up, _down, _left, _right, _stick, _pause, _newGame, _undo;
+        InputAction _up, _down, _left, _right, _stick, _pause, _newGame, _undo, _press, _position;
         bool _stickArmed = true;
+        bool _swiping;
+        Vector2 _swipeStart;
+        PointerEventData _pointerData;
+        EventSystem _pointerDataOwner;
+        readonly List<RaycastResult> _hits = new List<RaycastResult>(8);
 
         /// <summary>False while a menu or dialog is open: moves are ignored, Pause still works.</summary>
         public bool GameplayEnabled { get; set; } = true;
@@ -40,6 +51,8 @@ namespace GC26._2048Nastya
             _pause = _map.FindAction("Pause", true);
             _newGame = _map.FindAction("NewGame", true);
             _undo = _map.FindAction("Undo", true);
+            _press = _map.FindAction("PointerPress", true);
+            _position = _map.FindAction("PointerPosition", true);
         }
 
         void OnEnable()
@@ -52,6 +65,7 @@ namespace GC26._2048Nastya
             _newGame.performed += OnNewGame;
             _undo.performed += OnUndo;
             _stickArmed = true;
+            _swiping = false;
             _map.Enable();
         }
 
@@ -68,6 +82,56 @@ namespace GC26._2048Nastya
         }
 
         void Update()
+        {
+            UpdateSwipe();
+            UpdateStick();
+        }
+
+        void UpdateSwipe()
+        {
+            if (_press.WasPressedThisFrame())
+            {
+                _swipeStart = _position.ReadValue<Vector2>();
+                _swiping = !IsOverControl(_swipeStart);
+            }
+            if (!_press.WasReleasedThisFrame() || !_swiping) return;
+            _swiping = false;
+            var delta = _position.ReadValue<Vector2>() - _swipeStart;
+            if (TrySwipeDirection(delta, Mathf.Min(Screen.width, Screen.height) * swipeThreshold, out var dir))
+                Emit(dir);
+        }
+
+        /// <summary>
+        /// A drag of <paramref name="delta"/> pixels is a move when it is at least <paramref name="minLength"/> long;
+        /// the direction is its dominant axis (screen y up = Up).
+        /// </summary>
+        public static bool TrySwipeDirection(Vector2 delta, float minLength, out Direction2048 dir)
+        {
+            dir = default;
+            if (delta.sqrMagnitude < minLength * minLength || delta == Vector2.zero) return false;
+            dir = DominantDirection(delta);
+            return true;
+        }
+
+        /// <summary>True when the screen point is over a button or another control (not the board background).</summary>
+        bool IsOverControl(Vector2 screenPoint)
+        {
+            var es = EventSystem.current;
+            if (es == null) return false;
+            if (_pointerData == null || _pointerDataOwner != es)
+            {
+                _pointerData = new PointerEventData(es);
+                _pointerDataOwner = es;
+            }
+            _pointerData.position = screenPoint;
+            _hits.Clear();
+            es.RaycastAll(_pointerData, _hits);
+            foreach (var hit in _hits)
+                if (hit.gameObject != null && hit.gameObject.GetComponentInParent<Selectable>() != null) return true;
+            return false;
+        }
+
+        void UpdateStick()
         {
             var v = _stick.ReadValue<Vector2>();
             float m = v.magnitude;

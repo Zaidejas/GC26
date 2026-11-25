@@ -255,6 +255,7 @@ namespace GC26._2048Nastya.EditorTools
             Wire(view, "tilesRoot", tiles.transform);
             Wire(view, "cellPrefab", cellPrefab);
             Wire(view, "tilePrefab", tilePrefab);
+            Wire(view, "bumpTarget", areaRect); // the fitter owns the board's own rect
             return view;
         }
 

@@ -27,6 +27,8 @@ namespace GC26._2048Nastya
         GameState2048 _state;
         TileSpawner2048 _spawner;
         readonly MoveResult2048 _result = new MoveResult2048();
+        Direction2048? _buffered;
+        Action _onMoveShown;
 
         public GameState2048 State => _state;
 
@@ -34,6 +36,7 @@ namespace GC26._2048Nastya
         {
             _started = true;
             _exit = exit;
+            _onMoveShown = OnMoveShown; // one delegate for every move, no allocation per move
             UseShellCamera();
 
             _spawner = new TileSpawner2048(new System.Random());
@@ -67,32 +70,71 @@ namespace GC26._2048Nastya
             input.UndoPressed -= Undo;
         }
 
-        void OnMoveInput(Direction2048 dir) => Move(dir);
+        /// <summary>
+        /// Input buffer (TDD 5.1, T32): during an animation one direction waits in <see cref="_buffered"/>.
+        /// A second direction finishes the animation instantly, which plays the waiting one, and takes its place.
+        /// So fast input never drops a move and the queue never holds more than one.
+        /// </summary>
+        public void OnMoveInput(Direction2048 dir)
+        {
+            if (_state == null || hud.IsConfirmOpen) return;
+            if (boardView.IsAnimating && _buffered.HasValue)
+                boardView.FinishNow(); // plays the buffered move
+            if (boardView.IsAnimating) _buffered = dir;
+            else Move(dir);
+        }
 
-        /// <summary>Plays one move (TDD 5.2). Called by Input2048; public for tests.</summary>
+        /// <summary>
+        /// Plays one move right now (TDD 5.2): a running animation is finished first.
+        /// Returns false for an invalid move (the board bumps). Public for tests.
+        /// </summary>
         public bool Move(Direction2048 dir)
         {
             if (_state == null || hud.IsConfirmOpen) return false;
-            if (!_state.TryMove(dir, _spawner, _result, out _))
-                return false; // TODO (M3, T34): bump the board
+            boardView.FinishNow();
+            if (!_state.TryMove(dir, _spawner, _result, out var spawned))
+            {
+                if (!_state.IsOver) boardView.Bump(dir);
+                return false;
+            }
 
-            // TODO (M3, T30): animate _result instead of redrawing
-            boardView.Render(_state.Board);
             hud.SetScore(_state.Score, _state.Best);
+            boardView.Play(_result, spawned, _state.Board, _onMoveShown);
+            return true;
+        }
 
+        /// <summary>Completes the current animation and drops the buffered move (pause, exit, tests).</summary>
+        public void FinishAnimation()
+        {
+            _buffered = null;
+            boardView.FinishNow();
+        }
+
+        /// <summary>TDD 5.2 step 7: runs after the move animation, then plays the buffered move, if any.</summary>
+        void OnMoveShown()
+        {
             if (_state.ShouldShowWin(_result))
             {
                 _state.WonShown = true; // TODO (M4, T40): win overlay with Keep going / New game
+                _buffered = null;
                 Debug.Log($"[{Id}] 2048 reached");
             }
             if (_state.IsOver)
+            {
+                _buffered = null;
                 Debug.Log($"[{Id}] game over, score = {_state.Score}"); // TODO (M4, T41): game over overlay
-            return true;
+            }
+
+            if (!_buffered.HasValue) return;
+            var next = _buffered.Value;
+            _buffered = null;
+            Move(next);
         }
 
         public void StartNewGame()
         {
             hud.CloseConfirm();
+            _buffered = null;
             _state = GameState2048.NewGame(_spawner, _state?.Best ?? 0, BoardSize);
             boardView.Render(_state.Board);
             hud.SetScore(_state.Score, _state.Best);
@@ -109,13 +151,16 @@ namespace GC26._2048Nastya
 
         void Undo()
         {
-            if (hud.IsConfirmOpen || !_state.TryUndo()) return;
+            if (hud.IsConfirmOpen) return;
+            FinishAnimation();
+            if (!_state.TryUndo()) return;
             boardView.Render(_state.Board);
             hud.SetScore(_state.Score, _state.Best);
         }
 
         void OnPause()
         {
+            FinishAnimation();
             if (hud.IsConfirmOpen) { hud.CloseConfirm(); return; }
             // TODO (M4, T42): pause menu with Resume / New game / To menu
             Debug.Log($"[{Id}] pause (menu comes in M4)");
@@ -134,6 +179,7 @@ namespace GC26._2048Nastya
         /// <summary>Call from the pause menu ("To menu") or the game-over screen.</summary>
         public void ExitToMenu()
         {
+            FinishAnimation();
             // TODO (M4, T46): save progress before leaving
             var exit = _exit;
             _exit = null;
