@@ -15,7 +15,7 @@ namespace GC26.Lines.UI
     /// </summary>
     public sealed class CoachMarks : MonoBehaviour, IPointerClickHandler, IDragHandler, IPointerDownHandler
     {
-        const float HandSize = 15f, CaptionWidth = 80f, TitleSize = 5f, SubSize = 3.4f, PadX = 4.4f, PadY = 2.6f;
+        const float HandSize = 15f, CaptionWidth = 80f, TitleSize = 4.6f, SubSize = 3.4f, PadX = 4.4f, PadY = 2.6f;
         static readonly Color Dim = new Color(5 / 255f, 6 / 255f, 18 / 255f, 0.74f);
 
         Canvas canvas;
@@ -104,7 +104,7 @@ namespace GC26.Lines.UI
             captionBack.color = new Color(20 / 255f, 14 / 255f, 42 / 255f, 0.96f);
             captionBack.raycastTarget = false;
             title = NewText("Title", Palette.Guide);
-            UiFonts.UseDisplay(title);
+            UiFonts.UseBold(title); // a sentence read mid-game: Nunito ExtraBold, not the magic font (GDD → Fonts)
             sub = NewText("Text", Palette.SoftText);
             gotIt = PillButton.Create(caption, Texts.Get("gotIt"), primary: true);
             skip = PillButton.Create(caption, Texts.Get("skip"));

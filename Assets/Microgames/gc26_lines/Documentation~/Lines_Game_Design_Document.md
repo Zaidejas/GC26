@@ -280,6 +280,17 @@ The game has four screens and four pop-ups (Pause, only in Timed mode, is the fo
 - While a pop-up is open (game over, the Reset or New game question, Pause, Settings), its dim covers the whole screen, the house and the gear included: they can't be tapped until it closes.
 - On shorter screens (16:9) the leaderboard rows get a little shorter, so all 10 places fit without scrolling when it's opened from the menu. Right after a game the result line and Play again take some room, so the list may scroll a little; it opens on the game just finished.
 
+**Debug panel** (for testing on our own phones; agreed Nov 25, 2026)
+
+- Hidden: 5 quick taps (each within 1.5 s of the last) on the version at the bottom of the main menu open it. Every build has it; nothing on screen points to it. English only, since only we use it.
+- A pop-up card a little wider than the others, closed with ✕ or a tap outside it, with small buttons in groups:
+  - **Next mushroom:** Rainbow next, Frozen next (the first NEXT mushroom becomes that kind, and its tutorial shows again).
+  - **Puffball:** +1 Puffball (up to 2, with its tutorial); Start at 190 (a new game at 190 points with 4 red mushrooms in a row and a 5th below: one move makes the line and earns the first puffball).
+  - **Game over now** (the game in progress ends at once): Top 10 (a score that gets on the leaderboard, so a name is asked: 10 above the 10th place, or at least 50), Not top 10 (10 below the 10th place; a board that isn't full is filled with the test scores first), 0 points.
+  - **Game:** Clock to 0:35 (switches to Timed: amber, red and Time's up within half a minute); Forget games (both saved games are removed, so the menu looks like a first launch).
+  - **Leaderboard:** Clear both, Fill top 10 (both modes get 10 test scores, 400 down to 130).
+- The game tools close the panel and open the game in the mode chosen on the menu (the game in progress, or a new one). The leaderboard tools and Forget games keep it open and say what they did on its last line.
+
 **Settings** (teacher's feedback, pulled forward from the later features)
 
 - The gear is a plain blue-grey icon like the house (no ring or disc). The pop-up is the same dark card as the other pop-ups; the game stays visible behind it (in Timed mode the board and NEXT are hidden behind it, like in Pause, since the clock is stopped).

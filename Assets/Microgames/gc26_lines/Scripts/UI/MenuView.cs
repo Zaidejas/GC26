@@ -39,6 +39,23 @@ namespace GC26.Lines.UI
         PieceSet pieces = PieceSet.Balls();
 
         public event Action ContinueClicked, NewGameClicked, HowToPlayClicked, LeaderboardClicked, SettingsClicked;
+        /// <summary>5 quick taps on the version: open the Debug panel.</summary>
+        public event Action DebugRequested;
+        public const int DebugTaps = 5;
+        public const float DebugTapGap = 1.5f; // seconds allowed between taps
+        int versionTaps;
+        float lastVersionTap = -10f;
+
+        /// <summary>One tap on the version (tests too); the 5th quick one in a row asks for the Debug panel.</summary>
+        public void TapVersion()
+        {
+            float now = Time.unscaledTime;
+            versionTaps = now - lastVersionTap < DebugTapGap ? versionTaps + 1 : 1;
+            lastVersionTap = now;
+            if (versionTaps < DebugTaps) return;
+            versionTaps = 0;
+            DebugRequested?.Invoke();
+        }
         /// <summary>L09: a mode badge was tapped (true: Timed).</summary>
         public event Action<bool> ModeChosen;
         public ModeBadges Modes => modes;
@@ -87,6 +104,12 @@ namespace GC26.Lines.UI
             // The game's version, small and quiet at the very bottom (like the prototype's).
             version = NewText("Version", Game.LinesVersion.Label, new Color(Palette.SoftText.r, Palette.SoftText.g, Palette.SoftText.b, 0.6f));
             version.fontStyle = FontStyles.Normal;
+            // 5 quick taps on the version open the hidden Debug panel (GDD → Debug panel).
+            version.raycastTarget = true;
+            var versionButton = version.gameObject.AddComponent<Button>();
+            versionButton.transition = Selectable.Transition.None;
+            versionButton.targetGraphic = version;
+            versionButton.onClick.AddListener(TapVersion);
             UiFonts.UseDisplay(logo);
             UiFonts.UseBold(tagline); // the line under the title is read: Nunito, like the prototype (only the title is the magic font)
             logo.color = Color.white;
@@ -149,7 +172,8 @@ namespace GC26.Lines.UI
             float tagTop = logoTop - (LogoSize * 0.95f + TagMargin) * u;
             Place(tagline.rectTransform, left, tagTop - TagSize * 1.3f * u, width, TagSize * 1.3f * u);
             version.fontSize = VersionSize * u;
-            Place(version.rectTransform, left, safe.y + VersionBottom * u, width, VersionSize * 1.3f * u);
+            // A small tap area around the text (not the whole bottom row), a little taller than the letters.
+            Place(version.rectTransform, safe.center.x - 15f * u, safe.y + (VersionBottom - 1.5f) * u, 30f * u, (VersionSize * 1.3f + 3f) * u);
 
             float y = top - (brandH + BrandToButtons) * u;
             modes.Place(new Vector2(safe.center.x, y - BadgesHeight * u / 2f), u, BadgeDisc, BadgeText, BadgeGap);

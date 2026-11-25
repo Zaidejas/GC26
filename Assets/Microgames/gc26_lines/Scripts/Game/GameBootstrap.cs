@@ -15,7 +15,7 @@ namespace GC26.Lines.Game
     /// The only object placed in the Main scene. Everything else
     /// (board, balls, UI) is created from code starting here.
     /// </summary>
-    public class GameBootstrap : MonoBehaviour
+    public partial class GameBootstrap : MonoBehaviour
     {
         Camera mainCamera;
         BoardView boardView;
@@ -163,6 +163,8 @@ namespace GC26.Lines.Game
             howToPlay.Closed += CloseHowToPlay;
             menu.SettingsClicked += OpenSettings;
             hud.SettingsClicked += OpenSettings;
+            menu.DebugRequested += () => { if (!hud.Dialog.IsOpen && !hud.Settings.IsOpen) hud.DebugTools.Open(); };
+            hud.DebugTools.ToolChosen += tool => hud.DebugTools.SetStatus(RunDebug(tool));
             hud.Settings.Changed += OnSettingsChanged;
             hud.Settings.HowToPlayClicked += () => ShowHowToPlay(fromGame: GameScreenShowing);
             menu.LeaderboardClicked += () => ShowLeaderboard();

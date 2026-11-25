@@ -16,7 +16,9 @@ namespace GC26.Lines.UI
     /// </summary>
     public sealed class PillButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
     {
-        const float BorderWidth = 0.4f, FontSize = 4.4f, GlowBlur = 5f; // the prototype's box-shadow: 0 0 5cqw
+        const float BorderWidth = 0.4f, FontSize = 4.4f, GlowBlur = 5f;
+        /// <summary>The label's size in units (4.4; the Debug panel's small buttons use less).</summary>
+        public float TextUnits { get; set; } = FontSize; // the prototype's box-shadow: 0 0 5cqw
 
         RectTransform rect;
         Image hitArea, glow, border, fill;
@@ -240,7 +242,7 @@ namespace GC26.Lines.UI
             fillRect.offsetMax = new Vector2(-inset, -inset);
             UiShapes.MakePill(fill, pixels.height - 2f * inset);
 
-            label.fontSize = FontSize * unit;
+            label.fontSize = TextUnits * unit;
             if (icon != null) icon.rectTransform.sizeDelta = Vector2.one * iconSize * unit;
             lastUnit = unit;
             if (leadingIcon != null) PlaceLeadingIcon(unit);
@@ -268,7 +270,7 @@ namespace GC26.Lines.UI
         /// </summary>
         public float WidthForText(float unit, float padding)
         {
-            label.fontSize = FontSize * unit;
+            label.fontSize = TextUnits * unit;
             return label.GetPreferredValues(label.text).x + 2f * padding * unit;
         }
 

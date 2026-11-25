@@ -18,8 +18,8 @@ namespace GC26.Lines.EditorTools
     {
         struct Shot
         {
-            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog, Menu, GameOver, Settings, Russian, Best, Timed, ZeroOver; public int HowTo, Scores, Special;
-            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false, bool menu = false, int howTo = 0, bool gameOver = false, int scores = 0, bool settings = false, bool russian = false, bool best = false, bool timed = false, bool zeroOver = false, int special = 0) { Special = special; Timed = timed; ZeroOver = zeroOver; Best = best; HowTo = howTo; GameOver = gameOver; Scores = scores; Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; Menu = menu; Settings = settings; Russian = russian; }
+            public string Name; public int Width, Height, TopInset, BottomInset; public string Alert; public bool ResetDialog, Menu, GameOver, Settings, Russian, Best, Timed, ZeroOver, Debug; public int HowTo, Scores, Special;
+            public Shot(string name, int w, int h, int top, int bottom, string alert = null, bool resetDialog = false, bool menu = false, int howTo = 0, bool gameOver = false, int scores = 0, bool settings = false, bool russian = false, bool best = false, bool timed = false, bool zeroOver = false, int special = 0, bool debug = false) { Debug = debug; Special = special; Timed = timed; ZeroOver = zeroOver; Best = best; HowTo = howTo; GameOver = gameOver; Scores = scores; Name = name; Width = w; Height = h; TopInset = top; BottomInset = bottom; Alert = alert; ResetDialog = resetDialog; Menu = menu; Settings = settings; Russian = russian; }
         }
 
         static readonly Shot[] Shots =
@@ -45,6 +45,8 @@ namespace GC26.Lines.EditorTools
             new Shot("leaderboard-from-menu_1080x2400_notch", 1080, 2400, 132, 63, scores: 3),
             // Settings (sounds switched off, to show both switch states) and the Russian screens.
             new Shot("settings_1080x1920", 1080, 1920, 0, 0, settings: true),
+            new Shot("debug_1080x1920", 1080, 1920, 0, 0, debug: true),
+            new Shot("debug_iphone-se_750x1334", 750, 1334, 0, 0, debug: true),
             new Shot("settings-ru_1080x1920", 1080, 1920, 0, 0, settings: true, russian: true),
             new Shot("settings_iphone-se_750x1334", 750, 1334, 0, 0, settings: true),
             new Shot("menu-ru_1080x2400_notch", 1080, 2400, 132, 63, menu: true, russian: true),
@@ -187,6 +189,8 @@ namespace GC26.Lines.EditorTools
                 hud.Dialog.Show(GC26.Lines.Game.GameBootstrap.ResetTitle, GC26.Lines.Game.GameBootstrap.ResetMessage, GC26.Lines.UI.Texts.Get("yes"), null);
             if (shot.Settings)
                 hud.Settings.Show(new GameSettings { sounds = false });
+            if (shot.Debug)
+                hud.DebugTools.Open();
             if (shot.Alert != null) hud.ShowAlert(shot.Alert);
             if (shot.Timed)
             {

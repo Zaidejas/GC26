@@ -11,7 +11,7 @@ namespace GC26.Lines.UI
     /// </summary>
     public sealed class HintBubble : MonoBehaviour
     {
-        const float TitleSize = 4.6f, TextSize = 3.4f, PadX = 4f, PadY = 2.4f, BarHeight = 1.2f, MaxWidth = 78f, Gap = 3f;
+        const float TitleSize = 4.4f, TextSize = 3.4f, PadX = 4f, PadY = 2.4f, BarHeight = 1.2f, MaxWidth = 78f, Gap = 3f;
         static readonly Color Gold = new Color(1f, 0.835f, 0.42f);
 
         RectTransform root;
@@ -47,7 +47,7 @@ namespace GC26.Lines.UI
             border = Child("Border", Palette.GuideLine); // hints are guidance: moonlight blue (the progress bar stays gold: a reward)
             background = Child("Background", new Color(20 / 255f, 14 / 255f, 42 / 255f, 0.95f));
             title = NewText("Title", Palette.Guide);
-            UiFonts.UseDisplay(title);
+            UiFonts.UseBold(title); // read mid-game: Nunito ExtraBold (GDD → Fonts)
             text = NewText("Text", Palette.SoftText);
             barBack = Child("Bar", new Color(1f, 1f, 1f, 0.12f));
             barFill = Child("Fill", Gold);

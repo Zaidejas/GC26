@@ -76,6 +76,9 @@ namespace GC26.Lines.UI
         public PillButton BackButton => back;
         PillButton back, settingsButton;
         SettingsDialog settings;
+        DebugPanel debugPanel;
+        /// <summary>The hidden Debug panel (5 quick taps on the version on the menu).</summary>
+        public DebugPanel DebugTools => debugPanel;
         /// <summary>The player pressed the gear (top-right): opens Settings.</summary>
         public event System.Action SettingsClicked;
         public PillButton SettingsButton => settingsButton;
@@ -205,6 +208,7 @@ namespace GC26.Lines.UI
             gameOver = GameOverDialog.Create((RectTransform)popups.transform);
             dialog = ConfirmDialog.Create((RectTransform)popups.transform);
             settings = SettingsDialog.Create((RectTransform)popups.transform);
+            debugPanel = DebugPanel.Create((RectTransform)popups.transform);
             for (int i = 0; i < next.Length; i++)
             {
                 next[i] = NewRect("Next " + i, area).gameObject.AddComponent<Image>();
@@ -288,6 +292,7 @@ namespace GC26.Lines.UI
             dialog.ApplyLayout(u);
             gameOver.ApplyLayout(u);
             settings.ApplyLayout(u);
+            debugPanel.ApplyLayout(u);
         }
 
         /// <summary>Shows or hides the game's HUD (score, next, buttons). Dialogs are not affected.</summary>
