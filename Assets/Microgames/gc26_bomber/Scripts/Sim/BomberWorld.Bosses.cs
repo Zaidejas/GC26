@@ -40,7 +40,7 @@ namespace GC26.Bomber
 
         BomberEnemy MakeBoss(int bi)
         {
-            var d = BomberData.Bosses[bi]; float hp = d.Hp * BomberData.BossHp;
+            var d = BomberData.Bosses[bi]; float hp = d.Hp * BomberData.BossHp * OlHp;
             return new BomberEnemy { Kind = "boss", Boss = d, Def = d.Def, X = W / 2f, Y = H * 0.28f, R = d.R, Hp = hp, MaxHp = hp, Tm = 1.4f, Face = Mathf.PI, SpdMul = 1f };
         }
 
@@ -259,7 +259,7 @@ namespace GC26.Bomber
         void BossDefeated(BomberEnemy b)
         {
             Score += 1000; Bosses++; Shake?.Invoke(1.4f);
-            if (Mode == BomberMode.Run) { Meta.Bosses++; Unlock("boss_" + b.Boss.Key); if (!_bossDamaged) Unlock("flawless"); SaveMeta(); }
+            if (Mode == BomberMode.Run) { Meta.Bosses++; Unlock("boss_" + b.Boss.Key); if (!_bossDamaged) Unlock("flawless"); SaveMeta(); QProgress("boss", b.Boss.Key); }
             for (int k = 0; k < 60; k++) Spark(b.X, b.Y, k % 3 != 0 ? new Color32(255, 214, 92, 255) : new Color32(255, 255, 255, 255), 420f);
             AddRing(b.X, b.Y, 140f, b.Boss.Color, 0.6f);
             foreach (var s in Shots) if (s.Enemy) s.Dead = true;
@@ -268,7 +268,7 @@ namespace GC26.Bomber
             Zones.RemoveAll(z => z.Kind == "lava" || z.Kind == "acid");
             RoomCleared();
             if (Sector >= 2) { Later(1.6f, () => EndRun(true)); return; }
-            const int heal = 2; P.Hp = Mathf.Min(P.MaxHp, P.Hp + heal);
+            int heal = Ol >= 3 ? 1 : 2; P.Hp = Mathf.Min(P.MaxHp, P.Hp + heal);
             var name = b.Boss.Name;
             Later(0.7f, () => OfferReward($"{name} уничтожен", $"Починено {heal} ячейки. Выбери модуль или компаньона.", "module", "companion"));
         }

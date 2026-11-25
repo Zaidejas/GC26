@@ -73,8 +73,8 @@ namespace GC26.Bomber
         {
             if (_ended || Mode != BomberMode.Run) return;
             _ended = true; LastAbandoned = abandoned;
-            if (win) { int bonus = Time < 720f ? Mathf.RoundToInt(2000f * (1f - Time / 720f)) : 0; Score += 3000 + bonus; Meta.Wins++; Unlock("win"); }
-            int gain = Mathf.RoundToInt((Rooms * 2 + Elites * 4 + Bosses * 20 + Score / 400) * (Meta.IsRescued("archivist") ? 1.1f : 1f) * (abandoned ? 0.5f : 1f));
+            if (win) { int bonus = Time < 720f ? Mathf.RoundToInt(2000f * (1f - Time / 720f)) : 0; Score += 3000 + bonus; Meta.Wins++; Unlock("win"); Meta.OlMax = Mathf.Max(Meta.OlMax, Mathf.Min(5, Ol + 1)); }
+            int gain = Mathf.RoundToInt((Rooms * 2 + Elites * 4 + Bosses * 20 + Score / 400) * (1f + 0.25f * Ol) * (Meta.IsRescued("archivist") ? 1.1f : 1f) * (abandoned ? 0.5f : 1f));
             LastDataGain = gain; Meta.Data += gain; Meta.DataEarned += gain; Meta.BestCombo = Mathf.Max(Meta.BestCombo, MaxCombo);
             LastBest = Score > Meta.Best; if (LastBest) Meta.Best = Score;
             SaveMeta();

@@ -18,7 +18,9 @@ namespace GC26.Bomber
         public bool TutorialDone;
         public string Char = "spark", StartWeapon = "blaster", Tactic = "vent";
         public List<string> Ach = new List<string>(), Rescued = new List<string>(), Weapons = new List<string>(), Chars = new List<string>(), Tactics = new List<string>();
-        public List<Level> Ups = new List<Level>(), CharUps = new List<Level>();
+        public List<Level> Ups = new List<Level>(), CharUps = new List<Level>(), Mks = new List<Level>(), Quests = new List<Level>();
+        public List<string> QDone = new List<string>();
+        public int Ol, OlMax;
         public int Runs, Wins, Kills, Overheats, NoDmg, BestSector = 1, Bosses, DataEarned, Fusions, BestCombo;
 
         static string SaveKey => MicrogameSave.Key(BomberGame.Id, "meta");
@@ -43,6 +45,18 @@ namespace GC26.Bomber
         public void AddUp(string id) => Inc(Ups, id);
         public int CharUp(string ch, string k) => Get(CharUps, ch + "." + k);
         public void AddCharUp(string ch, string k) => Inc(CharUps, ch + "." + k);
+        public int Mk(string weapon) => Get(Mks, weapon);
+        public void AddMk(string weapon) => Inc(Mks, weapon);
+
+        // ---- quests: Quests holds taken ones (L = progress), QDone the turned-in ones ----
+        public bool QTaken(string id) { foreach (var x in Quests) if (x.Id == id) return true; return false; }
+        public int QProg(string id) => Get(Quests, id);
+        public void SetQProg(string id, int v) { foreach (var x in Quests) if (x.Id == id) { x.L = v; return; } Quests.Add(new Level { Id = id, L = v }); }
+        public bool QActive(BomberQuestDef q) => q != null && QTaken(q.Id) && !QDone.Contains(q.Id);
+        public bool QReady(BomberQuestDef q) => QActive(q) && QProg(q.Id) >= q.Need;
+        /// <summary>The NPC's current quest: the first one in its chain that is not turned in yet.</summary>
+        public BomberQuestDef QuestOf(string npc) { foreach (var q in BomberMetaData.Quests) if (q.Npc == npc && !QDone.Contains(q.Id)) return q; return null; }
+
         public int CharUpSum(string ch) { int s = 0; foreach (var u in BomberMetaData.CharUps) s += CharUp(ch, u.Id); return s; }
 
         // ---- unlocks ----
@@ -60,6 +74,7 @@ namespace GC26.Bomber
 
         public bool WeaponUnlocked(string id)
         {
+            var quest = BomberMetaData.QuestForWeapon(id); if (quest != null) return QDone.Contains(quest);
             if (!BomberMetaData.WeaponUnlock.TryGetValue(id, out var u)) return Array.IndexOf(BomberItems.BaseWeapons, id) >= 0;
             return u.ach != null ? HasAch(u.ach) : Weapons.Contains(id);
         }

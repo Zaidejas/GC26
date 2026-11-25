@@ -19,7 +19,7 @@ namespace GC26.Bomber
 
         public Sprite Drone, Rotor, Gun, Lens, Shot, ShotHeavy, EnemyShot, Pixel, Ring, Disc, Scrap, Repair, EmpPickup, Barrel, Wall, TurretHead;
         public Sprite UiCircle, UiRing, UiWhite, UiGradient, UiVignette, Glow, UiArrow;
-        public Sprite Terminal, Cell, Dynamite, ForgeTurret, Npc;
+        public Sprite Terminal, Cell, Dynamite, ForgeTurret, Npc, QuestItem;
         public Sprite Chest, ChestOpen, Altar, AltarUsed, Bench, Stand, Rocket, Saw, Flame, CompGunner, CompGuard, CompMedic, CompStriker;
         readonly Dictionary<string, Sprite> _enemy = new Dictionary<string, Sprite>();
         readonly List<UnityEngine.Object> _owned = new List<UnityEngine.Object>();
@@ -62,6 +62,7 @@ namespace GC26.Bomber
             CompGuard = Build(9, 9, c => { c.Fill(c.Disc(4.5f, 4.5f, 4f), Hex("#9fd0ff")); c.Px(4, 4, MW); });
             CompMedic = Build(9, 9, c => { c.Fill((x, y) => (x > 3 && x < 6) || (y > 3 && y < 6), Hex("#6dffb0")); });
             CompStriker = Build(10, 8, c => { c.Fill(c.Poly(new[] { (10f, 4f), (0f, 0f), (2f, 4f), (0f, 8f) }), Hex("#ffb347")); });
+            QuestItem = Build(12, 12, c => { c.Fill(c.Poly(new[] { (6f, 0f), (12f, 6f), (6f, 12f), (0f, 6f) }), Hex("#1c1030")); c.Fill(c.Poly(new[] { (6f, 2f), (10f, 6f), (6f, 10f), (2f, 6f) }), Hex("#b48cff")); c.Rect(5, 5, 2, 2, MW); });
             Terminal = Build(22, 22, c => { c.Fill(c.Box(0, 4, 22, 22), MN); c.Fill(c.Box(2, 0, 20, 14), Hex("#101a2c")); c.Fill(c.Box(4, 2, 18, 12), Hex("#e8f0ff"), false); c.Rect(4, 16, 14, 2, MM); c.Rect(6, 19, 3, 2, ML); c.Rect(13, 19, 3, 2, ML); });
             Cell = Build(26, 26, c => { c.Fill(c.Box(0, 0, 26, 26), Hex("#1a1024")); for (int x = 2; x < 26; x += 4) c.Rect(x, 1, 2, 24, MM); c.Rect(0, 0, 26, 2, ML); c.Rect(0, 24, 26, 2, ML); });
             Dynamite = Build(5, 8, c => { c.Fill(c.Box(0, 2, 5, 8), Hex("#ff4d4d")); c.Rect(2, 0, 1, 2, MY); });

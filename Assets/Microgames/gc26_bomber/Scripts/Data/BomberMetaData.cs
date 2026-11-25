@@ -11,6 +11,7 @@ namespace GC26.Bomber
     public sealed class BomberUpDef { public string Id, Name, Desc; public int[] Cost; }
     public sealed class BomberNpcDef { public string Id, Name, Bonus, Line; public bool Home, Char; public Color32 Color; }
     public sealed class BomberAchDef { public string Id, Name, Desc, Reward; public int Data; }
+    public sealed class BomberQuestDef { public string Id, Npc, Name, Type, Target, Item, Desc, RewardWeapon; public int Need, RewardData; }
     public sealed class BomberTacticDef { public string Id, Name, Desc; public float Cd; public int Cost; }
     public sealed class BomberStationDef { public string Id, Name; public float X, Y; public Color32 Color; }
 
@@ -95,6 +96,49 @@ namespace GC26.Bomber
             ["cryo"] = (0, "sector2"), ["beam"] = (0, "win"), ["disc"] = (0, "kills300"), ["minigun"] = (0, "over50"),
         };
 
+        /// <summary>
+        /// NPC quests, taken and turned in at the NPC in the hub. type: kill (enemy kind or any), elite, boss (boss key or any),
+        /// fetch (the item lies in some run rooms), nodmg (rooms cleared without damage). Progress is kept between runs.
+        /// </summary>
+        public static readonly BomberQuestDef[] Quests =
+        {
+            Q("q_disp1", "dispatch", "Чистка доков", "kill", "any", 40, "Уничтожь 40 любых машин.", data: 40),
+            Q("q_disp2", "dispatch", "Чёрные ящики", "fetch", null, 2, "Найди в забегах 2 чёрных ящика: они лежат в некоторых комнатах.", weapon: "twin", item: "Чёрный ящик"),
+            Q("q_disp3", "dispatch", "Обезглавить", "boss", "any", 2, "Победи 2 боссов (за любое число забегов).", data: 80),
+            Q("q_mech1", "mechanic", "Запчасти", "kill", "beetle", 25, "Разбери 25 жуков-сварщиков: мне нужны их горелки.", weapon: "hammer"),
+            Q("q_mech2", "mechanic", "Силовые катушки", "fetch", null, 3, "Принеси 3 силовые катушки.", data: 90, item: "Силовая катушка"),
+            Q("q_quart1", "quarter", "Снабжение", "fetch", null, 3, "Найди 3 ящика припасов.", data: 60, item: "Ящик припасов"),
+            Q("q_quart2", "quarter", "Охота на элиту", "elite", "any", 10, "Уничтожь 10 элитных врагов.", weapon: "scatter"),
+            Q("q_doc1", "doctor", "Аккуратность", "nodmg", "any", 5, "Зачисти 5 комнат, не получив урона.", data: 70),
+            Q("q_doc2", "doctor", "Медицинские ядра", "fetch", null, 2, "Принеси 2 медицинских ядра.", data: 100, item: "Медицинское ядро"),
+            Q("q_arch1", "archivist", "Архив станции", "fetch", null, 3, "Найди 3 блока памяти.", data: 70, item: "Блок памяти"),
+            Q("q_arch2", "archivist", "Ключи Надзирателя", "boss", "warden", 1, "Победи Надзирателя (сектор 2).", weapon: "needle"),
+            Q("q_gun1", "gunsmith", "Контрснайпер", "kill", "sniper", 8, "Уничтожь 8 снайперов (сектор 2 и дальше).", data: 60),
+            Q("q_gun2", "gunsmith", "Трофеи", "boss", "any", 3, "Победи 3 боссов.", weapon: "venom"),
+            Q("q_forge1", "forge", "Металлолом", "kill", "turret", 15, "Разбери 15 турелей.", data: 60),
+            Q("q_chr1", "chrono", "Ловец теней", "kill", "phantom", 12, "Уничтожь 12 фантомов (сектор 3).", data: 80),
+            Q("q_lee1", "leech", "Голод", "kill", "any", 150, "Уничтожь 150 машин.", data: 100),
+        };
+        static BomberQuestDef Q(string id, string npc, string name, string type, string target, int need, string desc, int data = 0, string weapon = null, string item = null)
+            => new BomberQuestDef { Id = id, Npc = npc, Name = name, Type = type, Target = target, Need = need, Desc = desc, RewardData = data, RewardWeapon = weapon, Item = item };
+        public static BomberQuestDef Quest(string id) { foreach (var q in Quests) if (q.Id == id) return q; return null; }
+        /// <summary>Weapon unlocked by turning in a quest.</summary>
+        public static string QuestForWeapon(string weapon) { foreach (var q in Quests) if (q.RewardWeapon == weapon) return q.Id; return null; }
+        public static string RewardText(BomberQuestDef q) => q.RewardWeapon != null ? $"оружие «{BomberItems.Weapons[q.RewardWeapon].Name}»" : $"{q.RewardData} Данных";
+
+        /// <summary>Overload levels: unlocked one by one by winning. Index = level.</summary>
+        public static readonly string[] Overload =
+        {
+            "Обычный режим",
+            "Враги: +12% здоровья, +6% скорость пуль, +6% шанс элиты, +8% врагов. Данные +25%",
+            "Враги: +24% здоровья, +12% скорость пуль, +12% шанс элиты, +16% врагов. Данные +50%",
+            "Ещё сильнее, и после босса чинится только 1 ячейка. Данные +75%",
+            "Враги: +48% здоровья, +24% скорость пуль, стреляют на 20% чаще. Данные +100%",
+            "Максимум: +60% здоровья, +30% скорость пуль, +30% шанс элиты. Данные +125%",
+        };
+        /// <summary>Permanent Mk upgrade of a weapon in the armory: Mk2, Mk3 (Data).</summary>
+        public static readonly int[] MkCost = { 40, 90 };
+
         /// <summary>The tactic on the left button, shared by all drones.</summary>
         public static readonly BomberTacticDef[] Tactics =
         {
@@ -115,7 +159,7 @@ namespace GC26.Bomber
             new BomberStationDef { Id = "workshop", Name = "Мастерская", X = 120, Y = 500, Color = C("#6dffb0") },
             new BomberStationDef { Id = "records", Name = "Достижения", X = 424, Y = 500, Color = C("#ffd65c") },
             new BomberStationDef { Id = "tactics", Name = "Тактика", X = 424, Y = 740, Color = C("#ff9adf") },
-            new BomberStationDef { Id = "training", Name = "Тренировка", X = 120, Y = 740, Color = C("#b48cff") },
+            new BomberStationDef { Id = "training", Name = "Настройка забега", X = 120, Y = 740, Color = C("#b48cff") },
         };
         public static BomberStationDef Station(string id) { foreach (var s in Stations) if (s.Id == id) return s; return null; }
     }

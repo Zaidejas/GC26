@@ -26,7 +26,7 @@ namespace GC26.Bomber
 
         void EnemyShot(float x, float y, float a, float speed, Color32? color = null, float r = 5f)
         {
-            float s = speed * BomberData.BulletMul * (Is("chrono") ? 0.88f : 1f);
+            float s = speed * BomberData.BulletMul * (Is("chrono") ? 0.88f : 1f) * (1f + 0.06f * Ol);
             Shots.Add(new BomberShot { X = x, Y = y, Vx = Mathf.Cos(a) * s, Vy = Mathf.Sin(a) * s, Enemy = true, Dmg = 1, R = r, Life = 5f, Color = color ?? new Color32(255, 79, 106, 255) });
         }
 
@@ -74,7 +74,7 @@ namespace GC26.Bomber
             if (e.Stun > 0f) { e.Stun -= dt; e.Vx *= 0.8f; e.Vy *= 0.8f; MoveBody(e, e.Vx * dt, e.Vy * dt); return; }
             if (e.IsBoss) { UpdateBoss(e, dt); return; }
             float d = Dist(e, P), a = Ang(e, P), spd = e.Def.Speed;
-            float el = (e.Elite ? 0.75f : 1f) * (e.Affix == "fast" ? 0.8f : 1f) * BomberData.Interval * (e.Slow > 0f ? 1.5f : 1f);
+            float el = (e.Elite ? 0.75f : 1f) * (e.Affix == "fast" ? 0.8f : 1f) * BomberData.Interval * (e.Slow > 0f ? 1.5f : 1f) / (1f + 0.05f * Ol);
             e.Tm -= dt;
             switch (e.Kind)
             {
@@ -247,7 +247,7 @@ namespace GC26.Bomber
             if (e.IsBoss) { BossDefeated(e); return; }
             if (e.Affix == "volatile") Effects.Add(new BomberEffect { Kind = "mine", X = e.X, Y = e.Y, T = 0.5f, Max = 0.5f, R = 70f });
             Kills++; Combo++; ComboT = 2.6f; MaxCombo = Mathf.Max(MaxCombo, Combo);
-            if (Mode == BomberMode.Run) { Meta.Kills++; if (Meta.Kills >= 300) Unlock("kills300"); if (Combo >= 25) Unlock("combo25"); }
+            if (Mode == BomberMode.Run) { Meta.Kills++; if (Meta.Kills >= 300) Unlock("kills300"); if (Combo >= 25) Unlock("combo25"); QProgress("kill", e.Kind); if (e.Elite) QProgress("elite", "any"); }
             if (Is("leech") && ++P.LeechK % 12 == 0 && P.Hp < P.MaxHp) { P.Hp++; Texts.Add(new BomberText { X = P.X, Y = P.Y - 26, S = "+1", T = 0.9f, Color = new Color32(255, 77, 141, 255) }); }
             if (Combo % 5 == 0)
             {

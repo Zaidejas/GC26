@@ -38,7 +38,7 @@ namespace GC26.Bomber
         // ================= weapon stats with upgrades (prototype ws) =================
         public BomberWeaponDef Stats(BomberWeapon w)
         {
-            var d = w.Def; var s = d.Clone(); var u = w.Up; int mk = d.Fused ? 2 : 0;
+            var d = w.Def; var s = d.Clone(); var u = w.Up; int mk = d.Fused ? 2 : Meta.Mk(w.Id);
             float dm = 1f + 0.2f * u["dmg"] + 0.1f * mk;
             s.Dmg = d.Dmg * dm; s.Rate = d.Rate * (1f + 0.15f * u["rate"] + 0.08f * mk); s.Heat = d.Heat * (1f - 0.15f * u["heat"]);
             int k = u["spec"];
@@ -111,7 +111,7 @@ namespace GC26.Bomber
                 Shot(P.X + Mathf.Cos(P.Aim) * 14f, P.Y + Mathf.Sin(P.Aim) * 14f, a, speed, s.Dmg * dm * DmgMul, new BomberShot
                 {
                     R = rOverride > 0f ? rOverride : s.R, Pierce = s.Pierce, Bounce = s.Bounce, Aoe = s.Aoe, Kb = s.Kb, Life = s.Life, Trail = s.Trail, Homing = s.Homing, Burn = s.Burn, Slow = s.Slow, Zap = s.Zap, Heavy = heavy,
-                    Look = s.Look, Color = s.Burn ? new Color32(255, 154, 60, 255) : s.Slow > 0 ? new Color32(159, 230, 255, 255) : s.Zap ? new Color32(217, 240, 255, 255) : Core.State == CoreState.Overdrive ? new Color32(255, 227, 154, 255) : new Color32(216, 248, 255, 255),
+                    Look = s.Look, Color = s.Col.a > 0 ? s.Col : s.Burn ? new Color32(255, 154, 60, 255) : s.Slow > 0 ? new Color32(159, 230, 255, 255) : s.Zap ? new Color32(217, 240, 255, 255) : Core.State == CoreState.Overdrive ? new Color32(255, 227, 154, 255) : new Color32(216, 248, 255, 255),
                 });
             }
             P.MuzzleT = 0.06f;

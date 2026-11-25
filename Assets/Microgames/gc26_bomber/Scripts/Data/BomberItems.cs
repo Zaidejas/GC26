@@ -9,6 +9,7 @@ namespace GC26.Bomber
         public float Dmg, Rate, Heat, Speed, Spread, R = 4f, Kb = 60f, Life = 1.4f, Aoe, Slow, Grow, Range, AltCd;
         public int Pellets = 1, Pierce, Bounce, Chains;
         public bool Homing, Burn, Zap, Trail, Fused;
+        public UnityEngine.Color32 Col; // own projectile colour (a = 0: default)
         public BomberWeaponDef AltW;
         public BomberWeaponDef Clone() => (BomberWeaponDef)MemberwiseClone();
     }
@@ -20,7 +21,7 @@ namespace GC26.Bomber
     public static class BomberItems
     {
         public static readonly Dictionary<string, BomberWeaponDef> Weapons = new Dictionary<string, BomberWeaponDef>();
-        public static readonly string[] BaseWeapons = { "blaster", "shotgun", "rifle", "nail", "plasma", "rail", "swarm", "flamer", "arc", "cryo", "beam", "disc", "minigun" };
+        public static readonly string[] BaseWeapons = { "blaster", "shotgun", "rifle", "nail", "plasma", "rail", "swarm", "flamer", "arc", "cryo", "beam", "disc", "minigun", "twin", "hammer", "scatter", "needle", "venom" };
 
         static BomberWeaponDef Add(BomberWeaponDef w) { Weapons[w.Id] = w; return w; }
 
@@ -38,6 +39,12 @@ namespace GC26.Bomber
             Add(new BomberWeaponDef { Id = "cryo", Name = "Крио-пушка", Dmg = 8, Rate = 5, Heat = 3.5f, Speed = 600, Spread = .04f, R = 4, Slow = 2, Spec = "slow", Desc = "Замедляет врагов на 50% на 2 с." });
             Add(new BomberWeaponDef { Id = "beam", Name = "Лазерный резак", Kind = "beam", Dmg = 2.4f, Rate = 20, Heat = 1, Spec = "dmg2", Desc = "Непрерывный луч, около 48 урона в секунду." });
             Add(new BomberWeaponDef { Id = "disc", Name = "Пиломёт", Dmg = 18, Rate = 2, Heat = 9, Speed = 430, R = 7, Bounce = 3, Pierce = 3, Life = 2.2f, Spec = "bounce", Look = "disc", Desc = "Пилы отскакивают от стен и режут насквозь." });
+            // quest rewards
+            Add(new BomberWeaponDef { Id = "twin", Name = "Близнецы", Dmg = 9, Rate = 6, Heat = 3, Speed = 760, Spread = .03f, Pellets = 2, R = 3.5f, Spec = "accuracy", Desc = "Два параллельных ствола: стабильный урон без разброса." });
+            Add(new BomberWeaponDef { Id = "hammer", Name = "Гравимолот", Dmg = 34, Rate = 1.1f, Heat = 18, Speed = 420, R = 9, Aoe = 56, Spec = "aoe", Col = BomberData.C("#b48cff"), Desc = "Тяжёлый гравизаряд с большим взрывом." });
+            Add(new BomberWeaponDef { Id = "scatter", Name = "Шрапнель", Dmg = 8, Rate = 1.5f, Heat = 12, Speed = 560, Spread = .3f, Pellets = 5, R = 4, Aoe = 26, Life = .5f, Kb = 120, Alt = "double", Spec = "pellets", Col = BomberData.C("#ffcf8a"), Desc = "Разрывная дробь: каждый осколок взрывается. Дуплет." });
+            Add(new BomberWeaponDef { Id = "needle", Name = "Игла", Dmg = 42, Rate = 1.6f, Heat = 9, Speed = 1900, R = 3, Pierce = 1, Trail = true, Spec = "dmg2", Desc = "Снайперская винтовка, пробивает 2 цели." });
+            Add(new BomberWeaponDef { Id = "venom", Name = "Кислотник", Dmg = 4, Rate = 12, Heat = 1.4f, Speed = 520, Spread = .12f, R = 4, Life = .6f, Burn = true, Slow = 1, Spec = "range", Col = BomberData.C("#9cff6d"), Desc = "Струя кислоты: поджигает и замедляет." });
             Add(new BomberWeaponDef { Id = "minigun", Name = "Миниган", Kind = "mini", Dmg = 6, Rate = 20, Heat = 1.8f, Speed = 780, Spread = .1f, R = 3, Spec = "spin", Desc = "Раскручивается до 20 выстрелов в секунду." });
             // fused (only made at the workbench)
             Add(new BomberWeaponDef { Id = "stormgun", Fused = true, Name = "Ракетный шторм", Kind = "mini", Dmg = 9, Rate = 16, Heat = 2.2f, Speed = 520, Spread = .14f, R = 3, Homing = true, Aoe = 26, Life = 1.6f, Spec = "spin", Look = "rocket",

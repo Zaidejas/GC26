@@ -81,7 +81,7 @@ namespace GC26.Bomber
         // ================= run setup =================
         public void StartRun(uint seed)
         {
-            Mode = BomberMode.Run; _ended = false; NewAch.Clear(); RescuedNow.Clear(); Elites = 0; _bossDamaged = false; PendingPanel = null;
+            Mode = BomberMode.Run; _ended = false; Ol = Mathf.Clamp(Meta.Ol, 0, Mathf.Min(5, Meta.OlMax)); NewAch.Clear(); RescuedNow.Clear(); Elites = 0; _bossDamaged = false; PendingPanel = null;
             Seed = seed == 0 ? 1u : seed;
             Phase = BomberPhase.Play;
             Score = Kills = Rooms = Combo = MaxCombo = DamageTaken = 0; ComboT = Time = 0f;
@@ -161,6 +161,7 @@ namespace GC26.Bomber
                 else if (type == "shop") MakeShop();
                 OpenDoors();
             }
+            if (type != "boss" && type != "start") PlaceQuestItem();
             ComputeFlow();
             RoomVersion++;
         }
@@ -454,6 +455,7 @@ namespace GC26.Bomber
             if (p.Kind == "scrap") P.Scrap += p.Value;
             if (p.Kind == "repair") { P.Hp = Mathf.Min(P.MaxHp, P.Hp + 1); Toast?.Invoke("+1 здоровье", 1f); }
             if (p.Kind == "emp") { P.Emp = Mathf.Min(3, P.Emp + 1); Toast?.Invoke("+1 ЭМИ", 1f); }
+            if (p.Kind == "quest") CollectQuestItem(p);
         }
 
         void Hurt()
@@ -469,17 +471,17 @@ namespace GC26.Bomber
         }
 
         // ================= rooms & waves =================
-        float HpMul => BomberData.HpMul[Sector];
+        float HpMul => BomberData.HpMul[Sector] * OlHp;
 
         List<List<(string, bool)>> MakeWaves(string type)
         {
             int s = Sector;
             float mult = BomberData.SectorMult[s] * (type == "elite" ? 1.3f : 1f) * (type == "rescue" ? 1.25f : 1f) * (type == "start" ? 0.6f : 1f) * (0.9f + _rngE.Next() * 0.3f);
-            int budget = Mathf.Max(3, Mathf.RoundToInt(BomberData.Budget * mult));
+            int budget = Mathf.Max(3, Mathf.RoundToInt(BomberData.Budget * mult * (1f + 0.08f * Ol)));
             var pool = new List<string>(); for (int k = 0; k <= s; k++) pool.AddRange(BomberData.Pools[k]);
             int n = budget < 8 ? 1 : budget < 14 ? 2 : 3;
             float[] split = n == 1 ? new[] { 1f } : n == 2 ? new[] { 0.6f, 0.4f } : new[] { 0.4f, 0.33f, 0.27f };
-            float eliteChance = BomberData.EliteChance[s];
+            float eliteChance = BomberData.EliteChance[s] + 0.06f * Ol;
             var waves = new List<List<(string, bool)>>();
             for (int wi = 0; wi < split.Length; wi++)
             {
@@ -533,7 +535,7 @@ namespace GC26.Bomber
             Room.Cleared = true; Rooms++; Score += 100; if (Room.Type == "elite") Elites++;
             if (Mode == BomberMode.Run)
             {
-                if (!RoomDamaged) { Meta.NoDmg++; if (Meta.NoDmg >= 10) Unlock("nodmg10"); }
+                if (!RoomDamaged) { Meta.NoDmg++; if (Meta.NoDmg >= 10) Unlock("nodmg10"); QProgress("nodmg", "any"); }
                 if (Rooms >= 12) Unlock("rooms12");
             }
             if (!RoomDamaged) { Score += 50; Texts.Add(new BomberText { X = P.X, Y = P.Y - 24, S = "БЕЗ УРОНА +50", T = 1.4f, Color = new Color32(109, 255, 176, 255) }); }

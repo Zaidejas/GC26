@@ -117,6 +117,12 @@ namespace GC26.Bomber
             {
                 var pg = _pools["light"].Get(); pg.sprite = art.Glow; pg.color = p.Kind == "scrap" ? new Color(1f, 0.81f, 0.36f, 0.3f) : p.Kind == "repair" ? new Color(0.43f, 1f, 0.69f, 0.4f) : new Color(0.62f, 0.82f, 1f, 0.4f);
                 pg.transform.position = U(p.X, p.Y); pg.transform.localScale = Vector3.one * ((p.Kind == "scrap" ? 10f : 16f) / 32f);
+                if (p.Kind == "quest")
+                {
+                    var qg = _pools["light"].Get(); qg.sprite = art.Glow; qg.color = new Color(0.71f, 0.55f, 1f, 0.5f); qg.transform.position = U(p.X, p.Y); qg.transform.localScale = Vector3.one * (68f / 32f);
+                    var qs = _pools["pickup"].Get(); qs.sprite = art.QuestItem; qs.transform.position = U(p.X, p.Y + Mathf.Round(Mathf.Sin(time * 4f) * 1.5f) * 2f); qs.sortingOrder = 3;
+                    continue;
+                }
                 var sr = _pools["pickup"].Get(); sr.sprite = p.Kind == "scrap" ? art.Scrap : p.Kind == "repair" ? art.Repair : art.EmpPickup;
                 sr.transform.position = U(p.X, p.Y); if (p.Kind == "scrap") sr.transform.localRotation = Rot(time * 3f + p.X);
             }
@@ -221,7 +227,7 @@ namespace GC26.Bomber
                 }
                 foreach (var z in w.Zones) _light.Add(z.X + z.W / 2f, z.Y + z.H / 2f, Mathf.Max(z.W, z.H) * (z.Kind == "hot" ? 1f : 1.1f), z.Kind == "hot" ? 0.6f : z.Tele > 0f ? 0.55f : 0.9f);
                 foreach (var en in w.Enemies) _light.Add(en.X, en.Y, en.IsBoss ? en.R * 4.5f : en.R * 2.8f, en.IsBoss ? 0.85f : en.St == "tele" ? 0.6f : 0.35f);
-                foreach (var pk in w.Pickups) _light.Add(pk.X, pk.Y, 26f, 0.6f);
+                foreach (var pk in w.Pickups) _light.Add(pk.X, pk.Y, pk.Kind == "quest" ? 80f : 26f, 0.6f);
                 foreach (var t in w.Turrets) _light.Add(t.X, t.Y, 70f, 0.6f);
                 foreach (var c in p.Comps) _light.Add(c.X, c.Y, 50f, 0.5f);
                 foreach (var t in w.Throws) _light.Add(t.X, t.Y, 70f, 0.7f);

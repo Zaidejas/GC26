@@ -99,6 +99,8 @@ namespace GC26.Bomber
             var o = new List<(Vector2, string, Color32)>();
             if (Phase != BomberPhase.Play || Room == null) return o;
             if (Mode == BomberMode.Tutorial && TutStep < 7) return o;
+            if (Mode == BomberMode.Hub)
+                foreach (var n in Npcs) if (QuestMark(n.Id) == "ready") o.Add((new Vector2(n.X, n.Y), "СДАТЬ КВЕСТ", BomberData.C("#6dffb0")));
             if (Mode == BomberMode.Run && Room.Locked && !Room.Cleared) return o;
             foreach (var p in Props)
             {

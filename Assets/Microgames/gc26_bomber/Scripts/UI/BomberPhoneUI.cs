@@ -481,7 +481,7 @@ namespace GC26.Bomber
             Circle(_routeCur.rectTransform, new Vector2(14 + w.Step * 22 + 7.5f, 108.5f), 12);
             var curT = w.Room.Type == "start" ? "combat" : w.Room.Type;
             float roomX = hub || tut ? 14f : 14 + 7 * 22 + 6; _room.rectTransform.anchoredPosition = new Vector2(roomX, -98f);
-            _room.text = hub ? "ХАБ СТАНЦИИ" : tut ? "ОБУЧЕНИЕ" : $"С{w.Sector + 1} · {BomberData.RoomLabel[curT]}";
+            _room.text = hub ? "ХАБ СТАНЦИИ" : tut ? "ОБУЧЕНИЕ" : $"С{w.Sector + 1} · {BomberData.RoomLabel[curT]}" + (w.Ol > 0 ? $" · П{w.Ol}" : "");
             _room.color = hub ? new Color(0.43f, 1f, 0.69f) : tut ? new Color(0.71f, 0.55f, 1f) : (Color)BomberData.RoomColor[curT];
             var wd = p.Weapon.Def; var chd = w.CharDef;
             _weapon.text = (hub ? chd.Name + " · " : "") + wd.Name + (p.Weapon.UpSum > 0 ? $" ▲{p.Weapon.UpSum}" : "") + (p.Weapons.Count > 1 ? $"  {p.Cur + 1}/2" : "");
@@ -574,8 +574,15 @@ namespace GC26.Bomber
             foreach (var hn in w.Npcs)
             {
                 var d = BomberMetaData.Npc(hn.Id); float ty = hn.Y - 18f - _scroll0; if (ty < 0f || ty > _viewH) continue;
-                var tx = GetText(_propLabels, q++); tx.supportRichText = true; tx.text = d.Name + (w.NearNpc() == hn ? "\n<size=12>E — поговорить</size>" : ""); tx.fontSize = 13; tx.color = (Color)d.Color; tx.alignment = TextAnchor.LowerCenter;
+                var tx = GetText(_propLabels, q++); tx.supportRichText = true; var mark = w.QuestMark(hn.Id); tx.text = (mark == "new" ? "<color=#ffd65c><size=18>!</size></color> " : mark == "ready" ? "<color=#6dffb0><size=18>✓</size></color> " : "") + d.Name + (w.NearNpc() == hn ? "\n<size=12>E — поговорить</size>" : ""); tx.fontSize = 13; tx.color = (Color)d.Color; tx.alignment = TextAnchor.LowerCenter;
                 Place(tx.rectTransform, _wx + hn.X * _ws - 140, _wy + ty * _ws - 90, 280, 90);
+            }
+            foreach (var pk in w.Pickups)
+            {
+                if (pk.Kind != "quest") continue; var qd = BomberMetaData.Quest(pk.Id); if (qd == null) continue;
+                float ty = pk.Y - 16f - _scroll0; if (ty < 0f || ty > _viewH) continue;
+                var tx = GetText(_propLabels, q++); tx.supportRichText = true; tx.text = $"{qd.Item} · квест"; tx.fontSize = 13; tx.color = new Color(0.71f, 0.55f, 1f); tx.alignment = TextAnchor.LowerCenter;
+                Place(tx.rectTransform, _wx + pk.X * _ws - 140, _wy + ty * _ws - 90, 280, 90);
             }
             for (int i = q; i < _propLabels.Count; i++) _propLabels[i].enabled = false;
             SyncTutorialCard(w);

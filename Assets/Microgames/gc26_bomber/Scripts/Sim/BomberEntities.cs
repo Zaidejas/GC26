@@ -56,7 +56,7 @@ namespace GC26.Bomber
         public HashSet<BomberEnemy> Hit;
     }
 
-    public sealed class BomberPickup { public string Kind; public float X, Y; public int Value; public bool Vacuum; }
+    public sealed class BomberPickup { public string Kind, Id; public float X, Y; public int Value; public bool Vacuum; }
 
     /// <summary>Something the player can get: a weapon, a module, a companion or a repair kit.</summary>
     public struct BomberItem

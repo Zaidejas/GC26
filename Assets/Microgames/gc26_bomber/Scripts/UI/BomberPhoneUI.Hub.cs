@@ -93,9 +93,7 @@ namespace GC26.Bomber
                 case "workshop": ShowWorkshop(); break;
                 case "tactics": ShowTactics(); break;
                 case "records": ShowRecords(); break;
-                case "training":
-                    ShowPanel("training", "Тренировка", "Пройти обучение ещё раз? Прогресс не теряется.", ("Начать обучение", () => { HidePanel(); _ctx.World.EnterTutorial(); }), ("Закрыть", HidePanel));
-                    break;
+                case "training": ShowMission(); break;
             }
         }
 
@@ -133,10 +131,14 @@ namespace GC26.Bomber
             {
                 var d = BomberItems.Weapons[id]; bool un = m.WeaponUnlocked(id), start = m.StartWeapon == id; string wid = id;
                 BomberMetaData.WeaponUnlock.TryGetValue(id, out var lk);
-                string state = start ? "<color=#6dffb0>СТАРТОВОЕ</color>" : un ? "<color=#7fe3ff>брать на старт</color>" : lk.ach != null ? $"<color=#8090b4>достижение «{AchName(lk.ach)}»</color>"
+                var qlock = BomberMetaData.Quest(BomberMetaData.QuestForWeapon(id) ?? "");
+                int mk = m.Mk(id), mkp = w.MkPrice(id);
+                string state = start ? "<color=#6dffb0>СТАРТОВОЕ</color>" : un ? "<color=#7fe3ff>брать на старт</color>" : qlock != null ? $"<color=#8090b4>квест «{qlock.Name}» · {BomberMetaData.Npc(qlock.Npc).Name}</color>" : lk.ach != null ? $"<color=#8090b4>достижение «{AchName(lk.ach)}»</color>"
                     : $"<color={(m.Data >= lk.cost ? "#ffd65c" : "#ff8a9a")}>открыть · {lk.cost} Данных</color>";
-                rows.Add(($"<size=18><b>{d.Name}</b></size>  {state}\n<size=13><color=#a9b6d6>{d.Desc}</color></size>",
-                    () => { if (!(un ? w.SetStartWeapon(wid) : w.BuyWeapon(wid))) Toast(lk.ach != null ? "Открывается достижением" : "Не хватает Данных", 1.4f); ShowArmory(); }));
+                rows.Add(($"<size=18><b>{d.Name}</b></size> {(un ? $"<color=#ffb347>Mk{mk + 1}</color> " : "")} {state}\n<size=13><color=#a9b6d6>{d.Desc}</color></size>",
+                    () => { if (!(un ? w.SetStartWeapon(wid) : w.BuyWeapon(wid))) Toast(qlock != null ? "Открывается квестом" : lk.ach != null ? "Открывается достижением" : "Не хватает Данных", 1.4f); ShowArmory(); }));
+                if (un) rows.Add(($"    <color=#ffb347>{Pips(mk, 2)}</color> {(mkp < 0 ? "<color=#6dffb0>Mk3 — максимум</color>" : $"Улучшить до <b>Mk{mk + 2}</b> · <color={(m.Data >= mkp ? "#ffd65c" : "#ff8a9a")}>{mkp} Данных</color>")} <size=12><color=#8090b4>+10% урона, +8% скорострельности навсегда</color></size>",
+                    () => { if (mkp >= 0 && !w.BuyMk(wid)) Toast("Не хватает Данных", 1.2f); ShowArmory(); }));
             }
             rows.Add(("<b>Закрыть</b>", HidePanel));
             ShowPanelEx("armory", "Арсенал", $"Открытое оружие попадает в награды и магазины забегов. {DataLine}", 70f, 100f, true, rows.ToArray());
@@ -177,9 +179,37 @@ namespace GC26.Bomber
 
         void ShowNpc(string id)
         {
-            var n = BomberMetaData.Npc(id); if (n == null) return;
-            ShowPanel("npc", n.Name, $"«{n.Line}»" + (n.Home ? "" : $"\n\nБонус: {n.Bonus}."), ("Закрыть", HidePanel));
+            var w = _ctx.World; var m = w.Meta; var n = BomberMetaData.Npc(id); if (n == null) return;
+            var rows = new List<(string, System.Action)>();
+            var q = m.QuestOf(id);
+            if (q != null)
+            {
+                bool act = m.QActive(q), ready = m.QReady(q); int pr = Mathf.Min(q.Need, m.QProg(q.Id)); string qid = q.Id;
+                string bar = act ? $"\n<color=#ffd65c>Прогресс {pr}/{q.Need}</color>  <color=#7fe3ff>{new string('■', Mathf.RoundToInt(10f * pr / q.Need))}</color><color=#2b3348>{new string('■', 10 - Mathf.RoundToInt(10f * pr / q.Need))}</color>" : "";
+                rows.Add(($"<size=18><b>{q.Name}</b></size>  {(ready ? "<color=#6dffb0>ГОТОВО — нажми, чтобы сдать</color>" : act ? "<color=#ffb347>в работе</color>" : "<color=#7fe3ff>нажми, чтобы взять</color>")}\n<size=14><color=#a9b6d6>{q.Desc}</color>\nНаграда: <color={(q.RewardWeapon != null ? "#ffcf5c" : "#b48cff")}>{BomberMetaData.RewardText(q)}</color>{bar}</size>",
+                    () => { if (ready) w.TurnInQuest(qid); else if (!act) w.TakeQuest(qid); ShowNpc(id); }));
+            }
+            else rows.Add(("<color=#6dffb0>Все задания выполнены. Спасибо, дрон.</color>", null));
+            int done = 0, total = 0;
+            foreach (var x in BomberMetaData.Quests) { if (x.Npc != id) continue; total++; if (!m.QDone.Contains(x.Id)) continue; done++; rows.Add(($"<color=#6dffb0>✓</color> <b>{x.Name}</b> <size=13><color=#8090b4>→ {BomberMetaData.RewardText(x)}</color></size>", null)); }
+            rows.Add(("<b>Закрыть</b>", HidePanel));
+            ShowPanelEx("npc", n.Name, $"«{n.Line}»" + (n.Home ? "" : $"\n<size=14><color=#a9b6d6>Бонус: {n.Bonus}.</color></size>") + $"\n<size=13><color=#8090b4>Квестов: {done}/{total}. Прогресс копится между забегами, даже если дрон погиб.</color></size>",
+                112f, 150f, true, rows.ToArray());
             _panelTitle.color = (Color)n.Color;
+        }
+
+        void ShowMission()
+        {
+            var w = _ctx.World; var m = w.Meta; var rows = new List<(string, System.Action)>();
+            for (int i = 0; i < BomberMetaData.Overload.Length; i++)
+            {
+                int lvl = i; bool ok = i <= m.OlMax, sel = m.Ol == i;
+                rows.Add(($"<size=18><b>Перегрузка {i}</b></size>  {(sel ? "<color=#6dffb0>ВЫБРАНА</color>" : ok ? "<color=#7fe3ff>выбрать</color>" : "<color=#8090b4>победи на уровне " + (i - 1) + "</color>")}\n<size=13><color=#a9b6d6>{BomberMetaData.Overload[i]}</color></size>",
+                    () => { if (!w.SetOverload(lvl)) Toast("Открывается победой над ОРАКУЛОМ на предыдущем уровне", 2f); ShowMission(); }));
+            }
+            rows.Add(("<b>Пройти обучение заново</b>", () => { HidePanel(); w.EnterTutorial(); }));
+            rows.Add(("<b>Закрыть</b>", HidePanel));
+            ShowPanelEx("mission", "Настройка забега", "Перегрузка повышает сложность и награду в Данных (+25% за уровень). Новые уровни открываются победами.", 70f, 110f, true, rows.ToArray());
         }
 
         static string AchName(string id) { foreach (var a in BomberMetaData.Achs) if (a.Id == id) return a.Name; return id; }
