@@ -42,6 +42,19 @@ namespace GC26._2048Nastya.EditorTools
             Build();
         }
 
+        /// <summary>True when the saved entry scene was built for the current <see cref="Game2048Nastya.SceneVersion"/>.</summary>
+        public static bool IsSceneUpToDate()
+        {
+            if (!File.Exists(ScenePath)) return false;
+            // The project uses text serialization (RULES, setup step 1), so the stamp is a plain YAML line.
+            // Multiline regex, so both LF and CRLF checkouts match.
+            return System.Text.RegularExpressions.Regex.IsMatch(File.ReadAllText(ScenePath),
+                @"^\s*sceneVersion: " + Game2048Nastya.SceneVersion + @"\s*$",
+                System.Text.RegularExpressions.RegexOptions.Multiline);
+        }
+
+        public const string EntryScenePath = ScenePath;
+
         public static void Build()
         {
             _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
@@ -165,6 +178,9 @@ namespace GC26._2048Nastya.EditorTools
 
             var hud = BuildHud(canvasGo.transform);
             var boardView = BuildBoard(canvasGo.transform, cellPrefab, tilePrefab);
+            var hint = BuildHint(canvasGo.transform);
+            Wire(hud, "hintText", hint);
+            var overlays = BuildOverlays(canvasGo.transform);
             var confirmPanel = BuildConfirm(canvasGo.transform, out var yes, out var no);
             Wire(hud, "confirmPanel", confirmPanel);
             Wire(hud, "confirmYesButton", yes);
@@ -180,9 +196,13 @@ namespace GC26._2048Nastya.EditorTools
             Wire(game, "theme", _theme);
             Wire(game, "boardView", boardView);
             Wire(game, "hud", hud);
+            Wire(game, "overlays", overlays);
             Wire(game, "input", input);
             Wire(game, "ownCamera", cam);
             Wire(game, "canvas", canvas);
+            var stamp = new SerializedObject(game);
+            stamp.FindProperty("sceneVersion").intValue = Game2048Nastya.SceneVersion;
+            stamp.ApplyModifiedPropertiesWithoutUndo();
 
             Directory.CreateDirectory(Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -257,6 +277,88 @@ namespace GC26._2048Nastya.EditorTools
             Wire(view, "tilePrefab", tilePrefab);
             Wire(view, "bumpTarget", areaRect); // the fitter owns the board's own rect
             return view;
+        }
+
+        static TMP_Text BuildHint(Transform canvas)
+        {
+            // Under the board, in the band the board area leaves free at the bottom (T47).
+            var hint = Text(Node("Hint", canvas), "Swipe or use the arrow keys to combine tiles",
+                40f, _theme.hudMutedText, TextAlignmentOptions.Center, false);
+            var rect = (RectTransform)hint.transform;
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(1f, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.sizeDelta = new Vector2(-80f, 100f);
+            rect.anchoredPosition = new Vector2(0f, 20f);
+            hint.enableAutoSizing = true;
+            hint.fontSizeMin = 24f;
+            hint.fontSizeMax = 40f;
+            return hint;
+        }
+
+        static Overlays2048 BuildOverlays(Transform canvas)
+        {
+            var root = Node("Overlays", canvas);
+            Stretch(root, Vector2.zero, Vector2.one);
+            var overlays = root.AddComponent<Overlays2048>();
+
+            // Win (T40)
+            var win = OverlayPanel(root.transform, "WinPanel", "You made 2048!", 520f, out var winDialog);
+            Wire(overlays, "winPanel", win);
+            Wire(overlays, "keepGoingButton",
+                MakeButton(winDialog, "KeepGoingButton", "Keep going", new Vector2(0.06f, 0.08f), new Vector2(0.48f, 0.34f)));
+            Wire(overlays, "winNewGameButton",
+                MakeButton(winDialog, "NewGameButton", "New game", new Vector2(0.52f, 0.08f), new Vector2(0.94f, 0.34f)));
+            var winText = Text(Node("Message", winDialog), "Keep going for a bigger tile?", 40f, _theme.hudMutedText,
+                TextAlignmentOptions.Center, false);
+            Stretch(winText.gameObject, new Vector2(0.05f, 0.40f), new Vector2(0.95f, 0.62f));
+
+            // Game over (T41)
+            var over = OverlayPanel(root.transform, "GameOverPanel", "No more moves", 600f, out var overDialog);
+            Wire(overlays, "gameOverPanel", over);
+            var score = Text(Node("Score", overDialog), "Score  0\nBest  0", 52f, _theme.hudText,
+                TextAlignmentOptions.Center, true);
+            Stretch(score.gameObject, new Vector2(0.05f, 0.36f), new Vector2(0.95f, 0.70f));
+            Wire(overlays, "gameOverScoreText", score);
+            Wire(overlays, "tryAgainButton",
+                MakeButton(overDialog, "TryAgainButton", "Try again", new Vector2(0.06f, 0.07f), new Vector2(0.48f, 0.29f)));
+            Wire(overlays, "gameOverMenuButton",
+                MakeButton(overDialog, "MenuButton", "To menu", new Vector2(0.52f, 0.07f), new Vector2(0.94f, 0.29f)));
+
+            // Pause (T42)
+            var pause = OverlayPanel(root.transform, "PausePanel", "Paused", 760f, out var pauseDialog);
+            Wire(overlays, "pausePanel", pause);
+            Wire(overlays, "resumeButton",
+                MakeButton(pauseDialog, "ResumeButton", "Resume", new Vector2(0.15f, 0.56f), new Vector2(0.85f, 0.72f)));
+            Wire(overlays, "pauseNewGameButton",
+                MakeButton(pauseDialog, "NewGameButton", "New game", new Vector2(0.15f, 0.34f), new Vector2(0.85f, 0.50f)));
+            Wire(overlays, "pauseMenuButton",
+                MakeButton(pauseDialog, "MenuButton", "To menu", new Vector2(0.15f, 0.12f), new Vector2(0.85f, 0.28f)));
+
+            return overlays;
+        }
+
+        /// <summary>A full-screen dark blocker with a centered dialog and a title; hidden until shown.</summary>
+        static CanvasGroup OverlayPanel(Transform parent, string name, string title, float height, out Transform dialog)
+        {
+            var panel = Node(name, parent);
+            Stretch(panel, Vector2.zero, Vector2.one);
+            panel.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.65f); // blocks clicks behind it
+            var group = panel.AddComponent<CanvasGroup>();
+
+            var box = Node("Dialog", panel.transform);
+            ((RectTransform)box.transform).sizeDelta = new Vector2(820f, height);
+            Img(box, _theme.board);
+
+            var titleText = Text(Node("Title", box.transform), title, 72f, _theme.hudText, TextAlignmentOptions.Center, true);
+            Stretch(titleText.gameObject, new Vector2(0.05f, 0.74f), new Vector2(0.95f, 0.96f));
+            titleText.enableAutoSizing = true;
+            titleText.fontSizeMin = 40f;
+            titleText.fontSizeMax = 72f;
+
+            panel.SetActive(false);
+            dialog = box.transform;
+            return group;
         }
 
         static GameObject BuildConfirm(Transform canvas, out Button yes, out Button no)

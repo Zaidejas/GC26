@@ -13,6 +13,9 @@ namespace GC26._2048Nastya
         [SerializeField] Button pauseButton;
         [SerializeField] Button newGameButton;
 
+        [Tooltip("\"Swipe or use the arrow keys...\" under the board, first launch only (GDD 4.1)")]
+        [SerializeField] TMP_Text hintText;
+
         [Header("New game confirmation")]
         [SerializeField] GameObject confirmPanel;
         [SerializeField] Button confirmYesButton;
@@ -32,12 +35,20 @@ namespace GC26._2048Nastya
             confirmYesButton.onClick.AddListener(Confirm);
             confirmNoButton.onClick.AddListener(CloseConfirm);
             confirmPanel.SetActive(false);
+            ShowHint(false);
         }
 
         public void SetScore(int score, int best)
         {
             scoreText.SetText("{0}", score);
             bestText.SetText("{0}", best);
+        }
+
+        public bool IsHintVisible => hintText != null && hintText.gameObject.activeSelf;
+
+        public void ShowHint(bool visible)
+        {
+            if (hintText != null) hintText.gameObject.SetActive(visible);
         }
 
         public void ShowConfirm(Action onYes)
@@ -50,6 +61,7 @@ namespace GC26._2048Nastya
         {
             _onConfirm = null;
             confirmPanel.SetActive(false);
+            ShowHint(false);
         }
 
         void Confirm()

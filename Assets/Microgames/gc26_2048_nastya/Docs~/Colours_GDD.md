@@ -94,7 +94,6 @@ Shell menu ──Begin()──► [Game screen] ◄──► [Pause menu] ──
 ### 4.1 Game screen (HUD)
 - **Top bar:** game title, **Score** box, **Best** box, **Pause** button, **New game** button.
 - **Center:** the board, square, as large as fits the screen while leaving room for the HUD.
-- **Score popup:** "+16" floats up from the score box after each merging move.
 - Short hint under the board on the first launch only: "Swipe or use the arrow keys to combine tiles."
 
 ### 4.2 Pause menu
@@ -194,7 +193,7 @@ A whole move must finish in **≤ 0.25 s**.
 
 ### 8.2 Should have
 - Sounds and the sound toggle.
-- Score popup, invalid-move bump, glow on high tiles.
+- Invalid-move bump, glow on high tiles.
 - **Undo** of one move (button on the HUD; one step only, and it cannot undo past a new game).
 
 ### 8.3 Could have (only if time remains)
@@ -331,7 +330,6 @@ A whole move must finish in **≤ 0.25 s**.
 ### 4.1 Игровой экран (HUD)
 - **Верхняя панель:** название игры, блок **Score** (счёт), блок **Best** (лучший), кнопка **паузы**, кнопка **новой игры**.
 - **Центр:** поле, квадратное, максимального размера, при котором остаётся место для HUD.
-- **Всплывающий счёт:** «+16» поднимается от блока счёта после каждого хода со слиянием.
 - Короткая подсказка под полем только при первом запуске: «Swipe or use the arrow keys to combine tiles» («Свайпай или жми стрелки, чтобы соединять плитки»).
 
 ### 4.2 Меню паузы
@@ -431,7 +429,7 @@ A whole move must finish in **≤ 0.25 s**.
 
 ### 8.2 Желательно
 - Звуки и переключатель звука.
-- Всплывающий счёт, «вздрагивание» при недействительном ходе, свечение старших плиток.
+- «Вздрагивание» при недействительном ходе, свечение старших плиток.
 - **Отмена** одного хода (кнопка на HUD; только один шаг, нельзя отменить начало новой игры).
 
 ### 8.3 Если останется время

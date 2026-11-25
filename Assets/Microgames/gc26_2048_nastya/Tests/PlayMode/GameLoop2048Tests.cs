@@ -1,4 +1,6 @@
+using System;
 using System.Collections;
+using System.IO;
 using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
@@ -14,11 +16,18 @@ namespace GC26._2048Nastya.Tests
         const string ScenePath = "Assets/Microgames/gc26_2048_nastya/Scenes/gc26_2048_nastya_Main.unity";
 
         Scene _scene;
+        string _saveFolder;
+        SaveStore2048 _store;
 
         [UnitySetUp]
         public IEnumerator LoadScene()
         {
 #if UNITY_EDITOR
+            // A save of our own: the player's real game and best score are never touched.
+            _saveFolder = Path.Combine(Path.GetTempPath(), "gc26_2048_nastya_playtests_" + Guid.NewGuid().ToString("N"));
+            _store = new SaveStore2048(_saveFolder, "gc26_2048_nastya_playtest_");
+            _store.DeleteAll();
+            Game2048Nastya.TestSaveStore = _store;
             yield return UnityEditor.SceneManagement.EditorSceneManager.LoadSceneAsyncInPlayMode(
                 ScenePath, new LoadSceneParameters(LoadSceneMode.Additive));
             _scene = SceneManager.GetSceneByPath(ScenePath);
@@ -35,20 +44,25 @@ namespace GC26._2048Nastya.Tests
         {
             if (_scene.IsValid() && _scene.isLoaded)
                 yield return SceneManager.UnloadSceneAsync(_scene);
+            Game2048Nastya.TestSaveStore = null;
+            _store?.DeleteAll();
+            if (_saveFolder != null && Directory.Exists(_saveFolder)) Directory.Delete(_saveFolder, true);
         }
 
+        static Overlays2048 Overlays() => UnityEngine.Object.FindAnyObjectByType<Overlays2048>();
+
         static int ActiveTileViews() =>
-            Object.FindObjectsByType<TileView2048>(FindObjectsInactive.Exclude).Length;
+            UnityEngine.Object.FindObjectsByType<TileView2048>(FindObjectsInactive.Exclude).Length;
 
         static int ModelTiles(GameState2048 s) => s.Board.ToValues().Count(v => v != 0);
 
-        static BoardView2048 View() => Object.FindAnyObjectByType<BoardView2048>();
+        static BoardView2048 View() => UnityEngine.Object.FindAnyObjectByType<BoardView2048>();
 
         /// <summary>Same number of tiles, and every model tile has a view at its cell with its value and scale 1.</summary>
         static void AssertViewMatchesModel(Game2048Nastya game, string when)
         {
             var view = View();
-            var tiles = Object.FindObjectsByType<TileView2048>(FindObjectsInactive.Exclude);
+            var tiles = UnityEngine.Object.FindObjectsByType<TileView2048>(FindObjectsInactive.Exclude);
             Assert.AreEqual(ModelTiles(game.State), tiles.Length, when);
             var board = game.State.Board;
             for (int y = 0; y < board.Size; y++)
@@ -84,19 +98,19 @@ namespace GC26._2048Nastya.Tests
         [UnityTest]
         public IEnumerator Standalone_StartsGameWithTwoTiles()
         {
-            var game = Object.FindAnyObjectByType<Game2048Nastya>();
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
             Assert.IsNotNull(game, "Game2048Nastya in the scene");
             Assert.IsNotNull(game.State, "Begin() ran in standalone mode");
             Assert.AreEqual(2, ModelTiles(game.State));
             Assert.AreEqual(2, ActiveTileViews());
-            Assert.AreEqual(1, Object.FindObjectsByType<EventSystem>(FindObjectsInactive.Exclude).Length);
+            Assert.AreEqual(1, UnityEngine.Object.FindObjectsByType<EventSystem>(FindObjectsInactive.Exclude).Length);
             yield break;
         }
 
         [UnityTest]
         public IEnumerator Moves_KeepViewInSyncWithModel()
         {
-            var game = Object.FindAnyObjectByType<Game2048Nastya>();
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
             var dirs = new[] { Direction2048.Left, Direction2048.Down, Direction2048.Right, Direction2048.Up };
             int valid = 0;
             for (int i = 0; i < 200 && !game.State.IsOver; i++)
@@ -113,7 +127,7 @@ namespace GC26._2048Nastya.Tests
         [UnityTest]
         public IEnumerator NewGame_ResetsScoreKeepsBest()
         {
-            var game = Object.FindAnyObjectByType<Game2048Nastya>();
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
             for (int i = 0; i < 60 && game.State.Score == 0; i++)
                 game.Move((Direction2048)(i % 4));
             game.FinishAnimation();
@@ -128,7 +142,7 @@ namespace GC26._2048Nastya.Tests
         [UnityTest]
         public IEnumerator ValidMove_Animates_AndFinishesWithinQuarterSecond()
         {
-            var game = Object.FindAnyObjectByType<Game2048Nastya>();
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
             SetBoard(game,
                 0, 0, 2, 2,
                 0, 0, 0, 0,
@@ -150,7 +164,7 @@ namespace GC26._2048Nastya.Tests
         [UnityTest]
         public IEnumerator InputDuringAnimation_BuffersOneMove()
         {
-            var game = Object.FindAnyObjectByType<Game2048Nastya>();
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
             SetBoard(game,
                 0, 0, 0, 2,
                 0, 0, 0, 0,
@@ -177,7 +191,7 @@ namespace GC26._2048Nastya.Tests
         [UnityTest]
         public IEnumerator KeyMashing_NeverDesyncsTheView()
         {
-            var game = Object.FindAnyObjectByType<Game2048Nastya>();
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
             for (int i = 0; i < 300 && !game.State.IsOver; i++)
             {
                 game.OnMoveInput((Direction2048)((i * 7 + i / 3) % 4));
@@ -192,7 +206,7 @@ namespace GC26._2048Nastya.Tests
         [UnityTest]
         public IEnumerator InvalidMove_BumpsBoardAndReturns()
         {
-            var game = Object.FindAnyObjectByType<Game2048Nastya>();
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
             SetBoard(game,
                 2, 0, 0, 0,
                 0, 0, 0, 0,
@@ -210,6 +224,117 @@ namespace GC26._2048Nastya.Tests
             yield return new WaitForSecondsRealtime(0.2f);
             Assert.IsFalse(View().IsBumping);
             Assert.AreEqual(basePos, area.anchoredPosition, "the board comes back");
+        }
+
+        // ---------- M4: overlays, saves, exit ----------
+
+        [UnityTest]
+        public IEnumerator Win_ShowsOverlayOncePerGame()
+        {
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
+            SetBoard(game,
+                1024, 1024, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0);
+            Assert.IsTrue(game.Move(Direction2048.Left));
+            yield return WaitIdle(1f);
+            Assert.AreEqual(Overlays2048.Kind.Win, Overlays().Open);
+            Assert.IsFalse(game.Move(Direction2048.Right), "the overlay blocks moves");
+
+            game.KeepGoing();
+            Assert.IsFalse(Overlays().IsOpen);
+
+            SetBoard(game,
+                1024, 1024, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0);
+            Assert.IsTrue(game.Move(Direction2048.Left));
+            yield return WaitIdle(1f);
+            Assert.IsFalse(Overlays().IsOpen, "never twice in one game");
+        }
+
+        [UnityTest]
+        public IEnumerator NoMoves_ShowsGameOver_AndRemovesTheSave()
+        {
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
+            // Left fills the last cell; with a 2 or a 4 there, no move is possible.
+            SetBoard(game,
+                0, 8, 16, 8,
+                32, 64, 32, 64,
+                128, 256, 128, 256,
+                512, 1024, 512, 1024);
+            Assert.IsTrue(game.Move(Direction2048.Left));
+            Assert.IsTrue(game.State.IsOver);
+            yield return WaitIdle(1f);
+
+            Assert.AreEqual(Overlays2048.Kind.GameOver, Overlays().Open);
+            Assert.IsFalse(_store.HasGame, "a finished game is not resumed");
+        }
+
+        [UnityTest]
+        public IEnumerator Pause_BlocksMoves_ResumeUnblocks_TimeScaleUntouched()
+        {
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
+            SetBoard(game,
+                0, 0, 0, 2,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0);
+            game.Pause();
+            Assert.AreEqual(Overlays2048.Kind.Pause, Overlays().Open);
+            Assert.AreEqual(1f, Time.timeScale);
+            Assert.IsFalse(game.Move(Direction2048.Left));
+            Assert.AreEqual(0, game.State.Moves);
+
+            game.Pause(); // Esc again closes it
+            Assert.IsFalse(Overlays().IsOpen);
+            Assert.IsTrue(game.Move(Direction2048.Left));
+            yield break;
+        }
+
+        [UnityTest]
+        public IEnumerator ToMenu_SavesAndRelaunchRestoresBoardAndScore()
+        {
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
+            for (int i = 0; i < 40 && game.State.Score == 0; i++)
+            {
+                game.Move((Direction2048)(i % 4));
+                game.FinishAnimation();
+            }
+            var values = game.State.Board.ToValues();
+            int score = game.State.Score, moves = game.State.Moves;
+
+            // Standalone, "To menu" saves and then launches the game again from the save.
+            game.ExitToMenu();
+            yield return null;
+
+            CollectionAssert.AreEqual(values, game.State.Board.ToValues());
+            Assert.AreEqual(score, game.State.Score);
+            Assert.AreEqual(moves, game.State.Moves);
+            AssertViewMatchesModel(game, "after the relaunch");
+        }
+
+        [UnityTest]
+        public IEnumerator Hint_FirstLaunchOnly_GoesAwayAfterFirstMove()
+        {
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
+            var hud = UnityEngine.Object.FindAnyObjectByType<Hud2048>();
+            Assert.IsTrue(hud.IsHintVisible, "fresh save: first launch");
+            Assert.IsTrue(_store.HintShown);
+
+            SetBoard(game,
+                0, 0, 0, 2,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0);
+            Assert.IsTrue(game.Move(Direction2048.Left));
+            Assert.IsFalse(hud.IsHintVisible);
+
+            game.ExitToMenu(); // the next launch
+            yield return null;
+            Assert.IsFalse(hud.IsHintVisible);
         }
     }
 }
