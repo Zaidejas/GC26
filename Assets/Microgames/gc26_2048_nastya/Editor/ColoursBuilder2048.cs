@@ -21,11 +21,13 @@ namespace GC26._2048Nastya.EditorTools
     {
         const string Root = "Assets/Microgames/gc26_2048_nastya";
         const string SpritePath = Root + "/Art/gc26_2048_nastya_RoundedRect.png";
+        const string GlowSpritePath = Root + "/Art/gc26_2048_nastya_Glow.png";
         const string ThemePath = Root + "/Art/gc26_2048_nastya_Theme.asset";
         const string CellPrefabPath = Root + "/Prefabs/gc26_2048_nastya_Cell.prefab";
         const string TilePrefabPath = Root + "/Prefabs/gc26_2048_nastya_Tile.prefab";
         const string ScenePath = Root + "/Scenes/gc26_2048_nastya_Main.unity";
         const string ActionsPath = Root + "/Input/gc26_2048_nastya_Controls.inputactions";
+        const string AudioDir = Root + "/Audio/";
         const string FontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset";
 
         const int SpriteSize = 64;
@@ -33,6 +35,7 @@ namespace GC26._2048Nastya.EditorTools
 
         static TMP_FontAsset _font;
         static Sprite _sprite;
+        static Sprite _glowSprite;
         static Theme2048 _theme;
 
         [MenuItem("GC26/Colours (nastya)/Rebuild assets and scene")]
@@ -59,6 +62,7 @@ namespace GC26._2048Nastya.EditorTools
         {
             _font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(FontPath);
             _sprite = EnsureSprite();
+            _glowSprite = EnsureGlowSprite();
             _theme = EnsureTheme();
             BuildCellPrefab();
             BuildTilePrefab();
@@ -106,6 +110,50 @@ namespace GC26._2048Nastya.EditorTools
             return AssetDatabase.LoadAssetAtPath<Sprite>(SpritePath);
         }
 
+        const int GlowSize = 96;
+        const int GlowBorder = 40;
+
+        /// <summary>A soft rounded halo for high tiles (T51): opaque inside, fading out over ~24 px.</summary>
+        static Sprite EnsureGlowSprite()
+        {
+            if (!File.Exists(GlowSpritePath))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(GlowSpritePath));
+                var tex = new Texture2D(GlowSize, GlowSize, TextureFormat.RGBA32, false);
+                var pixels = new Color32[GlowSize * GlowSize];
+                const float inner = GlowBorder - 4f; // the inner rounded rect starts here
+                const float radius = 10f;
+                const float falloff = 13f;
+                for (int y = 0; y < GlowSize; y++)
+                {
+                    for (int x = 0; x < GlowSize; x++)
+                    {
+                        float px = x + 0.5f, py = y + 0.5f;
+                        float cx = Mathf.Clamp(px, inner + radius, GlowSize - inner - radius);
+                        float cy = Mathf.Clamp(py, inner + radius, GlowSize - inner - radius);
+                        float d = Mathf.Max(0f, Vector2.Distance(new Vector2(px, py), new Vector2(cx, cy)) - radius);
+                        float a = Mathf.Exp(-(d / falloff) * (d / falloff));
+                        pixels[y * GlowSize + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(a * 255f));
+                    }
+                }
+                tex.SetPixels32(pixels);
+                File.WriteAllBytes(GlowSpritePath, tex.EncodeToPNG());
+                Object.DestroyImmediate(tex);
+                AssetDatabase.ImportAsset(GlowSpritePath);
+            }
+
+            var importer = (TextureImporter)AssetImporter.GetAtPath(GlowSpritePath);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spriteBorder = new Vector4(GlowBorder, GlowBorder, GlowBorder, GlowBorder);
+            importer.mipmapEnabled = false;
+            importer.alphaIsTransparency = true;
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.filterMode = FilterMode.Bilinear;
+            importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Sprite>(GlowSpritePath);
+        }
+
         static Theme2048 EnsureTheme()
         {
             var theme = AssetDatabase.LoadAssetAtPath<Theme2048>(ThemePath);
@@ -127,13 +175,34 @@ namespace GC26._2048Nastya.EditorTools
         static void BuildTilePrefab()
         {
             var go = Node("gc26_2048_nastya_Tile", null);
-            var image = Img(go, _theme.StyleFor(2).tile);
+
+            // Children draw in order, so the glow goes first, behind the tile body.
+            var glowGo = Node("Glow", go.transform);
+            var glowRect = Stretch(glowGo, Vector2.zero, Vector2.one);
+            glowRect.offsetMin = new Vector2(-26f, -26f); // about the gap between cells
+            glowRect.offsetMax = new Vector2(26f, 26f);
+            var glow = glowGo.AddComponent<Image>();
+            glow.sprite = _glowSprite;
+            glow.type = Image.Type.Sliced;
+            glow.raycastTarget = false;
+            glow.enabled = false;
+
+            var body = Node("Body", go.transform);
+            Stretch(body, Vector2.zero, Vector2.one);
+            var image = Img(body, _theme.StyleFor(2).tile);
             image.raycastTarget = false;
+            var outline = body.AddComponent<Outline>();
+            outline.useGraphicAlpha = true;
+            outline.enabled = false;
+
             var label = Text(Node("Label", go.transform), "2", 110f, _theme.StyleFor(2).text, TextAlignmentOptions.Center, true);
             Stretch(label.gameObject, Vector2.zero, Vector2.one);
+
             var view = go.AddComponent<TileView2048>();
             Wire(view, "background", image);
             Wire(view, "label", label);
+            Wire(view, "glow", glow);
+            Wire(view, "outline", outline);
             SavePrefab(go, TilePrefabPath);
         }
 
@@ -176,9 +245,14 @@ namespace GC26._2048Nastya.EditorTools
             Stretch(background, Vector2.zero, Vector2.one);
             background.AddComponent<Image>().color = _theme.background;
 
-            var hud = BuildHud(canvasGo.transform);
-            var boardView = BuildBoard(canvasGo.transform, cellPrefab, tilePrefab);
-            var hint = BuildHint(canvasGo.transform);
+            // HUD, board and hint live inside the safe area (T58); the background and overlay blockers stay full-screen.
+            var safe = Node("SafeArea", canvasGo.transform);
+            Stretch(safe, Vector2.zero, Vector2.one);
+            safe.AddComponent<SafeArea2048>();
+
+            var hud = BuildHud(safe.transform);
+            var boardView = BuildBoard(safe.transform, cellPrefab, tilePrefab);
+            var hint = BuildHint(safe.transform);
             Wire(hud, "hintText", hint);
             var overlays = BuildOverlays(canvasGo.transform);
             var confirmPanel = BuildConfirm(canvasGo.transform, out var yes, out var no);
@@ -198,6 +272,7 @@ namespace GC26._2048Nastya.EditorTools
             Wire(game, "hud", hud);
             Wire(game, "overlays", overlays);
             Wire(game, "input", input);
+            Wire(game, "sfx", BuildSfx(root, canvasGo.transform));
             Wire(game, "ownCamera", cam);
             Wire(game, "canvas", canvas);
             var stamp = new SerializedObject(game);
@@ -221,6 +296,8 @@ namespace GC26._2048Nastya.EditorTools
 
             var title = Text(Node("Title", go.transform), "Colours", 104f, _theme.hudText, TextAlignmentOptions.MidlineLeft, true);
             Stretch(title.gameObject, new Vector2(0f, 0.45f), new Vector2(0.44f, 1f));
+            var undo = MakeButton(go.transform, "UndoButton", "Undo", new Vector2(0.18f, 0f), new Vector2(0.44f, 0.36f));
+            Wire(hud, "undoButton", undo);
 
             var score = ScoreBox(go.transform, "ScoreBox", "SCORE", new Vector2(0.46f, 0.45f), new Vector2(0.72f, 1f));
             var best = ScoreBox(go.transform, "BestBox", "BEST", new Vector2(0.74f, 0.45f), new Vector2(1f, 1f));
@@ -279,6 +356,50 @@ namespace GC26._2048Nastya.EditorTools
             return view;
         }
 
+        /// <summary>T52: two 2D AudioSources (merges change pitch) and the clips, imported as TDD 10 says.</summary>
+        static Sfx2048 BuildSfx(GameObject root, Transform canvas)
+        {
+            var go = new GameObject("gc26_2048_nastya_Sfx");
+            go.transform.SetParent(root.transform, false);
+            var sfx = go.AddComponent<Sfx2048>();
+            Wire(sfx, "source", Source(go));
+            Wire(sfx, "mergeSource", Source(go));
+            foreach (var (field, file) in new[]
+                     {
+                         ("slide", "Slide"), ("merge", "Merge"), ("invalid", "Invalid"),
+                         ("win", "Win"), ("lose", "Lose"), ("click", "Click"),
+                     })
+                Wire(sfx, field, Clip(file));
+            Wire(sfx, "buttonsRoot", canvas);
+            return sfx;
+        }
+
+        static AudioSource Source(GameObject go)
+        {
+            var source = go.AddComponent<AudioSource>();
+            source.playOnAwake = false;
+            source.spatialBlend = 0f;
+            return source;
+        }
+
+        static AudioClip Clip(string name)
+        {
+            string path = AudioDir + "gc26_2048_nastya_" + name + ".wav";
+            if (AssetImporter.GetAtPath(path) is AudioImporter importer)
+            {
+                importer.forceToMono = true;
+                var settings = importer.defaultSampleSettings;
+                settings.loadType = AudioClipLoadType.DecompressOnLoad;
+                settings.compressionFormat = AudioCompressionFormat.Vorbis;
+                settings.quality = 0.7f;
+                importer.defaultSampleSettings = settings;
+                importer.SaveAndReimport();
+            }
+            var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            if (clip == null) Debug.LogError($"[gc26_2048_nastya] missing {path}: run python Docs~/generate_sfx.py");
+            return clip;
+        }
+
         static TMP_Text BuildHint(Transform canvas)
         {
             // Under the board, in the band the board area leaves free at the bottom (T47).
@@ -326,14 +447,17 @@ namespace GC26._2048Nastya.EditorTools
                 MakeButton(overDialog, "MenuButton", "To menu", new Vector2(0.52f, 0.07f), new Vector2(0.94f, 0.29f)));
 
             // Pause (T42)
-            var pause = OverlayPanel(root.transform, "PausePanel", "Paused", 760f, out var pauseDialog);
+            var pause = OverlayPanel(root.transform, "PausePanel", "Paused", 940f, out var pauseDialog);
             Wire(overlays, "pausePanel", pause);
             Wire(overlays, "resumeButton",
-                MakeButton(pauseDialog, "ResumeButton", "Resume", new Vector2(0.15f, 0.56f), new Vector2(0.85f, 0.72f)));
+                MakeButton(pauseDialog, "ResumeButton", "Resume", new Vector2(0.15f, 0.60f), new Vector2(0.85f, 0.72f)));
             Wire(overlays, "pauseNewGameButton",
-                MakeButton(pauseDialog, "NewGameButton", "New game", new Vector2(0.15f, 0.34f), new Vector2(0.85f, 0.50f)));
+                MakeButton(pauseDialog, "NewGameButton", "New game", new Vector2(0.15f, 0.44f), new Vector2(0.85f, 0.56f)));
+            var sound = MakeButton(pauseDialog, "SoundButton", "Sound: On", new Vector2(0.15f, 0.28f), new Vector2(0.85f, 0.40f));
+            Wire(overlays, "soundButton", sound);
+            Wire(overlays, "soundLabel", sound.GetComponentInChildren<TMP_Text>());
             Wire(overlays, "pauseMenuButton",
-                MakeButton(pauseDialog, "MenuButton", "To menu", new Vector2(0.15f, 0.12f), new Vector2(0.85f, 0.28f)));
+                MakeButton(pauseDialog, "MenuButton", "To menu", new Vector2(0.15f, 0.08f), new Vector2(0.85f, 0.20f)));
 
             return overlays;
         }

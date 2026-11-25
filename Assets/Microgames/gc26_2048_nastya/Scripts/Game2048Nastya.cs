@@ -17,7 +17,10 @@ namespace GC26._2048Nastya
         /// Layout version of the entry scene. ColoursBuilder2048 stamps it into the scene; bump it whenever the
         /// builder adds or rewires objects, and the editor rebuilds an older scene by itself.
         /// </summary>
-        public const int SceneVersion = 2;
+        public const int SceneVersion = 4;
+
+        /// <summary>T59: phones default to 30 FPS; the game asks for 60 while it runs and restores the old value.</summary>
+        public const int TargetFrameRate = 60;
 
         /// <summary>Tests only: set before the scene loads so the player's real save is never touched.</summary>
         public static SaveStore2048 TestSaveStore;
@@ -27,6 +30,7 @@ namespace GC26._2048Nastya
         [SerializeField] Hud2048 hud;
         [SerializeField] Overlays2048 overlays;
         [SerializeField] Input2048 input;
+        [SerializeField] Sfx2048 sfx;
 
         [Header("Standalone only (disabled when the shell has its own camera)")]
         [SerializeField] Camera ownCamera;
@@ -44,6 +48,8 @@ namespace GC26._2048Nastya
         readonly MoveResult2048 _result = new MoveResult2048();
         Direction2048? _buffered;
         Action _onMoveShown;
+        int _previousFrameRate;
+        bool _frameRateSet;
 
         public GameState2048 State => _state;
 
@@ -64,18 +70,22 @@ namespace GC26._2048Nastya
             _exit = exit;
             _onMoveShown = OnMoveShown; // one delegate for every move, no allocation per move
             UseShellCamera();
+            SetFrameRate();
 
             _spawner = new TileSpawner2048(new System.Random());
             _save = TestSaveStore ?? SaveStore2048.ForGame();
             boardView.Build(BoardSize, theme);
+            ApplySound();
 
             hud.PauseClicked += Pause;
             hud.NewGameClicked += OnNewGameRequested;
+            hud.UndoClicked += Undo;
             overlays.KeepGoingClicked += KeepGoing;
             overlays.TryAgainClicked += StartNewGame;
             overlays.ResumeClicked += Resume;
             overlays.NewGameClicked += OnOverlayNewGame;
             overlays.ToMenuClicked += ExitToMenu;
+            overlays.SoundClicked += ToggleSound;
             input.Moved += OnMoveInput;
             input.PausePressed += Pause;
             input.NewGamePressed += OnNewGameRequested;
@@ -103,14 +113,18 @@ namespace GC26._2048Nastya
             LoadOrStartGame();
         }
 
+        void OnDisable() => RestoreFrameRate();
+
         void OnDestroy()
         {
+            RestoreFrameRate();
             if (!_started) return;
             // Any of these may already be gone (or never assigned in an old scene): never throw here.
             if (hud != null)
             {
                 hud.PauseClicked -= Pause;
                 hud.NewGameClicked -= OnNewGameRequested;
+                hud.UndoClicked -= Undo;
             }
             if (overlays != null)
             {
@@ -119,6 +133,7 @@ namespace GC26._2048Nastya
                 overlays.ResumeClicked -= Resume;
                 overlays.NewGameClicked -= OnOverlayNewGame;
                 overlays.ToMenuClicked -= ExitToMenu;
+                overlays.SoundClicked -= ToggleSound;
             }
             if (input != null)
             {
@@ -164,6 +179,7 @@ namespace GC26._2048Nastya
             _state = state;
             boardView.Render(_state.Board);
             hud.SetScore(_state.Score, _state.Best);
+            hud.SetUndoAvailable(_state.CanUndo);
             UpdateInput();
         }
 
@@ -195,17 +211,23 @@ namespace GC26._2048Nastya
             if (!CanPlay) return false;
             if (!_state.TryMove(dir, _spawner, _result, out var spawned))
             {
-                if (!_state.IsOver) boardView.Bump(dir);
+                if (!_state.IsOver)
+                {
+                    boardView.Bump(dir);
+                    if (sfx != null) sfx.Invalid();
+                }
                 return false;
             }
 
             hud.SetScore(_state.Score, _state.Best);
+            hud.SetUndoAvailable(_state.CanUndo && !_state.IsOver);
             _save.SaveGame(_state); // a finished game removes the save instead
             if (_hintVisible)
             {
                 _hintVisible = false;
                 hud.ShowHint(false);
             }
+            PlayMoveSound();
             boardView.Play(_result, spawned, _state.Board, _onMoveShown);
             return true;
         }
@@ -226,6 +248,7 @@ namespace GC26._2048Nastya
                 _state.WonShown = true;
                 _buffered = null;
                 _save.SaveGame(_state);
+                if (sfx != null) sfx.Win();
                 overlays.ShowWin();
                 UpdateInput();
                 return;
@@ -246,17 +269,20 @@ namespace GC26._2048Nastya
         {
             _buffered = null;
             _save.Flush();
+            if (sfx != null) sfx.Lose();
             overlays.ShowGameOver(_state.Score, _state.Best);
             UpdateInput();
         }
 
-        void Undo()
+        /// <summary>T54: U or the Undo button. One step only; a new game or a resumed game has nothing to undo.</summary>
+        public void Undo()
         {
             if (!CanPlay) return;
             FinishAnimation();
             if (!CanPlay || !_state.TryUndo()) return;
             boardView.Render(_state.Board);
             hud.SetScore(_state.Score, _state.Best);
+            hud.SetUndoAvailable(false);
             _save.SaveGame(_state);
         }
 
@@ -318,6 +344,79 @@ namespace GC26._2048Nastya
         {
             input.GameplayEnabled = !_exited && !overlays.IsOpen;
         }
+
+        // ---------- sound (T52, T53) ----------
+
+        void PlayMoveSound()
+        {
+            if (sfx == null) return;
+            int biggest = 0;
+            foreach (var merge in _result.Merges)
+                if (merge.NewTile.Value > biggest) biggest = merge.NewTile.Value;
+            if (biggest > 0) sfx.Merge(biggest);
+            else sfx.Slide();
+        }
+
+        /// <summary>T53: the pause menu toggle; saved at once, so it survives a restart.</summary>
+        public void ToggleSound()
+        {
+            _save.SoundOn = !_save.SoundOn;
+            ApplySound();
+        }
+
+        void ApplySound()
+        {
+            bool on = _save.SoundOn;
+            if (sfx != null) sfx.Muted = !on;
+            overlays.SetSound(on);
+        }
+
+        // ---------- frame rate (rule 6: restore what we change) ----------
+
+        void SetFrameRate()
+        {
+            if (_frameRateSet) return;
+            _previousFrameRate = Application.targetFrameRate;
+            Application.targetFrameRate = TargetFrameRate;
+            _frameRateSet = true;
+        }
+
+        void RestoreFrameRate()
+        {
+            if (!_frameRateSet) return;
+            Application.targetFrameRate = _previousFrameRate;
+            _frameRateSet = false;
+        }
+
+#if UNITY_EDITOR
+        // ---------- T55: debug boards, editor only (right-click the component in Play mode) ----------
+
+        [ContextMenu("Debug: board one move from 2048 (press Left)")]
+        void DebugAlmostWin() => DebugSetBoard(new[]
+        {
+            1024, 1024, 0, 0,
+            512, 256, 128, 64,
+            0, 0, 0, 0,
+            2, 0, 0, 0,
+        }, wonShown: false);
+
+        [ContextMenu("Debug: board one move from game over (press Left)")]
+        void DebugAlmostGameOver() => DebugSetBoard(new[]
+        {
+            0, 8, 16, 8,
+            32, 64, 32, 64,
+            128, 256, 128, 256,
+            512, 1024, 512, 1024,
+        }, wonShown: _state != null && _state.WonShown);
+
+        void DebugSetBoard(int[] values, bool wonShown)
+        {
+            if (!Application.isPlaying || _state == null) { Debug.LogWarning($"[{Id}] debug boards work in Play mode"); return; }
+            FinishAnimation();
+            Show(new GameState2048(Board2048.FromValues(BoardSize, values), _state.Score, _state.Best, _state.Moves, wonShown));
+            _save.SaveGame(_state);
+        }
+#endif
 
         // ---------- shell ----------
 

@@ -18,6 +18,14 @@ namespace GC26._2048Nastya.EditorTools
         static ColoursSceneUpdater2048()
         {
             EditorApplication.delayCall += Check;
+            // Code often changes while the game is running; the rebuild has to wait until Play mode ends.
+            EditorApplication.playModeStateChanged += state =>
+            {
+                if (state == PlayModeStateChange.EnteredEditMode) EditorApplication.delayCall += Check;
+                else if (state == PlayModeStateChange.ExitingEditMode && !ColoursBuilder2048.IsSceneUpToDate())
+                    Debug.LogWarning("[gc26_2048_nastya] the entry scene is out of date and will be rebuilt " +
+                                     "when Play mode ends (or click GC26 → Colours (nastya) → Rebuild assets and scene).");
+            };
         }
 
         static void Check()

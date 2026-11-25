@@ -66,5 +66,14 @@ namespace GC26._2048Nastya.Tests
             Assert.IsNotNull(theme, "theme asset");
             Assert.LessOrEqual(theme.slide + Mathf.Max(theme.pop, theme.spawn), 0.25f + 1e-6f);
         }
+
+        [TestCase(2, 1.05f)]
+        [TestCase(2048, 1.55f)]
+        [TestCase(4096, 1.6f)]    // capped
+        [TestCase(131072, 1.6f)]
+        public void MergePitch_RisesWithValue_Capped(int value, float expected)
+        {
+            Assert.AreEqual(expected, Sfx2048.MergePitch(value), 1e-4f);
+        }
     }
 }

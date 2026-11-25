@@ -336,5 +336,126 @@ namespace GC26._2048Nastya.Tests
             yield return null;
             Assert.IsFalse(hud.IsHintVisible);
         }
+
+        // ---------- M5: undo button, glow, frame rate, safe area ----------
+
+        [UnityTest]
+        public IEnumerator UndoButton_FollowsUndoAvailability()
+        {
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
+            var hud = UnityEngine.Object.FindAnyObjectByType<Hud2048>();
+            Assert.IsFalse(hud.IsUndoAvailable, "nothing to undo in a new game");
+
+            SetBoard(game,
+                0, 0, 0, 2,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0);
+            var before = game.State.Board.ToValues();
+            Assert.IsTrue(game.Move(Direction2048.Left));
+            Assert.IsTrue(hud.IsUndoAvailable);
+
+            game.Undo();
+            CollectionAssert.AreEqual(before, game.State.Board.ToValues());
+            Assert.IsFalse(hud.IsUndoAvailable, "one step only");
+            AssertViewMatchesModel(game, "after undo");
+
+            game.StartNewGame();
+            Assert.IsFalse(hud.IsUndoAvailable, "a new game cannot be undone");
+            yield break;
+        }
+
+        [UnityTest]
+        public IEnumerator HighTiles_Glow_And2048Pulses()
+        {
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
+            SetBoard(game,
+                2, 128, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 2048);
+            yield return null;
+            var tiles = UnityEngine.Object.FindObjectsByType<TileView2048>(FindObjectsInactive.Exclude);
+            var two = tiles.Single(t => t.Value == 2);
+            var big = tiles.Single(t => t.Value == 128);
+            var win = tiles.Single(t => t.Value == 2048);
+
+            Assert.AreEqual(0f, two.Glow, "low tiles have no glow");
+            Assert.Greater(big.Glow, 0f);
+            Assert.IsFalse(big.IsPulsing);
+            Assert.IsTrue(win.IsPulsing);
+            Assert.IsFalse(two.IsPulsing);
+        }
+
+        [UnityTest]
+        public IEnumerator FrameRate_Is60WhilePlaying_RestoredAfterUnload()
+        {
+            Assert.AreEqual(Game2048Nastya.TargetFrameRate, Application.targetFrameRate);
+            yield return SceneManager.UnloadSceneAsync(_scene);
+            Assert.AreNotEqual(Game2048Nastya.TargetFrameRate, Application.targetFrameRate,
+                "the previous value (usually -1, the platform default) comes back");
+        }
+
+        [UnityTest]
+        public IEnumerator SafeArea_WrapsHudAndBoard()
+        {
+            var safe = UnityEngine.Object.FindAnyObjectByType<SafeArea2048>();
+            Assert.IsNotNull(safe);
+            Assert.IsTrue(View().transform.IsChildOf(safe.transform), "the board is inside the safe area");
+            Assert.IsTrue(UnityEngine.Object.FindAnyObjectByType<Hud2048>().transform.IsChildOf(safe.transform));
+            yield break;
+        }
+
+        // ---------- M5: sound ----------
+
+        [UnityTest]
+        public IEnumerator Sounds_MatchWhatHappened()
+        {
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
+            var sfx = UnityEngine.Object.FindAnyObjectByType<Sfx2048>();
+            Assert.IsNotNull(sfx, "Sfx2048 in the scene");
+
+            SetBoard(game,
+                2, 2, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0);
+            Assert.IsTrue(game.Move(Direction2048.Left));
+            StringAssert.Contains("Merge", sfx.LastPlayed.name);
+
+            SetBoard(game,
+                2, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0);
+            Assert.IsFalse(game.Move(Direction2048.Left));
+            StringAssert.Contains("Invalid", sfx.LastPlayed.name);
+
+            Assert.IsTrue(game.Move(Direction2048.Right));
+            StringAssert.Contains("Slide", sfx.LastPlayed.name);
+            yield break;
+        }
+
+        [UnityTest]
+        public IEnumerator SoundToggle_MutesAndIsSaved()
+        {
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
+            var sfx = UnityEngine.Object.FindAnyObjectByType<Sfx2048>();
+            Assert.IsFalse(sfx.Muted, "sound is on by default");
+            Assert.AreEqual(1, UnityEngine.Object.FindObjectsByType<AudioListener>(FindObjectsInactive.Exclude).Length,
+                "exactly one listener standalone");
+
+            game.ToggleSound();
+            Assert.IsTrue(sfx.Muted);
+            Assert.IsFalse(_store.SoundOn, "saved");
+
+            game.ExitToMenu(); // launching again keeps the setting
+            yield return null;
+            Assert.IsTrue(sfx.Muted);
+
+            game.ToggleSound();
+            Assert.IsFalse(sfx.Muted);
+            Assert.IsTrue(_store.SoundOn);
+        }
     }
 }

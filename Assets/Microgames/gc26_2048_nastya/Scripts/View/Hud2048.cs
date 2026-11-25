@@ -12,6 +12,7 @@ namespace GC26._2048Nastya
         [SerializeField] TMP_Text bestText;
         [SerializeField] Button pauseButton;
         [SerializeField] Button newGameButton;
+        [SerializeField] Button undoButton;
 
         [Tooltip("\"Swipe or use the arrow keys...\" under the board, first launch only (GDD 4.1)")]
         [SerializeField] TMP_Text hintText;
@@ -23,6 +24,7 @@ namespace GC26._2048Nastya
 
         public event Action PauseClicked;
         public event Action NewGameClicked;
+        public event Action UndoClicked;
 
         Action _onConfirm;
 
@@ -32,6 +34,7 @@ namespace GC26._2048Nastya
         {
             pauseButton.onClick.AddListener(() => PauseClicked?.Invoke());
             newGameButton.onClick.AddListener(() => NewGameClicked?.Invoke());
+            if (undoButton != null) undoButton.onClick.AddListener(() => UndoClicked?.Invoke());
             confirmYesButton.onClick.AddListener(Confirm);
             confirmNoButton.onClick.AddListener(CloseConfirm);
             confirmPanel.SetActive(false);
@@ -43,6 +46,14 @@ namespace GC26._2048Nastya
             scoreText.SetText("{0}", score);
             bestText.SetText("{0}", best);
         }
+
+        /// <summary>T54: the Undo button is greyed out when there is nothing to undo.</summary>
+        public void SetUndoAvailable(bool available)
+        {
+            if (undoButton != null) undoButton.interactable = available;
+        }
+
+        public bool IsUndoAvailable => undoButton != null && undoButton.interactable;
 
         public bool IsHintVisible => hintText != null && hintText.gameObject.activeSelf;
 

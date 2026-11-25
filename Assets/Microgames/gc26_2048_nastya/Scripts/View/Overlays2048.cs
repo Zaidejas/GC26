@@ -31,6 +31,8 @@ namespace GC26._2048Nastya
         [SerializeField] Button resumeButton;
         [SerializeField] Button pauseNewGameButton;
         [SerializeField] Button pauseMenuButton;
+        [SerializeField] Button soundButton;
+        [SerializeField] TMP_Text soundLabel;
 
         [SerializeField] float fadeIn = 0.4f;
 
@@ -41,6 +43,8 @@ namespace GC26._2048Nastya
         public event Action NewGameClicked;
         /// <summary>"To menu" on the game over overlay or in the pause menu.</summary>
         public event Action ToMenuClicked;
+        /// <summary>T53: "Sound: On/Off" in the pause menu.</summary>
+        public event Action SoundClicked;
 
         public Kind Open { get; private set; }
         public bool IsOpen => Open != Kind.None;
@@ -56,6 +60,7 @@ namespace GC26._2048Nastya
             resumeButton.onClick.AddListener(() => ResumeClicked?.Invoke());
             pauseNewGameButton.onClick.AddListener(() => NewGameClicked?.Invoke());
             pauseMenuButton.onClick.AddListener(() => ToMenuClicked?.Invoke());
+            if (soundButton != null) soundButton.onClick.AddListener(() => SoundClicked?.Invoke());
             HideAll();
         }
 
@@ -69,6 +74,11 @@ namespace GC26._2048Nastya
 
         /// <summary>The pause menu opens at once: it answers a button press, so it must not lag.</summary>
         public void ShowPause() => Show(Kind.Pause, pausePanel, 0f);
+
+        public void SetSound(bool on)
+        {
+            if (soundLabel != null) soundLabel.SetText(on ? "Sound: On" : "Sound: Off");
+        }
 
         public void HideAll()
         {
