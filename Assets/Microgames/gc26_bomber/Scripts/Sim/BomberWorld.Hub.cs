@@ -38,7 +38,7 @@ namespace GC26.Bomber
             if (Meta.HasAch(id)) return;
             BomberAchDef a = null; foreach (var x in BomberMetaData.Achs) if (x.Id == id) a = x;
             if (a == null) return;
-            Meta.Ach.Add(id); Meta.Data += a.Data; NewAch.Add(id); SaveMeta();
+            Meta.Ach.Add(id); Meta.Data += a.Data; NewAch.Add(id); SaveMeta(); Sound("ach");
             Toast?.Invoke($"Достижение: {a.Name}. Награда: {a.Reward}", 3.5f);
         }
 
@@ -62,7 +62,7 @@ namespace GC26.Bomber
         {
             var d = BomberMetaData.Npc(cell.Id); cell.Opened = true;
             if (!Meta.IsRescued(d.Id)) Meta.Rescued.Add(d.Id);
-            RescuedNow.Add(d.Id); SaveMeta();
+            RescuedNow.Add(d.Id); SaveMeta(); Sound("ach");
             for (int i = 0; i < 30; i++) Spark(cell.X, cell.Y, d.Color, 260f);
             Toast?.Invoke($"Спасён: {d.Name}. {d.Bonus}. Ждёт тебя в хабе.", 3.6f);
             if (Meta.Rescued.Count >= 3) Unlock("rescue3");
@@ -84,7 +84,7 @@ namespace GC26.Bomber
         /// <summary>Pause menu: give up the run (half the Data).</summary>
         public void Abandon() { if (Mode == BomberMode.Run && Phase == BomberPhase.Play) EndRun(false, true); }
 
-        void OnOverheat() { if (Mode != BomberMode.Run) return; Meta.Overheats++; if (Meta.Overheats >= 50) Unlock("over50"); }
+        void OnOverheat() { Sound("over"); if (Mode != BomberMode.Run) return; Meta.Overheats++; if (Meta.Overheats >= 50) Unlock("over50"); }
 
         // ================= hub =================
         public void EnterHub()
@@ -134,7 +134,7 @@ namespace GC26.Bomber
         public void RefreshHubPlayer() { if (Mode != BomberMode.Hub) return; float x = P.X, y = P.Y; SetupPlayer(); P.X = x; P.Y = y; }
 
         // ---- hub purchases (return false when there is not enough Data) ----
-        bool Spend(int cost) { if (Meta.Data < cost) return false; Meta.Data -= cost; SaveMeta(); RefreshHubPlayer(); return true; }
+        bool Spend(int cost) { if (Meta.Data < cost) return false; Meta.Data -= cost; Sound("buy"); SaveMeta(); RefreshHubPlayer(); return true; }
 
         public bool SelectChar(string id) { if (!Meta.CharUnlocked(id)) return false; Meta.Char = id; SaveMeta(); RefreshHubPlayer(); return true; }
         public bool BuyChar(string id) { var c = BomberMetaData.Char(id); if (c.Id != id || Meta.CharUnlocked(id) || c.Cost == 0 || c.Rescue || c.Ach != null) return false; if (!Spend(c.Cost)) return false; Meta.Chars.Add(id); return SelectChar(id); }

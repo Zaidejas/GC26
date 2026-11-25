@@ -163,6 +163,7 @@ namespace GC26.Bomber
             }
             foreach (var t in w.Throws) { var sr = _pools["shot"].Get(); sr.sprite = art.Dynamite; sr.transform.position = U(t.X, t.Y); sr.transform.localRotation = Rot(time * 12f); }
             foreach (var t in w.Trails) { var sr = _pools["fxUnder"].Get(); sr.sprite = art.Glow; sr.color = new Color(0.5f, 0.89f, 1f, t.T * 0.4f); sr.transform.position = U(t.X, t.Y); sr.transform.localScale = Vector3.one * (12f / 32f); }
+            SyncFlicker(time);
             foreach (var z in w.Zones) DrawZone(z, art, time);
             foreach (var e in w.Effects) DrawEffect(e, art);
             foreach (var e in w.Enemies) { if (e.IsBoss) DrawBoss(e, art, time); else DrawEnemy(e, art, time); }
@@ -241,6 +242,21 @@ namespace GC26.Bomber
         }
 
         readonly List<Vector2> _beacons = new List<Vector2>();
+        readonly List<(BomberWall wall, SpriteRenderer body, SpriteRenderer edge)> _flick = new List<(BomberWall, SpriteRenderer, SpriteRenderer)>();
+
+        /// <summary>Sector 3 blinking covers: hidden while off, a dashed pink outline that flashes just before they return.</summary>
+        void SyncFlicker(float time)
+        {
+            foreach (var (wall, body, edge) in _flick)
+            {
+                body.enabled = edge.enabled = wall.On;
+                bool soon = wall.Ft < 0.8f, blink = soon && Mathf.Sin(time * 25f) > 0f;
+                if (wall.On) { edge.color = blink ? new Color(1f, 0.35f, 0.82f) : new Color(0.35f, 0.23f, 0.48f); continue; }
+                var c = soon ? new Color(1f, 0.35f, 0.82f, 0.5f + 0.5f * Mathf.Sin(time * 25f)) : new Color(0.54f, 0.29f, 0.65f, 0.35f);
+                for (float x = wall.X; x < wall.X + wall.W; x += 8f) { Line(x, wall.Y + 1f, Mathf.Min(x + 4f, wall.X + wall.W), wall.Y + 1f, c, 2f, "fxUnder"); Line(x, wall.Y + wall.H - 1f, Mathf.Min(x + 4f, wall.X + wall.W), wall.Y + wall.H - 1f, c, 2f, "fxUnder"); }
+                for (float y = wall.Y; y < wall.Y + wall.H; y += 8f) { Line(wall.X + 1f, y, wall.X + 1f, Mathf.Min(y + 4f, wall.Y + wall.H), c, 2f, "fxUnder"); Line(wall.X + wall.W - 1f, y, wall.X + wall.W - 1f, Mathf.Min(y + 4f, wall.Y + wall.H), c, 2f, "fxUnder"); }
+            }
+        }
 
         void DrawZone(BomberZone z, BomberArt art, float time)
         {
@@ -454,7 +470,7 @@ namespace GC26.Bomber
             _builtRoom = w.RoomVersion;
             for (int i = _roomRoot.childCount - 1; i >= 0; i--) Destroy(_roomRoot.GetChild(i).gameObject);
             var sec = w.Theme;
-            _beacons.Clear();
+            _beacons.Clear(); _flick.Clear();
             if (w.Mode != BomberMode.Hub)
             {
                 _beacons.Add(new Vector2(BomberData.Cell * 1.5f, BomberData.Cell * 1.5f)); _beacons.Add(new Vector2(BomberData.W - BomberData.Cell * 1.5f, BomberData.H - BomberData.Cell * 1.5f));
@@ -500,6 +516,7 @@ namespace GC26.Bomber
                     var edge = _ctx.Spawn("Edge", go.transform).AddComponent<SpriteRenderer>(); edge.sprite = _ctx.Art.Pixel; edge.sortingOrder = 27; // neon edge stays readable in the dark
                     var ac = (Color)sec.Accent; ac.a = 0.9f; edge.color = ac;
                     edge.transform.position = U(wall.X + wall.W / 2f, wall.Y + 1f); edge.transform.localScale = new Vector3(wall.W / 2f, 1f, 1f);
+                    if (wall.Flicker) { sr.color = new Color(0.75f, 0.55f, 0.95f); _flick.Add((wall, sr, edge)); }
                 }
             }
         }

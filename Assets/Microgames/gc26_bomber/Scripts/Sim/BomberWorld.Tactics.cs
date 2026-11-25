@@ -52,7 +52,7 @@ namespace GC26.Bomber
         void UseTactic(BomberIntent it)
         {
             if (P.TacCd > 0f || !Core.CanFire) return;
-            var t = TacticDef; P.TacCd = t.Cd;
+            var t = TacticDef; P.TacCd = t.Cd; if (t.Id != "vent") Sound(t.Id == "blink" ? "dash" : "ability");
             switch (t.Id)
             {
                 case "vent": Vent(); break;

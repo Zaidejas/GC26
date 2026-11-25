@@ -52,6 +52,9 @@ namespace GC26.Bomber
         // ---- events for view / audio ----
         public event Action<float> Shake;
         public event Action<string, float> Toast;
+        /// <summary>Sound effect by name (see BomberAudio): "hit", "boom", "shoot:rail", ...</summary>
+        public event Action<string> Sfx;
+        void Sound(string name) => Sfx?.Invoke(name);
 
         // ---- internals ----
         BomberRng _rngL, _rngE, _rngLoot, _rngC;
@@ -81,6 +84,7 @@ namespace GC26.Bomber
         // ================= run setup =================
         public void StartRun(uint seed)
         {
+            Meta.LastSeed = (long)(seed == 0 ? 1u : seed);
             Mode = BomberMode.Run; _ended = false; Ol = Mathf.Clamp(Meta.Ol, 0, Mathf.Min(5, Meta.OlMax)); NewAch.Clear(); RescuedNow.Clear(); Elites = 0; _bossDamaged = false; PendingPanel = null;
             Seed = seed == 0 ? 1u : seed;
             Phase = BomberPhase.Play;
@@ -137,6 +141,12 @@ namespace GC26.Bomber
             if (type == "boss") foreach (var (x, y) in new[] { (7, 4), (7, 11), (21, 4), (21, 11) }) Walls.Add(Rect(y, x, 2, 2, cover: true)); // transposed landscape layout
             else if (calm) foreach (var (x, y) in new[] { (5, 3), (23, 3), (5, 13), (23, 13) }) Walls.Add(Rect(y, x, 1, 2, cover: true));
             else PlaceCovers(gaps);
+            if (Sector == 2 && Mode == BomberMode.Run)
+            {
+                // sector 3: two covers blink on and off every 4 s (pink edge, they flash before coming back)
+                var covers = Walls.FindAll(x => x.Cover); _rngL.Shuffle(covers);
+                for (int i = 0; i < covers.Count && i < 2; i++) { covers[i].Flicker = true; covers[i].Ft = 2f + i * 2f; }
+            }
             ComputeBlocked();
             P.X = W / 2f; P.Y = H - 120f; P.Vx = P.Vy = 0f; P.DashT = 0f; P.Beam.On = false; // just inside the entrance
             var free = FreeCells();
@@ -163,7 +173,7 @@ namespace GC26.Bomber
             }
             if (type != "boss" && type != "start") PlaceQuestItem();
             ComputeFlow();
-            RoomVersion++;
+            RoomVersion++; Sound("door");
         }
 
         // ================= room geometry =================
@@ -326,6 +336,15 @@ namespace GC26.Bomber
             float eDt = dt * EnemyTimeK;
 
             _flowTimer -= dt; if (_flowTimer <= 0f) { _flowTimer = 0.2f; ComputeFlow(); }
+            bool wallsChanged = false;
+            foreach (var wl in Walls)
+            {
+                if (!wl.Flicker) continue; wl.Ft -= dt;
+                if (wl.Ft > 0f) continue;
+                wl.On = !wl.On; wl.Ft = 4f; wallsChanged = true;
+                if (wl.On) { PushOut(P); foreach (var e in Enemies) PushOut(e); }
+            }
+            if (wallsChanged) { ComputeBlocked(); ComputeFlow(); }
 
             for (int i = Effects.Count - 1; i >= 0; i--)
             {
@@ -336,7 +355,11 @@ namespace GC26.Bomber
                 else if (e.Kind == "mine" || e.Kind == "shell") Detonate(e);
             }
             UpdateZones(eDt);
-            foreach (var e in Enemies.ToArray()) UpdateEnemy(e, eDt);
+            foreach (var e in Enemies.ToArray())
+            {
+                var s0 = e.IsBoss ? e.Act : e.St; UpdateEnemy(e, eDt); var s1 = e.IsBoss ? e.Act : e.St;
+                if (s1 != s0 && (s1 == "aim" || s1 == "chargeTele" || s1 == "snipe" || s1 == "sweepTele" || s1 == "out" || (s1 == "tele" && (e.Kind == "kamikaze" || e.Kind == "brute" || e.Kind == "laser")))) Sound("tele");
+            }
             UpdateShots(dt);
             UpdateCompanions(dt);
             UpdateGadgets(dt);
@@ -380,7 +403,7 @@ namespace GC26.Bomber
             if (it.Dash && P.DashCd <= 0f && Core.CanFire)
             {
                 var dir = mv.sqrMagnitude > 0.01f ? mv.normalized : new Vector2(Mathf.Cos(P.Aim), Mathf.Sin(P.Aim));
-                P.Dx = dir.x; P.Dy = dir.y; P.DashT = DashTime * (Is("dart") ? 1.4f : 1f); P.ITime = Mathf.Max(P.ITime, 0.2f);
+                Sound("dash"); P.Dx = dir.x; P.Dy = dir.y; P.DashT = DashTime * (Is("dart") ? 1.4f : 1f); P.ITime = Mathf.Max(P.ITime, 0.2f);
                 P.DashCd = Adrenaline ? 0.15f : Mathf.Max(0.2f, DashCooldown * P.DashK - (SetOn("Движение") ? 0.2f : 0f));
             }
             if (P.DashT > 0f)
@@ -433,6 +456,7 @@ namespace GC26.Bomber
 
         void Vent()
         {
+            Sound("vent");
             float hot = Core.Heat / 100f, vr = 64f + 60f * hot, vd = Mathf.Round(20f + 50f * hot * hot);
             Core.Vent(50f); P.TacCd = 8f; Shake?.Invoke(0.4f + 0.4f * hot);
             AddRing(P.X, P.Y, vr, hot > 0.7f ? new Color32(255, 179, 71, 255) : new Color32(127, 227, 255, 255), 0.35f);
@@ -452,6 +476,7 @@ namespace GC26.Bomber
 
         void Collect(BomberPickup p)
         {
+            Sound("pick");
             if (p.Kind == "scrap") P.Scrap += p.Value;
             if (p.Kind == "repair") { P.Hp = Mathf.Min(P.MaxHp, P.Hp + 1); Toast?.Invoke("+1 здоровье", 1f); }
             if (p.Kind == "emp") { P.Emp = Mathf.Min(3, P.Emp + 1); Toast?.Invoke("+1 ЭМИ", 1f); }
@@ -463,7 +488,7 @@ namespace GC26.Bomber
             if (P.ITime > 0f || Phase != BomberPhase.Play || Mode != BomberMode.Run || DevGod) return;
             if (Is("bastion") && P.AbT > 0f) return;
             if (P.Shield > 0f) { P.Shield = 0f; P.ShieldT = 6f; P.ITime = 0.5f; AddRing(P.X, P.Y, 30f, new Color32(159, 208, 255, 255), 0.3f); return; }
-            P.Hp--; DamageTaken++; RoomDamaged = true; _bossDamaged = true; P.ITime = BomberData.IFrames * (Is("bastion") ? 1.5f : 1f); Shake?.Invoke(1f); Flash = 0.15f;
+            Sound("hurt"); P.Hp--; DamageTaken++; RoomDamaged = true; _bossDamaged = true; P.ITime = BomberData.IFrames * (Is("bastion") ? 1.5f : 1f); Shake?.Invoke(1f); Flash = 0.15f;
             if (Combo >= 5) Texts.Add(new BomberText { X = P.X, Y = P.Y - 30, S = "КОМБО ПОТЕРЯНО", T = 0.9f, Color = new Color32(255, 138, 154, 255) });
             Combo = 0; ComboT = 0f;
             for (int i = 0; i < 14; i++) Spark(P.X, P.Y, new Color32(255, 90, 110, 255), 200f);
@@ -471,17 +496,18 @@ namespace GC26.Bomber
         }
 
         // ================= rooms & waves =================
-        float HpMul => BomberData.HpMul[Sector] * OlHp;
+        float HpMul => BomberData.HpMul[Sector] * OlHp * ThreatMul;
 
         List<List<(string, bool)>> MakeWaves(string type)
         {
             int s = Sector;
-            float mult = BomberData.SectorMult[s] * (type == "elite" ? 1.3f : 1f) * (type == "rescue" ? 1.25f : 1f) * (type == "start" ? 0.6f : 1f) * (0.9f + _rngE.Next() * 0.3f);
+            float thr = 1f + Mathf.Min(0.4f, PowerLevel * 0.012f);
+            float mult = thr * BomberData.SectorMult[s] * (type == "elite" ? 1.3f : 1f) * (type == "rescue" ? 1.25f : 1f) * (type == "start" ? 0.6f : 1f) * (0.9f + _rngE.Next() * 0.3f);
             int budget = Mathf.Max(3, Mathf.RoundToInt(BomberData.Budget * mult * (1f + 0.08f * Ol)));
             var pool = new List<string>(); for (int k = 0; k <= s; k++) pool.AddRange(BomberData.Pools[k]);
             int n = budget < 8 ? 1 : budget < 14 ? 2 : 3;
             float[] split = n == 1 ? new[] { 1f } : n == 2 ? new[] { 0.6f, 0.4f } : new[] { 0.4f, 0.33f, 0.27f };
-            float eliteChance = BomberData.EliteChance[s] + 0.06f * Ol;
+            float eliteChance = BomberData.EliteChance[s] + 0.06f * Ol + Mathf.Min(0.12f, PowerLevel * 0.004f);
             var waves = new List<List<(string, bool)>>();
             for (int wi = 0; wi < split.Length; wi++)
             {
@@ -549,7 +575,7 @@ namespace GC26.Bomber
 
         void LeaveRoom(int i)
         {
-            if (Mode == BomberMode.Hub) { StartRun((uint)UnityEngine.Random.Range(1, int.MaxValue)); return; }
+            if (Mode == BomberMode.Hub) { StartRun(NextSeed()); return; }
             if (Mode == BomberMode.Tutorial) { CompleteTutorial(); return; }
             RoomDamaged = false;
             if (Doors[i].Type == "next") { EnterSector(Sector + 1); return; }

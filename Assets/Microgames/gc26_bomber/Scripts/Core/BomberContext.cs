@@ -15,6 +15,7 @@ namespace GC26.Bomber
         public BomberView View { get; private set; }
         public BomberPhoneUI UI { get; private set; }
         public BomberDebugLog Log { get; private set; }
+        public BomberAudio Audio { get; private set; }
 
         public void Init(BomberGame game)
         {
@@ -30,6 +31,9 @@ namespace GC26.Bomber
             UI.Init(this, View.Target);
             World.Toast += (m, t) => UI.Toast(m, t);
             World.Shake += a => View.AddShake(a);
+            Audio = Spawn("gc26_bomber_Audio").AddComponent<BomberAudio>(); Audio.Init();
+            World.Sfx += n => Audio.Play(n);
+            if (FindAnyObjectByType<AudioListener>() == null) View.Cam.gameObject.AddComponent<AudioListener>();
             Log.ErrorLogged += _ => UI.OnBugLogged();
             if (World.Meta.TutorialDone) World.EnterHub(); else World.EnterTutorial();
         }
@@ -57,6 +61,7 @@ namespace GC26.Bomber
                 if (!UI.Paused) World.Tick(Mathf.Min(Time.deltaTime, 1f / 30f), intent);
             }
             catch (System.Exception e) { Debug.LogException(e); }
+            try { Audio.SetTheme(World.Mode == BomberMode.Hub ? 0 : World.Sector + 1); } catch (System.Exception e) { Debug.LogException(e); }
             try { View.Sync(); } catch (System.Exception e) { Debug.LogException(e); }
             try { UI.Sync(Time.unscaledDeltaTime); } catch (System.Exception e) { Debug.LogException(e); }
         }

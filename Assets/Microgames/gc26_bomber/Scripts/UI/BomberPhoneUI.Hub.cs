@@ -54,6 +54,9 @@ namespace GC26.Bomber
             rows.Add(($"Кнопки крупнее ({Mathf.RoundToInt(_btnScale * 100)}%)", () => SetButtonScale(_btnScale + 0.1f)));
             rows.Add(("Кнопки мельче", () => SetButtonScale(_btnScale - 0.1f)));
             rows.Add(("Настроить управление", EditControls));
+            var au = _ctx.Audio;
+            rows.Add(($"Звук: {Mathf.RoundToInt(au.Volume * 100)}%", () => { au.SetVolume(au.Volume >= 0.99f ? 0f : au.Volume < 0.39f ? 0.4f : au.Volume < 0.79f ? 0.8f : 1f); Pause(); }));
+            rows.Add(($"Музыка: {(au.Music ? "вкл" : "выкл")}", () => { au.SetMusic(!au.Music); Pause(); }));
             rows.Add(($"Тёмная станция: {(_ctx.View.Dark ? "вкл" : "выкл")}", () => { _ctx.View.SetDark(!_ctx.View.Dark); Pause(); }));
             rows.Add(($"Журнал ошибок{(_ctx.Log.Entries.Count > 0 ? $" ({_ctx.Log.Entries.Count})" : "")}", ShowJournal));
             if (DevTools) rows.Add(("Разработка", ShowDev));
@@ -70,7 +73,7 @@ namespace GC26.Bomber
             string title = win ? "Сигнал отправлен" : w.LastAbandoned ? "Забег прерван" : "Дрон уничтожен";
             string body = (win ? "ОРАКУЛ повержен. Станция свободна." : $"Сектор {w.Sector + 1}: {BomberData.Sectors[w.Sector].Name}, комната {w.Step + 1}.") + (w.LastBest ? " Новый рекорд!" : "") +
                 $"\n<color=#b48cff><b>+{w.LastDataGain} Данных</b></color> (всего {w.Meta.Data})\n" +
-                $"Счёт {w.Score} · Комнат {w.Rooms} · Убийств {w.Kills} · Боссов {w.Bosses} · Комбо ×{w.MaxCombo}";
+                $"Счёт {w.Score} · Комнат {w.Rooms} · Убийств {w.Kills} · Боссов {w.Bosses} · Комбо ×{w.MaxCombo}\n<size=13><color=#8090b4>Seed {w.Seed} · Угроза ×{w.ThreatMul:0.00}" + (w.Ol > 0 ? $" · Перегрузка {w.Ol}" : "") + "</color></size>";
             foreach (var id in w.RescuedNow) { var n = BomberMetaData.Npc(id); body += $"\n<color={Hex(n.Color)}>Спасён: {n.Name}</color> — {n.Bonus}"; }
             foreach (var id in w.NewAch) foreach (var a in BomberMetaData.Achs) if (a.Id == id) body += $"\n<color=#ffd65c>Достижение: {a.Name}</color> → {a.Reward}";
             _panelText.supportRichText = true;
@@ -207,6 +210,13 @@ namespace GC26.Bomber
                 rows.Add(($"<size=18><b>Перегрузка {i}</b></size>  {(sel ? "<color=#6dffb0>ВЫБРАНА</color>" : ok ? "<color=#7fe3ff>выбрать</color>" : "<color=#8090b4>победи на уровне " + (i - 1) + "</color>")}\n<size=13><color=#a9b6d6>{BomberMetaData.Overload[i]}</color></size>",
                     () => { if (!w.SetOverload(lvl)) Toast("Открывается победой над ОРАКУЛОМ на предыдущем уровне", 2f); ShowMission(); }));
             }
+            rows.Add(("<size=18><b>Seed забега</b></size>", null));
+            foreach (var (mode, title, desc) in new[] { ("random", "Случайный", "каждый забег новый"), ("daily", $"Дневной ({BomberWorld.DailySeed})", "одинаковый для всех сегодня"), ("repeat", m.LastSeed > 0 ? $"Повторить прошлый ({m.LastSeed})" : "Повторить прошлый", "тот же забег ещё раз") })
+            {
+                string md = mode; bool sel = m.SeedMode == mode;
+                rows.Add(($"<b>{title}</b>  {(sel ? "<color=#6dffb0>ВЫБРАН</color>" : "<color=#7fe3ff>выбрать</color>")}  <size=13><color=#a9b6d6>{desc}</color></size>", () => { if (md == "repeat" && m.LastSeed <= 0) Toast("Сначала сыграй хотя бы один забег", 1.6f); else w.SetSeedMode(md); ShowMission(); }));
+            }
+            rows.Add(($"<size=13><color=#8090b4>Угроза сейчас ×{w.ThreatMul:0.00}: чем больше улучшений, тем крепче враги.</color></size>", null));
             rows.Add(("<b>Пройти обучение заново</b>", () => { HidePanel(); w.EnterTutorial(); }));
             rows.Add(("<b>Закрыть</b>", HidePanel));
             ShowPanelEx("mission", "Настройка забега", "Перегрузка повышает сложность и награду в Данных (+25% за уровень). Новые уровни открываются победами.", 70f, 110f, true, rows.ToArray());

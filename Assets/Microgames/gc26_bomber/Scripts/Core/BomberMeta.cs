@@ -21,6 +21,7 @@ namespace GC26.Bomber
         public List<Level> Ups = new List<Level>(), CharUps = new List<Level>(), Mks = new List<Level>(), Quests = new List<Level>();
         public List<string> QDone = new List<string>();
         public int Ol, OlMax;
+        public string SeedMode = "random"; public long LastSeed;
         public int Runs, Wins, Kills, Overheats, NoDmg, BestSector = 1, Bosses, DataEarned, Fusions, BestCombo;
 
         static string SaveKey => MicrogameSave.Key(BomberGame.Id, "meta");
@@ -46,6 +47,8 @@ namespace GC26.Bomber
         public int CharUp(string ch, string k) => Get(CharUps, ch + "." + k);
         public void AddCharUp(string ch, string k) => Inc(CharUps, ch + "." + k);
         public int Mk(string weapon) => Get(Mks, weapon);
+        public int MkSum() { int s = 0; foreach (var x in Mks) s += x.L; return s; }
+        public int UpSum() { int s = 0; foreach (var x in Ups) s += x.L; return s; }
         public void AddMk(string weapon) => Inc(Mks, weapon);
 
         // ---- quests: Quests holds taken ones (L = progress), QDone the turned-in ones ----

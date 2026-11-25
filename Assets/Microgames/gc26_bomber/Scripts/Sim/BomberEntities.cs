@@ -82,7 +82,7 @@ namespace GC26.Bomber
     public sealed class BomberBolt { public List<Vector2> Pts = new List<Vector2>(); public float T; }
     public sealed class BomberTrail { public float X, Y, T; public readonly HashSet<BomberEnemy> Hit = new HashSet<BomberEnemy>(); }
 
-    public sealed class BomberWall { public float X, Y, W, H; public bool On = true, Cover, DoorOut, DoorIn; }
+    public sealed class BomberWall { public float X, Y, W, H, Ft; public bool On = true, Cover, DoorOut, DoorIn, Flicker; }
     public sealed class BomberDoor { public string Type; public float X0, X1; public bool Open; public BomberWall Blocker; }
     public sealed class BomberBarrel { public float X, Y, R = 10f, Hp = 10f; }
 

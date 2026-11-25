@@ -235,6 +235,7 @@ namespace GC26.Bomber
             bool crit = amt >= 40f;
             Texts.Add(new BomberText { X = e.X + (_rngC.Next() - 0.5f) * 10f, Y = e.Y - e.R - 4f, S = Mathf.RoundToInt(amt).ToString(), T = crit ? 0.8f : 0.55f, Color = crit ? new Color32(255, 214, 92, 255) : Core.State == CoreState.Overdrive ? new Color32(255, 227, 154, 255) : new Color32(219, 230, 255, 255) });
             if (crit) Shake?.Invoke(0.3f);
+            Sound("hit");
             if (e.Hp <= 0f) KillEnemy(e);
         }
 
@@ -249,6 +250,7 @@ namespace GC26.Bomber
             Kills++; Combo++; ComboT = 2.6f; MaxCombo = Mathf.Max(MaxCombo, Combo);
             if (Mode == BomberMode.Run) { Meta.Kills++; if (Meta.Kills >= 300) Unlock("kills300"); if (Combo >= 25) Unlock("combo25"); QProgress("kill", e.Kind); if (e.Elite) QProgress("elite", "any"); }
             if (Is("leech") && ++P.LeechK % 12 == 0 && P.Hp < P.MaxHp) { P.Hp++; Texts.Add(new BomberText { X = P.X, Y = P.Y - 26, S = "+1", T = 0.9f, Color = new Color32(255, 77, 141, 255) }); }
+            if (Combo >= 2) Sound("combo:" + Mathf.Min(Combo, 30));
             if (Combo % 5 == 0)
             {
                 for (int k = 0; k < 3; k++) Pickups.Add(new BomberPickup { Kind = "scrap", Value = 2, X = e.X + (_rngC.Next() - 0.5f) * 20f, Y = e.Y + (_rngC.Next() - 0.5f) * 20f });
@@ -269,7 +271,7 @@ namespace GC26.Bomber
         void Explode(float x, float y, float r, float dmg, bool hurtsPlayer, bool fromPlayer, float slow = 0f)
         {
             if (fromPlayer && Is("sapper")) r *= 1.25f;
-            Shake?.Invoke(0.7f);
+            Shake?.Invoke(0.7f); Sound("boom");
             Effects.Add(new BomberEffect { Kind = "blast", X = x, Y = y, R = r, T = 0.35f, Max = 0.35f });
             Effects.Add(new BomberEffect { Kind = "ring", X = x, Y = y, R = r * 1.3f, T = 0.45f, Max = 0.45f, Color = new Color32(255, 200, 120, 255) });
             NewDecals.Add((x, y, r * 0.8f, new Color32(0, 0, 0, 255)));

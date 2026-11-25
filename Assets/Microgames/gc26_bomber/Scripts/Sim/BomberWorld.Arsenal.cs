@@ -114,7 +114,7 @@ namespace GC26.Bomber
                     Look = s.Look, Color = s.Col.a > 0 ? s.Col : s.Burn ? new Color32(255, 154, 60, 255) : s.Slow > 0 ? new Color32(159, 230, 255, 255) : s.Zap ? new Color32(217, 240, 255, 255) : Core.State == CoreState.Overdrive ? new Color32(255, 227, 154, 255) : new Color32(216, 248, 255, 255),
                 });
             }
-            P.MuzzleT = 0.06f;
+            P.MuzzleT = 0.06f; Sound("shoot:" + w.Id);
             if (s.Trail) Shake?.Invoke(0.4f); else if (pellets > 3) Shake?.Invoke(0.25f);
         }
 
@@ -144,6 +144,7 @@ namespace GC26.Bomber
 
         void FireBeam(BomberWeaponDef s, BomberWeapon w)
         {
+            Sound("shoot:beam");
             float sx = P.X + Mathf.Cos(P.Aim) * 14f, sy = P.Y + Mathf.Sin(P.Aim) * 14f;
             var end = RayEnd(sx, sy, P.Aim, 700f); float len = Dist(sx, sy, end.x, end.y), hd = len; BomberEnemy hitE = null;
             foreach (var e in Enemies) { if (e.Alpha < 0.5f) continue; if (SegDist(e.X, e.Y, sx, sy, end.x, end.y) < e.R + 3f) { float along = Dist(e.X, e.Y, sx, sy); if (along < hd) { hd = along; hitE = e; } } }
@@ -170,6 +171,7 @@ namespace GC26.Bomber
 
         void FireArc(BomberWeaponDef s)
         {
+            Sound("shoot:arc");
             BomberEnemy first = null; float fd = 1e9f;
             foreach (var e in Enemies)
             {
@@ -416,7 +418,7 @@ namespace GC26.Bomber
                     int pr = PriceOf(p);
                     if (p.Item.Type == "repair" && P.Hp >= P.MaxHp) { Toast?.Invoke("Здоровье полное", 1.2f); return; }
                     if (P.Scrap < pr) { Toast?.Invoke($"Нужно {pr} скрапа, у тебя {P.Scrap}", 1.6f); return; }
-                    P.Scrap -= pr; p.Sold = true; Grant(p.Item); if (p.Item.Type != "repair") Toast?.Invoke($"Куплено: {p.Item.Name}", 1.4f);
+                    P.Scrap -= pr; p.Sold = true; Sound("buy"); Grant(p.Item); if (p.Item.Type != "repair") Toast?.Invoke($"Куплено: {p.Item.Name}", 1.4f);
                     break;
             }
         }
@@ -451,7 +453,7 @@ namespace GC26.Bomber
             var f = FusionFor(); if (f.id == null) return false;
             var wa = P.Weapons.Find(w => w.Id == f.a); var wb = P.Weapons.Find(w => w.Id == f.b);
             if (wa.UpSum < BomberItems.FuseNeed || wb.UpSum < BomberItems.FuseNeed || P.Scrap < FusePrice) return false;
-            P.Scrap -= FusePrice;
+            P.Scrap -= FusePrice; Sound("ach");
             var nw = new BomberWeapon { Id = f.id };
             foreach (var k in new[] { "dmg", "rate", "heat", "spec" }) nw.Up[k] = Mathf.Max(wa.Up[k], wb.Up[k]);
             P.Weapons.Clear(); P.Weapons.Add(nw); P.Cur = 0;

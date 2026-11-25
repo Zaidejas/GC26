@@ -79,12 +79,14 @@ namespace GC26.Bomber
         {
             if (!s) return;
             var t = s.texture; _owned.Remove(s); _owned.Remove(t);
-            UnityEngine.Object.Destroy(s); if (t) UnityEngine.Object.Destroy(t);
+            Kill(s); Kill(t);
         }
+
+        static void Kill(UnityEngine.Object o) { if (!o) return; if (Application.isPlaying) UnityEngine.Object.Destroy(o); else UnityEngine.Object.DestroyImmediate(o); }
 
         public void Dispose()
         {
-            foreach (var o in _owned) if (o) UnityEngine.Object.Destroy(o);
+            foreach (var o in _owned) Kill(o);
             _owned.Clear(); _enemy.Clear();
         }
 
@@ -93,8 +95,47 @@ namespace GC26.Bomber
         {
             var key = "drone_" + c.Id;
             if (_enemy.TryGetValue(key, out var s)) return s;
-            s = c.Id == "spark" ? Drone : MakeDrone(c.Color);
+            s = c.Id == "spark" ? Drone : MakeDrone(c);
             _enemy[key] = s; return s;
+        }
+
+        /// <summary>Drone of a playable character: its own hull shape and markings (droneSprite in the prototype).</summary>
+        Sprite MakeDrone(BomberCharDef ch) => Build(20, 20, c =>
+        {
+            const float cx = 10, cy = 10, hb = 5.5f, R = 4.6f; bool heavy = ch.Id == "bastion";
+            foreach (var (sx, sy) in new[] { (-1, -1), (1, -1), (-1, 1), (1, 1) }) c.Line(cx - 0.5f, cy - 0.5f, cx - 0.5f + sx * hb, cy - 0.5f + sy * hb, MN, heavy ? 3 : 2);
+            foreach (var (sx, sy) in new[] { (-1, -1), (1, -1), (-1, 1), (1, 1) }) { c.Fill(c.Disc(cx + sx * hb, cy + sy * hb, heavy ? 2.6f : 2.2f), MM); c.Px((int)(cx + sx * hb - 0.5f), (int)(cy + sy * hb - 0.5f), MK); }
+            Func<float, float, bool> sh = ch.Shape switch
+            {
+                "diamond" => (x, y) => Mathf.Abs(x - cx) + Mathf.Abs(y - cy) < R * 1.2f,
+                "square" => (x, y) => Mathf.Max(Mathf.Abs(x - cx), Mathf.Abs(y - cy)) < R * 0.9f,
+                "hex" => c.Poly(Ngon(cx, cy, 6, 0f, R * 1.08f)),
+                "oct" => c.Poly(Ngon(cx, cy, 8, Mathf.PI / 8f, R * 1.05f)),
+                "pent" => c.Poly(Ngon(cx, cy, 5, -Mathf.PI / 2f, R * 1.12f)),
+                "tri" => c.Poly(Ngon(cx, cy, 3, 0f, R * 1.35f)),
+                "star" => (x, y) => { float dx = x - cx, dy = y - cy, d = Mathf.Sqrt(dx * dx + dy * dy), t = Mathf.Atan2(dy, dx) + Mathf.PI / 2f; return d < R * (0.6f + 0.55f * Mathf.Pow(Mathf.Abs(Mathf.Cos(2.5f * t)), 3f)); },
+                _ => c.Disc(cx, cy, R),
+            };
+            c.Fill(sh, ch.Color);
+            var c2 = Tone(ch.Color, -0.55f);
+            switch (ch.Id)
+            {
+                case "whisper": for (int x = -3; x <= 3; x++) c.Px((int)cx + x, (int)cy - 1, c2); c.Px((int)cx + 2, (int)cy - 1, MC); break;
+                case "bastion": foreach (var (x, y) in new[] { (-3, -3), (2, -3), (-3, 2), (2, 2) }) c.Px((int)cx + x, (int)cy + y, ML); for (int x = -2; x <= 1; x++) c.Px((int)cx + x, (int)cy + 3, c2); break;
+                case "sapper": for (int x = -3; x <= 2; x++) c.Px((int)cx + x, (int)cy + 2, (x & 1) != 0 ? MK : MY); break;
+                case "dart": c.Px((int)cx - 5, (int)cy - 1, MO); c.Px((int)cx - 5, (int)cy, MO); c.Px((int)cx - 6, (int)cy, MY); break;
+                case "forge": for (int a = 0; a < 8; a++) { float t = a / 8f * Mathf.PI * 2f; c.Px(Mathf.FloorToInt(cx - 0.5f + Mathf.Cos(t) * 3.2f), Mathf.FloorToInt(cy - 0.5f + Mathf.Sin(t) * 3.2f), c2); } break;
+                case "chrono": for (int a = 0; a < 12; a++) { float t = a / 12f * Mathf.PI * 2f; c.Px(Mathf.FloorToInt(cx - 0.5f + Mathf.Cos(t) * 3.4f), Mathf.FloorToInt(cy - 0.5f + Mathf.Sin(t) * 3.4f), Tone(ch.Color, 0.6f)); } c.Px((int)cx, (int)cy - 2, MK); c.Px((int)cx + 1, (int)cy - 1, MK); break;
+                case "leech": c.Px((int)cx + 3, (int)cy - 2, MW); c.Px((int)cx + 3, (int)cy + 1, MW); break;
+            }
+            c.Fill(c.Disc(cx, cy, 1.9f), MK, false);
+        });
+
+        static (float, float)[] Ngon(float cx, float cy, int n, float rot, float r)
+        {
+            var p = new (float, float)[n];
+            for (int i = 0; i < n; i++) { float a = rot + i * Mathf.PI * 2f / n; p[i] = (cx + Mathf.Cos(a) * r, cy + Mathf.Sin(a) * r); }
+            return p;
         }
 
         // ---------- drone ----------

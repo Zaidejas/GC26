@@ -40,7 +40,7 @@ namespace GC26.Bomber
 
         BomberEnemy MakeBoss(int bi)
         {
-            var d = BomberData.Bosses[bi]; float hp = d.Hp * BomberData.BossHp * OlHp;
+            var d = BomberData.Bosses[bi]; float hp = d.Hp * BomberData.BossHp * OlHp * ThreatMul;
             return new BomberEnemy { Kind = "boss", Boss = d, Def = d.Def, X = W / 2f, Y = H * 0.28f, R = d.R, Hp = hp, MaxHp = hp, Tm = 1.4f, Face = Mathf.PI, SpdMul = 1f };
         }
 

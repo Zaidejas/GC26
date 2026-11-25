@@ -68,7 +68,7 @@ namespace GC26.Bomber
             }
             if (P.AbCd > 0f || P.AbT > 0f) return;
             P.AbT = Is("whisper") || Is("chrono") ? 4f : Is("leech") ? 3f : Is("forge") ? 0.01f : 5f; P.AbCd = P.AbilityCd;
-            AddRing(P.X, P.Y, 40f, ch.Color, 0.4f);
+            AddRing(P.X, P.Y, 40f, ch.Color, 0.4f); Sound("ability");
             switch (P.Char)
             {
                 case "whisper": foreach (var e in Enemies) if (e.Kind == "sniper" && e.St == "aim") { e.St = "idle"; e.Tm = 1.5f; } Toast?.Invoke("Невидимость", 1f); break;

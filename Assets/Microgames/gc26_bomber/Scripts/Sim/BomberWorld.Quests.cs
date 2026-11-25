@@ -51,7 +51,7 @@ namespace GC26.Bomber
         public bool TurnInQuest(string id)
         {
             var q = BomberMetaData.Quest(id); if (!Meta.QReady(q)) return false;
-            Meta.QDone.Add(id); Meta.Quests.RemoveAll(x => x.Id == id); Meta.Data += q.RewardData;
+            Sound("ach"); Meta.QDone.Add(id); Meta.Quests.RemoveAll(x => x.Id == id); Meta.Data += q.RewardData;
             SaveMeta(); RefreshHubPlayer();
             Toast?.Invoke($"Награда: {BomberMetaData.RewardText(q)}" + (q.RewardWeapon != null ? ". Оружие появится в наградах и магазинах, его можно взять на старт в Арсенале." : ""), 3.5f);
             return true;
@@ -70,6 +70,34 @@ namespace GC26.Bomber
         float OlHp => 1f + 0.12f * Ol;
 
         public bool SetOverload(int lvl) { if (lvl < 0 || lvl > Mathf.Min(5, Meta.OlMax)) return false; Meta.Ol = lvl; SaveMeta(); return true; }
+
+        // ================= threat: enemies grow with the player's power =================
+        /// <summary>Power of the player (permanent upgrades, drone upgrades, and in a run: weapon upgrades, fusions, modules, companions, sector).</summary>
+        public float PowerLevel
+        {
+            get
+            {
+                float p = Meta.UpSum() * 0.5f + Meta.MkSum() * 0.6f + Meta.CharUpSum(P.Char) * 0.5f;
+                if (Mode == BomberMode.Run)
+                {
+                    foreach (var w in P.Weapons) { p += w.UpSum * 0.8f; if (w.Def.Fused) p += 4f; }
+                    p += P.Mods.Count * 1.2f + P.Comps.Count * 1.5f + Sector * 1.5f;
+                }
+                return p;
+            }
+        }
+        /// <summary>«Угроза»: enemy health multiplier from the player's power (up to ×2).</summary>
+        public float ThreatMul => 1f + Mathf.Min(1f, PowerLevel * 0.025f);
+
+        // ================= seed =================
+        public static uint DailySeed { get { var d = System.DateTime.UtcNow; return (uint)(d.Year * 10000 + d.Month * 100 + d.Day); } }
+        uint NextSeed()
+        {
+            if (Meta.SeedMode == "daily") return DailySeed;
+            if (Meta.SeedMode == "repeat" && Meta.LastSeed > 0) return (uint)Meta.LastSeed;
+            return (uint)UnityEngine.Random.Range(1, int.MaxValue);
+        }
+        public void SetSeedMode(string mode) { Meta.SeedMode = mode; SaveMeta(); }
 
         // ================= Mk upgrades =================
         public int MkPrice(string id)
