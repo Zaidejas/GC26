@@ -50,6 +50,8 @@ namespace GC26._2048
         public Sprite Mouse { get; }
         /// <summary>Mouse head and paws, cut flat at the bottom: peeks in from a screen edge when the player is idle.</summary>
         public Sprite MouseFace { get; }
+        /// <summary>The whole mouse that runs over the field and eats cheese.</summary>
+        public Sprite MouseRun { get; }
         /// <summary>Soft round light, white in the middle and fading out to the edge; tint it with Image.color.</summary>
         public Sprite Glow { get; }
 
@@ -60,6 +62,7 @@ namespace GC26._2048
                 items[level] = LoadSprite($"{gameId}/item_{level}");
             Mouse = LoadSprite($"{gameId}/mouse_hole");
             MouseFace = LoadSprite($"{gameId}/mouse_face");
+            MouseRun = LoadSprite($"{gameId}/mouse_run");
             Box = MakeRounded(96, 30, 7, true);
             Soft = MakeRounded(96, 30, 0, false);
             Glow = MakeGlow(128);

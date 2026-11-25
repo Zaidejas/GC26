@@ -16,6 +16,11 @@ namespace GC26._2048
         public int bestLevel;
         /// <summary>Move limit the game started with; 0 in saves made before it was stored.</summary>
         public int limit;
+        /// <summary>Mouse: 0 none yet, 1 coming, 2 on the field (<see cref="MouseState"/>); 0 in older saves.</summary>
+        public int mouse;
+        public int mouseCountdown;
+        public int mouseRow;
+        public int mouseCol;
 
         /// <summary>The only limit there was before saves kept it.</summary>
         public const int LegacyMoveLimit = 150;
@@ -99,7 +104,11 @@ namespace GC26._2048
                 cheeses = s.Cheeses,
                 cheeseShown = s.CheeseShown,
                 bestLevel = s.BestLevel,
-                limit = s.MoveLimit
+                limit = s.MoveLimit,
+                mouse = (int)s.Mouse.State,
+                mouseCountdown = s.Mouse.Countdown,
+                mouseRow = s.Mouse.Row,
+                mouseCol = s.Mouse.Col
             };
             try
             {

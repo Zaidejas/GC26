@@ -240,6 +240,12 @@ namespace GC26._2048
             else if (r.TopLevel > 0) sound.Play(CheeseSound.Chime, r.TopLevel);
 
             if (r.FirstCheese) StartCoroutine(Toast(loc["cheese_ready"]));
+            if (r.MouseArrived)
+            {
+                sound.Play(CheeseSound.Chime, CheeseRules.CheeseLevel);
+                StartCoroutine(Toast(loc["mouse_came"], art.MouseRun));
+            }
+            if (r.MouseRan) sound.Play(r.Eaten.Count > 0 ? CheeseSound.Beep : CheeseSound.Rustle);
             if (r.Points > 0) StartCoroutine(FloatPoints(r.Points));
             if (session.Score > storage.Best) storage.Best = session.Score;
             if (session.BestLevel > storage.BestLevel) storage.BestLevel = session.BestLevel;
@@ -297,6 +303,7 @@ namespace GC26._2048
             Show(null);
             Canvas.ForceUpdateCanvases();
             boardView.ShowBoard(session.Board);
+            boardView.ShowMouse(session.Mouse);
             RenderHud();
         }
 
@@ -321,6 +328,7 @@ namespace GC26._2048
                 return;
             }
             session.Restore(d.cells, d.score, d.moves, d.cheeses, d.cheeseShown, d.bestLevel, d.MoveLimit);
+            session.Mouse.Restore((MouseState)d.mouse, d.mouseCountdown, d.mouseRow, d.mouseCol);
             recordAtStart = storage.Best;
             lastScore = session.Score;
             playing = true;
@@ -423,12 +431,12 @@ namespace GC26._2048
             Destroy(label.gameObject);
         }
 
-        IEnumerator Toast(string text)
+        IEnumerator Toast(string text, Sprite picture = null)
         {
             var box = CheeseUi.Box(gameScreen, "Toast", art.Box, CheeseArt.Cheese, true);
             var rt = box.rectTransform;
             rt.Place(0.1f, 0.47f, 0.9f, 0.56f);
-            var icon = CheeseUi.Picture(rt, "Cheese", art.Item(CheeseRules.CheeseLevel));
+            var icon = CheeseUi.Picture(rt, "Picture", picture != null ? picture : art.Item(CheeseRules.CheeseLevel));
             icon.rectTransform.Place(0.04f, 0.1f, 0.24f, 0.9f);
             var label = CheeseUi.Label(rt, text, 70f, CheeseArt.Ink, TextAlignmentOptions.Center, true);
             label.rectTransform.Place(0.24f, 0f, 0.97f, 1f);

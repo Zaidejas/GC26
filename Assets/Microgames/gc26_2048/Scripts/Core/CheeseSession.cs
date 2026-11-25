@@ -27,6 +27,8 @@ namespace GC26._2048
         /// <summary>Move limit this game started with (a game saved under an older limit keeps it).</summary>
         public int MoveLimit { get; private set; } = CheeseRules.MoveLimit;
         public int MovesMade => MoveLimit - MovesLeft;
+        /// <summary>The mouse that comes after the first cheese and eats cheese on its runs.</summary>
+        public CheeseMouse Mouse { get; } = new CheeseMouse();
 
         public CheeseSession(int seed)
         {
@@ -43,6 +45,7 @@ namespace GC26._2048
             CheeseShown = false;
             BestLevel = 0;
             Ended = EndReason.None;
+            Mouse.Reset();
             Spawn(1);
             Spawn(1);
         }
@@ -58,6 +61,7 @@ namespace GC26._2048
             CheeseShown = cheeseShown;
             BestLevel = bestLevel;
             Ended = EndReason.None;
+            Mouse.Reset();
         }
 
         /// <summary>Plays one move. A move that changes nothing costs nothing and spawns nothing.</summary>
@@ -78,6 +82,7 @@ namespace GC26._2048
             }
 
             result.Spawned = Spawn(0);
+            Mouse.AfterMove(Board, rng, result); // may eat cheese, so before the end check
             if (MovesLeft <= 0) Ended = EndReason.OutOfMoves;
             else if (!Board.HasMoves()) Ended = EndReason.BoardFull;
             return result;

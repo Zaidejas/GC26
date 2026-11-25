@@ -9,7 +9,9 @@ namespace GC26._2048
         /// <summary>Item <c>OtherId</c> merged into <c>Id</c>, which becomes <c>Level</c>.</summary>
         Merged,
         /// <summary>New item <c>Id</c> of <c>Level</c> appears at (Row, Col).</summary>
-        Spawned
+        Spawned,
+        /// <summary>The mouse ate cheese <c>Id</c> at (Row, Col).</summary>
+        Eaten
     }
 
     public readonly struct TileEvent
@@ -34,6 +36,7 @@ namespace GC26._2048
         public static TileEvent Moved(int id, int row, int col) => new TileEvent(TileEventKind.Moved, id, 0, row, col, 0);
         public static TileEvent Merged(int id, int otherId, int row, int col, int level) => new TileEvent(TileEventKind.Merged, id, otherId, row, col, level);
         public static TileEvent Spawned(int id, int row, int col, int level) => new TileEvent(TileEventKind.Spawned, id, 0, row, col, level);
+        public static TileEvent Eaten(int id, int row, int col) => new TileEvent(TileEventKind.Eaten, id, 0, row, col, CheeseRules.CheeseLevel);
     }
 
     /// <summary>What one move did; the view animates the events in order.</summary>
@@ -55,5 +58,13 @@ namespace GC26._2048
         /// </summary>
         public readonly List<int> Bumped = new List<int>();
         public readonly List<TileEvent> Events = new List<TileEvent>();
+
+        /// <summary>The mouse came this move and sits at (MouseRow, MouseCol).</summary>
+        public bool MouseArrived;
+        /// <summary>The mouse ran from (MouseFromRow, MouseFromCol) to (MouseRow, MouseCol), eating <see cref="Eaten"/>.</summary>
+        public bool MouseRan;
+        public int MouseFromRow, MouseFromCol, MouseRow, MouseCol;
+        /// <summary>Cheeses the mouse ate on its run, in the order it reached them.</summary>
+        public readonly List<TileEvent> Eaten = new List<TileEvent>();
     }
 }

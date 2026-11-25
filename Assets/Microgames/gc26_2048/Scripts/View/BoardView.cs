@@ -10,15 +10,21 @@ namespace GC26._2048
     /// Draws the 4×4 field in its wooden crate and animates moves: slide 0.1 s, then pulse and glow for merges,
     /// jelly squash for items that bumped into each other without merging, the new item grows in. Cheese is an
     /// ordinary merge result: it stays on the field. Tiles come from a small pool.
+    /// The mouse lives on its own layer above the tiles: it drops in on an outer cell and hops across its row or
+    /// column, and the cheese it passes vanishes.
     /// </summary>
     public class BoardView : MonoBehaviour
     {
         const float SlideTime = 0.1f;
+        const float MouseStepTime = 0.13f, MouseInset = 0.08f, MouseHop = 0.18f;
 
         CheeseArt art;
         RectTransform pan;
+        RectTransform mouse;
+        Coroutine mouseArrive;
         readonly Dictionary<int, TileView> tiles = new Dictionary<int, TileView>();
         readonly Stack<TileView> pool = new Stack<TileView>();
+        readonly HashSet<TileView> vanishing = new HashSet<TileView>();
 
         public bool Busy { get; private set; }
 
@@ -41,14 +47,105 @@ namespace GC26._2048
             }
             for (int i = 0; i < 20; i++)
                 Release(TileView.Create(pan, art));
+
+            // same rect as the pan, above it and all its tiles
+            var layer = CheeseUi.Rect("MouseLayer", crate.transform).Place(0.035f, 0.035f, 0.965f, 0.965f);
+            var mouseImage = CheeseUi.Picture(layer, "Mouse", art.MouseRun);
+            CheeseUi.AddShadow(mouseImage.gameObject, 6f);
+            mouse = mouseImage.rectTransform;
+            mouse.gameObject.SetActive(false);
+        }
+
+        /// <summary>Shows the mouse where the game says it is (after a new or a loaded game).</summary>
+        public void ShowMouse(CheeseMouse m)
+        {
+            bool here = m.State == MouseState.Here;
+            mouse.gameObject.SetActive(here);
+            if (here) PlaceMouse(TileView.CellMin(m.Row, m.Col), Vector2.zero, 0f, 1f);
+        }
+
+        /// <summary>Puts the mouse over a cell (given by its lower-left anchor), nudged by a fraction of a cell.</summary>
+        void PlaceMouse(Vector2 cellMin, Vector2 nudge, float tilt, float scale)
+        {
+            var size = TileView.CellSize;
+            var min = cellMin + size * MouseInset + Vector2.Scale(nudge, size);
+            mouse.anchorMin = min;
+            mouse.anchorMax = min + size * (1f - 2f * MouseInset);
+            mouse.offsetMin = mouse.offsetMax = Vector2.zero;
+            mouse.localRotation = Quaternion.Euler(0, 0, tilt);
+            mouse.localScale = Vector3.one * scale;
+        }
+
+        IEnumerator MouseArrive(int row, int col, float duration = 0.4f)
+        {
+            mouse.gameObject.SetActive(true);
+            mouse.SetAsLastSibling();
+            var cell = TileView.CellMin(row, col);
+            for (float t = 0; t < duration; t += Time.unscaledDeltaTime)
+            {
+                float k = t / duration;
+                // drops in from above, lands with a little squash
+                float drop = k < 0.6f ? 1f - k / 0.6f : 0f;
+                float land = k < 0.6f ? 1f : 1f + 0.12f * Mathf.Sin((k - 0.6f) / 0.4f * Mathf.PI);
+                PlaceMouse(cell, new Vector2(0f, 0.9f * drop * drop), 0f, Mathf.Min(1f, k / 0.3f) * land);
+                yield return null;
+            }
+            PlaceMouse(cell, Vector2.zero, 0f, 1f);
+            mouseArrive = null;
+        }
+
+        /// <summary>Hops from one end of the line to the other; each cheese on the way vanishes as the mouse reaches it.</summary>
+        IEnumerator MouseRun(MoveResult r)
+        {
+            if (mouseArrive != null) { StopCoroutine(mouseArrive); mouseArrive = null; }
+            mouse.gameObject.SetActive(true);
+            var from = TileView.CellMin(r.MouseFromRow, r.MouseFromCol);
+            var to = TileView.CellMin(r.MouseRow, r.MouseCol);
+            int steps = Mathf.Max(Mathf.Abs(r.MouseRow - r.MouseFromRow), Mathf.Abs(r.MouseCol - r.MouseFromCol), 1);
+            float lean = r.MouseCol > r.MouseFromCol ? -12f : r.MouseCol < r.MouseFromCol ? 12f : 0f;
+            var eaten = new List<(int step, TileEvent e)>();
+            foreach (var e in r.Eaten)
+                eaten.Add((Mathf.Max(Mathf.Abs(e.Row - r.MouseFromRow), Mathf.Abs(e.Col - r.MouseFromCol)), e));
+            int next = 0;
+            float duration = MouseStepTime * steps;
+            for (float t = 0; ; t += Time.unscaledDeltaTime)
+            {
+                float k = Mathf.Clamp01(t / duration);
+                float along = k * steps;
+                while (next < eaten.Count && eaten[next].step <= along + 0.35f) Eat(eaten[next++].e);
+                float hop = Mathf.Abs(Mathf.Sin(along * Mathf.PI)) * MouseHop;
+                PlaceMouse(Vector2.Lerp(from, to, k), new Vector2(0f, hop), lean * (k < 1f ? 1f : 0f), 1f);
+                if (k >= 1f) break;
+                yield return null;
+            }
+            while (next < eaten.Count) Eat(eaten[next++].e);
+            PlaceMouse(to, Vector2.zero, 0f, 1f);
+        }
+
+        void Eat(TileEvent e)
+        {
+            if (!tiles.TryGetValue(e.Id, out var cheese)) return;
+            tiles.Remove(e.Id);
+            StartCoroutine(VanishAndRelease(cheese));
+        }
+
+        IEnumerator VanishAndRelease(TileView view)
+        {
+            vanishing.Add(view);
+            yield return view.Vanish();
+            vanishing.Remove(view);
+            Release(view);
         }
 
         public void ShowBoard(Board board)
         {
             StopAllCoroutines();
+            mouseArrive = null;
             Busy = false;
             foreach (var t in tiles.Values) Release(t);
             tiles.Clear();
+            foreach (var t in vanishing) Release(t); // eaten cheese caught mid-animation
+            vanishing.Clear();
             for (int r = 0; r < board.Size; r++)
             for (int c = 0; c < board.Size; c++)
             {
@@ -109,6 +206,10 @@ namespace GC26._2048
                 tiles[s.Id] = view;
                 StartCoroutine(view.Appear());
             }
+
+            // 3. the mouse: comes, or runs across its line (input waits until it has finished eating)
+            if (result.MouseArrived) mouseArrive = StartCoroutine(MouseArrive(result.MouseRow, result.MouseCol));
+            if (result.MouseRan) yield return MouseRun(result);
 
             Busy = false;
             onDone?.Invoke();

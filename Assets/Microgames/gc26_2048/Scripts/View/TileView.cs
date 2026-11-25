@@ -82,6 +82,7 @@ namespace GC26._2048
             if (glowEffect != null) StopCoroutine(glowEffect);
             shapeEffect = glowEffect = null;
             rect.localScale = Vector3.one;
+            rect.localRotation = Quaternion.identity;
             glow.gameObject.SetActive(false);
         }
 
@@ -145,6 +146,23 @@ namespace GC26._2048
             }
             rect.localScale = Vector3.one;
             shapeEffect = null;
+        }
+
+        /// <summary>Eaten by the mouse: the cheese spins, shrinks and fades away (the board returns the tile to the pool).</summary>
+        public IEnumerator Vanish(float duration = 0.22f)
+        {
+            StopEffects();
+            for (float t = 0; t < duration; t += Time.unscaledDeltaTime)
+            {
+                float k = t / duration;
+                rect.localScale = Vector3.one * (1f - k * k);
+                rect.localRotation = Quaternion.Euler(0, 0, 90f * k);
+                group.alpha = 1f - k;
+                yield return null;
+            }
+            rect.localScale = Vector3.one;
+            rect.localRotation = Quaternion.identity;
+            group.alpha = 1f;
         }
 
         public IEnumerator Appear(float duration = 0.16f)
