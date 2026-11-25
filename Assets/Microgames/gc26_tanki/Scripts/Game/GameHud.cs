@@ -28,7 +28,7 @@ namespace GC26.Tanki.Game
             game = runner;
             disc = MakeCircle(128, false);
             ring = MakeCircle(128, true);
-            heart = MakeHeart(64);
+            heart = MakeHeart(96);
             arrow = MakeArrow(32);
             pixel = new Texture2D(1, 1);
             pixel.SetPixel(0, 0, Color.white);
@@ -310,7 +310,7 @@ namespace GC26.Tanki.Game
             {
                 x -= step;
                 Color previous = GUI.color;
-                GUI.color = i < lives ? new Color(0.94f, 0.22f, 0.31f) : new Color(1f, 1f, 1f, 0.16f);
+                GUI.color = i < lives ? Color.white : new Color(0.32f, 0.27f, 0.38f, 0.6f);
                 GUI.DrawTexture(new Rect(x, centreY - size / 2f, size, size), heart);
                 GUI.color = previous;
             }
@@ -749,7 +749,23 @@ namespace GC26.Tanki.Game
             if (IconButton(settings, "НАСТРОЙКИ", "gear", quiet)) game.Open(Page.Settings);
         }
 
-        static string StarLine(int stars) => new string('★', stars) + new string('☆', 3 - stars);
+        /// <summary>Three star icons centred in the area: won ones gold, the rest dark, so they still read as stars.</summary>
+        void DrawStars(Rect area, int won)
+        {
+            Texture2D star = Icon("star");
+            if (star == null) return;
+            float size = Mathf.Min(area.height, area.width / 3.4f);
+            float gap = size * 0.12f;
+            float x = area.center.x - (size * 3f + gap * 2f) / 2f;
+            float y = area.center.y - size / 2f;
+            Color previous = GUI.color;
+            for (int i = 0; i < 3; i++)
+            {
+                GUI.color = i < won ? previous : new Color(0.1f, 0.08f, 0.13f, 0.6f * previous.a);
+                GUI.DrawTexture(new Rect(x + i * (size + gap), y, size, size), star, ScaleMode.ScaleToFit);
+            }
+            GUI.color = previous;
+        }
 
         // ---------- Assault, garage, awards ----------
 
@@ -785,9 +801,7 @@ namespace GC26.Tanki.Game
                 }
                 if (box.Contains(Event.current.mousePosition)) shown = i;
                 if (Button(box, (i + 1).ToString(), i == unlocked ? nextTile : bossTile)) game.StartAssault(i);
-                captionText.normal.textColor = i == unlocked ? Ink : new Color(1f, 0.85f, 0.4f);
-                GUI.Label(new Rect(box.x, box.yMax - 18f * unit, box.width, 14f * unit), StarLine(game.Save.AssaultStars[i]), captionText);
-                captionText.normal.textColor = Muted;
+                DrawStars(new Rect(box.x + 6f * unit, box.yMax - 22f * unit, box.width - 12f * unit, 17f * unit), game.Save.AssaultStars[i]);
             }
 
             float nameY = top + grid + 10f * unit;
@@ -967,10 +981,13 @@ namespace GC26.Tanki.Game
                 if (box.Contains(Event.current.mousePosition)) shown = i;
                 GUIStyle style = i == unlocked ? nextTile : boss ? bossTile : tile;
                 if (Button(box, (i + 1).ToString(), style)) game.StartLevel(i);
-                captionText.normal.textColor = i == unlocked ? Ink : boss ? new Color(1f, 0.82f, 0.78f) : new Color(1f, 0.85f, 0.4f);
-                string caption = StarLine(game.Save.Stars[i]) + (boss ? " БОСС" : "");
-                GUI.Label(new Rect(box.x, box.yMax - 17f * unit, box.width, 14f * unit), caption, captionText);
-                captionText.normal.textColor = Muted;
+                DrawStars(new Rect(box.x + 6f * unit, box.yMax - 20f * unit, box.width - 12f * unit, 16f * unit), game.Save.Stars[i]);
+                if (boss)
+                {
+                    captionText.normal.textColor = i == unlocked ? Ink : new Color(1f, 0.82f, 0.78f);
+                    GUI.Label(new Rect(box.x, box.y + 3f * unit, box.width, 12f * unit), "БОСС", captionText);
+                    captionText.normal.textColor = Muted;
+                }
             }
 
             float nameY = top + grid + 10f * unit;
@@ -1186,12 +1203,7 @@ namespace GC26.Tanki.Game
             {
                 // Stars won, with what each one was for.
                 GameSim sim = game.Sim;
-                int fontBefore = valueText.fontSize;
-                valueText.fontSize = Mathf.RoundToInt(32 * unit);
-                valueText.normal.textColor = new Color(1f, 0.83f, 0.3f);
-                GUI.Label(new Rect(area.x, top, area.width, 36f * unit), StarLine(sim.StarsWon), valueText);
-                valueText.normal.textColor = Paper;
-                valueText.fontSize = fontBefore;
+                DrawStars(new Rect(area.x, top + 2f * unit, area.width, 32f * unit), sim.StarsWon);
                 string why = "Победа" + (sim.LivesLost == 0 ? " · без потерь" : "")
                     + (sim.Time <= sim.ParTime ? " · быстрее " : " · норма ") + Mathf.RoundToInt(sim.ParTime) + " с";
                 GUI.Label(new Rect(area.x, top + 36f * unit, area.width, 20f * unit), why, plateNote.alignment == TextAnchor.UpperLeft ? plateText : plateNote);
@@ -1323,16 +1335,56 @@ namespace GC26.Tanki.Game
 
         static Texture2D MakeHeart(int size)
         {
+            // The classic heart curve as a polygon; each pixel is coloured by its distance from the edge:
+            // a dark rim, red getting lighter towards the top, and a shine on the left lobe.
+            const int points = 160;
+            var shape = new Vector2[points];
+            float scale = size / 35f;
+            for (int i = 0; i < points; i++)
+            {
+                float t = i * Mathf.PI * 2f / points;
+                float hx = 16f * Mathf.Pow(Mathf.Sin(t), 3);
+                float hy = 13f * Mathf.Cos(t) - 5f * Mathf.Cos(2f * t) - 2f * Mathf.Cos(3f * t) - Mathf.Cos(4f * t);
+                shape[i] = new Vector2(size / 2f + hx * scale, size / 2f + (hy + 2.5f) * scale);
+            }
+
+            var rim = new Color(0.42f, 0.03f, 0.1f);
+            var low = new Color(0.72f, 0.07f, 0.17f);
+            var high = new Color(1f, 0.33f, 0.42f);
+            var shine = new Color(1f, 0.88f, 0.9f);
+            float rimWidth = size * 0.045f;
             var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
                 {
-                    float px = ((x + 0.5f) / size - 0.5f) * 2.5f;
-                    float py = ((y + 0.5f) / size - 0.5f) * 2.5f + 0.1f;
-                    float a = px * px + py * py - 1f;
-                    float value = a * a * a - px * px * py * py * py;
-                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Clamp01(-value * size * 0.5f)));
+                    var p = new Vector2(x + 0.5f, y + 0.5f);
+                    bool inside = false;
+                    float nearest = float.MaxValue;
+                    for (int i = 0, j = points - 1; i < points; j = i++)
+                    {
+                        Vector2 a = shape[i], b = shape[j];
+                        if ((a.y > p.y) != (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+                        Vector2 ab = b - a;
+                        float along = Mathf.Clamp01(Vector2.Dot(p - a, ab) / ab.sqrMagnitude);
+                        nearest = Mathf.Min(nearest, (a + ab * along - p).sqrMagnitude);
+                    }
+                    float depth = (inside ? 1f : -1f) * Mathf.Sqrt(nearest);
+                    float alpha = Mathf.Clamp01(depth + 0.5f);
+                    if (alpha <= 0f)
+                    {
+                        texture.SetPixel(x, y, Color.clear);
+                        continue;
+                    }
+
+                    float v = (float)y / size;
+                    Color colour = Color.Lerp(low, high, Mathf.SmoothStep(0.15f, 0.85f, v));
+                    float sx = (x - size * 0.33f) / (size * 0.1f);
+                    float sy = (y - size * 0.66f) / (size * 0.065f);
+                    if (sx * sx + sy * sy < 1f) colour = shine;
+                    colour = Color.Lerp(rim, colour, Mathf.Clamp01(depth - rimWidth + 0.5f));
+                    colour.a = alpha;
+                    texture.SetPixel(x, y, colour);
                 }
             }
             texture.Apply();

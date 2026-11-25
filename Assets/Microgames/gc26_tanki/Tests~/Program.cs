@@ -15,6 +15,7 @@ static class Program
         Test("maps have the right size and exactly one base and player spawn", MapsAreWellFormed);
         Test("every enemy spawn can reach the player and the base", MapsAreConnected);
         Test("a crate takes two ordinary hits", CrateTakesTwoHits);
+        Test("survival puts the arena's crates and concrete back before each wave", SurvivalRestoresArena);
         Test("concrete stops a shot until the top upgrade", ConcreteNeedsTopUpgrade);
         Test("shots cross water and tanks cannot", WaterStopsTanksOnly);
         Test("the third hit on the base ends the game", BaseHitEndsGame);
@@ -793,6 +794,32 @@ static class Program
                     sim.Bullets.Add(new Bullet { OwnerId = sim.Player.Id, FromPlayer = true, X = enemy.X, Y = enemy.Y, Dir = Dir.Up, Speed = 1f, Damage = 50 });
             sim.Tick(Dt, default);
         }
+    }
+
+    static void SurvivalRestoresArena()
+    {
+        var sim = new GameSim(12);
+        sim.StartSurvival(new PlayerStats());
+        int crates = 0, walls = 0;
+        for (int y = 0; y < Levels.Height; y++)
+            for (int x = 0; x < Levels.Width; x++)
+            {
+                if (sim.Tiles[x, y] == Tile.Crate) crates++;
+                if (sim.Tiles[x, y] == Tile.Concrete) walls++;
+                if (sim.Tiles[x, y] == Tile.Crate || sim.Tiles[x, y] == Tile.Concrete) sim.Tiles[x, y] = Tile.Empty;
+            }
+        Check(crates > 0 && walls > 0, "the arena has crates and concrete");
+        ClearWave(sim);
+        sim.ChooseUpgrade(sim.Choices[0]);
+        int crates2 = 0, walls2 = 0;
+        for (int y = 0; y < Levels.Height; y++)
+            for (int x = 0; x < Levels.Width; x++)
+            {
+                if (sim.Tiles[x, y] == Tile.Crate) crates2++;
+                if (sim.Tiles[x, y] == Tile.Concrete) walls2++;
+            }
+        // A tank may stand on a cell, so allow one or two missing; a fort bonus may turn crates by the reactor into concrete for a while.
+        Check(crates2 + walls2 >= crates + walls - 2 && walls2 >= walls, "arena restored: crates " + crates2 + "/" + crates + ", concrete " + walls2 + "/" + walls);
     }
 
     static void SurvivalOffersChoices()

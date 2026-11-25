@@ -260,6 +260,13 @@ namespace GC26.Tanki.Rules
         public const float TurnWindow = 0.3f;
 
         public const int StartLives = 3;
+        /// <summary>Hearts stop piling up here; more life bonuses only give score.</summary>
+        public const int MaxLives = 5;
+        /// <summary>Survival enemies get +1 health every 5 waves (from wave 6), and one more of them may be on the field (up to +2).</summary>
+        public static int SurvivalEnemyArmor(int wave) => (wave - 1) / 5;
+        /// <summary>Survival enemies shoot 3% more often each wave, at most 30% more often (from wave 11).</summary>
+        public static float SurvivalFireScale(int wave) => System.Math.Max(0.7f, 1f - 0.03f * (wave - 1));
+        public static int SurvivalExtraEnemies(int wave) => System.Math.Min(2, (wave - 1) / 5);
         public const int MaxUpgrade = 3;
         public const int CarrierEvery = 4;
 
@@ -279,9 +286,9 @@ namespace GC26.Tanki.Rules
 
         public const int BaseHp = 3;
         public static readonly float[] GunBulletSpeed = { 9f, 10.5f, 12f, 12.5f, 13.5f, 14.5f };
-        public static readonly int[] GunDamage = { 1, 1, 1, 2, 2, 3 };
-        public static readonly float[] FireCooldown = { 0.32f, 0.27f, 0.23f, 0.19f, 0.16f, 0.13f };
-        public static readonly int[] FireBullets = { 1, 1, 2, 2, 3, 3 };
+        public static readonly int[] GunDamage = { 1, 1, 1, 2, 2, 2 };
+        public static readonly float[] FireCooldown = { 0.32f, 0.28f, 0.25f, 0.22f, 0.2f, 0.18f };
+        public static readonly int[] FireBullets = { 1, 1, 2, 2, 2, 3 };
         public static readonly float[] DriveSpeed = { 3.2f, 3.45f, 3.7f, 3.95f, 4.2f, 4.45f };
         public const float HurtTime = 0.6f;
 

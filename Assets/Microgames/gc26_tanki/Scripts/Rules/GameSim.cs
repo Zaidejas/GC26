@@ -275,7 +275,7 @@ namespace GC26.Tanki.Rules
                     if (Player.Alive) Player.Speed = PlayerSpeed;
                     break;
                 case RunUpgrade.Repair:
-                    Lives++;
+                    Lives = Math.Min(Tuning.MaxLives, Lives + 1);
                     if (Player.Alive) Player.Hp = Player.MaxHp;
                     BaseHp = BaseMax;
                     break;
@@ -297,7 +297,36 @@ namespace GC26.Tanki.Rules
             clearTimer = 0f;
             bossesSpawned = 0;
             Choices.Clear();
+            RestoreArena();
             Phase = GamePhase.Playing;
+        }
+
+        /// <summary>Survival: before each new wave the arena gets its crates and concrete back, whole,
+        /// so the star's concrete-breaking gun or a long fight does not leave it bare for the rest of the run.</summary>
+        void RestoreArena()
+        {
+            string[] rows = Levels.Survival.Rows;
+            for (int y = 0; y < Levels.Height; y++)
+            {
+                for (int x = 0; x < Levels.Width; x++)
+                {
+                    char c = rows[y][x];
+                    Tile want = c == '#' ? Tile.Crate : c == '@' ? Tile.Concrete : Tile.Empty;
+                    if (want == Tile.Empty) continue;
+                    if (Tiles[x, y] == Tile.Crate && want == Tile.Crate && crateHp[x, y] < Tuning.CrateHp)
+                    {
+                        crateHp[x, y] = Tuning.CrateHp;
+                        Events.Add(new GameEvent(GameEventKind.TileChanged, x, y));
+                        continue;
+                    }
+                    if (Tiles[x, y] != Tile.Empty || AnyTankAt(x + 0.5f, y + 0.5f)) continue;
+                    if (Mines.Exists(m => m.CellX == x && m.CellY == y)) continue;
+                    Tiles[x, y] = want;
+                    crateHp[x, y] = want == Tile.Crate ? Tuning.CrateHp : 0;
+                    baseRoutesStale = true;
+                    Events.Add(new GameEvent(GameEventKind.TileChanged, x, y));
+                }
+            }
         }
 
         void OfferChoices()
@@ -309,6 +338,9 @@ namespace GC26.Tanki.Rules
                 bool isStat = (int)upgrade < 4;
                 if (isStat && Stats[(Stat)(int)upgrade] >= Tuning.SurvivalMaxLevel) continue;
                 if (upgrade == RunUpgrade.SuperCharge && superNeedCut >= Tuning.SurvivalSuperNeed - 3) continue;
+                // Repair only when something needs it: a heart lost, the reactor or the tank hurt.
+                if (upgrade == RunUpgrade.Repair && Lives >= Tuning.StartLives && BaseHp >= BaseMax
+                    && (!Player.Alive || Player.Hp >= Player.MaxHp)) continue;
                 pool.Add(upgrade);
             }
             while (Choices.Count < 3 && pool.Count > 0)
@@ -816,7 +848,8 @@ namespace GC26.Tanki.Rules
                 wavesLooped = true;
             }
             spawnTimer -= dt;
-            int max = Mode == GameMode.Assault ? Math.Max(2, Settings.MaxEnemies - 1) : Settings.MaxEnemies;
+            int max = Mode == GameMode.Assault ? Math.Max(2, Settings.MaxEnemies - 1)
+                : Mode == GameMode.Survival ? Settings.MaxEnemies + Tuning.SurvivalExtraEnemies(Wave) : Settings.MaxEnemies;
             if (spawnTimer > 0f || Enemies.Count >= max) return;
 
             EnemyKind kind = ParseKind(waves[waveCursor]);
@@ -845,6 +878,10 @@ namespace GC26.Tanki.Rules
                 return;
             }
         }
+
+        float WaveFireScale => Mode == GameMode.Survival ? Tuning.SurvivalFireScale(Wave) : 1f;
+
+        int EnemyHpFor(EnemyKind kind) => Tuning.EnemyHp(kind) + (Mode == GameMode.Survival ? Tuning.SurvivalEnemyArmor(Wave) : 0);
 
         void SpawnEnemy(EnemyKind kind, float x, float y)
         {
@@ -886,8 +923,8 @@ namespace GC26.Tanki.Rules
                 Speed = Tuning.EnemySpeed(kind) * Settings.SpeedScale,
                 BulletSpeed = Tuning.EnemyBulletSpeed(kind),
                 Role = RoleFor(kind),
-                Hp = Tuning.EnemyHp(kind),
-                MaxHp = Tuning.EnemyHp(kind),
+                Hp = EnemyHpFor(kind),
+                MaxHp = EnemyHpFor(kind),
                 Carrier = (waveCursor + 1) % Tuning.CarrierEvery == 0,
                 SpawnTimer = Tuning.SpawnFlash,
                 Want = Dir.Down,
@@ -999,7 +1036,7 @@ namespace GC26.Tanki.Rules
                     enemy.Dir = (Dir)(((int)facing + 3) % 4);
                     Fire(enemy, enemy.BulletSpeed, false);
                     enemy.Dir = facing;
-                    enemy.FireTimer = NextFloat(1.1f, 1.6f) * Settings.FireIntervalScale;
+                    enemy.FireTimer = NextFloat(1.1f, 1.6f) * Settings.FireIntervalScale * WaveFireScale;
                 }
                 return;
             }
@@ -1007,7 +1044,7 @@ namespace GC26.Tanki.Rules
             if (enemy.FireTimer <= 0f && BulletsOf(enemy) == 0)
             {
                 Fire(enemy, enemy.BulletSpeed, false);
-                enemy.FireTimer = NextFloat(0.8f, 1.9f) * Tuning.EnemyFireScale(enemy.Kind) * Settings.FireIntervalScale;
+                enemy.FireTimer = NextFloat(0.8f, 1.9f) * Tuning.EnemyFireScale(enemy.Kind) * Settings.FireIntervalScale * WaveFireScale;
             }
         }
 
@@ -1690,7 +1727,8 @@ namespace GC26.Tanki.Rules
                     FreezeTimer = Tuning.FreezeTime;
                     break;
                 case BonusKind.Life:
-                    Lives++;
+                    if (Lives < Tuning.MaxLives) Lives++;
+                    else Score += Tuning.BonusScore;
                     break;
             }
         }
