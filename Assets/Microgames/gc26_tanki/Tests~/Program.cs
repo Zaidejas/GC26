@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text.RegularExpressions;
 using GC26.Tanki.Rules;
 
 // Runs without Unity: dotnet run --project Tests~
@@ -16,6 +18,7 @@ static class Program
         Test("every enemy spawn can reach the player and the base", MapsAreConnected);
         Test("a crate takes two ordinary hits", CrateTakesTwoHits);
         Test("auto-fire sees an enemy straight ahead but not past concrete or off the line", AutoFireSeesTargets);
+        Test("every shown Russian text has all four translations", EveryTextTranslated);
         Test("survival puts the arena's crates and concrete back before each wave", SurvivalRestoresArena);
         Test("concrete stops a shot until the top upgrade", ConcreteNeedsTopUpgrade);
         Test("shots cross water and tanks cannot", WaterStopsTanksOnly);
@@ -796,6 +799,36 @@ static class Program
             sim.Tick(Dt, default);
         }
     }
+
+    static void EveryTextTranslated()
+    {
+        Check(!Loc.Gaps().GetEnumerator().MoveNext(), "a translation row is short");
+        foreach (LevelDef level in Levels.All) Check(Loc.Has(level.Name), "no translation for level " + level.Name);
+        foreach (LevelDef level in Levels.Assault) Check(Loc.Has(level.Name), "no translation for fortress " + level.Name);
+        foreach (PlayerTank tank in System.Enum.GetValues(typeof(PlayerTank)))
+        {
+            TankDef def = TankDef.For(tank);
+            Check(Loc.Has(def.Name) && Loc.Has(def.Note) && Loc.Has(def.Power), "no translation for tank " + def.Name);
+        }
+        // Every text the game scripts pass to the translator, and the award names and goals.
+        string scripts = Path.Combine(Path.GetDirectoryName(Here()), "..", "Scripts");
+        var literal = new Regex(@"(?:L|Loc)\.T\(""((?:[^""\\]|\\.)*)""\)|(?:Name|Text) = ""([^""]*)""");
+        int seen = 0;
+        foreach (string file in Directory.GetFiles(scripts, "*.cs", SearchOption.AllDirectories))
+            foreach (Match m in literal.Matches(File.ReadAllText(file)))
+            {
+                string ru = Regex.Unescape(m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value);
+                if (!Regex.IsMatch(ru, @"[Ѐ-ӿ]")) continue;
+                seen++;
+                Check(Loc.Has(ru), "no translation for '" + ru + "' in " + Path.GetFileName(file));
+            }
+        Check(seen > 150, "found only " + seen + " texts to translate");
+        Loc.Lang = 1;
+        Check(Levels.All[0].Name == "First Line", "level names follow the language");
+        Loc.Lang = 0;
+    }
+
+    static string Here([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
 
     static void AutoFireSeesTargets()
     {

@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using GC26.Tanki.Rules;
+using L = GC26.Tanki.Rules.Loc;
 
 namespace GC26.Tanki.Game
 {
@@ -122,7 +123,7 @@ namespace GC26.Tanki.Game
             HudPointer.Drawn.Clear();
             yield return null;
             yield return null;
-            if (!HudPointer.Drawn.TryGetValue(button, out Rect rect))
+            if (!HudPointer.Drawn.TryGetValue(L.T(button), out Rect rect))
             {
                 failed++;
                 Debug.Log("TOUCHTEST FAIL no button '" + button + "' on page " + game.Page + " phase " + game.Sim.Phase);

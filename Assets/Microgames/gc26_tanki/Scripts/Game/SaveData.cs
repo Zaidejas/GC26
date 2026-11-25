@@ -20,6 +20,8 @@ namespace GC26.Tanki.Game
         public int Difficulty = (int)Rules.Difficulty.Normal;
         public bool SoundOn = true;
         public bool VibrationOn = true;
+        // Index into Loc.Names; -1 until chosen, then the phone's language picks it.
+        public int Language = -1;
 
         // The garage: the tank in use and the ones bought (by PlayerTank number).
         public int Tank;

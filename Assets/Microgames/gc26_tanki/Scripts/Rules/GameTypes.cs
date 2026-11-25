@@ -50,17 +50,17 @@ namespace GC26.Tanki.Rules
             switch (tank)
             {
                 case PlayerTank.Squall:
-                    return new TankDef { Name = "Шквал", Model = "player_squall", Hp = -1, Speed = 0.35f, CooldownScale = 0.8f, ChargeNeed = 0, Price = 80, Ability = Ability.Volley,
-                        Note = "Быстрый, стреляет чаще, но броня тоньше.", Power = "Залп: пробивные снаряды во все 4 стороны" };
+                    return new TankDef { Name = Loc.T("Шквал"), Model = "player_squall", Hp = -1, Speed = 0.35f, CooldownScale = 0.8f, ChargeNeed = 0, Price = 80, Ability = Ability.Volley,
+                        Note = Loc.T("Быстрый, стреляет чаще, но броня тоньше."), Power = Loc.T("Залп: пробивные снаряды во все 4 стороны") };
                 case PlayerTank.Bastion:
-                    return new TankDef { Name = "Бастион", Model = "player_bastion", Hp = 2, Speed = -0.45f, CooldownScale = 1.15f, ChargeNeed = 1, Price = 120, Ability = Ability.Dome,
-                        Note = "Медленный, зато +2 к здоровью.", Power = "Купол: щит на 6 с, враги рядом оглушены" };
+                    return new TankDef { Name = Loc.T("Бастион"), Model = "player_bastion", Hp = 2, Speed = -0.45f, CooldownScale = 1.15f, ChargeNeed = 1, Price = 120, Ability = Ability.Dome,
+                        Note = Loc.T("Медленный, зато +2 к здоровью."), Power = Loc.T("Купол: щит на 6 с, враги рядом оглушены") };
                 case PlayerTank.Phantom:
-                    return new TankDef { Name = "Призрак", Model = "player_phantom", Hp = 0, Speed = 0.2f, CooldownScale = 1f, ChargeNeed = -1, Price = 160, Ability = Ability.Dash,
-                        Note = "Ловкий, способность копится быстрее.", Power = "Рывок: прыжок на 4 клетки и невидимость 3 с" };
+                    return new TankDef { Name = Loc.T("Призрак"), Model = "player_phantom", Hp = 0, Speed = 0.2f, CooldownScale = 1f, ChargeNeed = -1, Price = 160, Ability = Ability.Dash,
+                        Note = Loc.T("Ловкий, способность копится быстрее."), Power = Loc.T("Рывок: прыжок на 4 клетки и невидимость 3 с") };
                 default:
-                    return new TankDef { Name = "Страж", Model = "player", Hp = 0, Speed = 0f, CooldownScale = 1f, ChargeNeed = 0, Price = 0, Ability = Ability.Strike,
-                        Note = "Ровный танк без слабых мест.", Power = "Удар реактора: луч до края карты" };
+                    return new TankDef { Name = Loc.T("Страж"), Model = "player", Hp = 0, Speed = 0f, CooldownScale = 1f, ChargeNeed = 0, Price = 0, Ability = Ability.Strike,
+                        Note = Loc.T("Ровный танк без слабых мест."), Power = Loc.T("Удар реактора: луч до края карты") };
             }
         }
     }

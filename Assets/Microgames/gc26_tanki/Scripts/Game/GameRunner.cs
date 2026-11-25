@@ -1,5 +1,6 @@
 using System;
 using GC26.Tanki.Rules;
+using L = GC26.Tanki.Rules.Loc;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using PlayerInput = GC26.Tanki.Rules.PlayerInput;
@@ -42,12 +43,12 @@ namespace GC26.Tanki.Game
             {
                 switch (TutorialStep)
                 {
-                    case 0: return "Двигайся: джойстик слева или стрелки / WASD. Проедь пару клеток.";
-                    case 1: return "Танк стреляет сам. Упрись в ящик перед собой, и танк его разобьёт: ему нужно два попадания.";
-                    case 2: return "Враг! Подбей его. Здесь враги не стреляют, в бою стреляют.";
-                    case 3: return "Из подсвеченных танков выпадают бонусы. Подъедь к бонусу, чтобы взять его.";
-                    case 4: return "Подбитые враги заряжают способность танка. Она заряжена: нажми «" + AbilityLabel(Sim.Ability) + "» внизу или E.";
-                    case 5: return "Береги реактор внизу: одно попадание в него, и бой проигран. Обучение пройдено!";
+                    case 0: return L.T("Двигайся: джойстик слева или стрелки / WASD. Проедь пару клеток.");
+                    case 1: return L.T("Танк стреляет сам. Упрись в ящик перед собой, и танк его разобьёт: ему нужно два попадания.");
+                    case 2: return L.T("Враг! Подбей его. Здесь враги не стреляют, в бою стреляют.");
+                    case 3: return L.T("Из подсвеченных танков выпадают бонусы. Подъедь к бонусу, чтобы взять его.");
+                    case 4: return L.T("Подбитые враги заряжают способность танка. Она заряжена: нажми «") + AbilityLabel(Sim.Ability) + L.T("» внизу или E.");
+                    case 5: return L.T("Береги реактор внизу: одно попадание в него, и бой проигран. Обучение пройдено!");
                     default: return null;
                 }
             }
@@ -86,6 +87,12 @@ namespace GC26.Tanki.Game
 #endif
 
             Save = SaveData.Load();
+            L.Lang = Save.Language >= 0 ? Save.Language : SystemLanguage();
+#if DEVELOPMENT_BUILD
+            // "-lang 4" shows a language without touching the save, for screenshots.
+            int langArg = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-lang");
+            if (langArg >= 0 && int.TryParse(System.Environment.GetCommandLineArgs()[langArg + 1], out int lang)) L.Lang = lang;
+#endif
             Sim = new GameSim(System.Environment.TickCount);
             Sim.SetDifficulty(ChosenDifficulty);
             Controls = new Controls();
@@ -228,7 +235,7 @@ namespace GC26.Tanki.Game
                         world.Burst(item.X, item.Y, WorldView.Hex("6FF2E0"), 20, 3.4f);
                         shake = Mathf.Max(shake, 0.35f);
                         Vibrate();
-                        ShowToast("Реактор повреждён: осталось " + Sim.BaseHp);
+                        ShowToast(L.T("Реактор повреждён: осталось ") + Sim.BaseHp);
                         break;
                     case GameEventKind.BaseDestroyed:
                         world.Smoke(item.X, item.Y, 12, 0.9f);
@@ -249,7 +256,7 @@ namespace GC26.Tanki.Game
                         break;
                     case GameEventKind.SuperReady:
                         Sound.Pickup();
-                        ShowToast(AbilityName(Sim.Ability) + " готов!");
+                        ShowToast(AbilityName(Sim.Ability) + L.T(" готов!"));
                         break;
                     case GameEventKind.SuperStrike:
                         Sound.BigBlast();
@@ -329,11 +336,11 @@ namespace GC26.Tanki.Game
                         world.Ring(item.X, item.Y, WorldView.Hex("FF5A3C"), 5f, 0.9f);
                         shake = 0.6f;
                         Vibrate();
-                        ShowToast("Вражеский реактор уничтожен!");
+                        ShowToast(L.T("Вражеский реактор уничтожен!"));
                         break;
                     case GameEventKind.BossSpawned:
                         Sound.BigBlast();
-                        ShowToast("Босс на поле!");
+                        ShowToast(L.T("Босс на поле!"));
                         shake = 0.3f;
                         break;
                 }
@@ -403,10 +410,10 @@ namespace GC26.Tanki.Game
         {
             switch (ability)
             {
-                case Ability.Volley: return "Залп";
-                case Ability.Dome: return "Купол";
-                case Ability.Dash: return "Рывок";
-                default: return "Удар реактора";
+                case Ability.Volley: return L.T("Залп");
+                case Ability.Dome: return L.T("Купол");
+                case Ability.Dash: return L.T("Рывок");
+                default: return L.T("Удар реактора");
             }
         }
 
@@ -414,10 +421,10 @@ namespace GC26.Tanki.Game
         {
             switch (ability)
             {
-                case Ability.Volley: return "ЗАЛП";
-                case Ability.Dome: return "КУПОЛ";
-                case Ability.Dash: return "РЫВОК";
-                default: return "УДАР";
+                case Ability.Volley: return L.T("ЗАЛП");
+                case Ability.Dome: return L.T("КУПОЛ");
+                case Ability.Dash: return L.T("РЫВОК");
+                default: return L.T("УДАР");
             }
         }
 
@@ -597,6 +604,26 @@ namespace GC26.Tanki.Game
             Save.SoundOn = on;
             Sound.Muted = !on;
             Save.Save();
+        }
+
+        /// <summary>The next language in the list, saved.</summary>
+        public void NextLanguage()
+        {
+            L.Lang = (L.Lang + 1) % L.Count;
+            Save.Language = L.Lang;
+            Save.Save();
+        }
+
+        static int SystemLanguage()
+        {
+            switch (Application.systemLanguage)
+            {
+                case UnityEngine.SystemLanguage.Russian: case UnityEngine.SystemLanguage.Ukrainian: case UnityEngine.SystemLanguage.Belarusian: return 0;
+                case UnityEngine.SystemLanguage.Spanish: return 2;
+                case UnityEngine.SystemLanguage.Portuguese: return 3;
+                case UnityEngine.SystemLanguage.German: return 4;
+                default: return 1;
+            }
         }
 
         public void SetVibration(bool on)

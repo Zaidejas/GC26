@@ -2,13 +2,15 @@ namespace GC26.Tanki.Rules
 {
     public sealed class LevelDef
     {
-        public string Name;
+        string name;
+        /// <summary>The map's name in the chosen language.</summary>
+        public string Name => Loc.T(name);
         public string[] Rows;
         public string Waves;
 
         public LevelDef(string name, string waves, params string[] rows)
         {
-            Name = name;
+            this.name = name;
             Waves = waves;
             Rows = rows;
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using L = GC26.Tanki.Rules.Loc;
 
 namespace GC26.Tanki.Game
 {
@@ -9,8 +10,9 @@ namespace GC26.Tanki.Game
         public sealed class Award
         {
             public string Id;
-            public string Name;
-            public string Text;
+            string name, text;
+            public string Name { get => L.T(name); set => name = value; }
+            public string Text { get => L.T(text); set => text = value; }
             public int Reward;
             public int Goal;
             public Func<SaveData, int> Value;
@@ -44,7 +46,7 @@ namespace GC26.Tanki.Game
                 if (save.Awards.Contains(award.Id) || award.Value(save) < award.Goal) continue;
                 save.Awards.Add(award.Id);
                 save.Parts += award.Reward;
-                earned.Add("Награда «" + award.Name + "»: +" + award.Reward + " деталей");
+                earned.Add(L.T("Награда «") + award.Name + L.T("»: +") + award.Reward + L.T(" деталей"));
             }
             if (earned.Count > 0) save.Save();
             return earned;

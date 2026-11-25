@@ -72,9 +72,9 @@ namespace GC26.Tanki.Rules
         public float PlayerCooldown => Tuning.FireCooldown[Stats[Stat.FireRate]] * TankInfo.CooldownScale;
         public bool IsBossLevel => Mode == GameMode.Survival ? Wave % Tuning.BossEvery == 0 : waves.IndexOf('X') >= 0;
         public Tank Boss => Enemies.Find(e => e.Kind == EnemyKind.Boss);
-        public string LevelName => Mode == GameMode.Survival ? "Выживание, волна " + Wave
-            : Mode == GameMode.Tutorial ? "Обучение"
-            : Mode == GameMode.Assault ? "Штурм " + (LevelIndex + 1) + ". " + Levels.Assault[LevelIndex].Name
+        public string LevelName => Mode == GameMode.Survival ? Loc.T("Выживание, волна ") + Wave
+            : Mode == GameMode.Tutorial ? Loc.T("Обучение")
+            : Mode == GameMode.Assault ? Loc.T("Штурм ") + (LevelIndex + 1) + ". " + Levels.Assault[LevelIndex].Name
             : (LevelIndex + 1) + ". " + Levels.All[LevelIndex].Name;
         public int MapCount => Mode == GameMode.Assault ? Levels.Assault.Length : Levels.All.Length;
         /// <summary>Hits our reactor can still take: 3 in the campaign and survival.</summary>
