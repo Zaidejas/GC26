@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700">
+  <defs><filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur in="SourceAlpha" stdDeviation="14" result="b"/><feFlood flood-color="#FF2FB3"/><feComposite in2="b" operator="in" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="glowc" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur in="SourceAlpha" stdDeviation="6" result="b"/><feFlood flood-color="#2DE2E6"/><feComposite in2="b" operator="in" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <g transform="rotate(-6 500 330)">
+  <text x="500" y="250" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="190" font-weight="900" font-style="italic" fill="#fff" filter="url(#glow)">EMO</text>
+  <text x="500" y="430" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="190" font-weight="900" font-style="italic" fill="#fff" filter="url(#glow)">PARTY</text>
+  </g>
+  <text x="500" y="610" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="54" font-weight="600" letter-spacing="16" fill="#2DE2E6" filter="url(#glowc)">find the pair</text>
+</svg>

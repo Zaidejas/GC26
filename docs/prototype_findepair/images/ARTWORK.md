@@ -30,17 +30,31 @@ Both backgrounds: **900 × 1950 px (9:19.5, portrait phone)**, opaque. They are 
 | 8 | Brick wall | `backgrounds/menu_wall.svg` | SVG (PNG to replace) | 900 × 1950 px | Main menu, settings | Dark brick wall. Final art: neon graffiti (Emo Party lettering, hearts, stars) and posted flyers |
 | 9 | Cork board | `backgrounds/board_cork.svg` | SVG (PNG to replace) | 900 × 1950 px | Game board | Cork notice board. Final art: flyers for games and gigs, stickers and Polaroids; the cards look like notes pinned to it |
 
-## Not image files (drawn in code)
+## Decorations and effects
 
-These are made with HTML/CSS in `index.html`, not files. They stay as they are unless you ask for them to become images too.
+These used to be drawn only in code (HTML/CSS in `index.html`). Each one now also has its own image file, in `decor/` and `fx/`, matching the prototype's look, so an artist can redraw it. `index.html` still draws them in code: the files are not wired into the prototype yet. All files are transparent SVG (PNG to replace), except the opaque flyers, notes and Polaroid. Text uses Segoe UI, so on a computer without it the text looks slightly different.
 
-| Title | Where | Description |
-|---|---|---|
-| Card frame, glow, push pin | Every card | Neon border in the card's main color and a pink pin at the top |
-| Graffiti and flyers | Main menu | ★ ♥ ⚡, "XOXO 2006", "never grow up", 3 paper flyers |
-| Notes and Polaroids | Game board | 3 sticky notes and 2 small Polaroid frames |
-| Logo | Splash, main menu | Flickering neon "EMO PARTY" text |
-| Sparkles and confetti | Pair vanish, win screen | ✦ ★ ♥ symbols with a pink glow |
+| # | Title | File | Size | Used on | Description |
+|---|---|---|---|---|---|
+| 10 | Card frame | `decor/card_frame.svg` | 900 × 1200 px | Every card | Neon pink rounded border with a soft glow. In the game it's tinted to the card's main color |
+| 11 | Push pin | `decor/push_pin.svg` | 128 × 128 px | Every card, top center | Glossy pink pin with a white highlight and a small shadow |
+| 12 | Graffiti star | `decor/graffiti_star.svg` | 256 × 256 px | Main menu | Neon cyan `#2DE2E6` star with a glow |
+| 13 | Graffiti heart | `decor/graffiti_heart.svg` | 256 × 256 px | Main menu | Neon pink `#FF2FB3` heart with a glow |
+| 14 | Graffiti bolt | `decor/graffiti_bolt.svg` | 256 × 256 px | Main menu | Acid green `#39FF88` lightning bolt with a glow |
+| 15 | "XOXO 2006" | `decor/graffiti_xoxo_2006.svg` | 1024 × 220 px | Main menu | Violet `#9B5CFF` italic spray-paint lettering |
+| 16 | "never grow up" | `decor/graffiti_never_grow_up.svg` | 1024 × 220 px | Main menu | Light pink `#FF7AD9` italic spray-paint lettering |
+| 17 | Flyer "Band wanted" | `decor/flyer_band_wanted.svg` | 540 × 380 px | Main menu | Paper flyer with tape: "BAND WANTED / drummer, own fringe a must" |
+| 18 | Flyer "Gig" | `decor/flyer_gig.svg` | 540 × 380 px | Main menu | Dark flyer with a violet border: "GIG / Friday, garage #3" |
+| 19 | Flyer "Mixtape" | `decor/flyer_mixtape.svg` | 540 × 380 px | Main menu | Paper flyer with tape: "MIXTAPE / will swap CD for a tape" |
+| 20 | Note "Memory tournament" | `decor/note_memory_tournament.svg` | 370 × 370 px | Game board | Light pink sticky note with a folded corner |
+| 21 | Note "Game of the week" | `decor/note_game_of_the_week.svg` | 370 × 370 px | Game board | Cyan sticky note |
+| 22 | Note "MP3 charger" | `decor/note_mp3_charger.svg` | 370 × 370 px | Game board | Acid green sticky note: "Don't forget the MP3 charger" |
+| 23 | Polaroid | `decor/polaroid.svg` | 320 × 380 px | Game board | Small Polaroid frame with a violet-to-pink photo; the game shows it half transparent |
+| 24 | Logo (splash) | `decor/logo_splash.svg` | 1200 × 420 px | Splash | "EMO PARTY" in white italic with a pink neon glow, tilted −6°. The flicker stays an animation |
+| 25 | Logo (menu) | `decor/logo_menu.svg` | 1000 × 700 px | Main menu | "EMO / PARTY" on two lines plus "find the pair" in cyan |
+| 26 | Sparkle | `fx/sparkle.svg` | 128 × 128 px | Pair vanish | White four-pointed star with a pink glow |
+| 27 | Confetti star | `fx/confetti_star.svg` | 128 × 128 px | Win screen | Acid green star; the game tints confetti in the palette colors |
+| 28 | Confetti heart | `fx/confetti_heart.svg` | 128 × 128 px | Win screen | Pink heart |
 
 ## Unity
 

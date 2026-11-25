@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="370" height="370" viewBox="0 0 370 370">
+  <defs></defs>
+  <rect x="10" y="10" width="350" height="350" fill="#2DE2E6"/>
+  <path d="M300,360 L360,300 L360,360 Z" fill="#000" opacity="0.12"/>
+  <text x="40" y="86" font-family="'Segoe UI', Arial, sans-serif" font-size="36" font-weight="800" fill="#2A1D2B">GAME OF</text>
+  <text x="40" y="132" font-family="'Segoe UI', Arial, sans-serif" font-size="36" font-weight="800" fill="#2A1D2B">THE WEEK</text>
+</svg>
