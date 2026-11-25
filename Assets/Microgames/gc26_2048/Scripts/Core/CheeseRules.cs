@@ -1,6 +1,6 @@
 namespace GC26._2048
 {
-    /// <summary>Game rules from the GDD: 4×4 field, 8 item levels, 7 merges; 200 moves (the GDD had 150).</summary>
+    /// <summary>Game rules from the GDD: 4×4 field, 8 item levels, 7 merges; 200 moves (the first GDD and the HTML prototype had 150).</summary>
     public static class CheeseRules
     {
         public const int Size = 4;
