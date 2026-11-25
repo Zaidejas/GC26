@@ -1,0 +1,1359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Soaring Plane</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #e9dcb6; --paper-dark: #cdb98a; --ink: #3a2a18; --ink-soft: #6b5232;
+    --olive: #3b4a2c; --olive-dark: #263019; --brass: #b08d48; --brass-light: #dcc082;
+    --red: #8e2a1e;
+  }
+  html, body { margin: 0; height: 100%; background: #1c1f22; overflow: hidden; }
+  body { font-family: 'Special Elite', 'Courier New', monospace; color: var(--ink); -webkit-user-select: none; user-select: none; }
+  #wrap { position: absolute; left: 0; top: 0; width: 480px; height: 720px; transform-origin: 0 0; overflow: hidden; box-shadow: 0 0 40px rgba(0,0,0,.6); }
+  canvas#game { position: absolute; inset: 0; width: 480px; height: 720px; display: block; touch-action: none; }
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; }
+  .screen.on { display: flex; }
+
+  /* ---------- Main menu ---------- */
+  #menu { justify-content: space-between; padding: 34px 0 28px; box-sizing: border-box; pointer-events: none; }
+  #menu > * { pointer-events: auto; }
+  .poster {
+    position: relative; width: 392px; padding: 18px 20px 16px; box-sizing: border-box; text-align: center;
+    background:
+      radial-gradient(ellipse at 18% 22%, rgba(120,80,30,.18), transparent 40%),
+      radial-gradient(ellipse at 85% 80%, rgba(120,80,30,.22), transparent 45%),
+      radial-gradient(ellipse at 60% 10%, rgba(255,255,255,.25), transparent 50%),
+      var(--paper);
+    border: 3px double var(--ink); outline: 6px solid var(--paper); box-shadow: 0 0 0 9px var(--ink-soft), 0 12px 30px rgba(0,0,0,.45);
+    transform: rotate(-1.2deg);
+  }
+  .poster .top { font-size: 12px; letter-spacing: 3px; color: var(--ink-soft); }
+  .poster h1 {
+    margin: 4px 0 0; font-family: 'IM Fell English SC', Georgia, serif; font-weight: normal;
+    font-size: 64px; line-height: .92; letter-spacing: 4px; color: var(--red);
+    text-shadow: 2px 2px 0 var(--ink), 0 0 1px var(--ink);
+  }
+  .poster h1 span { display: block; font-size: 54px; color: var(--ink); text-shadow: 1px 1px 0 rgba(0,0,0,.25); letter-spacing: 10px; }
+  .poster .rule { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; color: var(--ink); font-size: 14px; }
+  .poster .rule::before, .poster .rule::after { content: ''; flex: 1; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); height: 2px; }
+  .poster .sub { font-size: 13px; letter-spacing: 2px; color: var(--ink-soft); }
+  .menu-buttons { margin-top: 40px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+  .btn {
+    position: relative; font-family: 'IM Fell English SC', Georgia, serif; font-size: 28px; letter-spacing: 3px;
+    width: 260px; padding: 10px 0 8px; cursor: pointer; color: var(--paper);
+    background: linear-gradient(#4d5d3a, var(--olive) 55%, var(--olive-dark));
+    border: 2px solid var(--brass); border-radius: 6px;
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.15), 0 5px 0 #1b2212, 0 8px 14px rgba(0,0,0,.4);
+    text-shadow: 1px 1px 0 #000;
+  }
+  .btn:active:not(:disabled) { transform: translateY(3px); box-shadow: inset 0 0 0 2px rgba(0,0,0,.35), 0 2px 0 #1b2212; }
+  .btn.big { font-size: 36px; width: 290px; padding: 12px 0 10px; background: linear-gradient(#a13a29, var(--red) 55%, #5e1a12); box-shadow: inset 0 0 0 2px rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.15), 0 5px 0 #3b0f09, 0 8px 14px rgba(0,0,0,.4); }
+  .btn:disabled { cursor: default; filter: grayscale(.85) brightness(.7); }
+  .btn .soon { position: absolute; right: -10px; top: -10px; font-family: 'Special Elite', monospace; font-size: 11px; letter-spacing: 1px; background: var(--paper); color: var(--red); border: 1px solid var(--red); padding: 2px 6px; transform: rotate(8deg); }
+  .menu-stats { display: flex; gap: 22px; font-size: 16px; color: var(--paper); text-shadow: 1px 1px 2px #000; background: rgba(20,24,18,.55); padding: 6px 14px; border-radius: 4px; border: 1px solid rgba(176,141,72,.6); }
+  .menu-stats b { display: inline-flex; align-items: center; gap: 5px; }
+
+  /* ---------- Game over ---------- */
+  #over { justify-content: center; background: rgba(15,18,20,.35); }
+  .panel { width: 330px; text-align: center; padding: 18px 20px 22px; box-sizing: border-box; background: var(--paper); border: 3px double var(--ink); box-shadow: 0 0 0 6px var(--paper), 0 0 0 8px var(--ink-soft), 0 14px 30px rgba(0,0,0,.5); }
+  .panel h2 { margin: 0 0 6px; font-family: 'IM Fell English SC', Georgia, serif; font-weight: normal; font-size: 46px; color: var(--red); letter-spacing: 3px; }
+  .panel .line { display: flex; justify-content: space-between; font-size: 18px; border-bottom: 1px dashed var(--ink-soft); padding: 6px 2px; }
+  .panel .line b { display: inline-flex; gap: 5px; align-items: center; }
+  .panel .newbest { color: var(--red); font-size: 15px; margin-top: 6px; min-height: 18px; letter-spacing: 1px; }
+  .panel .btn { width: 100%; margin-top: 12px; font-size: 26px; }
+
+  /* ---------- Store ---------- */
+  #store { background: linear-gradient(#2c3324, #1b2016); color: var(--ink); }
+  .store-head { width: 100%; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 10px; background: linear-gradient(#4d5d3a, var(--olive-dark)); border-bottom: 3px solid var(--brass); box-shadow: 0 4px 10px rgba(0,0,0,.5); z-index: 1; }
+  .store-head h2 { margin: 0; font-family: 'IM Fell English SC', Georgia, serif; font-weight: normal; font-size: 32px; color: var(--paper); letter-spacing: 3px; text-shadow: 1px 1px 0 #000; }
+  .store-head .back { font-family: 'Special Elite', monospace; font-size: 16px; padding: 6px 10px; cursor: pointer; background: var(--paper); color: var(--ink); border: 2px solid var(--brass); border-radius: 4px; }
+  .store-head .wallet { display: inline-flex; align-items: center; gap: 6px; font-size: 20px; color: var(--paper); text-shadow: 1px 1px 0 #000; }
+  .store-list { flex: 1; width: 100%; overflow-y: auto; padding: 14px 14px 30px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px; -webkit-overflow-scrolling: touch; }
+  .store-list::-webkit-scrollbar { width: 8px; } .store-list::-webkit-scrollbar-thumb { background: var(--brass); border-radius: 4px; }
+  .card { background: var(--paper); border: 2px solid var(--ink-soft); box-shadow: 0 0 0 4px var(--paper), 0 0 0 5px var(--ink-soft), 0 8px 16px rgba(0,0,0,.45); margin: 5px; }
+  .card.selected { box-shadow: 0 0 0 4px var(--paper), 0 0 0 6px var(--red), 0 8px 16px rgba(0,0,0,.45); }
+  .card canvas.preview { display: block; width: 100%; height: 150px; border-bottom: 2px solid var(--ink-soft); }
+  .card .info { padding: 8px 12px 12px; }
+  .card h3 { margin: 0 0 4px; font-family: 'IM Fell English SC', Georgia, serif; font-weight: normal; font-size: 26px; color: var(--ink); display: flex; align-items: baseline; gap: 8px; }
+  .card h3 .num { font-family: 'Special Elite', monospace; font-size: 14px; color: var(--ink-soft); }
+  .card .history { margin: 0 0 8px; font-size: 13px; line-height: 1.35; color: #4a3a26; }
+  .card .specs { display: grid; grid-template-columns: 118px 1fr; gap: 3px 8px; font-size: 13px; margin: 0; }
+  .card .specs dt { color: var(--ink-soft); }
+  .card .specs dd { margin: 0; color: var(--ink); }
+  .card .country { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .card .country canvas { width: 30px; height: 20px; box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
+  .card .foot { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--ink-soft); }
+  .card .cost { display: inline-flex; align-items: center; gap: 6px; font-size: 22px; }
+  .card .buy { font-family: 'IM Fell English SC', Georgia, serif; font-size: 22px; letter-spacing: 2px; min-width: 130px; padding: 6px 12px 4px; cursor: pointer; color: var(--paper); background: linear-gradient(#a13a29, var(--red) 60%, #5e1a12); border: 2px solid var(--brass); border-radius: 5px; text-shadow: 1px 1px 0 #000; }
+  .card .buy.select { background: linear-gradient(#4d5d3a, var(--olive) 55%, var(--olive-dark)); }
+  .card .buy:disabled { cursor: default; filter: grayscale(.8) brightness(.8); }
+  .card .need { font-size: 12px; color: var(--red); text-align: right; margin-top: 3px; }
+  canvas.coin-ic { width: 22px; height: 22px; vertical-align: middle; }
+
+  #btnSound { position: absolute; left: 12px; top: 12px; width: 38px; height: 38px; font-size: 22px; line-height: 1; cursor: pointer; color: #f2ead2; background: rgba(20,24,18,.5); border: 1px solid rgba(176,141,72,.7); border-radius: 6px; z-index: 3; padding: 0; }
+  #menu.on ~ #btnSound { top: auto; bottom: 46px; }
+  #btnSound.off { opacity: .55; }
+  .panel .btn { margin-top: 10px; } .panel .region { font-size: 14px; letter-spacing: 2px; color: var(--ink-soft); margin-bottom: 4px; }
+  .panel .pair { display: flex; gap: 10px; } .panel .pair .btn { font-size: 21px; letter-spacing: 1px; }
+  #levels { background: linear-gradient(#2c3324, #1b2016); color: var(--ink); }
+  .tabs { width: 100%; display: flex; background: #20271a; z-index: 1; }
+  .tabs button { flex: 1; font-family: 'IM Fell English SC', Georgia, serif; font-size: 21px; letter-spacing: 2px; padding: 8px 0 6px; cursor: pointer; color: var(--paper-dark); background: #2f3826; border: 0; border-bottom: 3px solid transparent; }
+  .tabs button.on { color: var(--paper); background: var(--olive); border-bottom-color: var(--brass-light); }
+  .store-list { min-height: 0; } .card { flex: none; }
+  .filter { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; flex: none; }
+  .filter button { min-width: 42px; height: 32px; padding: 0 6px; cursor: pointer; font-family: inherit; font-size: 14px; color: var(--ink); background: var(--paper-dark); border: 2px solid transparent; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; }
+  .filter button.on { border-color: var(--red); background: var(--paper); }
+  canvas.flag { box-shadow: 0 0 0 1px rgba(0,0,0,.5); flex: none; }
+  .card h3 { flex-wrap: wrap; align-items: center; } .card h3 .fl:empty { display: none; } .card h3 .fl { display: inline-flex; }
+  .card.locked canvas.preview { filter: saturate(.45) brightness(.82); }
+  .card .cost small { font-size: 15px; color: var(--ink-soft); }
+  .note { margin: 0; text-align: center; color: var(--paper-dark); font-size: 13px; flex: none; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+
+  <div id="menu" class="screen on">
+    <div class="poster">
+      <div class="top">★ GRAND AERIAL EXHIBITION ★</div>
+      <h1>Soaring<span>Plane</span></h1>
+      <div class="rule">✠ ANNO MCMXVII ✠</div>
+      <div class="sub">Brave the world · Outfly the storm</div>
+    </div>
+    <div class="menu-buttons">
+      <button class="btn big" id="btnStart">Start</button>
+      <button class="btn" id="btnStore">Store</button>
+      <button class="btn" id="btnLang" disabled>Language<span class="soon">coming soon</span></button>
+    </div>
+    <div class="menu-stats">
+      <b>Best: <span id="menuBest">0</span></b>
+      <b><canvas class="coin-ic" width="44" height="44"></canvas><span id="menuCoins">0</span></b>
+    </div>
+  </div>
+
+  <div id="over" class="screen">
+    <div class="panel">
+      <h2>Crashed!</h2>
+      <div class="region" id="ovRegion"></div>
+      <div class="line"><span>Score</span><b id="ovScore">0</b></div>
+      <div class="line"><span>Best here</span><b id="ovBest">0</b></div>
+      <div class="line"><span>Collected</span><b><canvas class="coin-ic" width="44" height="44"></canvas><span id="ovCoins">0</span></b></div>
+      <div class="line"><span>Treasury</span><b><canvas class="coin-ic" width="44" height="44"></canvas><span id="ovTotal">0</span></b></div>
+      <div class="newbest" id="ovNew"></div>
+      <button class="btn big" id="btnRetry">Fly again</button>
+      <div class="pair"><button class="btn" id="btnRegions">Regions</button><button class="btn" id="btnMenu">Menu</button></div>
+    </div>
+  </div>
+
+  <div id="levels" class="screen">
+    <div class="store-head">
+      <button class="back" id="btnLevelBack">◄ Back</button>
+      <h2>Regions</h2>
+      <span class="wallet"><canvas class="coin-ic" width="44" height="44"></canvas><span id="levelCoins">0</span></span>
+    </div>
+    <div class="store-list" id="levelList"></div>
+  </div>
+
+  <div id="store" class="screen">
+    <div class="store-head">
+      <button class="back" id="btnBack">◄ Back</button>
+      <h2>Store</h2>
+      <span class="wallet"><canvas class="coin-ic" width="44" height="44"></canvas><span id="storeCoins">0</span></span>
+    </div>
+    <div class="tabs"><button id="tabPlanes">Planes</button><button id="tabBooms">Explosions</button></div>
+    <div class="store-list" id="storeList"></div>
+  </div>
+  <button id="btnSound" aria-label="Music and sound">♪</button>
+</div>
+
+<script>
+(() => {
+'use strict';
+// =====================================================================
+//  SOARING PLANE — student project, non-commercial.
+//  All aircraft, makers, stories and melodies are fictional / original.
+//  Balance: coin in 70 % of gaps + 30 % bonus coins ≈ 1.0 coin per
+//  obstacle; a coin pays 1-3 marks depending on the region.
+// =====================================================================
+const W = 480, H = 720;
+const GROUND = H - 34;
+const GRAVITY = 1500, FLAP_V = -430, MAX_FALL = 620;
+const CLIFF_W = 92, SPACING = 270;
+const TAU = Math.PI * 2;
+const rnd = (a, b) => a + Math.random() * (b - a);
+
+function R(c, x, y, w, h, r, f) { c.fillStyle = f; c.beginPath(); c.roundRect ? c.roundRect(x, y, w, h, r) : c.rect(x, y, w, h); c.fill(); }
+function PL(c, pts, f) { c.fillStyle = f; c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); c.fill(); }
+function LN(c, segs, col, w) { c.strokeStyle = col; c.lineWidth = w; c.lineCap = 'round'; c.beginPath(); for (const [a, b, d, e] of segs) { c.moveTo(a, b); c.lineTo(d, e); } c.stroke(); }
+function CI(c, x, y, r, f) { c.fillStyle = f; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); }
+function wheel(c, x, y, r) { CI(c, x, y, r, '#1a1a1a'); CI(c, x, y, r * .4, '#7a7a7a'); }
+function head(c, x, y) { CI(c, x, y, 3, '#5a3d25'); R(c, x - .5, y - 1.6, 3.6, 1.3, .6, '#1d1d1d'); }
+function prop(c, x, y, len, t) {
+  const s = Math.abs(Math.sin(t));
+  c.fillStyle = 'rgba(90,90,90,.2)'; c.beginPath(); c.ellipse(x + 1.7, y, 2.4, len, 0, 0, TAU); c.fill();
+  c.fillStyle = 'rgba(78,50,24,.95)'; c.fillRect(x + .5, y - len * s, 2.5, len * 2 * s);
+  R(c, x - 1, y - 1.6, 3.4, 3.2, 1.2, '#5a3d22');
+}
+function star(c, cx, cy, r, color) {
+  c.fillStyle = color; c.beginPath();
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .42 : r; c.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+  c.closePath(); c.fill();
+}
+function roundel(c, x, y, r, cols) { cols.forEach((col, i) => CI(c, x, y, r * (1 - i / cols.length), col)); }
+
+// =====================================================================
+//  COUNTRIES (label + the invented roundel used by its air service)
+// =====================================================================
+const RED = '#b8261d', WHT = '#f4f1e8', BLU = '#1f3d8f', GRN = '#2f7a45', BLK = '#151515', GLD = '#e9c33a';
+const COUNTRIES = {
+  uk: { name: 'United Kingdom', mark: [BLU, WHT, RED] },
+  de: { name: 'German Empire', mark: [BLK, WHT, RED] },
+  fr: { name: 'France', mark: [RED, WHT, BLU] },
+  it: { name: 'Kingdom of Italy', mark: [RED, WHT, GRN] },
+  us: { name: 'United States', mark: 'star' },
+  ru: { name: 'Russian Empire', mark: [RED, BLU, WHT] },
+  at: { name: 'Austria-Hungary', mark: [RED, WHT, GRN] },
+  be: { name: 'Belgium', mark: [RED, GLD, BLK] },
+  tr: { name: 'Ottoman Empire', mark: 'crescent' },
+  bg: { name: 'Bulgaria', mark: [RED, GRN, WHT] },
+  ca: { name: 'Canada', mark: 'leaf' },
+  au: { name: 'Australia', mark: 'south' },
+  pl: { name: 'Poland', mark: 'check' },
+  gr: { name: 'Greece', mark: ['#2a5fb0', WHT, '#2a5fb0'] },
+  nl: { name: 'Netherlands', mark: ['#e87a1d'] },
+  jp: { name: 'Empire of Japan', mark: 'sun' },
+};
+function mark(c, k, x, y, r) {
+  const m = COUNTRIES[k].mark;
+  if (Array.isArray(m)) return roundel(c, x, y, r, m);
+  if (m === 'star') { CI(c, x, y, r, BLU); star(c, x, y, r * .95, WHT); CI(c, x, y, r * .3, RED); }
+  else if (m === 'crescent') { CI(c, x, y, r, RED); CI(c, x - r * .1, y, r * .55, WHT); CI(c, x + r * .12, y, r * .44, RED); }
+  else if (m === 'leaf') { CI(c, x, y, r, WHT); star(c, x, y, r * .85, RED); R(c, x - r * .08, y + r * .2, r * .16, r * .6, 0, RED); }
+  else if (m === 'south') { CI(c, x, y, r, BLU); star(c, x, y, r * .8, WHT); }
+  else if (m === 'check') { R(c, x - r, y - r, r * 2, r * 2, .5, WHT); R(c, x - r, y - r, r, r, 0, RED); R(c, x, y, r, r, 0, RED); }
+  else if (m === 'sun') { CI(c, x, y, r, WHT); CI(c, x, y, r * .78, '#c0272d'); }
+}
+
+// =====================================================================
+//  AIRCRAFT RENDERER
+//  Every aircraft in this game is FICTIONAL. One generic side-view
+//  builder ("aero") is driven by a small recipe per plane.
+//  Facing right, origin ≈ centre of the hitbox.
+// =====================================================================
+function tailPath(c, kind, T, FH) {
+  c.beginPath();
+  switch (kind) {
+    case 'round': c.moveTo(T + 9, -3); c.quadraticCurveTo(T + 4, -FH - 3, T - 3, -FH + 1); c.quadraticCurveTo(T - 8, -FH + 5, T - 5, 1); break;
+    case 'comma': c.moveTo(T + 4, -3); c.bezierCurveTo(T + 5, -FH - 3, T - 10, -FH - 1, T - 8, -FH * .4); c.quadraticCurveTo(T - 8, 1, T, 2); break;
+    case 'shark': c.moveTo(T + 14, -4); c.quadraticCurveTo(T + 4, -6, T - 2, -FH - 2); c.lineTo(T - 7, -FH - 1); c.lineTo(T - 4, 2); break;
+    case 'swallow': c.moveTo(T + 9, -3); c.lineTo(T - 5, -FH); c.lineTo(T - 10, -FH); c.lineTo(T - 4, -FH * .45); c.lineTo(T - 10, 1); c.lineTo(T, 1); break;
+    default: c.moveTo(T + 8, -3); c.lineTo(T + 1, -FH); c.lineTo(T - 4, -FH); c.lineTo(T - 4, 1);
+  }
+  c.closePath();
+}
+function engineArt(c, type, N, o) {
+  if (type === 'radial') {
+    R(c, N - 2, -6.5, 7, 13, 2, '#3a3a3a'); for (let i = -4; i <= 4; i += 4) R(c, N - 1, i - 1, 5, 2, 1, '#6b6b6b');
+  } else if (type === 'rotary') {
+    R(c, N - 3, -7, 10, 14, 5, o.cowl || '#9a9a96'); R(c, N + 4, -5, 3, 10, 1.5, 'rgba(0,0,0,.45)'); R(c, N - 2, -6, 8, 2, 1, 'rgba(255,255,255,.3)');
+  } else if (type === 'spinner') {
+    c.fillStyle = o.cowl || '#8a8a86'; c.beginPath(); c.moveTo(N - 1, -6); c.quadraticCurveTo(N + 7, -4, N + 9, 0); c.quadraticCurveTo(N + 7, 4, N - 1, 6); c.fill();
+    R(c, N - 13, -8.5, 10, 2.6, 1, '#4a4a4a'); LN(c, [[N - 8, -2, N - 16, 0]], '#2a2a2a', 1.7);
+  } else if (type === 'ring') {
+    R(c, N - 2, -7.5, 5, 15, 2.5, o.cowl || '#555'); R(c, N + 1.5, -5.5, 2, 11, 1, '#23262a'); for (let i = 0; i < 3; i++) LN(c, [[N - 9 + i * 2.2, -3, N - 9 + i * 2.2, 3]], 'rgba(0,0,0,.35)', .8);
+  } else if (type === 'inline') {
+    R(c, N - 14, -9, 11, 3.2, 1, '#454545'); for (let i = 0; i < 4; i++) R(c, N - 13 + i * 2.7, -10.5, 1.6, 2, .5, '#555');
+    R(c, N, -6.5, 4.5, 13, 1, o.cowl || '#555'); LN(c, [[N + 1, -4, N + 3.5, -4], [N + 1, -1, N + 3.5, -1], [N + 1, 2, N + 3.5, 2]], '#2b2b2b', .7);
+    LN(c, [[N - 10, -4, N - 18, -2]], '#2a2a2a', 1.6);
+  }
+}
+function wingShape(c, [x, y, w, h], col, light, sweep) {
+  if (sweep) PL(c, [[x + w, y], [x + w - 2, y + h], [x - sweep, y + h + 2.5], [x - sweep - 2, y + 2]], col);
+  else R(c, x, y, w, h, Math.min(2.5, h / 2), col);
+  if (light) { if (sweep) LN(c, [[x + w - 1, y + .6, x - sweep, y + 2.4]], light, 1); else R(c, x, y, w, 1.5, .8, light); }
+}
+function nacelle(c, n, t, col) {
+  R(c, n.x, n.y, n.w, n.h, 2.5, col); R(c, n.x + 1, n.y + .8, n.w - 2, 1.2, .6, 'rgba(255,255,255,.2)');
+  for (let i = 2; i < n.w - 3; i += 4) R(c, n.x + i, n.y - 1.6, 2.4, 2, .5, '#3a3a3a');
+  if (n.dir > 0) prop(c, n.x + n.w, n.y + n.h / 2, n.p || 11, t); else prop(c, n.x - 3, n.y + n.h / 2, n.p || 11, t + 1);
+}
+function aero(c, t, o) {
+  const N = o.nose ?? 22, T = o.tail ?? -34, FH = o.finH || 16, B = o.body, D = o.dark, L = o.light || B, WG = o.wing || B, WD = o.wingDark || D;
+  const ws = o.wings, hi = ws[ws.length - 1], lo = ws[0], gear = o.gear || 'std';
+  if (o.scale) { c.save(); c.scale(o.scale, o.scale); }
+  // lower / middle wings sit behind the fuselage
+  for (let i = 0; i < ws.length - 1; i++) wingShape(c, ws[i], WD, null, o.sweep);
+  // undercarriage
+  if (gear === 'floats') {
+    LN(c, [[-6, 6, -9, 18], [10, 6, 12, 18], [-6, 6, 8, 18]], '#333', 1.4);
+    PL(c, [[-28, 18], [20, 18], [30, 19.5], [25, 24.5], [-24, 24.5], [-30, 21.5]], o.floatCol || '#d9d5c5'); LN(c, [[-26, 21.4, 26, 21.4]], 'rgba(0,0,0,.25)', .8);
+  } else if (gear === 'skis') {
+    LN(c, [[4, 6, 7, 17], [12, 6, 9, 17], [T + 3, 1, T, 6]], '#222', 1.5); c.strokeStyle = '#6b4a2b'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(-5, 18.5); c.lineTo(17, 18.5); c.quadraticCurveTo(21, 18, 22, 14.5); c.stroke();
+  } else if (gear === 'bogie') {
+    LN(c, [[0, 6, 2, 16], [14, 6, 12, 16], [2, 16, 12, 16]], '#222', 1.6); wheel(c, 1, 18, 4); wheel(c, 13, 18, 4); LN(c, [[T + 3, 1, T, 6]], '#222', 1.2);
+  } else if (gear === 'std' || gear === 'skid') {
+    LN(c, [[4, 6, 8, 17], [12, 6, 8, 17], [T + 3, 1, T, 6]], '#222', 1.5); wheel(c, 8, 18, 4);
+    if (gear === 'skid') { c.strokeStyle = '#7a5a34'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(2, 18); c.lineTo(18, 17); c.quadraticCurveTo(23, 16, 24, 12); c.stroke(); }
+  }
+  // tail
+  if (o.tailS === 'fan') {
+    c.fillStyle = WG; c.beginPath(); c.moveTo(T + 8, -2); c.quadraticCurveTo(T - 4, -10, T - 16, -7); c.quadraticCurveTo(T - 19, -1, T - 16, 5); c.quadraticCurveTo(T - 4, 4, T + 8, 1); c.fill();
+    LN(c, [[T + 6, 0, T - 14, -5], [T + 6, 0, T - 16, 0], [T + 6, 0, T - 14, 4]], 'rgba(90,70,40,.4)', .6); PL(c, [[T - 8, -5], [T - 10, -FH], [T - 15, -FH + 1], [T - 14, -4]], o.fin || B);
+  } else {
+    const rudder = (dx, shade) => {
+      c.save(); c.translate(dx, 0); tailPath(c, o.tailS, T, FH); c.fillStyle = o.fin || B; c.fill(); c.clip();
+      if (o.rudder) { const w = 9 / o.rudder.length; o.rudder.forEach((col, i) => { c.fillStyle = col; c.fillRect(T - 9 + (o.rudder.length - 1 - i) * w, -FH - 5, w + .3, FH + 10); }); }
+      if (shade) { c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(T - 20, -FH - 6, 44, FH + 14); }
+      c.restore();
+    };
+    if (o.twinTail) rudder(7, true);
+    rudder(0);
+  }
+  // fuselage
+  const top = o.fus === 'belly' ? -10 : -6;
+  if (o.fus === 'truss') {
+    const segs = [[-6, -5, T, -2], [-6, 5, T, 0]]; for (let x = -11; x > T + 3; x -= 6) { const k = (x + 6) / (T + 6); segs.push([x, -5 + 3 * k, x, 5 - 5 * k], [x, -5 + 3 * k, x - 5, 5 - 5 * k]); }
+    LN(c, segs, o.wood || '#a0743f', 1); PL(c, [[N, -5], [N + 2, 5], [-7, 5], [-7, -5]], B);
+  } else if (o.fus === 'pod') {
+    LN(c, [[-8, hi[1] + hi[3], T, -3], [-8, lo[1], T, 0]], o.wood || '#8a6a40', 2);
+    c.fillStyle = B; c.beginPath(); c.moveTo(N - 6, -6); c.quadraticCurveTo(N + 3, -4, N + 2, 2); c.quadraticCurveTo(N, 6, -8, 6); c.lineTo(-14, 0); c.lineTo(-10, -5); c.fill();
+  } else if (o.fus === 'boat') {
+    PL(c, [[N + 6, -1], [N + 2, 7], [2, 10], [-2, 7], [T - 2, 1], [T - 2, -3], [-10, -3], [N, -3]], B); PL(c, [[N + 6, -1], [N, -3], [-10, -3], [T - 2, -3], [T, -1.5], [-10, -1], [N + 2, .5]], L); LN(c, [[N + 2, 7, 2, 10], [2, 10, -2, 7]], 'rgba(0,0,0,.4)', 1);
+  } else {
+    c.fillStyle = B; c.beginPath();
+    if (o.fus === 'round') { c.moveTo(N, -6); c.quadraticCurveTo(2, -8.5, -10, -6.5); c.quadraticCurveTo(T + 8, -4.5, T - 2, -2); c.lineTo(T - 2, .5); c.quadraticCurveTo(-8, 8.5, N, 6); }
+    else if (o.fus === 'slim') { c.moveTo(N, -5); c.lineTo(N + 1, 5); c.lineTo(-6, 5.5); c.lineTo(T, 1); c.lineTo(T, -2); c.lineTo(-6, -6); }
+    else { c.moveTo(N, top); c.lineTo(N + 2, 6); c.lineTo(-10, 6); c.lineTo(T, 1); c.lineTo(T, -3); c.lineTo(-10, top); }
+    c.closePath(); c.fill();
+    PL(c, [[N + 1, 6], [-10, 6], [T, 1], [T, -.5], [-10, 2.5], [N + 1, 2.5]], o.belly || 'rgba(0,0,0,.14)');
+    if (o.fus === 'hump') { c.fillStyle = B; c.beginPath(); c.moveTo(N - 3, -6); c.quadraticCurveTo(N - 6, -12, 4, -11); c.lineTo(-1, -6); c.fill(); }
+  }
+  o.paint && o.paint(c, t, T, N);
+  if (o.tailS !== 'fan') R(c, T - 7, o.fus === 'boat' ? -9 : -1.5, 15, 3, 1.4, o.stab || D);
+  // crew
+  (o.cockpits || [-7]).forEach(x => { R(c, x - 3.5, top - 1, 7, 3, 1, '#151a12'); head(c, x, top - 3); });
+  if (o.eng) engineArt(c, o.eng, N, o);
+  // struts & wires
+  const ty = hi[1] + hi[3], by = lo[1];
+  if (ws.length > 1) {
+    const sc = o.strutCol || '#2a2a2a';
+    if (o.struts === 'V') LN(c, [[3, by, hi[0] + 7, ty], [3, by, hi[0] + hi[2] - 7, ty]], sc, 1.6);
+    else if (o.struts === 'N') LN(c, [[-9, ty, -9, by], [10, ty, 10, by], [-9, ty, 10, by]], sc, 1.4);
+    else if (o.struts === 'I') R(c, -1, ty, 4.5, by - ty, 1, sc);
+    else if (o.struts === 'X') LN(c, [[-9, ty, -9, by], [10, ty, 10, by], [-9, ty, 10, by], [10, ty, -9, by]], sc, 1.2);
+    else { const sx = o.struts || [-10, 10]; LN(c, sx.map(x => [x, ty, x + (o.stagger || 0), by]), sc, 1.4); LN(c, [[sx[0], ty, sx[sx.length - 1], by]], 'rgba(30,30,30,.5)', .7); }
+    if (o.cabane !== false) LN(c, [[N - 10, ty, N - 7, top + 1], [N - 16, ty, N - 18, top]], sc, 1.1);
+  } else if (o.parasol) LN(c, [[-6, ty, -4, -5], [10, ty, 10, -5], [2, ty, 8, 4]], '#2a2a2a', 1.2);
+  if (o.pylon) LN(c, [[5, hi[1], 5, hi[1] - 10], [5, hi[1] - 10, hi[0], hi[1]], [5, hi[1] - 10, hi[0] + hi[2], hi[1]], [5, 5, hi[0], ty], [5, 5, hi[0] + hi[2], ty]], 'rgba(50,40,30,.75)', .8);
+  (o.backNac || []).forEach(n => nacelle(c, n, t, o.nacCol || '#5a5a5a'));
+  // upper wing
+  if (o.dove) {
+    const [x, y, w] = hi; c.fillStyle = WG; c.beginPath(); c.moveTo(x + w, y); c.quadraticCurveTo(x + w / 2, y - 4, x, y - 2); c.quadraticCurveTo(x - 6, y - 3, x - 9, y - 10); c.quadraticCurveTo(x - 4, y - 1, x + 1, y + 1.4); c.quadraticCurveTo(x + w / 2, y, x + w, y + 2); c.fill();
+    LN(c, [[x + w, y + .5, x, y - .6]], 'rgba(0,0,0,.2)', .8);
+  } else { wingShape(c, hi, WG, L, o.sweep); if (o.loz) lozenge(c, () => c.rect(...hi), o.loz); if (o.wingTip) R(c, hi[0], hi[1], 6, hi[3], 2, o.wingTip); }
+  (o.nacelles || []).forEach(n => nacelle(c, n, t, o.nacCol || '#5a5a5a'));
+  // markings, guns, specials
+  mark(c, o.ck, ...(o.mark || [-20, -1, 3.8]));
+  if (o.gun) LN(c, [[2, top - 2.6, N - 3, top - 2.6]], '#222', 1.6);
+  if (o.rear) LN(c, [[o.rear, top - 4, o.rear - 8, top - 8]], '#222', 1.5);
+  o.extra && o.extra(c, t, T, N);
+  if (o.eng) prop(c, N + ({ rotary: 7, spinner: 6, ring: 4 }[o.eng] || 5), 0, o.propLen || 15, t);
+  if (o.scale) c.restore();
+}
+function lozenge(c, pathFn, cols) {
+  c.save(); c.beginPath(); pathFn(); c.clip(); const s = 3.2;
+  for (let row = -6; row < 1; row++) for (let col = -6; col < 8; col++) {
+    const x = col * s * 1.5, y = row * s * 1.73 + (col & 1) * s * .87;
+    c.fillStyle = cols[((row * 7 + col * 3) % cols.length + cols.length) % cols.length]; c.beginPath();
+    for (let k = 0; k < 6; k++) c.lineTo(x + Math.cos(k * Math.PI / 3) * s, y + Math.sin(k * Math.PI / 3) * s); c.fill();
+  }
+  c.restore();
+}
+const LOZ_DAY = ['#5b5470', '#3f4a3a', '#6e6a8a', '#4e5b42', '#7a6a55'], LOZ_NIGHT = ['#27304a', '#1f2a36', '#38325a', '#1d3a44'];
+// paint helpers for recipes
+const band = (x, w, col) => c => R(c, x, -5.6, w, 11, 0, col);
+const stripes = col => (c, t, T) => { c.save(); c.beginPath(); c.moveTo(20, -6); c.lineTo(20, 6); c.lineTo(-10, 6.2); c.lineTo(T, 1); c.lineTo(T, -2.6); c.lineTo(-10, -6.4); c.clip(); for (let x = -8; x > T; x -= 8) R(c, x - 4, -9, 4, 18, 0, col); c.restore(); };
+const bombs = c => { for (let i = 0; i < 3; i++) { c.fillStyle = '#2f3328'; c.beginPath(); c.ellipse(-8 + i * 6, 12, 1.6, 3, 0, 0, TAU); c.fill(); } };
+
+function dragonfly(c, t) {           // ultralight with two pairs of insect-like gauze wings
+  c.save(); c.translate(8, 2); const BAM = '#b98f4a', G1 = 'rgba(150,215,205,.9)', G2 = 'rgba(110,185,190,.85)';
+  LN(c, [[-2, -8, -42, -6], [-2, 3, -42, -5], [-10, -7.6, -18, -.4], [-18, -7.2, -26, -1.6], [-26, -6.8, -34, -3]], BAM, 1.5);
+  for (let x = -38; x < -6; x += 8) CI(c, x, -6.6, 1.6, '#2f8a86');
+  PL(c, [[-40, -6], [-52, -14], [-50, -6], [-52, 2]], G1); LN(c, [[-41, -6, -51, -6]], '#2f7f7c', .8);
+  LN(c, [[-4, -11, 2, 11], [14, -11, 8, 11], [2, 11, 8, 11]], BAM, 1.4); wheel(c, 5, 12, 4.2);
+  R(c, 0, -2, 7, 7, 2, '#4a3a2a'); head(c, 4, -4);
+  c.fillStyle = G2; c.beginPath(); c.ellipse(-4, -13, 15, 2.4, .16, 0, TAU); c.fill(); c.fillStyle = G1; c.beginPath(); c.ellipse(8, -14.5, 16, 2.6, -.08, 0, TAU); c.fill();
+  LN(c, [[-16, -15, 10, -12], [-6, -13.6, 22, -15.6]], '#2f7f7c', .7);
+  R(c, 14, -20, 7, 5, 1, '#454545'); CI(c, 16, -21, 1.6, '#e9c33a'); CI(c, 19.5, -21, 1.6, '#e9c33a'); prop(c, 22, -17.5, 11, t); c.restore();
+}
+
+// ---------------------------------------------------------------------
+//  CATALOGUE — [id, country, name, year, engine, total hp, km/h, class,
+//               store scene, brief (invented) history, recipe]
+// ---------------------------------------------------------------------
+const BI = [[-14, 6, 30, 4.5], [-18, -20, 36, 5]], BIG = [[-18, 6, 38, 4.5], [-20, -22, 42, 5.2]], SMALL = [[-10, 6, 26, 4], [-12, -17.5, 29, 4.6]], SESQ = [[-4, 6, 15, 2.8], [-17, -19.5, 34, 5]];
+const PLANE_ROWS = [
+  ['uk_fledgling', 'uk', 'Harrowby Fledgling', 1913, 'Sparrow rotary', 80, 130, 'Trainer biplane', 'ukcoast', 'The dark-green school machine every pilot starts with. Students claim it forgives everything except cliffs.',
+    { fus: 'box', body: '#2f4a2a', dark: '#1f3320', light: '#456b3d', eng: 'rotary', cowl: '#465044', nose: 19, wings: BI, cockpits: [-9, 2], gear: 'skid', tailS: 'comma' }],
+  ['uk_humpback', 'uk', 'Thornwick Humpback', 1917, 'Bramble rotary', 130, 186, 'Fighter biplane', 'ukcoast', 'Named for the hump hiding its guns. Turns right like a startled cat and left like a wardrobe.',
+    { fus: 'hump', body: '#7a6a3e', dark: '#54492b', light: '#97875a', eng: 'rotary', cowl: '#8d8d86', nose: 18, tail: -29, wings: SMALL, struts: 'N', tailS: 'round', rudder: [BLU, WHT, RED], gun: 1, cockpits: [-5], finH: 14 }],
+  ['uk_longbow', 'uk', 'Calloway Longbow', 1917, 'Pennine straight-six', 230, 178, 'Day bomber biplane', 'ukcoast', 'A long-nosed day bomber whose crew sat so far apart they spoke by speaking-tube and shouting.',
+    { fus: 'box', body: '#5f6a45', dark: '#414a30', light: '#7b8760', eng: 'inline', nose: 27, tail: -38, wings: BIG, struts: [-14, 0, 13], cockpits: [-13, -2], rear: -13, extra: bombs, rudder: [BLU, WHT, RED], mark: [-25, -1, 3.6] }],
+  ['de_habicht', 'de', 'Steinbach St.VII Habicht', 1918, 'Donner straight-six', 185, 195, 'Fighter biplane', 'germany', 'The "Goshawk": thick wings, a white shark tail, and a habit of hanging on its propeller.',
+    { fus: 'box', body: '#6e7448', dark: '#4e4866', light: '#8a8f60', eng: 'inline', wings: [[-14, 6, 30, 5], [-18, -21, 36, 6]], struts: 'N', loz: LOZ_DAY, wing: '#5b5470', tailS: 'shark', fin: '#eeeae0', gun: 1, paint: (c, t, T) => PL(c, [[-22, -4.4], [-22, 3.4], [T, 1], [T, -3]], '#eeeae0'), mark: [-27, -.6, 3] }],
+  ['de_dreizack', 'de', 'Steinbach St.III Dreizack', 1917, 'Wirbel rotary', 110, 165, 'Triplane fighter', 'germany', 'The "Trident" climbs on three stubby wings. Painted teal so friends could spot it above the pines.',
+    { fus: 'box', body: '#2f6a6a', dark: '#1f4a4c', light: '#4a8c88', eng: 'rotary', cowl: '#d8c24a', nose: 17, tail: -28, finH: 14, wings: [[-7, 7, 21, 3.8], [-8, -5.5, 23, 3.8], [-11, -18.5, 28, 4.4]], struts: 'I', strutCol: '#1f4a4c', cabane: false, tailS: 'comma', fin: '#f0ead6', gun: 1, cockpits: [-8], mark: [-18, 0, 3.4] }],
+  ['de_hai', 'de', 'Morgenrot Hai', 1917, 'Donner straight-six', 170, 180, 'Fighter sesquiplane', 'germany', 'The "Shark" had a varnished cigar of a body and a grin the ground crew repainted every Sunday.',
+    { fus: 'round', body: '#b07a3c', dark: '#5b6a3a', light: '#8a9a58', wing: '#6f7f48', eng: 'spinner', cowl: '#8e2a1e', wings: SESQ, struts: 'V', tailS: 'shark', fin: '#4f6a4a', gun: 1, extra: (c, t, T, N) => { PL(c, [[N - 1, 1], [N - 10, 3], [N - 1, 5.2]], '#f4f1e8'); LN(c, [[N - 8, 2.8, N - 2, 1.8], [N - 5, 4, N - 4, 2]], '#8e2a1e', .8); CI(c, N - 6, -2.5, 1.5, '#f4f1e8'); CI(c, N - 5.6, -2.5, .7, '#111'); } }],
+  ['de_nachtwal', 'de', 'Wendelin Nachtwal', 1917, 'twin Donner sixes', 520, 140, 'Heavy night bomber', 'germany', 'The "Night Whale" droned so low and slow that farmers set their clocks by it.',
+    { scale: .92, fus: 'belly', body: '#2c3650', dark: '#1d263a', light: '#465274', wing: '#2c3650', loz: LOZ_NIGHT, nose: 32, tail: -46, finH: 19, wings: [[-20, 8, 42, 5], [-22, -26, 46, 5.6]], struts: [-18, 18], cabane: false, gear: 'bogie', twinTail: 1, cockpits: [26, 12, -18], rear: -18, backNac: [{ x: -8, y: -19, w: 18, h: 8, dir: -1, p: 13 }], mark: [-30, -2, 3.8], nacCol: '#3f4a5c' }],
+  ['fr_libellule', 'fr', 'Montclair Libellule', 1907, 'flat-twin', 24, 85, 'Ultralight sport plane', 'paris', 'The "Dragonfly": bamboo, gauze and optimism. Its plans were printed in a Sunday newspaper for anyone to build.', null],
+  ['fr_traversiere', 'fr', 'Duvallon Traversière', 1909, '3-cylinder fan', 30, 80, 'Sport monoplane', 'channel', 'Built to win a bet about crossing cold water. It did, with a tailwind and a wet pilot.',
+    { fus: 'truss', body: '#a9c4d6', dark: '#e9dfc2', light: '#f7f1de', wing: '#efe6cc', stab: '#efe6cc', fin: '#a9c4d6', nose: 18, tail: -36, wings: [[-6, -9, 26, 3.4]], pylon: 1, eng: 'radial', cockpits: [-2], tailS: 'round', finH: 13, mark: [-39, -7, 2.6], propLen: 14 }],
+  ['fr_cigale', 'fr', 'Lavergne Cigale 19', 1916, 'Tourbillon rotary', 110, 168, 'Sesquiplane fighter', 'franceFront', 'The "Cicada" sang in every dive because its lower wing was barely there.',
+    { fus: 'box', body: '#aebcc6', dark: '#8798a5', light: '#d5dfe6', eng: 'rotary', cowl: '#3f7a4a', nose: 19, tail: -31, wings: SESQ, struts: 'V', tailS: 'comma', rudder: [BLU, WHT, RED], gun: 1, paint: band(6, 4, '#3f7a4a'), cockpits: [-6] }],
+  ['fr_mistral', 'fr', 'Garance Mistral XV', 1917, 'Bourrasque V8', 220, 216, 'Fighter biplane', 'franceFront', 'Short, sturdy and fast. It could not turn well, but nobody ever caught it to check.',
+    { fus: 'round', body: '#d6c998', dark: '#8a7a4c', light: '#ece2bb', wing: '#8d9a5c', wingDark: '#6f7a45', eng: 'ring', cowl: '#b8261d', nose: 19, tail: -30, wings: [[-11, 6, 27, 4.2], [-12, -17, 28, 4.6]], struts: 'X', tailS: 'round', rudder: [BLU, WHT, RED], gun: 1, paint: band(8, 5, '#b8261d') }],
+  ['fr_percheron', 'fr', 'Vauclair Percheron', 1917, 'Forge V12', 300, 182, 'Bomber / reconnaissance', 'franceFront', 'A metal-framed draught horse of the sky: ugly, honest and impossible to wear out.',
+    { fus: 'box', body: '#a5a9a4', dark: '#7c827d', light: '#c9cdc8', eng: 'ring', cowl: '#6a6f70', nose: 26, tail: -37, wings: [[-9, 6, 34, 4.2], [-19, -20, 36, 5]], struts: [-14, 0, 12], stagger: 6, cockpits: [-12, -2], rear: -12, extra: bombs, rudder: [BLU, WHT, RED] }],
+  ['fr_jumelle', 'fr', 'Roussel Jumelle', 1915, 'twin Tourbillon rotaries', 160, 132, 'Twin-engine scout bomber', 'franceFront', 'The "Twin" was mostly tail booms and wires; mechanics said it was knitted, not built.',
+    { fus: 'pod', body: '#d8cca4', dark: '#b3a67c', light: '#eee5c6', nose: 14, tail: -38, finH: 15, wings: [[-14, 7, 34, 4], [-18, -22, 42, 5]], struts: [-12, 14], cabane: false, gear: 'bogie', twinTail: 1, rudder: [BLU, WHT, RED], cockpits: [6], backNac: [{ x: 2, y: -13, w: 13, h: 8, dir: 1, p: 11 }], mark: [-5, 1, 3.4] }],
+  ['it_tritone', 'it', 'Bellandi Tritone', 1916, 'three Vesta sixes', 450, 137, 'Three-engine bomber', 'italy', 'Named after a sea god with one horn; this one has three. Crossed the Alps nightly, complaining loudly.',
+    { scale: .9, fus: 'pod', body: '#c9b98a', dark: '#9c8c60', light: '#e3d6ad', nose: 20, tail: -44, finH: 17, wings: [[-18, 8, 40, 4.6], [-19, -8, 42, 3.6], [-22, -27, 48, 5.6]], struts: [-16, 18], cabane: false, gear: 'bogie', twinTail: 1, rudder: [GRN, WHT, RED], cockpits: [14, 4], backNac: [{ x: -13, y: -20, w: 14, h: 8, dir: -1, p: 12 }], nacelles: [{ x: 4, y: -20, w: 16, h: 8, dir: 1, p: 12 }], mark: [-2, 0, 3.8] }],
+  ['it_scintilla', 'it', 'Corsini Scintilla', 1918, 'Vesta straight-six', 220, 220, 'Fighter biplane', 'italy', 'The "Spark" was the fastest thing over the Adriatic and knew it.',
+    { fus: 'round', body: '#c8b273', dark: '#8f7f4c', light: '#e2d19a', eng: 'spinner', cowl: '#b8261d', wings: SMALL, struts: 'X', tailS: 'shark', rudder: [GRN, WHT, RED], gun: 1, paint: c => { for (let i = 0; i < 5; i++) for (let j = 0; j < 3; j++) if ((i + j) % 2) R(c, -14 + i * 3.4, -4.5 + j * 3, 3.4, 3, 0, '#7a3a24'); }, mark: [-25, -1, 3] }],
+  ['us_daisy', 'us', 'Halloran Daisy', 1915, 'Prairie V8', 90, 121, 'Trainer biplane', 'usa', 'Half a nation learned to fly on a Daisy. After the war she sold rides at county fairs for a dollar.',
+    { fus: 'box', body: '#e0c45c', dark: '#b3963c', light: '#f3df92', eng: 'inline', nose: 25, tail: -36, finH: 18, wings: [[-17, 6, 34, 4], [-19, -21, 38, 5]], struts: [-13, 0, 12], cockpits: [-11, 0], tailS: 'round', rudder: [RED, WHT, BLU], extra: c => { for (let i = 0; i < 8; i++) CI(c, 9 + Math.cos(i * .785) * 2.4, Math.sin(i * .785) * 2.4, 1.2, '#fff'); CI(c, 9, 0, 1.4, '#c98a1d'); } }],
+  ['us_prairiehawk', 'us', 'Whitcomb Prairie Hawk', 1918, 'Freedom V12', 400, 198, 'Reconnaissance bomber', 'usa', 'A huge engine with a small aeroplane attached. Later carried letters, melons and one calf.',
+    { fus: 'belly', body: '#6a6438', dark: '#4b4728', light: '#8a8450', eng: 'ring', cowl: '#4a4a44', nose: 25, tail: -38, wings: BIG, struts: [-14, 0, 13], cockpits: [-14, -1], rear: -14, rudder: [RED, WHT, BLU], mark: [-24, -2, 4], propLen: 17 }],
+  ['us_pelican', 'us', 'Winslow Bay Pelican', 1918, 'Freedom V12 pusher', 360, 133, 'Patrol flying boat', 'usa', 'Patrolled foggy harbours with a thermos, a pigeon basket and remarkable patience.',
+    { fus: 'boat', body: '#7f8d99', dark: '#a9a48e', light: '#a7b4be', wing: '#d8c98c', wingDark: '#b5a76c', stab: '#b5a76c', nose: 24, tail: -42, finH: 19, gear: 'none', wings: [[-16, -10, 36, 3.8], [-20, -27, 44, 4.6]], struts: [-12, 14], cabane: false, tailS: 'round', rudder: [RED, WHT, BLU], cockpits: [17, 8], backNac: [{ x: -6, y: -21, w: 16, h: 7, dir: -1, p: 12 }], mark: [-18, 1, 3] }],
+  ['ru_strizh', 'ru', 'Zimin Z-6 Strizh', 1915, 'Tourbillon rotary', 80, 126, 'Escort fighter', 'russia', 'The "Swift" swapped wheels for skis each November and kept flying when everything else froze.',
+    { fus: 'box', body: '#cbbf98', dark: '#9c916c', light: '#e2d8b5', eng: 'rotary', cowl: '#5f7f9a', nose: 18, tail: -30, finH: 14, wings: [[-12, 6, 28, 4], [-14, -18, 31, 5]], struts: [-8, 9], gear: 'skis', tailS: 'swallow', rudder: [RED, BLU, WHT], gun: 1, cockpits: [-5] }],
+  ['ru_gagara', 'ru', 'Morozov Gagara', 1915, 'water-cooled nine', 150, 112, 'Reconnaissance flying boat', 'baltic', 'The "Loon" was happiest on rough water and once took off from a flooded parade ground.',
+    { fus: 'boat', body: '#8b5a2b', dark: '#bdb393', light: '#b07a40', wing: '#e3dcc2', wingDark: '#bdb393', nose: 24, tail: -42, finH: 18, gear: 'none', wings: [[-16, -10, 34, 3.5], [-18, -25, 38, 4]], struts: [-10, 12], cabane: false, tailS: 'comma', rudder: [RED, BLU, WHT], cockpits: [14, 6], backNac: [{ x: -5, y: -18, w: 14, h: 5.5, dir: -1 }], mark: [-18, 0, 2.8], extra: c => R(c, -18, -5, 4, 4, 1, '#d9d4c0') }],
+  ['ru_zhuravl', 'ru', 'Veresov Zhuravl', 1916, 'water-cooled nine', 150, 135, 'Reconnaissance biplane', 'russia', 'The "Crane" had long wings and longer legs, perfect for landing in fields nobody had mowed.',
+    { fus: 'slim', body: '#d8d0b8', dark: '#a39c86', light: '#eee8d6', eng: 'radial', nose: 24, tail: -37, wings: [[-12, 6, 28, 4], [-22, -22, 44, 5]], struts: [-10, 0, 12], cockpits: [-11, -1], rear: -11, tailS: 'round', fin: '#4f74a6', paint: c => R(c, -18, -4.6, 3, 8, 0, '#4f74a6'), mark: [-25, -1, 2.8], wingTip: '#4f74a6' }],
+  ['at_schwalbe', 'at', 'Kranich Schwalbe', 1910, 'Alpen straight-six', 100, 97, 'Reconnaissance monoplane', 'alps', 'The "Swallow" had wings and tail cut like a real bird. Cows looked up; generals did not.',
+    { fus: 'slim', body: '#e6dcb8', dark: '#c4b88f', light: '#f6eed2', wing: '#d9c48a', eng: 'inline', tail: -28, wings: [[-14, -9, 32, 3]], dove: 1, pylon: 1, tailS: 'fan', cockpits: [-4], mark: [-12, 0, 3] }],
+  ['at_gams', 'at', 'Hallstein Gams', 1915, 'Alpen straight-six', 150, 138, 'Reconnaissance biplane', 'alps', 'The "Chamois": swept-back wings and a love of mountain passes no sane pilot would try.',
+    { fus: 'round', body: '#8a5a34', dark: '#c9b98c', light: '#e6d9b2', wing: '#d8c99c', wingDark: '#b9a878', eng: 'inline', nose: 24, tail: -35, sweep: 6, wings: [[-10, 6, 28, 4], [-14, -20, 34, 4.6]], struts: [-10, 10], cockpits: [-11, -1], rear: -11, tailS: 'round', rudder: [RED, WHT, GRN], mark: [-22, -1, 3.4] }],
+  ['at_golya', 'at', 'Szarvas Gólya', 1915, 'Alpen straight-six', 145, 128, 'High-altitude scout', 'alps', 'The "Stork" drifted so high above the peaks that its crew sewed hot bricks into their coats.',
+    { fus: 'slim', body: '#c49a5c', dark: '#e4dcc4', light: '#fbf6e8', wing: '#eee6cf', wingDark: '#d2c8aa', eng: 'inline', cowl: '#b8261d', nose: 25, tail: -38, wings: [[-8, 6, 24, 3.6], [-22, -24, 46, 5]], struts: [-12, 10], cockpits: [-12, -2], rear: -12, tailS: 'swallow', fin: '#eee6cf', wingTip: '#222' }],
+  ['at_wespe', 'at', 'Donauwerk Wespe', 1917, 'Danube straight-six', 200, 189, 'Fighter sesquiplane', 'alps', 'The "Wasp" arrived striped from the factory because someone took the name literally.',
+    { fus: 'round', body: '#e0b23a', dark: '#3a3426', light: '#f2d06c', wing: '#4a4432', wingDark: '#2f2b20', eng: 'spinner', cowl: '#222', wings: SESQ, struts: 'V', tailS: 'comma', fin: '#222', gun: 1, paint: stripes('#222'), mark: [0, 0, 3.6] }],
+  ['be_hirondelle', 'be', 'Delcour Hirondelle', 1916, 'Tourbillon rotary', 120, 184, 'Fighter biplane', 'flanders', 'Dark blue above, cream below, fork-tailed: it hunted low between the windmills.',
+    { fus: 'hump', body: '#2c3f6a', dark: '#1e2c4c', light: '#4a5f92', belly: '#e8dfc4', eng: 'rotary', cowl: '#1e2c4c', nose: 18, tail: -30, finH: 14, wings: SMALL, struts: [-7, 9], tailS: 'swallow', rudder: [BLK, GLD, RED], gun: 1, cockpits: [-5] }],
+  ['be_observateur', 'be', 'Meuse Observateur', 1917, 'Forge V12', 285, 177, 'Reconnaissance biplane', 'flanders', 'Photographed every ditch in Flanders twice. The second album was said to be sharper.',
+    { fus: 'box', body: '#7b6b4a', dark: '#55503a', light: '#988a66', wing: '#68704a', wingDark: '#4c5438', eng: 'inline', nose: 26, tail: -36, wings: [[-10, 6, 32, 4.2], [-18, -20, 36, 5]], struts: [-13, 12], stagger: 5, cockpits: [-12, -2], rear: -12, rudder: [BLK, GLD, RED], extra: c => { R(c, -6, 6, 6, 4, 1, '#222'); CI(c, -3, 10.5, 1.8, '#9fd0e0'); } }],
+  ['be_moineau', 'be', 'Brabant Moineau', 1915, 'Sparrow rotary', 80, 128, 'Trainer biplane', 'flanders', 'The "Sparrow": small, brown, cheerful and found absolutely everywhere.',
+    { fus: 'box', body: '#b08a5c', dark: '#7f6140', light: '#cfac80', eng: 'rotary', cowl: '#6b4a2b', nose: 19, wings: BI, cockpits: [-9, 2], gear: 'skid', tailS: 'round', rudder: [BLK, GLD, RED] }],
+  ['tr_sahin', 'tr', 'Bosphor Şahin', 1917, 'Donner straight-six', 160, 175, 'Fighter sesquiplane', 'anatolia', 'The "Falcon" was sand-coloured, quick, and always followed by a dust cloud taller than itself.',
+    { fus: 'round', body: '#cdb27a', dark: '#a98f5a', light: '#e4cd9c', eng: 'spinner', cowl: '#8e2a1e', wings: SESQ, struts: 'V', tailS: 'shark', fin: '#b8261d', gun: 1 }],
+  ['tr_turna', 'tr', 'Anadolu Turna', 1912, '7-cylinder rotary', 70, 105, 'Parasol monoplane', 'anatolia', 'The "Crane" carried mail over the plateau with its single wing held up like a sunshade.',
+    { fus: 'truss', body: '#e6dcc0', dark: '#c8bb94', light: '#f7f0da', wing: '#d8574a', stab: '#d8574a', fin: '#d8574a', eng: 'rotary', cowl: '#9a8a6a', nose: 17, tail: -35, wings: [[-11, -17, 32, 4]], parasol: 1, cockpits: [-3], tailS: 'comma', finH: 14, mark: [3, 0, 3.2] }],
+  ['bg_sokol', 'bg', 'Rila Sokol', 1917, 'Donner straight-six', 165, 176, 'Two-seat fighter', 'balkan', 'The "Hawk" guarded the rose valleys; its gunner kept a bloom tied to the rear gun.',
+    { fus: 'slim', body: '#5d6b42', dark: '#7a4f38', light: '#7f8f5e', wing: '#6a5a40', wingDark: '#5d4232', eng: 'inline', nose: 23, tail: -34, wings: BI, struts: 'N', cockpits: [-11, -1], rear: -11, tailS: 'round', rudder: [WHT, GRN, RED], extra: c => { CI(c, 8, 0, 2.2, '#d85a7a'); CI(c, 8, 0, 1, '#a83a5a'); } }],
+  ['ca_loon', 'ca', 'Maple Ridge Loon', 1917, 'Prairie V8', 90, 122, 'Trainer biplane', 'canada', 'Flew off frozen lakes on skis. Students were told the ice was thick; students did not ask twice.',
+    { fus: 'box', body: '#2c3038', dark: '#d9a82e', light: '#f0c860', wing: '#e2b23a', wingDark: '#b98c26', eng: 'inline', nose: 25, tail: -35, finH: 17, wings: [[-16, 6, 33, 4], [-18, -21, 37, 5]], struts: [-12, 0, 12], cockpits: [-11, 0], gear: 'skis', tailS: 'round', fin: '#f0f0ec', paint: c => { for (let i = 0; i < 6; i++) for (let j = 0; j < 2; j++) if ((i + j) % 2) R(c, 4 + i * 2.4, -4 + j * 3, 2.4, 3, 0, '#f0f0ec'); } }],
+  ['ca_chickadee', 'ca', 'Kettle Lake Chickadee', 1916, 'Sparrow rotary', 100, 140, 'Aerobatic trainer', 'canada', 'Black cap, pale belly, and more loops per gallon than any machine its size.',
+    { fus: 'box', body: '#8f979c', dark: '#6b7479', light: '#b6bdc1', belly: '#f0e6d0', eng: 'rotary', cowl: '#1d1d1f', nose: 19, tail: -32, wings: BI, struts: 'X', cockpits: [-9, 2], gear: 'skid', tailS: 'comma', fin: '#f0e6d0', paint: c => R(c, 0, -6, 18, 4, 0, '#1d1d1f') }],
+  ['au_kookaburra', 'au', 'Murray River Kookaburra', 1917, 'Pennine straight-six', 240, 180, 'Day bomber biplane', 'outback', 'Brown back, blue wing flashes, and enough fuel to cross a desert and regret it.',
+    { fus: 'box', body: '#8a6a4a', dark: '#5f4832', light: '#a98a66', belly: '#efe6d2', wing: '#6d5640', eng: 'inline', nose: 27, tail: -37, wings: BIG, struts: [-14, 0, 13], cockpits: [-13, -2], rear: -13, wingTip: '#3f8fc4', extra: bombs, fin: '#efe6d2', rudder: [BLU, WHT, RED] }],
+  ['au_galah', 'au', 'Outback Galah', 1916, 'Sparrow rotary', 90, 134, 'Trainer biplane', 'outback', 'Pink and grey like the parrot, and about as serious.',
+    { fus: 'hump', body: '#d78a96', dark: '#8f949a', light: '#c4c8cc', wing: '#a3a8ae', wingDark: '#858a90', eng: 'rotary', cowl: '#8f949a', nose: 18, tail: -31, wings: BI, cockpits: [-7], tailS: 'round', fin: '#a3a8ae', gear: 'skid' }],
+  ['pl_husarz', 'pl', 'Wisła Husarz', 1918, 'Falconet V12', 275, 197, 'Two-seat fighter', 'poland', 'The "Hussar" wore painted feather wings behind the cockpit, exactly as any hussar should.',
+    { fus: 'belly', body: '#b5b8ba', dark: '#8a8f92', light: '#dadcdd', eng: 'ring', cowl: '#b8261d', nose: 21, tail: -33, wings: [[-13, 9, 30, 4.2], [-16, -22, 34, 5]], struts: [-10, 11], cockpits: [-11, -1], rear: -11, tailS: 'round', rudder: [WHT, RED], mark: [-23, -2, 3.2], extra: c => { c.strokeStyle = '#f7f3e6'; c.lineWidth = 1.8; for (let i = 0; i < 5; i++) { c.beginPath(); c.moveTo(-5, 3 - i * 1.6); c.quadraticCurveTo(-12, 2 - i * 2, -16 + i * .8, -4 - i * 1.2); c.stroke(); } } }],
+  ['pl_zubr', 'pl', 'Wisła Żubr', 1919, 'Pennine straight-six', 235, 172, 'Bomber biplane', 'poland', 'The "Bison" was heavy, shaggy with patches, and refused to be hurried by anyone.',
+    { scale: 1.04, fus: 'box', body: '#6a4a34', dark: '#4a3424', light: '#87664a', wing: '#5c5a3c', wingDark: '#454430', eng: 'radial', nose: 25, tail: -37, wings: BIG, struts: [-15, 14], cockpits: [-13, -2], rear: -13, gear: 'bogie', extra: bombs, rudder: [WHT, RED], mark: [-24, -1, 3] }],
+  ['gr_pelargos', 'gr', 'Aegean Pelargos', 1918, 'Forge V12', 300, 184, 'Reconnaissance bomber', 'greece', 'The "Stork" delivered photographs, newspapers and, on request, olives.',
+    { fus: 'box', body: '#e4e6e6', dark: '#b4bcc4', light: '#fbfbf8', wing: '#d9dee2', eng: 'ring', cowl: '#2a5fb0', nose: 26, tail: -36, wings: [[-9, 6, 33, 4.2], [-19, -20, 36, 5]], struts: [-13, 12], stagger: 6, cockpits: [-12, -2], rear: -12, paint: stripes('#2a5fb0'), mark: [6, 0, 3.6], fin: '#2a5fb0' }],
+  ['gr_glaukos', 'gr', 'Attica Glaukos', 1918, 'Pennine straight-six', 240, 165, 'Float bomber', 'greece', 'Sea-blue, float-footed, and named after a fisherman who became a god.',
+    { fus: 'slim', body: '#3f7fb8', dark: '#2c5f8e', light: '#6fa6d4', floatCol: '#e8e6da', eng: 'inline', nose: 25, tail: -36, gear: 'floats', wings: BIG, struts: [-14, 13], cockpits: [-12, -2], rear: -12, tailS: 'round', rudder: ['#2a5fb0', WHT, '#2a5fb0'] }],
+  ['nl_reiger', 'nl', 'Zuiderzee Reiger', 1918, 'Pennine straight-six', 230, 176, 'Neutral patrol biplane', 'holland', 'The "Heron" patrolled a neutral coast, mostly counting herring boats and the occasional cow.',
+    { fus: 'slim', body: '#9aa4ac', dark: '#6f7a83', light: '#bcc5cb', wing: '#8792a0', eng: 'spinner', cowl: '#e87a1d', nose: 24, tail: -37, wings: [[-15, 6, 33, 4.2], [-19, -21, 39, 5]], struts: [-12, 0, 12], cockpits: [-11, -1], tailS: 'shark', rudder: [RED, WHT, BLU], wingTip: '#e87a1d' }],
+  ['jp_umidori', 'jp', 'Sagami Umidori', 1917, 'water-cooled nine', 200, 131, 'Reconnaissance floatplane', 'japanSea', 'The "Seabird" was craned off a converted freighter and always came back smelling of salt.',
+    { fus: 'box', body: '#dcd9cb', dark: '#a9a796', light: '#f2f0e6', eng: 'radial', nose: 24, tail: -36, gear: 'floats', floatCol: '#c9c5b4', wings: BIG, struts: [-14, 0, 14], cockpits: [-10, 0], tailS: 'comma', fin: '#c0272d', paint: c => R(c, -17, -4.8, 3, 8.6, 0, '#c0272d'), mark: [-24, -1, 3] }],
+  ['jp_raiju', 'jp', 'Fujimoto Raijū', 1918, 'twin Kaminari V12s', 520, 188, 'Twin-engine bomber', 'japanLand', 'The "Thunder Beast": a smooth twin-tailed monoplane drawn years ahead of its time and flown by very brave people.',
+    { scale: .96, fus: 'round', body: '#3f5a44', dark: '#2c4032', light: '#5c7a60', nose: 30, tail: -42, finH: 16, wings: [[-15, 1, 34, 5]], gear: 'bogie', twinTail: 1, tailS: 'round', cockpits: [4, -18], rear: -18, nacelles: [{ x: 2, y: -4, w: 24, h: 10, dir: 1, p: 15 }], nacCol: '#34493a', mark: [-28, -1, 3.4], extra: c => { R(c, 24, -5, 7, 5, 2.5, 'rgba(170,200,210,.85)'); PL(c, [[-8, -5], [-16, -1], [-13, -1], [-20, 4], [-10, 0], [-13, 0]], '#e9c33a'); } }],
+];
+const PLANES = PLANE_ROWS.map(([id, ck, name, year, engine, hp, kmh, cls, scene, history, recipe]) => ({ id, ck, name, year, power: `${hp} hp (${engine})`, hp, kmh, cls, scene, history, recipe: recipe && { ...recipe, ck } }));
+const STARTER = 'uk_fledgling';
+// ---- Economy: rank by performance (speed + a share of total power); cost = 40 + 1.6 · rank^1.75
+const roundCost = v => v < 200 ? Math.round(v / 10) * 10 : Math.round(v / 25) * 25;
+PLANES.filter(p => p.id !== STARTER).sort((a, b) => (a.kmh + .35 * a.hp) - (b.kmh + .35 * b.hp)).forEach((p, i) => { p.cost = roundCost(40 + 1.6 * Math.pow(i + 1, 1.75)); });
+PLANES.find(p => p.id === STARTER).cost = 0;
+const PLANE_BY_ID = Object.fromEntries(PLANES.map(p => [p.id, p]));
+function drawPlane(c, id, t) { const p = PLANE_BY_ID[id] || PLANE_BY_ID[STARTER]; if (p.recipe) aero(c, t, p.recipe); else dragonfly(c, t); }
+
+// ---------------------------------------------------------------------
+//  Flags (simplified)
+// ---------------------------------------------------------------------
+function drawFlag(c, key, w, h) {
+  const hs = cols => cols.forEach((col, i) => { c.fillStyle = col; c.fillRect(0, i * h / cols.length, w, h / cols.length + .5); });
+  const vs = cols => cols.forEach((col, i) => { c.fillStyle = col; c.fillRect(i * w / cols.length, 0, w / cols.length + .5, h); });
+  const jack = (x, y, W2, H2) => {
+    c.save(); c.beginPath(); c.rect(x, y, W2, H2); c.clip(); c.fillStyle = '#1d3477'; c.fillRect(x, y, W2, H2); c.lineCap = 'butt';
+    const L2 = (a, b, d, e, col, lw) => { c.strokeStyle = col; c.lineWidth = lw; c.beginPath(); c.moveTo(a, b); c.lineTo(d, e); c.stroke(); };
+    [['#fff', H2 * .2], ['#c8202d', H2 * .07]].forEach(([col, lw]) => { L2(x, y, x + W2, y + H2, col, lw); L2(x + W2, y, x, y + H2, col, lw); });
+    [['#fff', H2 * .32], ['#c8202d', H2 * .18]].forEach(([col, lw]) => { L2(x + W2 / 2, y, x + W2 / 2, y + H2, col, lw); L2(x, y + H2 / 2, x + W2, y + H2 / 2, col, lw); }); c.restore();
+  };
+  switch (key) {
+    case 'uk': jack(0, 0, w, h); break;
+    case 'de': hs(['#111', '#f4f4f4', '#d0262c']); break;
+    case 'fr': vs(['#0f3f9a', '#f4f4f4', '#d8323a']); break;
+    case 'it': vs(['#1f8a4a', '#f4f4f4', '#cf2b37']); R(c, w * .42, h * .27, w * .16, h * .44, 1, '#1d47a8'); R(c, w * .44, h * .31, w * .12, h * .36, 1, '#cf2b37'); R(c, w * .48, h * .31, w * .04, h * .36, 0, '#fff'); R(c, w * .44, h * .44, w * .12, h * .08, 0, '#fff'); break;
+    case 'us': for (let i = 0; i < 13; i++) { c.fillStyle = i % 2 ? '#f4f4f4' : '#b3202a'; c.fillRect(0, i * h / 13, w, h / 13 + .5); } c.fillStyle = '#2b3a78'; c.fillRect(0, 0, w * .42, h * 7 / 13); c.fillStyle = '#fff'; for (let yy = 0; yy < 4; yy++) for (let xx = 0; xx < 6; xx++) c.fillRect(1.2 + xx * w * .066, 1.2 + yy * h * .13, .9, .9); break;
+    case 'ru': hs(['#f4f4f4', '#1d47a8', '#d0262c']); break;
+    case 'at': hs(['#d0262c', '#f4f4f4', '#d0262c']); c.fillStyle = '#2f7a45'; c.fillRect(w / 2, h * 2 / 3, w / 2, h / 3); break;
+    case 'be': vs(['#111', '#f2c230', '#d0262c']); break;
+    case 'tr': c.fillStyle = '#cf1f2b'; c.fillRect(0, 0, w, h); CI(c, w * .42, h / 2, h * .28, '#fff'); CI(c, w * .47, h / 2, h * .22, '#cf1f2b'); star(c, w * .64, h / 2, h * .14, '#fff'); break;
+    case 'bg': hs(['#f4f4f4', '#2f8a5a', '#d0262c']); break;
+    case 'ca': c.fillStyle = '#c8202d'; c.fillRect(0, 0, w, h); jack(0, 0, w * .5, h * .5); R(c, w * .66, h * .35, w * .18, h * .34, 2, '#f4f4f4'); R(c, w * .68, h * .52, w * .14, h * .12, 1, '#2f7a45'); break;
+    case 'au': c.fillStyle = '#1d3477'; c.fillRect(0, 0, w, h); jack(0, 0, w * .5, h * .5); star(c, w * .25, h * .76, h * .14, '#fff');[[.76, .2], [.66, .48], [.86, .42], [.76, .8]].forEach(([x, y]) => star(c, w * x, h * y, h * .08, '#fff')); break;
+    case 'pl': hs(['#f4f4f4', '#d0263c']); break;
+    case 'gr': hs(Array.from({ length: 9 }, (_, i) => i % 2 ? '#f4f4f4' : '#2a5fb0')); c.fillStyle = '#2a5fb0'; c.fillRect(0, 0, h * 5 / 9, h * 5 / 9); c.fillStyle = '#f4f4f4'; c.fillRect(h * 2 / 9, 0, h / 9, h * 5 / 9); c.fillRect(0, h * 2 / 9, h * 5 / 9, h / 9); break;
+    case 'nl': hs(['#b3202a', '#f4f4f4', '#1f3d8f']); break;
+    case 'jp': c.fillStyle = '#f4f4f4'; c.fillRect(0, 0, w, h); CI(c, w / 2, h / 2, h * .3, '#c0272d'); break;
+    default: c.fillStyle = '#d8c48c'; c.fillRect(0, 0, w, h); c.strokeStyle = '#5a4020'; c.lineWidth = 1; c.beginPath(); c.arc(w / 2, h / 2, h * .34, 0, TAU); c.stroke(); PL(c, [[w / 2, h * .1], [w / 2 + h * .09, h / 2], [w / 2, h * .9], [w / 2 - h * .09, h / 2]], '#8e2a1e');
+  }
+}
+
+// Silver coin — original design: beaded rim, crowned winged propeller; reverse '1' in a wreath
+function drawCoin(c, x, y, r, spin) {
+  const sx = Math.cos(spin), a = Math.max(.14, Math.abs(sx));
+  c.save(); c.translate(x, y);
+  if (a < .98) { c.save(); c.scale(a, 1); c.translate(sx > 0 ? -r * .18 : r * .18, 0); CI(c, 0, 0, r, '#565d63'); c.restore(); }
+  c.scale(a, 1);
+  const g = c.createRadialGradient(-r * .35, -r * .4, r * .08, 0, 0, r);
+  g.addColorStop(0, '#ffffff'); g.addColorStop(.45, '#d2d8dc'); g.addColorStop(1, '#7c848b');
+  CI(c, 0, 0, r, '#646b71'); CI(c, 0, 0, r * .9, g);
+  c.fillStyle = 'rgba(85,93,100,.85)';
+  for (let i = 0; i < 22; i++) { const an = i / 22 * TAU; c.beginPath(); c.arc(Math.cos(an) * r * .79, Math.sin(an) * r * .79, r * .05, 0, TAU); c.fill(); }
+  c.strokeStyle = 'rgba(80,88,95,.7)'; c.lineWidth = Math.max(.6, r * .05); c.beginPath(); c.arc(0, 0, r * .66, 0, TAU); c.stroke();
+  const ink = 'rgba(70,78,86,.9)';
+  if (sx >= 0) {
+    PL(c, [[-r * .18, -r * .3], [-r * .2, -r * .5], [-r * .1, -r * .4], [0, -r * .55], [r * .1, -r * .4], [r * .2, -r * .5], [r * .18, -r * .3]], ink);
+    PL(c, [[-r * .05, -r * .12], [-r * .55, -r * .28], [-r * .5, -r * .12], [-r * .55, -r * .02], [-r * .42, r * .08], [-r * .05, r * .12]], ink);
+    PL(c, [[r * .05, -r * .12], [r * .55, -r * .28], [r * .5, -r * .12], [r * .55, -r * .02], [r * .42, r * .08], [r * .05, r * .12]], ink);
+    c.fillStyle = ink; c.beginPath(); c.ellipse(0, -r * .02, r * .08, r * .44, 0, 0, TAU); c.fill();
+    CI(c, 0, -r * .02, r * .09, '#e6eaed');
+  } else {
+    c.fillStyle = ink; c.font = `bold ${r * .95}px Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('1', 0, -r * .02);
+    for (let i = 0; i < 5; i++) { const an = Math.PI * .62 + i * .17; CI(c, Math.cos(an) * r * .5, Math.sin(an) * r * .5, r * .07, ink); CI(c, -Math.cos(an) * r * .5, Math.sin(an) * r * .5, r * .07, ink); }
+  }
+  c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.ellipse(-r * .3, -r * .38, r * .28, r * .12, -.6, 0, TAU); c.fill();
+  c.restore();
+}
+
+// ---------------------------------------------------------------------
+//  Landscapes
+// ---------------------------------------------------------------------
+let NOSKY = false;   // true while painting the transparent in-game horizon
+function skyGrad(c, w, h, a, b) { if (NOSKY) return; const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, a); g.addColorStop(1, b); c.fillStyle = g; c.fillRect(0, 0, w, h); }
+function hills(c, w, h, base, amp, col, seed) {
+  c.fillStyle = col; c.beginPath(); c.moveTo(0, h);
+  for (let x = 0; x <= w; x += 8) c.lineTo(x, base - amp * (.5 + .5 * Math.sin(x * .021 + seed) * Math.cos(x * .008 + seed * 2.3)));
+  c.lineTo(w, h); c.closePath(); c.fill();
+}
+function puff(c, x, y, s, col) { c.fillStyle = col; c.beginPath(); c.arc(x, y, s, 0, TAU); c.arc(x + s * .9, y + s * .2, s * .75, 0, TAU); c.arc(x - s * .9, y + s * .25, s * .65, 0, TAU); c.fill(); }
+function sea(c, w, h, y, col, wave) { c.fillStyle = col; c.fillRect(0, y, w, h - y); for (let i = 0; i < 26; i++) { const wx = (i * 73) % w, wy = y + 6 + (i * 37) % (h - y - 6); LN(c, [[wx, wy, wx + 12, wy]], wave, 1.2); } }
+function birch(c, x, base, hgt) { R(c, x, base - hgt, 4, hgt, 1, '#eeeeea'); for (let y = base - hgt + 6; y < base; y += 9) R(c, x, y, 2.5, 1.6, .5, '#2b2b2b'); }
+function fuji(c, x, base, w, hgt, body) {
+  PL(c, [[x - w, base], [x - w * .18, base - hgt], [x + w * .18, base - hgt], [x + w, base]], body);
+  PL(c, [[x - w * .18, base - hgt], [x + w * .18, base - hgt], [x + w * .42, base - hgt * .55], [x + w * .2, base - hgt * .62], [x, base - hgt * .5], [x - w * .22, base - hgt * .62], [x - w * .42, base - hgt * .55]], '#f6f6f2');
+}
+function pine(c, x, base, hgt, col) { PL(c, [[x, base - hgt], [x + hgt * .28, base], [x - hgt * .28, base]], col); }
+
+function skyPuff(...a) { if (!NOSKY) puff(...a); }
+function skySun(...a) { if (!NOSKY) CI(...a); }
+const SCENES = {
+  paris(c, w, h) {
+    skyGrad(c, w, h, '#f1b98d', '#f8e7c8'); skySun(c, 110, 60, 22, '#fbe2a6');
+    hills(c, w, h, 110, 12, '#a8a29a', 3);
+    for (let x = 0; x < w; x += 22) { const hh = 14 + (x * 7 % 13); R(c, x, 130 - hh, 20, hh + 20, 0, '#7b6e72'); PL(c, [[x, 130 - hh], [x + 10, 124 - hh], [x + 20, 130 - hh]], '#5d5258'); }
+    const ex = 350, eb = 132;
+    c.fillStyle = '#3c3238'; c.beginPath(); c.moveTo(ex - 26, eb); c.quadraticCurveTo(ex - 8, eb - 60, ex - 2, eb - 118); c.lineTo(ex + 2, eb - 118); c.quadraticCurveTo(ex + 8, eb - 60, ex + 26, eb);
+    c.lineTo(ex + 15, eb); c.quadraticCurveTo(ex, eb - 22, ex - 15, eb); c.closePath(); c.fill();
+    R(c, ex - 15, eb - 34, 30, 3, 1, '#3c3238'); R(c, ex - 8, eb - 70, 16, 3, 1, '#3c3238'); LN(c, [[ex, eb - 118, ex, eb - 128]], '#3c3238', 1.4);
+  },
+  channel(c, w, h) {
+    skyGrad(c, w, h, '#7fb0d8', '#dcebf2'); skyPuff(c, 120, 30, 12, '#fff'); skyPuff(c, 380, 46, 15, '#fff');
+    PL(c, [[0, 92], [40, 84], [120, 86], [160, 96], [0, 96]], '#f1ede2'); PL(c, [[0, 86], [40, 80], [120, 82], [160, 92], [120, 86], [40, 84], [0, 92]], '#7f9a5a');
+    sea(c, w, h, 96, '#3d6f8f', 'rgba(255,255,255,.35)');
+    PL(c, [[340, 150], [360, 116], [420, 112], [440, 150]], '#6d6a5c');
+    R(c, 386, 62, 12, 52, 2, '#f2efe6'); for (let y = 70; y < 112; y += 12) R(c, 386, y, 12, 5, 0, '#b8261d');
+    R(c, 383, 56, 18, 7, 2, '#3a3a3a'); CI(c, 392, 58, 3, '#ffe28a');
+  },
+  alps(c, w, h) {
+    skyGrad(c, w, h, '#6ea7dc', '#e5f0f7');
+    [[90, 110, 70], [200, 120, 95], [320, 110, 80], [430, 115, 70]].forEach(([x, wd, hg]) => { PL(c, [[x - wd / 2, 120], [x, 120 - hg], [x + wd / 2, 120]], '#8a9bb0'); PL(c, [[x - wd * .15, 120 - hg * .7], [x, 120 - hg], [x + wd * .15, 120 - hg * .7], [x + 5, 120 - hg * .62], [x - 6, 120 - hg * .66]], '#fff'); });
+    hills(c, w, h, 124, 14, '#6d9a48', 2); hills(c, w, h, 138, 10, '#5a8a3a', 5);
+    R(c, 60, 104, 14, 26, 1, '#efe7d6'); CI(c, 67, 100, 7, '#4a6a50'); LN(c, [[67, 93, 67, 86]], '#3a3a3a', 1.2); R(c, 74, 114, 24, 16, 1, '#efe7d6'); PL(c, [[72, 114], [86, 106], [100, 114]], '#8a3a2a');
+  },
+  japanSea(c, w, h) {
+    skyGrad(c, w, h, '#f6e6cf', '#f7cfae'); skySun(c, 330, 52, 26, '#d8432f');
+    fuji(c, 140, 104, 110, 70, '#6f7f9a'); sea(c, w, h, 104, '#4f7896', 'rgba(255,255,255,.4)');
+    R(c, 386, 92, 4, 40, 0, '#c33a2a'); R(c, 414, 92, 4, 40, 0, '#c33a2a'); R(c, 378, 88, 48, 5, 1, '#a52a1f'); R(c, 382, 98, 40, 3, 0, '#c33a2a');
+  },
+  japanLand(c, w, h) {
+    skyGrad(c, w, h, '#cfe3ee', '#f5ecdc'); fuji(c, 240, 112, 120, 78, '#7d8ea8');
+    hills(c, w, h, 118, 10, '#87a35d', 4); c.fillStyle = '#9db86a'; c.fillRect(0, 128, w, 22);
+    for (let i = 0; i < 4; i++) { const y = 124 - i * 14, ww = 34 - i * 6; R(c, 380 - 6 + i * 3, y - 10, 12 - i * 2, 12, 0, '#5a3a2a'); PL(c, [[380 - ww / 2, y - 8], [380 + ww / 2, y - 8], [380 + 6, y - 14], [380 - 6, y - 14]], '#2f2f36'); }
+    if (NOSKY) return;
+    LN(c, [[0, 18, 70, 30], [40, 25, 60, 46]], '#4a3328', 3);
+    for (let i = 0; i < 22; i++) CI(c, 10 + (i * 29) % 70, 14 + (i * 13) % 36, 3.4, i % 3 ? '#f4b9c8' : '#f9d6df');
+  },
+  russia(c, w, h) {
+    skyGrad(c, w, h, '#9fb3c8', '#e6ebf0'); hills(c, w, h, 104, 8, '#4f5f5a', 2);
+    c.fillStyle = '#eef2f6'; c.fillRect(0, 112, w, 38); hills(c, w, h, 118, 6, '#f6f8fa', 7);
+    const cx = 330; R(c, cx - 30, 74, 60, 40, 1, '#f1ece2'); R(c, cx - 8, 58, 16, 20, 0, '#f1ece2');
+    [[cx, 54, 9, '#c9a43a'], [cx - 22, 70, 6, '#2f5a9a'], [cx + 22, 70, 6, '#2f5a9a']].forEach(([x, y, r, col]) => {
+      c.fillStyle = col; c.beginPath(); c.moveTo(x, y - r * 1.8); c.quadraticCurveTo(x + r * 1.3, y - r * .6, x + r, y + r * .4); c.lineTo(x - r, y + r * .4); c.quadraticCurveTo(x - r * 1.3, y - r * .6, x, y - r * 1.8); c.fill();
+      LN(c, [[x, y - r * 1.8, x, y - r * 2.8], [x - 2, y - r * 2.4, x + 2, y - r * 2.4]], '#7a6020', 1); });
+    R(c, cx - 30, 84, 60, 2, 0, '#b9b2a2'); for (let x = cx - 24; x < cx + 24; x += 10) R(c, x, 92, 5, 9, 2, '#6a7080');
+    [24, 40, 60, 410, 426].forEach((x, i) => birch(c, x, 130, 80 + (i % 2) * 14));
+  },
+  usa(c, w, h) {
+    skyGrad(c, w, h, '#86c1e8', '#f4e6bf'); skyPuff(c, 260, 30, 13, '#fff');
+    hills(c, w, h, 110, 10, '#c9a85a', 1); c.fillStyle = '#dcbc62'; c.fillRect(0, 118, w, 32);
+    R(c, 300, 84, 54, 34, 1, '#a8332a'); PL(c, [[296, 86], [327, 66], [358, 86]], '#5a2a22'); R(c, 318, 98, 18, 20, 0, '#f2efe6'); LN(c, [[318, 98, 336, 118], [336, 98, 318, 118]], '#a8332a', 2);
+    LN(c, [[90, 120, 98, 60], [106, 120, 98, 60], [92, 100, 104, 100]], '#5a5a5a', 1.6);
+    for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; LN(c, [[98, 58, 98 + Math.cos(a) * 14, 58 + Math.sin(a) * 14]], '#7a7a7a', 1.2); }
+    for (let x = 0; x < w; x += 18) LN(c, [[x, 128, x, 140]], '#7a5a32', 1.6); LN(c, [[0, 132, w, 132], [0, 137, w, 137]], '#7a5a32', 1.2);
+  },
+  baltic(c, w, h) {
+    skyGrad(c, w, h, '#8a9aa8', '#d5dce2'); skyPuff(c, 300, 36, 16, '#c6ccd2');
+    PL(c, [[0, 100], [0, 74], [20, 74], [20, 66], [34, 66], [34, 74], [110, 74], [110, 64], [124, 64], [124, 74], [150, 74], [160, 100]], '#5d6066');
+    for (let x = 0; x < 150; x += 8) R(c, x, 70, 5, 4, 0, '#5d6066');
+    CI(c, 72, 64, 8, '#3a6a5a'); R(c, 66, 64, 12, 10, 0, '#5d6066');
+    sea(c, w, h, 100, '#45606f', 'rgba(255,255,255,.3)');
+    R(c, 402, 70, 10, 34, 1, '#e7e3d8'); R(c, 400, 64, 14, 7, 2, '#3a3a3a'); CI(c, 407, 66, 2.5, '#ffe28a'); PL(c, [[380, 112], [396, 100], [420, 100], [436, 112]], '#4d5056');
+  },
+  franceFront(c, w, h) {
+    skyGrad(c, w, h, '#9cc3df', '#efe9d6'); skyPuff(c, 90, 34, 12, '#fff');
+    hills(c, w, h, 108, 10, '#8eaa62', 2);
+    c.fillStyle = '#b8a95c'; c.fillRect(0, 118, 160, 32); c.fillStyle = '#7fa04f'; c.fillRect(160, 118, 140, 32); c.fillStyle = '#c4b06a'; c.fillRect(300, 118, 140, 32);
+    for (let x = 14; x < w; x += 34) { c.fillStyle = '#3e5a2a'; c.beginPath(); c.ellipse(x, 98, 5, 22, 0, 0, TAU); c.fill(); R(c, x - 1, 116, 2, 4, 0, '#4a3a2a'); }
+    R(c, 220, 88, 26, 26, 1, '#d8cfb8'); R(c, 238, 70, 10, 44, 0, '#d8cfb8'); PL(c, [[236, 70], [243, 46], [250, 70]], '#4f4a52'); PL(c, [[218, 88], [233, 78], [248, 88]], '#8a3a2a');
+  },
+  germany(c, w, h) {
+    skyGrad(c, w, h, '#90aac0', '#e3e6df'); hills(c, w, h, 96, 26, '#5c6f50', 1);
+    R(c, 300, 52, 60, 30, 1, '#bfb6a6'); R(c, 296, 40, 14, 42, 0, '#b3aa9a'); R(c, 344, 32, 16, 50, 0, '#b3aa9a');
+    PL(c, [[294, 40], [303, 22], [312, 40]], '#8a3a2a'); PL(c, [[342, 32], [352, 10], [362, 32]], '#8a3a2a');
+    for (let x = 304; x < 360; x += 10) R(c, x, 60, 3, 6, 1, '#4a4a4a');
+    c.fillStyle = '#7a9cb8'; c.beginPath(); c.moveTo(0, 130); c.quadraticCurveTo(200, 112, w, 128); c.lineTo(w, 140); c.quadraticCurveTo(200, 124, 0, 142); c.fill();
+    for (let i = 0; i < 26; i++) pine(c, (i * 37) % w, 120 + (i % 4) * 9, 26 + (i % 5) * 5, i % 2 ? '#2a3d26' : '#33492c');
+  },
+};
+
+// ---------------------------------------------------------------------
+//  More landscapes (store cards, region cards and in-game horizon)
+// ---------------------------------------------------------------------
+Object.assign(SCENES, {
+  cliffs(c, w, h) {
+    skyGrad(c, w, h, '#4a90d9', '#c6e5f6'); skyPuff(c, 90, 34, 14, '#fff'); skyPuff(c, 340, 40, 12, '#fff');
+    hills(c, w, h, 104, 34, '#a3adb6', 2); hills(c, w, h, 120, 26, '#858e97', 6);
+    [[60, 70], [190, 50], [330, 78], [410, 56]].forEach(([x, hg]) => { PL(c, [[x - 30, 150], [x - 22, 150 - hg * .7], [x - 8, 150 - hg], [x + 12, 150 - hg * .92], [x + 26, 150 - hg * .5], [x + 34, 150]], '#6c737b'); PL(c, [[x + 4, 150], [x + 2, 150 - hg * .96], [x + 12, 150 - hg * .92], [x + 26, 150 - hg * .5], [x + 34, 150]], '#565d65'); });
+  },
+  ukcoast(c, w, h) {
+    skyGrad(c, w, h, '#8fb4cc', '#e2ebec'); skyPuff(c, 220, 30, 15, '#f4f6f6'); sea(c, w, h, 108, '#54788c', 'rgba(255,255,255,.35)');
+    PL(c, [[0, 150], [0, 74], [60, 70], [120, 78], [150, 96], [158, 150]], '#f1eee2'); PL(c, [[0, 74], [60, 70], [120, 78], [150, 96], [140, 80], [118, 72], [60, 63], [0, 66]], '#6f9450');
+    LN(c, [[30, 80, 34, 140], [70, 78, 66, 140], [108, 84, 112, 140]], 'rgba(120,115,95,.35)', 2);
+    R(c, 60, 40, 11, 28, 1, '#f4f1e8'); R(c, 60, 47, 11, 6, 0, '#b8261d'); R(c, 60, 59, 11, 6, 0, '#b8261d'); R(c, 58, 33, 15, 8, 2, '#333'); CI(c, 65, 37, 2.4, '#ffe28a');
+    PL(c, [[330, 112], [386, 112], [378, 119], [338, 119]], '#4a3a2e'); PL(c, [[356, 110], [356, 78], [380, 108]], '#e8e2d0'); PL(c, [[353, 110], [353, 84], [336, 108]], '#d8cfb8');
+  },
+  italy(c, w, h) {
+    skyGrad(c, w, h, '#f2c48c', '#fae9c9'); skySun(c, 70, 48, 18, '#fff0c0');
+    PL(c, [[130, 116], [220, 46], [236, 52], [250, 46], [350, 116]], '#8d7f8e'); skyPuff(c, 238, 34, 8, '#d9cfc8'); PL(c, [[220, 46], [236, 52], [250, 46], [256, 56], [238, 60], [214, 56]], '#6e6270');
+    hills(c, w, h, 116, 10, '#9aa35c', 2); hills(c, w, h, 130, 10, '#838e48', 5);
+    for (const x of [20, 40, 400, 424]) { c.fillStyle = '#34502c'; c.beginPath(); c.ellipse(x, 104, 5, 26, 0, 0, TAU); c.fill(); }
+    R(c, 300, 92, 88, 4, 0, '#e6dcc4'); for (let x = 302; x < 388; x += 14) R(c, x, 96, 5, 26, 0, '#efe7d2'); PL(c, [[298, 92], [344, 78], [390, 92]], '#d8ccb0'); R(c, 296, 121, 96, 4, 0, '#d0c4a6');
+    R(c, 70, 96, 40, 26, 1, '#e3b98a'); PL(c, [[66, 98], [90, 86], [114, 98]], '#b0563a');
+  },
+  flanders(c, w, h) {
+    skyGrad(c, w, h, '#a9b9c2', '#e9e6da'); skyPuff(c, 80, 30, 16, '#eef0ee'); skyPuff(c, 300, 24, 13, '#eef0ee');
+    hills(c, w, h, 112, 5, '#8ea36a', 2); c.fillStyle = '#7f9a5a'; c.fillRect(0, 118, w, 32); PL(c, [[180, 118], [200, 118], [260, 150], [190, 150]], '#8fa9b4');
+    R(c, 320, 62, 26, 56, 0, '#9a5a44'); R(c, 326, 36, 14, 28, 0, '#8a4c38'); PL(c, [[324, 38], [333, 16], [342, 38]], '#4a5058'); for (let i = 0; i < 4; i++) R(c, 360 + i * 20, 92 - (i % 2) * 8, 18, 30 + (i % 2) * 8, 0, ['#b0705a', '#c8b48c', '#8a5a4a', '#b89a70'][i]);
+    for (let i = 0; i < 4; i++) { const y = 92 - (i % 2) * 8; PL(c, [[360 + i * 20, y], [369 + i * 20, y - 12], [378 + i * 20, y]], '#5a4a48'); }
+    windmill(c, 90, 118, 1); for (let i = 0; i < 22; i++) CI(c, (i * 43) % w, 126 + (i * 17) % 22, 1.8, '#c8322a');
+  },
+  anatolia(c, w, h) {
+    skyGrad(c, w, h, '#f0c79a', '#fbeed2'); skySun(c, 360, 46, 18, '#fff2c8'); hills(c, w, h, 108, 18, '#d9b184', 3); c.fillStyle = '#cfa26c'; c.fillRect(0, 122, w, 28);
+    [[40, 60], [74, 46], [110, 66], [300, 52], [336, 70], [374, 48], [410, 62]].forEach(([x, hg]) => { PL(c, [[x - 15, 128], [x - 5, 128 - hg], [x + 5, 128 - hg], [x + 15, 128]], '#e3c598'); PL(c, [[x + 1, 128], [x + 1, 128 - hg], [x + 5, 128 - hg], [x + 15, 128]], '#c9a576'); PL(c, [[x - 9, 128 - hg], [x, 116 - hg], [x + 9, 128 - hg]], '#8a6a4a'); R(c, x - 3, 112, 4, 6, 2, '#6a4a30'); });
+    PL(c, [[180, 128], [190, 116], [206, 112], [224, 116], [236, 128]], '#7a3a2e'); for (let i = 0; i < 4; i++) R(c, 190 + i * 11, 121, 4, 7, 1, '#e9c33a');
+  },
+  balkan(c, w, h) {
+    skyGrad(c, w, h, '#88b6d8', '#f3e6dc'); skyPuff(c, 320, 34, 13, '#fff');
+    [[70, 130, 66], [190, 150, 80], [330, 140, 70], [430, 120, 60]].forEach(([x, wd, hg]) => { PL(c, [[x - wd / 2, 116], [x, 116 - hg], [x + wd / 2, 116]], '#70879a'); PL(c, [[x - wd * .13, 116 - hg * .74], [x, 116 - hg], [x + wd * .13, 116 - hg * .74]], '#f2f4f6'); });
+    hills(c, w, h, 118, 12, '#6f8f58', 3); for (let r = 0; r < 4; r++) for (let x = (r % 2) * 7; x < w; x += 14) { CI(c, x, 126 + r * 7, 4, '#4f7a42'); CI(c, x + 1, 124 + r * 7, 2, '#d8648a'); }
+    R(c, 340, 88, 60, 28, 1, '#f0e8d8'); PL(c, [[336, 90], [370, 76], [404, 90]], '#8a4a34'); for (let i = 0; i < 5; i++) R(c, 345 + i * 11, 98, 6, 18, 3, '#5a4638');
+  },
+  canada(c, w, h) {
+    skyGrad(c, w, h, '#8cc0e2', '#eef4f2'); skyPuff(c, 130, 30, 13, '#fff'); [[110, 170, 60], [260, 190, 74], [400, 160, 58]].forEach(([x, wd, hg]) => { PL(c, [[x - wd / 2, 108], [x, 108 - hg], [x + wd / 2, 108]], '#7f93a6'); PL(c, [[x - wd * .16, 108 - hg * .68], [x, 108 - hg], [x + wd * .16, 108 - hg * .68], [x, 108 - hg * .74]], '#fff'); });
+    sea(c, w, h, 116, '#5f93b0', 'rgba(255,255,255,.45)'); for (let i = 0; i < 30; i++) pine(c, (i * 31) % w, 120, 24 + (i % 4) * 7, i % 2 ? '#2c4a38' : '#3a5c46');
+    for (const [x, col] of [[60, '#c8482a'], [92, '#d8762e'], [388, '#c03a2a'], [420, '#e09a36']]) { R(c, x - 1.5, 112, 3, 20, 0, '#4a3628'); CI(c, x, 106, 12, col); CI(c, x - 8, 112, 8, col); CI(c, x + 8, 112, 8, col); }
+    R(c, 210, 110, 24, 12, 1, '#6b4a30'); PL(c, [[206, 111], [222, 100], [238, 111]], '#4a3222');
+  },
+  outback(c, w, h) {
+    skyGrad(c, w, h, '#6fb0dc', '#f6dcb4'); c.fillStyle = '#b8663c'; c.beginPath(); c.moveTo(120, 118); c.quadraticCurveTo(136, 74, 190, 70); c.lineTo(300, 72); c.quadraticCurveTo(344, 78, 356, 118); c.fill();
+    LN(c, [[170, 76, 160, 116], [210, 72, 206, 116], [250, 73, 254, 116], [300, 76, 312, 116]], 'rgba(90,40,20,.35)', 2); hills(c, w, h, 122, 6, '#cf8450', 2); c.fillStyle = '#c27646'; c.fillRect(0, 130, w, 20);
+    for (let i = 0; i < 24; i++) CI(c, (i * 53) % w, 128 + (i * 11) % 18, 3 + i % 3, i % 2 ? '#8f8f52' : '#757a44');
+    for (const x of [50, 400]) { LN(c, [[x, 132, x + 2, 92], [x + 2, 106, x - 14, 88], [x + 2, 100, x + 16, 84]], '#e9e2d2', 3); for (const [a, b] of [[-14, 84], [2, 84], [16, 80]]) CI(c, x + a, b, 10, '#7f9468'); }
+  },
+  poland(c, w, h) {
+    skyGrad(c, w, h, '#a5c3d8', '#eef0e6'); skyPuff(c, 300, 30, 14, '#fff'); hills(c, w, h, 112, 10, '#93a978', 1); c.fillStyle = '#e8eef2'; c.fillRect(0, 122, w, 28); hills(c, w, h, 126, 6, '#f4f7f9', 5);
+    R(c, 280, 80, 80, 42, 0, '#a9543e'); R(c, 272, 58, 18, 64, 0, '#98482f'); R(c, 350, 50, 20, 72, 0, '#98482f'); PL(c, [[270, 60], [281, 34], [292, 60]], '#5c6470'); PL(c, [[347, 52], [360, 22], [373, 52]], '#5c6470');
+    for (let i = 0; i < 5; i++) { R(c, 296 + i * 10, 92, 4, 12, 2, '#4a2a22'); PL(c, [[292 + i * 12, 80], [298 + i * 12, 70], [304 + i * 12, 80]], '#a9543e'); }
+    for (const x of [40, 62, 88, 420]) { birch(c, x, 130, 64 + x % 18); } R(c, 120, 106, 34, 20, 0, '#c9a878'); PL(c, [[114, 108], [137, 92], [160, 108]], '#e9edf0');
+  },
+  greece(c, w, h) {
+    skyGrad(c, w, h, '#5fa8e0', '#e3f1f6'); sea(c, w, h, 104, '#2f86b8', 'rgba(255,255,255,.45)'); PL(c, [[230, 106], [300, 84], [380, 92], [440, 106]], '#9a9a86');
+    PL(c, [[0, 150], [0, 88], [60, 82], [130, 104], [170, 150]], '#b8a888'); for (const [x, y, s] of [[14, 92, 20], [40, 84, 22], [68, 94, 20], [26, 112, 24], [60, 116, 22], [94, 114, 20]]) { R(c, x, y, s, s * .8, 1, '#fbfaf6'); R(c, x + s * .35, y + s * .35, s * .25, s * .45, 1, '#2a6fb8'); }
+    c.fillStyle = '#2a6fb8'; c.beginPath(); c.arc(51, 85, 9, Math.PI, 0); c.fill();
+    R(c, 326, 62, 60, 3, 0, '#efe8d6'); for (let x = 328; x < 386; x += 10) R(c, x, 65, 4, 22, 0, '#f4eede'); PL(c, [[324, 62], [356, 52], [388, 62]], '#e2d8c0'); R(c, 322, 86, 68, 4, 0, '#d8ceb6');
+  },
+  holland(c, w, h) {
+    skyGrad(c, w, h, '#8fc0e0', '#f0f2e8'); skyPuff(c, 100, 30, 16, '#fff'); skyPuff(c, 360, 40, 12, '#fff'); c.fillStyle = '#86a866'; c.fillRect(0, 112, w, 38);
+    ['#d8323a', '#f2c230', '#e87aa0', '#f4f4f4', '#e8762c'].forEach((col, i) => { c.fillStyle = col; c.fillRect(0, 124 + i * 5, w, 3.4); }); PL(c, [[250, 112], [290, 112], [330, 150], [240, 150]], '#7fa8c0');
+    windmill(c, 100, 116, 1.1); windmill(c, 390, 112, .7); R(c, 190, 98, 18, 18, 0, '#b0583e'); PL(c, [[188, 99], [199, 86], [210, 99]], '#4f4a48');
+  },
+  savanna(c, w, h) {
+    skyGrad(c, w, h, '#e9a860', '#fbe6b4'); skySun(c, 120, 70, 26, '#fff0b8'); PL(c, [[230, 112], [300, 56], [326, 60], [346, 56], [430, 112]], '#a58a86'); PL(c, [[288, 66], [300, 56], [326, 60], [346, 56], [358, 64], [336, 70], [318, 66], [302, 72]], '#f6f2ea');
+    hills(c, w, h, 116, 6, '#c9a04e', 2); c.fillStyle = '#d4ae56'; c.fillRect(0, 124, w, 26);
+    for (const [x, s] of [[60, 1], [200, .7], [400, 1.1]]) { LN(c, [[x, 128, x + 2 * s, 100 - 10 * s], [x + s, 112, x - 16 * s, 92 - 8 * s], [x + s, 108, x + 18 * s, 90 - 8 * s]], '#4a3626', 3 * s); c.fillStyle = '#5f6f2e'; c.beginPath(); c.ellipse(x, 88 - 8 * s, 34 * s, 8 * s, 0, 0, TAU); c.fill(); c.beginPath(); c.ellipse(x + 10 * s, 82 - 8 * s, 22 * s, 6 * s, 0, 0, TAU); c.fill(); }
+    for (let i = 0; i < 40; i++) LN(c, [[i * 11, 140, i * 11 + 3, 130 + (i % 4) * 2]], '#a8863a', 1.2);
+    for (const x of [270, 296]) { R(c, x, 112, 12, 5, 2, '#b8843a'); LN(c, [[x + 11, 114, x + 15, 94], [x + 2, 116, x + 2, 127], [x + 9, 116, x + 9, 127]], '#b8843a', 2.2); R(c, x + 13, 91, 7, 3.5, 1.5, '#b8843a'); }
+  },
+});
+function windmill(c, x, base, s) {
+  PL(c, [[x - 11 * s, base], [x - 7 * s, base - 40 * s], [x + 7 * s, base - 40 * s], [x + 11 * s, base]], '#8a6a4c'); PL(c, [[x - 9 * s, base - 39 * s], [x, base - 52 * s], [x + 9 * s, base - 39 * s]], '#4f3a2c');
+  for (let i = 0; i < 4; i++) { const a = .5 + i * Math.PI / 2; c.save(); c.translate(x, base - 42 * s); c.rotate(a); R(c, 0, -1 * s, 34 * s, 2 * s, 0, '#3f2e22'); R(c, 8 * s, 0, 25 * s, 6 * s, 0, 'rgba(240,232,212,.9)'); c.restore(); }
+}
+
+// =====================================================================
+//  OBSTACLES
+//  bot(c,len): tip at y=0, body grows DOWN.  top(c,len): tip at y=0, body
+//  grows UP (negative y). x is centred; body half-width ≈ 42.
+//  *P(d): solid half-width at depth d from the tip (used by collisions).
+// =====================================================================
+const jit = a => (Math.random() - .5) * 2 * a;
+function rock(c, len, dir, cols, hw = 44) {
+  const pts = [], n = Math.max(3, Math.round(len / 34));
+  pts.push([-hw * .72, dir * 4], [-hw * .3, dir * jit(3)], [hw * .25, dir * jit(3)], [hw * .74, dir * 5]);
+  for (let i = 1; i <= n; i++) pts.push([hw + jit(4), dir * len * i / n]);
+  for (let i = n; i >= 1; i--) pts.push([-hw + jit(4), dir * len * i / n]);
+  const g = c.createLinearGradient(-hw, 0, hw, 0); g.addColorStop(0, cols[0]); g.addColorStop(.55, cols[1]); g.addColorStop(1, cols[2]);
+  c.save(); c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.closePath(); c.fillStyle = g; c.fill(); c.clip();
+  for (let y = 12; y < len; y += 21) LN(c, [[-hw - 6, dir * y, hw + 6, dir * y + 8]], 'rgba(30,25,20,.22)', 1.4);
+  for (let i = 0; i < len / 60; i++) { const x = jit(hw * .7), y = dir * (20 + Math.random() * len); LN(c, [[x, y, x + 5, y + 10], [x + 5, y + 10, x - 2, y + 22]], 'rgba(25,20,15,.35)', 1.2); }
+  c.restore(); c.strokeStyle = 'rgba(30,25,20,.5)'; c.lineWidth = 1.4; c.stroke();
+}
+function bricks(c, x, y, w, h, base, line, bw = 14, bh = 8) {
+  c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip(); c.fillStyle = base; c.fillRect(x, y, w, h); c.strokeStyle = line; c.lineWidth = 1; c.beginPath();
+  for (let r = 0, yy = y; yy < y + h; yy += bh, r++) { c.moveTo(x, yy); c.lineTo(x + w, yy); for (let xx = x + (r % 2) * bw / 2; xx < x + w; xx += bw) { c.moveTo(xx, yy); c.lineTo(xx, yy + bh); } }
+  c.stroke(); shadeCyl(c, x, y, w, h); c.restore();
+}
+function shadeCyl(c, x, y, w, h) { const g = c.createLinearGradient(x, 0, x + w, 0); g.addColorStop(0, 'rgba(255,255,255,.16)'); g.addColorStop(.35, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,.32)'); c.fillStyle = g; c.fillRect(x, y, w, h); }
+function planks(c, x, y, w, h, base, line, step = 10, vertical) { c.save(); c.beginPath(); c.rect(x, y, w, h); c.clip(); c.fillStyle = base; c.fillRect(x, y, w, h); const s = []; if (vertical) for (let i = x; i < x + w; i += step) s.push([i, y, i, y + h]); else for (let i = y; i < y + h; i += step) s.push([x, i, x + w, i]); LN(c, s, line, 1.2); shadeCyl(c, x, y, w, h); c.restore(); }
+function icicles(c, hw, y0, depth) { for (let x = -hw; x < hw; x += 11) { const l = depth * (.5 + Math.random() * .5); PL(c, [[x, y0 - l], [x + 11, y0 - l], [x + 6, y0]], '#d4ecf6'); PL(c, [[x + 6, y0 - l], [x + 11, y0 - l], [x + 6, y0]], '#a7cfe4'); } }
+function leaf(c, x, y, r, col) { CI(c, x, y, r, col); CI(c, x + r * .8, y + r * .5, r * .7, col); CI(c, x - r * .7, y + r * .5, r * .7, col); }
+const flat = () => 41, spire = (h, w = 41) => d => Math.min(w, 5 + d / h * w), round = (r, w = 41) => d => d >= r ? w : w * Math.sqrt(Math.max(0, 1 - (1 - d / r) ** 2));
+
+const OBST = {
+  cliffs: {
+    bot: (c, l) => rock(c, l, 1, ['#a0a4a8', '#6f7479', '#585d63']), top: (c, l) => rock(c, l, -1, ['#a0a4a8', '#6f7479', '#585d63']), botP: flat, topP: flat },
+  france: {                                  // château turret  /  stacked observation balloons
+    bot(c, l) {
+      bricks(c, -38, 46, 76, l, '#d8cbb0', 'rgba(120,100,70,.4)', 18, 11); R(c, -44, 44, 88, 12, 2, '#c4b594'); for (let x = -40; x < 40; x += 16) R(c, x, 56, 8, 8, 1, '#b5a582');
+      PL(c, [[0, -2], [46, 46], [-46, 46]], '#4f6078'); PL(c, [[0, -2], [46, 46], [8, 46]], '#3d4c62'); for (let y = 14; y < 46; y += 8) LN(c, [[-y * .92, y, y * .92, y]], 'rgba(20,30,45,.35)', 1);
+      for (let y = 84; y < l; y += 92) { R(c, -10, y, 20, 30, 10, '#4a3c30'); R(c, -7, y + 3, 6, 25, 3, '#7a92a8'); R(c, 1, y + 3, 6, 25, 3, '#7a92a8'); }
+    }, botP: spire(46),
+    top(c, l) {
+      const seg = 74; for (let k = Math.ceil(l / seg); k >= 0; k--) { const y = -38 - k * seg; LN(c, [[0, y - 40, 0, y + 40]], '#4a3f30', 2); c.fillStyle = '#c9a96a'; c.beginPath(); c.ellipse(0, y, 43, 38, 0, 0, TAU); c.fill();
+        c.fillStyle = 'rgba(255,255,255,.2)'; c.beginPath(); c.ellipse(-14, -14 + y, 16, 12, -.5, 0, TAU); c.fill(); c.fillStyle = 'rgba(60,40,10,.22)'; c.beginPath(); c.ellipse(12, y + 10, 28, 24, .4, 0, TAU); c.fill();
+        LN(c, [[-43, y, 43, y]], '#8a6f3c', 1.4); c.strokeStyle = 'rgba(90,65,25,.6)'; c.lineWidth = 1; for (const r of [14, 30]) { c.beginPath(); c.ellipse(0, y, r, 38, 0, 0, TAU); c.stroke(); } R(c, -43, y - 5, 86, 6, 0, '#1f3d8f'); R(c, -43, y + 1, 86, 4, 0, '#b8261d'); }
+    }, topP: round(38) },
+  germany: {                                 // castle keep  /  steel airship mast
+    bot(c, l) {
+      bricks(c, -40, 14, 80, l, '#9d9488', 'rgba(50,45,40,.4)', 20, 12); for (let x = -44; x < 40; x += 22) R(c, x, 0, 14, 18, 1, '#8c8377'); R(c, -44, 16, 88, 10, 1, '#80776b');
+      for (let y = 60; y < l; y += 84) { R(c, -5, y, 10, 28, 5, '#2f2a26'); } PL(c, [[-18, 34], [18, 34], [18, 62], [0, 76], [-18, 62]], '#222'); PL(c, [[-18, 43], [18, 43], [18, 52], [-18, 52]], '#f4f1e8'); PL(c, [[-18, 52], [18, 52], [18, 62], [0, 76], [-18, 62]], '#b8261d');
+    }, botP: flat,
+    top(c, l) {
+      R(c, -40, -l, 9, l - 14, 0, '#4a5560'); R(c, 31, -l, 9, l - 14, 0, '#3a444e'); for (let y = -14; y > -l; y -= 44) { LN(c, [[-36, y, 36, y - 44], [36, y, -36, y - 44]], '#56626e', 4); R(c, -40, y - 4, 80, 6, 0, '#4a5560'); for (const x of [-36, 36]) CI(c, x, y - 1, 2.4, '#aab4bc'); }
+      c.globalAlpha = .35; c.fillStyle = '#2f3840'; c.fillRect(-32, -l, 64, l - 14); c.globalAlpha = 1; R(c, -42, -18, 84, 14, 3, '#2f3840'); for (let x = -38; x < 38; x += 14) PL(c, [[x, -16], [x + 7, -16], [x + 2, -6], [x - 5, -6]], '#e2b93a'); CI(c, 0, -2, 5, '#d8432f');
+    }, topP: flat },
+  uk: {                                      // striped lighthouse  /  white chalk overhang
+    bot(c, l) {
+      c.save(); c.translate(0, 17); for (let y = 44, i = 0; y < l; y += 46, i++) { R(c, -36 - Math.min(5, y / 80), y, 72 + Math.min(10, y / 40), 46.5, 0, i % 2 ? '#b8261d' : '#f4f1e8'); } shadeCyl(c, -41, 44, 82, l); R(c, -44, 38, 88, 9, 2, '#2f3338'); R(c, -28, 12, 56, 27, 2, '#ffe9a0'); for (let x = -28; x <= 28; x += 14) R(c, x - 1, 12, 2, 27, 0, '#2f3338');
+      c.fillStyle = '#b8261d'; c.beginPath(); c.arc(0, 14, 31, Math.PI, 0); c.fill(); R(c, -2, -22, 4, 8, 1, '#2f3338'); LN(c, [[-42, 38, -42, 26], [42, 38, 42, 26], [-42, 27, 42, 27]], '#2f3338', 1.6); R(c, -7, 74, 14, 22, 7, '#33383e'); c.restore();
+    }, botP: d => d < 31 ? 31 * Math.sqrt(1 - (1 - d / 31) ** 2) : d < 53 ? 30 : 41,
+    top(c, l) { rock(c, l, -1, ['#fbf9f0', '#e2ddcb', '#bdb7a2']); for (let i = 0; i < 9; i++) { const x = -36 + i * 9; LN(c, [[x, -5, x + jit(4), 2 + Math.random() * 6]], '#6f8f4a', 1.8); } for (let y = -40; y > -l; y -= 64) R(c, -38 + Math.random() * 40, y, 22, 3, 1, 'rgba(90,90,90,.4)'); }, topP: flat },
+  austria: {                                 // snowy Alpine pillar  /  cableway pylon with cabin
+    bot(c, l) { rock(c, l, 1, ['#98a3b0', '#6b7684', '#515b68']); PL(c, [[-40, 14], [-32, 2], [-10, -4], [14, -3], [34, 2], [43, 18], [30, 14], [20, 26], [8, 14], [-6, 30], [-18, 15], [-30, 24]], '#f7fafc'); for (let y = 70; y < l; y += 78) { PL(c, [[-42, y], [-20, y - 6], [-2, y + 2], [-20, y + 10]], '#f2f6f9'); const x = 14 + jit(8); for (let i = 0; i < 6; i++) CI(c, x + Math.cos(i) * 4, y + 24 + Math.sin(i) * 4, 2.4, '#fff'); CI(c, x, y + 24, 2, '#e9c33a'); } }, botP: flat,
+    top(c, l) {
+      planks(c, -38, -l, 12, l - 50, '#7a5638', '#4a3220', 22); planks(c, 26, -l, 12, l - 50, '#6a4a30', '#432e1e', 22); c.globalAlpha = .5; c.fillStyle = '#3f2d1e'; c.fillRect(-26, -l, 52, l - 50); c.globalAlpha = 1; for (let y = -56; y > -l; y -= 48) { LN(c, [[-32, y, 32, y - 48], [32, y, -32, y - 48]], '#8a6646', 5); }
+      LN(c, [[0, -74, 0, -50]], '#222', 4); CI(c, 0, -72, 9, '#333'); CI(c, 0, -72, 4, '#aaa'); R(c, -42, -54, 84, 54, 8, '#b8261d'); R(c, -42, -24, 84, 8, 0, '#f4f1e8'); R(c, -35, -48, 20, 20, 3, '#bfe0ee'); R(c, -10, -48, 20, 20, 3, '#bfe0ee'); R(c, 15, -48, 20, 20, 3, '#bfe0ee'); R(c, -42, -56, 84, 7, 3, '#f7fafc');
+    }, topP: flat },
+  poland: {                                  // snowy red-brick gothic tower  /  timber belfry and bell
+    bot(c, l) {
+      bricks(c, -38, 40, 76, l, '#a5523c', 'rgba(60,20,12,.4)'); const st = [[0, 8], [10, 18], [20, 28], [30, 38], [40, 42]]; for (const [y, w] of st) { R(c, -w, y, w * 2, 12, 0, '#95472f'); R(c, -w, y - 3, w * 2, 5, 2, '#f4f7fa'); }
+      for (let y = 70; y < l; y += 78) { R(c, -24, y, 14, 34, 7, '#3f2018'); R(c, 10, y, 14, 34, 7, '#3f2018'); R(c, -26, y + 34, 18, 4, 1, '#f4f7fa'); R(c, 8, y + 34, 18, 4, 1, '#f4f7fa'); R(c, -38, y + 54, 76, 5, 0, '#c97a5a'); }
+    }, botP: d => Math.min(41, 8 + Math.floor(d / 10) * 10),
+    top(c, l) {
+      planks(c, -40, -l, 14, l - 8, '#6b4c34', '#3f2c1e', 26); planks(c, 26, -l, 14, l - 8, '#5d412c', '#3a281a', 26); planks(c, -26, -l, 52, Math.max(0, l - 74), '#4f3826', '#33241a', 14); for (let y = -80; y > -l; y -= 56) R(c, -42, y, 84, 8, 1, '#7a583c');
+      R(c, -44, -82, 88, 10, 2, '#8a6646'); R(c, -44, -86, 88, 6, 3, '#f4f7fa'); LN(c, [[0, -72, 0, -60]], '#222', 5); c.fillStyle = '#b8862e'; c.beginPath(); c.moveTo(-11, -62); c.quadraticCurveTo(-20, -30, -27, -14); c.lineTo(27, -14); c.quadraticCurveTo(20, -30, 11, -62); c.quadraticCurveTo(0, -70, -11, -62); c.fill();
+      c.fillStyle = 'rgba(255,240,180,.35)'; c.beginPath(); c.ellipse(-10, -38, 4, 18, .25, 0, TAU); c.fill(); R(c, -30, -16, 60, 6, 3, '#8f641e'); CI(c, 0, -6, 6, '#5d4218'); R(c, -42, -10, 16, 8, 2, '#7a583c'); R(c, 26, -10, 16, 8, 2, '#7a583c');
+    }, topP: flat },
+  italy: {                                   // marble column with ivy  /  broken hanging column
+    bot(c, l) { column(c, 30, l); R(c, -44, 0, 88, 10, 2, '#efe7d4'); R(c, -40, 10, 80, 9, 2, '#d8cdb4'); for (const x of [-34, 34]) { CI(c, x, 22, 9, '#e6dcc6'); CI(c, x, 22, 5, '#c4b796'); CI(c, x, 22, 2, '#8f8364'); } R(c, -34, 17, 68, 10, 3, '#e6dcc6'); for (let y = 40; y < l; y += 16) { const x = Math.sin(y * .05) * 30; leaf(c, x, y, 4, y % 32 ? '#4f7a3a' : '#3c642c'); } }, botP: flat,
+    top(c, l) { c.save(); c.beginPath(); c.moveTo(-40, -l - 5); c.lineTo(-40, -14); c.lineTo(-24, -2); c.lineTo(-10, -12); c.lineTo(4, -1); c.lineTo(20, -10); c.lineTo(40, -4); c.lineTo(40, -l - 5); c.clip(); c.translate(0, -l); column(c, -6, l + 10); c.restore(); for (let y = -l; y < -16; y += 18) leaf(c, 28 + Math.sin(y * .04) * 10, y, 4, '#4f7a3a'); }, topP: d => d < 10 ? 24 : 38 },
+  russia: {                                  // snow-capped log watch-tower  /  ice stalactites
+    bot(c, l) {
+      for (let y = 58; y < l; y += 14) { R(c, -38, y, 76, 13, 5, y % 28 ? '#8a6240' : '#7c5636'); CI(c, -38, y + 6.5, 6, '#b58a5c'); CI(c, 38, y + 6.5, 6, '#a27a50'); } PL(c, [[0, -2], [48, 60], [-48, 60]], '#5d4a3c'); PL(c, [[0, -2], [34, 42], [24, 38], [14, 50], [2, 40], [-10, 54], [-20, 38], [-34, 42]], '#f6f9fc'); R(c, -46, 56, 92, 7, 3, '#eef4f8');
+      for (let y = 84; y < l; y += 98) { R(c, -13, y, 26, 26, 2, '#2f4f7a'); R(c, -9, y + 4, 18, 18, 1, '#ffd98a'); R(c, -1, y + 4, 2, 18, 0, '#2f4f7a'); R(c, -15, y + 26, 30, 5, 2, '#f6f9fc'); }
+    }, botP: spire(60),
+    top(c, l) { const g = c.createLinearGradient(-44, 0, 44, 0); g.addColorStop(0, '#e6f4fa'); g.addColorStop(.5, '#b5d8ea'); g.addColorStop(1, '#86b4d0'); c.fillStyle = g; c.fillRect(-42, -l, 84, l - 34); for (let i = 0; i < l / 40; i++) LN(c, [[jit(36), -l + Math.random() * (l - 50), jit(36), -l + Math.random() * (l - 50)]], 'rgba(255,255,255,.4)', 1.4); icicles(c, 43, 0, 70); for (let i = 0; i < 3; i++) icicles(c, 42, -18 - i * 5, 60); }, topP: d => d < 26 ? 34 : 41 },
+  ottoman: {                                 // fairy chimney  /  hanging mosaic lanterns
+    bot(c, l) { PL(c, [[-30, 34], [30, 34], [42, l], [-42, l]], '#e0c093'); PL(c, [[6, 34], [30, 34], [42, l], [14, l]], '#c4a071'); for (let y = 60; y < l; y += 26) LN(c, [[-36, y, 38, y + 5]], 'rgba(140,90,50,.28)', 2); PL(c, [[0, -2], [22, 12], [44, 32], [36, 42], [-36, 42], [-44, 32], [-20, 10]], '#7d5f46'); PL(c, [[0, -2], [22, 12], [44, 32], [36, 42], [8, 42]], '#654b36'); for (let y = 76; y < l; y += 84) { R(c, -20, y, 14, 22, 7, '#5f4028'); R(c, 6, y + 30, 14, 22, 7, '#5f4028'); R(c, -22, y + 22, 18, 3, 1, '#a9825a'); } }, botP: spire(32),
+    top(c, l) { const cs = [['#c23a5a', '#f2b84a'], ['#2f7f9a', '#8fe0d0'], ['#7a3a9a', '#f28ab0'], ['#d87a2a', '#ffe08a']]; const seg = 76; LN(c, [[0, -l - 10, 0, 0]], '#a8842e', 3); for (let k = Math.ceil(l / seg); k >= 0; k--) { const y = -40 - k * seg, [a, b] = cs[k % 4]; R(c, -16, y - 38, 32, 7, 2, '#c9a23a'); R(c, -14, y + 30, 28, 8, 3, '#c9a23a'); c.fillStyle = a; c.beginPath(); c.ellipse(0, y, 41, 33, 0, 0, TAU); c.fill(); c.save(); c.clip(); for (let i = -4; i <= 4; i++) for (let j = -3; j <= 3; j++) PL(c, [[i * 11, j * 11 + y - 4], [i * 11 + 4, j * 11 + y], [i * 11, j * 11 + y + 4], [i * 11 - 4, j * 11 + y]], (i + j) % 2 ? b : '#fff3c4'); c.restore(); c.fillStyle = 'rgba(255,255,220,.22)'; c.beginPath(); c.ellipse(-10, y - 8, 20, 15, 0, 0, TAU); c.fill(); } }, topP: round(34) },
+  usa: {                                     // wooden water tower  /  railroad trestle
+    bot(c, l) { PL(c, [[0, -2], [46, 30], [-46, 30]], '#6b5a4c'); PL(c, [[0, -2], [46, 30], [8, 30]], '#564638'); planks(c, -42, 30, 84, 84, '#a0683c', '#5d3a20', 12, true); R(c, -44, 46, 88, 5, 1, '#3f3a36'); R(c, -44, 92, 88, 5, 1, '#3f3a36'); R(c, -44, 112, 88, 9, 1, '#5a4030'); planks(c, -40, 121, 11, l, '#7a5234', '#4a3020', 30); planks(c, 29, 121, 11, l, '#6b4730', '#42291a', 30); c.globalAlpha = .55; c.fillStyle = '#4a3222'; c.fillRect(-29, 121, 58, l); c.globalAlpha = 1; for (let y = 126; y < l; y += 56) LN(c, [[-34, y, 34, y + 56], [34, y, -34, y + 56]], '#8a6040', 5); star(c, 0, 70, 15, '#f1e3c0'); }, botP: spire(30),
+    top(c, l) { for (const x of [-40, -8, 26]) planks(c, x, -l, 14, l - 22, '#6f4a30', '#432a1a', 34); c.globalAlpha = .5; c.fillStyle = '#3a271a'; c.fillRect(-38, -l, 76, l - 22); c.globalAlpha = 1; for (let y = -26; y > -l; y -= 60) { LN(c, [[-34, y, 34, y - 60], [34, y, -34, y - 60]], '#8a6040', 5); R(c, -44, y - 5, 88, 9, 1, '#7d5638'); } R(c, -44, -22, 88, 12, 1, '#8f6544'); for (let x = -42; x < 42; x += 15) R(c, x, -12, 9, 10, 1, '#5a3c28'); R(c, -44, -4, 88, 4, 1, '#9aa2a8'); }, topP: flat },
+  africa: {                                  // baobab  /  red sandstone arch with vines
+    bot(c, l) { c.fillStyle = '#8f735a'; c.beginPath(); c.moveTo(-30, l); c.bezierCurveTo(-44, l * .6, -40, 80, -22, 44); c.lineTo(22, 44); c.bezierCurveTo(40, 80, 44, l * .6, 34, l); c.fill(); c.fillRect(-38, 80, 76, l); shadeCyl(c, -38, 80, 76, l); for (let i = 0; i < 6; i++) LN(c, [[-28 + i * 11, 70, -30 + i * 12, l]], 'rgba(60,40,25,.3)', 2); LN(c, [[0, 60, -34, 22], [0, 60, 34, 20], [0, 60, -12, 14], [0, 60, 14, 12]], '#8f735a', 9); for (const [x, y, r] of [[-34, 18, 12], [-16, 12, 14], [4, 11, 13], [22, 13, 14], [36, 20, 11], [-26, 28, 11], [28, 30, 11], [0, 26, 13]]) CI(c, x, y, r, '#6f8238'); for (const [x, y] of [[-30, 14], [-8, 8], [16, 10], [34, 18]]) CI(c, x, y, 7, '#8a9c48'); }, botP: d => Math.min(41, 34 + d * .3),
+    top(c, l) { rock(c, l, -1, ['#d98a54', '#b5623a', '#8a4228']); for (let y = -26; y > -l; y -= 44) R(c, -42, y, 84, 7, 0, 'rgba(240,180,120,.28)'); for (let i = 0; i < 6; i++) { const x = -34 + i * 13, vl = 24 + Math.random() * 26; LN(c, [[x, -vl - 8, x + jit(3), -2]], '#5f7a30', 2); for (let y = -vl; y < -2; y += 8) leaf(c, x + jit(3), y, 2.4, '#7a963e'); } }, topP: flat },
+  japan: {                                   // pagoda  /  stacked paper lanterns
+    bot(c, l) { R(c, -2.5, -4, 5, 34, 1, '#c9a23a'); for (let y = 4; y < 24; y += 6) R(c, -6, y, 12, 2.4, 1, '#c9a23a'); for (let y = 26, i = 0; y < l; y += 62, i++) { const w = Math.min(46, 32 + i * 7); R(c, -w * .68, y + 16, w * 1.36, 48, 0, '#f2e6cf'); for (const x of [-.66, -.22, .18, .58]) R(c, w * x, y + 16, 5, 48, 0, '#b5322a'); R(c, -w * .68, y + 50, w * 1.36, 7, 0, '#b5322a'); R(c, -7, y + 28, 12, 18, 1, '#ffd98a'); c.fillStyle = '#33404e'; c.beginPath(); c.moveTo(-w - 4, y + 18); c.quadraticCurveTo(-w * .6, y + 12, -w * .4, y); c.lineTo(w * .4, y); c.quadraticCurveTo(w * .6, y + 12, w + 4, y + 18); c.lineTo(w * .8, y + 21); c.lineTo(-w * .8, y + 21); c.fill(); R(c, -w * .86, y + 18, w * 1.72, 3.4, 1, '#c9a23a'); } }, botP: d => d < 24 ? 6 : d < 42 ? 16 + (d - 24) : d < 90 ? 30 : 41,
+    top(c, l) { const seg = 70; LN(c, [[0, -l - 10, 0, 0]], '#2a2a2a', 3); for (let k = Math.ceil(l / seg); k >= 0; k--) { const y = -36 - k * seg, red = k % 2 === 0; R(c, -17, y - 36, 34, 8, 2, '#222'); R(c, -17, y + 28, 34, 8, 2, '#222'); c.fillStyle = red ? '#cf3a2c' : '#f6ecd4'; c.beginPath(); c.ellipse(0, y, 42, 31, 0, 0, TAU); c.fill(); c.strokeStyle = red ? 'rgba(80,10,10,.4)' : 'rgba(120,90,50,.4)'; c.lineWidth = 1.2; for (const s of [-20, -10, 0, 10, 20]) { const w = 42 * Math.sqrt(1 - (s / 31) ** 2); c.beginPath(); c.moveTo(-w, y + s); c.quadraticCurveTo(0, y + s + 4, w, y + s); c.stroke(); } CI(c, 0, y, 11, red ? '#f6ecd4' : '#cf3a2c'); c.fillStyle = 'rgba(255,240,170,.25)'; c.beginPath(); c.ellipse(-12, y - 7, 18, 13, 0, 0, TAU); c.fill(); } LN(c, [[-5, -2, -5, 5], [0, -2, 0, 7], [5, -2, 5, 5]], '#e9c33a', 1.6); }, topP: round(31) },
+};
+function column(c, y, len) { const g = c.createLinearGradient(-40, 0, 40, 0); g.addColorStop(0, '#f8f2e4'); g.addColorStop(.6, '#ddd2ba'); g.addColorStop(1, '#a89c80'); c.fillStyle = g; c.fillRect(-38, y, 76, len); for (let x = -32; x < 36; x += 11) LN(c, [[x, y, x, y + len]], 'rgba(110,95,65,.35)', 2.2); for (let yy = y + 90; yy < y + len; yy += 90) LN(c, [[-38, yy, 38, yy]], 'rgba(80,65,40,.4)', 1.4); }
+
+function makeSprite(fn, len, dir) {
+  const k = 1.5, w = 130, pad = 34, cv = document.createElement('canvas'); cv.width = w * k; cv.height = (len + pad) * k;
+  const c = cv.getContext('2d'); c.scale(k, k); c.translate(w / 2, dir > 0 ? pad : len); fn(c, len); return { cv, w, h: len + pad, pad };
+}
+
+// =====================================================================
+//  REGIONS  (sky = [clear, overcast, storm] as [top, bottom])
+//  value = marks paid per coin collected there
+// =====================================================================
+const SKY_STD = [['#4a90d9', '#c6e5f6'], ['#686e76', '#a8acb0'], ['#181c24', '#3e444e']];
+const REGIONS = [
+  { id: 'cliffs', flag: null, name: 'Grey Cliffs', place: 'Training range', cost: 0, value: 1, scene: 'cliffs', weather: 'thunder', wname: 'Thunderstorm', obs: 'Grey rock cliffs', sky: SKY_STD, ground: ['#5c6066', '#3f4348'],
+    text: 'Where every pilot earns the right to leave.' },
+  { id: 'france', flag: 'fr', name: 'France', place: 'Champagne front', cost: 120, value: 1, scene: 'franceFront', weather: 'downpour', wname: 'Downpour & distant guns', obs: 'Château turrets · observation balloons', sky: [['#6fa8d8', '#f0e6cc'], ['#7f8680', '#b5b3a6'], ['#2c3238', '#5a5c58']], ground: ['#7d7346', '#57502f'],
+    text: 'Vineyards, poplars, and a horizon that rumbles after dark.' },
+  { id: 'germany', flag: 'de', name: 'German Empire', place: 'Rhine valley', cost: 200, value: 1, scene: 'germany', weather: 'fog', wname: 'Fog & searchlights', obs: 'Castle keeps · airship masts', sky: [['#7aa2c4', '#e2e6dc'], ['#7d868c', '#b0b5b2'], ['#39424a', '#7a8284']], ground: ['#4c5a3c', '#34402a'],
+    text: 'River fog hides the castles. Searchlights hide nothing.' },
+  { id: 'uk', flag: 'uk', name: 'United Kingdom', place: 'Channel coast', cost: 300, value: 1, scene: 'ukcoast', weather: 'gale', wname: 'North Sea gale', obs: 'Lighthouses · white chalk', sky: [['#7fb0d0', '#e0ebee'], ['#73808a', '#a9b2b6'], ['#26343f', '#56656e']], ground: ['#4f7386', '#385666'],
+    text: 'Chalk, gulls, and rain that arrives sideways.' },
+  { id: 'austria', flag: 'at', name: 'Austria-Hungary', place: 'Alpine passes', cost: 420, value: 2, scene: 'alps', weather: 'hail', wname: 'Alpine hailstorm', obs: 'Snowy pillars · cable-cars', sky: [['#5a9ce0', '#e0eff8'], ['#7b8894', '#b9c2c8'], ['#2d3642', '#66717c']], ground: ['#6d8a58', '#4c663c'],
+    text: 'Thin air, thick hail, and a cable-car that never yields.' },
+  { id: 'poland', flag: 'pl', name: 'Poland', place: 'Vistula plain', cost: 560, value: 2, scene: 'poland', weather: 'snow', wname: 'Snow blizzard', obs: 'Brick gothic towers · belfries', sky: [['#8ab6d6', '#eef1ea'], ['#8d979e', '#c3c9cb'], ['#5c6873', '#a4adb3']], ground: ['#e6edf2', '#b9c6d0'],
+    text: 'Red brick, white fields, and a wind with no manners.' },
+  { id: 'italy', flag: 'it', name: 'Italy', place: 'Bay of the volcano', cost: 720, value: 2, scene: 'italy', weather: 'ash', wname: 'Eruption & ash fall', obs: 'Marble columns', sky: [['#6cb0dc', '#fae6c0'], ['#8b7a70', '#c4ab94'], ['#2c2024', '#6a3a2c']], ground: ['#8a7a4c', '#5d5232'],
+    text: 'Ruins below, cypress above, and a mountain in a bad mood.' },
+  { id: 'russia', flag: 'ru', name: 'Russia', place: 'Northern taiga', cost: 900, value: 2, scene: 'russia', weather: 'blizzard', wname: 'Night blizzard & aurora', obs: 'Log watch-towers · giant icicles', sky: [['#92aecb', '#e8eef4'], ['#75808f', '#b3bcc6'], ['#182236', '#46566c']], ground: ['#eef3f7', '#b5c4d2'],
+    text: 'The sky dances green. The snow does not care.' },
+  { id: 'ottoman', flag: 'tr', name: 'Ottoman Empire', place: 'Anatolian plateau', cost: 1100, value: 2, scene: 'anatolia', weather: 'sand', wname: 'Sandstorm', obs: 'Fairy chimneys · mosaic lanterns', sky: [['#5fb0d8', '#fbe6c0'], ['#c0a070', '#e0c898'], ['#8a5f34', '#c08e54']], ground: ['#cfa26c', '#a67e4c'],
+    text: 'Stone chimneys, coloured glass, and a wall of sand.' },
+  { id: 'usa', flag: 'us', name: 'United States', place: 'Great Plains airfields', cost: 1350, value: 3, scene: 'usa', weather: 'tornado', wname: 'Dust & tornado', obs: 'Water towers · rail trestles', sky: [['#5fa8e0', '#f4e6bf'], ['#8a8a74', '#bdb58e'], ['#3c4034', '#7d7450']], ground: ['#c0994a', '#8f6f32'],
+    text: 'Barnstorming country, until the sky starts to spin.' },
+  { id: 'africa', flag: 'africa', name: 'Africa', place: 'Eastern savanna', cost: 1600, value: 3, scene: 'savanna', weather: 'tropic', wname: 'Tropical thunderstorm', obs: 'Baobabs · sandstone & vines', sky: [['#4aa6d8', '#fbdf9c'], ['#8f7a5c', '#d0ae74'], ['#2a2230', '#6a4a3c']], ground: ['#c89a46', '#96702e'],
+    text: 'Golden grass under a storm that arrives like a drum.' },
+  { id: 'japan', flag: 'jp', name: 'Japan', place: 'Islands of the east', cost: 1900, value: 3, scene: 'japanLand', weather: 'typhoon', wname: 'Typhoon & blossom', obs: 'Pagodas · paper lanterns', sky: [['#7fc0e0', '#fbe6e0'], ['#80858f', '#c0b6bc'], ['#232a3a', '#555a6e']], ground: ['#7f9a58', '#5a723c'],
+    text: 'Lanterns sway, blossom flies, and the sea stands up.' },
+];
+const REGION_BY_ID = Object.fromEntries(REGIONS.map(r => [r.id, r]));
+const hex = s => [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16));
+REGIONS.forEach(r => { r.skyTop = r.sky.map(s => hex(s[0])); r.skyBot = r.sky.map(s => hex(s[1])); });
+
+// ---------------------------------------------------------------------
+//  Weather particles. e = event intensity 0..1 (starts after score 25)
+// ---------------------------------------------------------------------
+const WEATHER = {   // n: particles, v: [vx, vy], k: kind, veil: colour+alpha
+  thunder:  { n: 160, v: [-230, 820], k: 'rain', bolts: 1, veil: [8, 12, 22, .22], wind: .25, dark: 1 },
+  downpour: { n: 210, v: [-160, 900], k: 'rain', guns: 1, veil: [20, 22, 24, .16], wind: .2, dark: 1 },
+  fog:      { n: 0, v: [0, 0], k: 'none', fog: 1, beams: 1, veil: [190, 198, 200, .1], wind: .1 },
+  gale:     { n: 190, v: [-900, 420], k: 'rain', spray: 1, veil: [30, 44, 54, .14], wind: .6, dark: 1 },
+  hail:     { n: 130, v: [-90, 720], k: 'hail', veil: [40, 50, 64, .14], wind: .35, dark: 1 },
+  snow:     { n: 230, v: [-330, 190], k: 'snow', veil: [236, 242, 247, .2], wind: .5 },
+  blizzard: { n: 300, v: [-520, 230], k: 'snow', aurora: 1, veil: [150, 172, 196, .16], wind: .65, dark: 1 },
+  ash:      { n: 130, v: [-60, 110], k: 'ash', volcano: 1, veil: [46, 20, 14, .18], wind: .2, dark: 1 },
+  sand:     { n: 230, v: [-760, 60], k: 'sand', dust: '196,146,84', veil: [190, 138, 78, .22], wind: .6 },
+  tornado:  { n: 130, v: [-520, 40], k: 'sand', dust: '150,130,84', funnel: 1, veil: [70, 64, 40, .16], wind: .65, dark: 1 },
+  tropic:   { n: 190, v: [-90, 900], k: 'rain', bolts: 1, veil: [24, 12, 22, .18], wind: .2, dark: 1 },
+  typhoon:  { n: 210, v: [-640, 700], k: 'rain', petals: 46, veil: [20, 24, 40, .16], wind: .6, dark: 1 },
+};
+
+// =====================================================================
+//  EXPLOSIONS — one class, several recipes. Used in flight and, animated,
+//  in the store's "Explosions" tab.
+// =====================================================================
+const BOOMS = [
+  { id: 'standard', name: 'Standard Issue', cost: 0, text: 'A plain, honest ball of fire and smoke. Supplied free with every aeroplane.' },
+  { id: 'oil', name: 'Oil Smoke', cost: 80, text: 'A slow, greasy black column that mechanics can identify from three fields away.' },
+  { id: 'shock', name: 'Shockwave', cost: 160, text: 'A white flash and two rings that shove the clouds aside.' },
+  { id: 'comic', name: 'Penny Comic', cost: 260, text: 'Straight from a one-penny picture paper, lettering included.' },
+  { id: 'fireworks', name: 'Victory Fireworks', cost: 400, text: 'Three coloured shells, because any landing may be celebrated.' },
+  { id: 'electric', name: 'Magneto Burst', cost: 550, text: 'Blue sparks crackling out of an over-excited magneto.' },
+  { id: 'feathers', name: 'Pillow Fight', cost: 700, text: 'The cargo turned out to be mattresses. Soft, white and undignified.' },
+  { id: 'silver', name: 'Silver Rain', cost: 900, text: 'A shower of shining marks. Decorative only: the bank counts them first.' },
+  { id: 'phoenix', name: 'Phoenix', cost: 1300, text: 'A firebird lifts out of the wreck and leaves without paying.' },
+];
+const BOOM_BY_ID = Object.fromEntries(BOOMS.map(b => [b.id, b]));
+class Boom {
+  constructor(id, x, y) {
+    this.id = id; this.x = x; this.y = y; this.t = 0; this.parts = []; const P = this.parts;
+    const burst = (n, f) => { for (let i = 0; i < n; i++) { const a = rnd(0, TAU); P.push({ x: 0, y: 0, rot: rnd(0, TAU), vr: rnd(-8, 8), delay: 0, g: 0, drag: 1.5, age: 0, ...f(a, i) }); } };
+    const vel = (a, lo, hi) => { const v = rnd(lo, hi); return { vx: Math.cos(a) * v, vy: Math.sin(a) * v }; };
+    if (id !== 'feathers' && id !== 'silver') burst(9, a => ({ ...vel(a, 90, 240), g: 520, drag: .4, kind: 'chip', r: rnd(3, 7), life: rnd(.8, 1.3), col: ['#4a3a26', '#5f6a45', '#2a2a2a', '#a0743f'][Math.random() * 4 | 0] }));
+    if (id === 'standard') {
+      burst(22, a => ({ ...vel(a, 20, 120), kind: 'fire', r: rnd(12, 24), life: rnd(.4, .75), drag: 3 }));
+      burst(12, a => ({ ...vel(a, 10, 60), kind: 'puff', r: rnd(12, 22), life: rnd(.9, 1.5), g: -60, delay: .12, col: '70,66,62' }));
+    } else if (id === 'oil') {
+      burst(8, a => ({ ...vel(a, 20, 80), kind: 'fire', r: rnd(10, 16), life: .4, drag: 3 }));
+      burst(34, (a, i) => ({ vx: rnd(-26, 26), vy: rnd(-150, -60), kind: 'puff', r: rnd(14, 28), life: rnd(1.2, 1.9), drag: .8, delay: i * .022, col: i % 3 ? '22,20,20' : '52,46,42' }));
+      burst(18, a => ({ ...vel(a, 80, 190), g: 560, kind: 'dot', r: rnd(2, 4.5), life: 1, col: '#15110e' }));
+    } else if (id === 'shock') {
+      burst(10, a => ({ ...vel(a, 20, 90), kind: 'fire', r: rnd(10, 20), life: .5, drag: 3 }));
+      burst(26, a => ({ ...vel(a, 180, 360), kind: 'streak', r: 2, life: rnd(.35, .6), drag: 2.4, col: '#fff6dc' }));
+    } else if (id === 'fireworks') {
+      [[0, 0, '#ff5a4a'], [-46, -52, '#5ab8ff'], [50, -70, '#ffd84a']].forEach(([ox, oy, col], k) => burst(34, (a, i) => ({ x: ox, y: oy, vx: Math.cos(i / 34 * TAU) * (i % 2 ? 150 : 95), vy: Math.sin(i / 34 * TAU) * (i % 2 ? 150 : 95), kind: 'streak', r: 3.6, life: rnd(1, 1.3), g: 130, drag: 1.6, delay: k * .24, col })));
+    } else if (id === 'electric') {
+      burst(40, a => ({ ...vel(a, 80, 260), kind: 'streak', r: 1.6, life: rnd(.3, .9), drag: 2, col: Math.random() < .5 ? '#9fe0ff' : '#e6f8ff' }));
+      burst(10, a => ({ ...vel(a, 10, 50), kind: 'puff', r: rnd(12, 20), life: 1, col: '90,150,220' }));
+    } else if (id === 'feathers') {
+      burst(46, a => ({ ...vel(a, 40, 220), kind: 'feather', r: rnd(5, 10), life: rnd(1.3, 2), g: 60, drag: 2.2, col: ['#ffffff', '#f3efe4', '#e4ddcd'][Math.random() * 3 | 0] }));
+      burst(8, a => ({ ...vel(a, 10, 50), kind: 'puff', r: rnd(12, 20), life: .9, col: '240,236,226' }));
+    } else if (id === 'silver') {
+      burst(8, a => ({ ...vel(a, 10, 50), kind: 'puff', r: rnd(14, 22), life: .8, col: '214,220,226' }));
+      burst(22, () => ({ vx: rnd(-150, 150), vy: rnd(-330, -120), kind: 'coin', r: rnd(6, 10), life: rnd(1.2, 1.7), g: 620, drag: .2 }));
+    } else if (id === 'phoenix') {
+      burst(26, a => ({ ...vel(a, 30, 130), kind: 'fire', r: rnd(10, 20), life: rnd(.5, .9), drag: 2.6 }));
+      burst(34, (a, i) => ({ x: rnd(-34, 34), vx: rnd(-30, 30), vy: rnd(-190, -80), kind: 'dot', r: rnd(1.4, 3.2), life: rnd(.7, 1.2), delay: .2 + i * .02, drag: .6, col: i % 2 ? '#ffb13a' : '#ff6a2a' }));
+    }
+  }
+  get done() { return this.t > 2.1; }
+  update(dt) {
+    this.t += dt;
+    for (const p of this.parts) { if (this.t < p.delay) continue; p.age += dt; const k = Math.exp(-p.drag * dt); p.vx *= k; p.vy = p.vy * k + p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt; }
+    this.parts = this.parts.filter(p => p.age < p.life);
+  }
+  draw(c) {
+    const t = this.t; c.save(); c.translate(this.x, this.y);
+    if (t < .14 && this.id !== 'feathers') { c.globalAlpha = 1 - t / .14; CI(c, 0, 0, 46 * (.5 + t * 5), this.id === 'electric' ? '#d6f0ff' : '#fff8dc'); c.globalAlpha = 1; }
+    if (this.id === 'shock') for (const d of [0, .16]) { const k = (t - d) / .7; if (k > 0 && k < 1) { c.globalAlpha = 1 - k; c.strokeStyle = '#fffdf2'; c.lineWidth = 9 * (1 - k) + 1; c.beginPath(); c.arc(0, 0, 14 + 120 * Math.sqrt(k), 0, TAU); c.stroke(); } }
+    c.globalAlpha = 1;
+    if (this.id === 'comic' && t < 1.5) {
+      const s = t < .18 ? t / .18 * 1.12 : t > 1.2 ? Math.max(0, (1.5 - t) / .3) : 1 + Math.sin(t * 16) * .02; c.save(); c.scale(s, s); c.rotate(-.1);
+      [[78, '#151515'], [72, '#d8322a'], [56, '#ffd23a'], [40, '#fff7d0']].forEach(([r, col]) => { c.fillStyle = col; c.beginPath(); for (let i = 0; i < 24; i++) { const a = i / 24 * TAU, rr = i % 2 ? r * .68 : r * (i % 4 ? .9 : 1); c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr * .8); } c.closePath(); c.fill(); });
+      c.font = "bold 34px Impact, 'Arial Black', sans-serif"; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 6; c.lineJoin = 'round'; c.strokeStyle = '#151515'; c.strokeText('KRAK!', 0, 2); c.fillStyle = '#d8322a'; c.fillText('KRAK!', 0, 2); c.restore();
+    }
+    for (const p of this.parts) {
+      if (this.t < p.delay) continue; const k = p.age / p.life, a = 1 - k; c.save(); c.translate(p.x, p.y);
+      if (p.kind === 'fire') { c.globalAlpha = a; const r = p.r * (1 - k * .5); CI(c, 0, 0, r, k < .25 ? '#fff3b0' : k < .55 ? '#ffb13a' : '#d8481e'); CI(c, 0, 0, r * .5, k < .4 ? '#fffbe0' : '#ff8a2a'); }
+      else if (p.kind === 'puff') { c.globalAlpha = a * .72; CI(c, 0, 0, p.r * (.7 + k * 1.1), `rgb(${p.col})`); }
+      else if (p.kind === 'chip') { c.globalAlpha = Math.min(1, a * 2); c.rotate(p.rot); R(c, -p.r / 2, -p.r / 4, p.r, p.r / 2, 1, p.col); }
+      else if (p.kind === 'dot') { c.globalAlpha = a; CI(c, 0, 0, p.r, p.col); }
+      else if (p.kind === 'streak') { c.globalAlpha = a; const m = .06; LN(c, [[0, 0, -p.vx * m, -p.vy * m]], p.col, p.r); }
+      else if (p.kind === 'feather') { c.globalAlpha = Math.min(1, a * 1.6); c.rotate(Math.sin(p.rot) * .9); c.fillStyle = p.col; c.beginPath(); c.ellipse(0, 0, p.r, p.r * .32, 0, 0, TAU); c.fill(); LN(c, [[-p.r, 0, p.r, 0]], 'rgba(120,110,90,.5)', .7); }
+      else if (p.kind === 'coin') { c.globalAlpha = Math.min(1, a * 2.5); drawCoin(c, 0, 0, p.r, p.rot * 1.6); }
+      c.restore();
+    }
+    if (this.id === 'electric' && t < .75) { c.globalAlpha = 1 - t / .75; for (let i = 0; i < 7; i++) { const a = i / 7 * TAU + t * 3; let x = 0, y = 0; c.strokeStyle = '#bfeaff'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, 0); for (let k = 1; k < 6; k++) { x = Math.cos(a) * k * 14 + rnd(-8, 8); y = Math.sin(a) * k * 14 + rnd(-8, 8); c.lineTo(x, y); } c.stroke(); } c.globalAlpha = 1; }
+    if (this.id === 'phoenix' && t > .25 && t < 2) {
+      const k = (t - .25) / 1.75, flapA = Math.sin(t * 9) * .45; c.globalAlpha = Math.min(1, k * 5, (1 - k) * 3); c.translate(0, -k * 120); const s = .5 + Math.min(1, k * 2.5) * .7; c.scale(s, s);
+      for (const d of [-1, 1]) { c.save(); c.scale(d, 1); c.rotate(-flapA); PL(c, [[2, 4], [30, -26], [66, -30], [54, -14], [58, -4], [42, -2], [40, 10], [22, 8]], '#ff7a2a'); PL(c, [[2, 2], [28, -16], [48, -18], [36, -6], [20, 4]], '#ffd23a'); c.restore(); }
+      PL(c, [[-8, 0], [0, -24], [8, 0], [4, 26], [12, 46], [0, 36], [-12, 46], [-4, 26]], '#ff9a2a'); PL(c, [[-4, 0], [0, -18], [4, 0], [0, 24]], '#ffe27a'); CI(c, 0, -24, 7, '#ff9a2a'); PL(c, [[5, -27], [14, -23], [5, -21]], '#ffe27a'); CI(c, 2, -26, 1.4, '#3a1a08'); PL(c, [[-3, -30], [0, -42], [3, -30]], '#ffd23a');
+    }
+    c.restore();
+  }
+}
+
+// =====================================================================
+//  AUDIO — everything is synthesised; all melodies are original and
+//  written as scale degrees ('.' = rest, '-' = hold previous note)
+// =====================================================================
+const SCALES = { major: [0, 2, 4, 5, 7, 9, 11], minor: [0, 2, 3, 5, 7, 8, 10], dorian: [0, 2, 3, 5, 7, 9, 10], harm: [0, 2, 3, 5, 7, 8, 11], mixo: [0, 2, 4, 5, 7, 9, 10], hijaz: [0, 1, 4, 5, 7, 8, 10], pent: [0, 2, 4, 7, 9], hira: [0, 2, 3, 7, 8] };
+// steps per bar: n. bass = chord root (scale degree) per bar. style: oom | waltz | drone | walk | pulse
+const TRACKS = {
+  menu: { bpm: 100, n: 8, root: 50, scale: 'dorian', lead: 'brass', style: 'oom', drum: 'march', bass: [0, 0, 3, 4, 0, 5, 4, 0],
+    mel: '0 - 0 2 4 - 2 - | 4 - 5 4 2 - . . | 3 - 3 5 7 - 5 - | 4 - 3 2 1 - . . | 0 - 0 2 4 - 4 5 | 7 - 6 5 4 - 2 - | 4 - 3 - 1 - 2 1 | 0 - - - . . . .' },
+  cliffs: { bpm: 112, n: 8, root: 48, scale: 'major', lead: 'brass', style: 'oom', drum: 'march', bass: [0, 0, 4, 0, 3, 0, 4, 0],
+    mel: '0 . 0 1 2 - 4 - | 2 - 1 0 2 - . . | 1 . 1 2 4 - 6 - | 4 - 2 - 0 - . . | 5 - 5 4 3 - 5 - | 4 - 2 4 7 - 4 - | 6 - 4 - 1 - 4 - | 7 - - - 0 - . .' },
+  france: { bpm: 168, n: 6, root: 52, scale: 'harm', lead: 'accordion', style: 'waltz', bass: [0, 0, 3, 0, 4, 4, 0, 0],
+    mel: '4 - 5 4 2 - | 0 - 2 - 4 - | 5 - 7 5 3 - | 4 - - - 2 - | 1 - 2 3 4 - | 6 - 4 - 1 - | 2 - 1 0 -1 - | 0 - - - . .' },
+  germany: { bpm: 116, n: 8, root: 46, scale: 'major', lead: 'tuba', style: 'oom', drum: 'march', bass: [0, 4, 0, 4, 3, 0, 4, 0],
+    mel: '4 - 2 - 0 - 2 - | 1 - 3 - 4 - . . | 4 - 2 - 0 2 4 7 | 6 - 4 - 4 - . . | 5 - 5 7 5 - 3 - | 4 - 4 2 4 - 2 - | 1 1 2 3 4 - 6 - | 7 - 4 - 0 - . .' },
+  uk: { bpm: 132, n: 6, root: 50, scale: 'mixo', lead: 'whistle', style: 'drone', drum: 'jig', bass: [0, 0, 6, 0, 0, 3, 6, 0],
+    mel: '0 2 4 4 2 4 | 5 4 2 4 - . | 1 3 6 6 5 3 | 4 2 0 2 - . | 7 - 5 4 2 4 | 5 7 5 3 - 5 | 6 5 3 1 3 1 | 0 - 0 0 - .' },
+  austria: { bpm: 156, n: 6, root: 53, scale: 'major', lead: 'zither', style: 'waltz', bass: [0, 0, 4, 4, 4, 4, 0, 0],
+    mel: '0 - 2 - 4 - | 7 - - - 4 - | 6 - 5 - 3 - | 4 - - - . . | 1 - 3 - 4 - | 6 - 5 - 1 - | 2 - 4 - 3 1 | 0 - - - . .' },
+  poland: { bpm: 144, n: 6, root: 50, scale: 'minor', lead: 'fiddle', style: 'waltz', drum: 'jig', bass: [0, 3, 0, 4, 0, 5, 4, 0],
+    mel: '0 1 2 - 4 - | 5 4 3 - 5 - | 4 3 2 - 0 - | 1 - 4 - - . | 7 6 7 - 4 - | 5 4 5 - 2 - | 3 2 1 - 4 - | 0 - 0 - - .' },
+  italy: { bpm: 176, n: 6, root: 52, scale: 'minor', lead: 'mandolin', style: 'walk', drum: 'tamb', bass: [0, 0, 3, 0, 4, 4, 3, 0],
+    mel: '4 4 4 5 4 3 | 2 3 4 2 - 0 | 3 3 3 5 4 3 | 2 - 4 2 - . | 4 5 6 8 6 4 | 5 4 3 1 - . | 3 5 3 2 4 2 | 1 2 1 0 - .' },
+  russia: { bpm: 108, n: 8, root: 45, scale: 'minor', lead: 'balalaika', style: 'oom', drum: 'bells', bass: [0, 3, 0, 4, 5, 3, 4, 0],
+    mel: '4 - 2 3 4 - 4 - | 3 2 3 5 3 - . . | 2 - 0 1 2 - 4 - | 1 - 1 - 4 - . . | 5 5 4 5 7 - 5 - | 3 3 2 3 5 - 3 - | 4 3 2 1 4 - 1 - | 0 - 0 - . . . .' },
+  ottoman: { bpm: 104, n: 8, root: 50, scale: 'hijaz', lead: 'oud', style: 'drone', drum: 'hand', bass: [0, 0, 1, 0, 3, 0, 1, 0],
+    mel: '0 - 1 2 3 2 1 - | 2 1 0 - . 0 1 2 | 3 - 4 3 2 3 1 - | 2 - 1 - 0 - . . | 4 - 5 4 3 4 5 - | 7 - 5 4 3 - 2 - | 3 2 1 2 1 0 1 - | 0 - - - . . . .' },
+  usa: { bpm: 138, n: 8, root: 50, scale: 'pent', lead: 'banjo', style: 'oom', drum: 'shuffle', bass: [0, 0, 3, 0, 0, 3, 3, 0],
+    mel: '0 1 2 3 4 3 2 1 | 2 - 1 0 . 0 1 2 | 3 4 5 4 3 - 1 - | 2 - 3 - 2 - . . | 5 4 3 2 3 4 3 2 | 3 - 4 5 6 - 5 - | 4 3 2 1 3 2 1 0 | 0 - 0 - . . . .' },
+  africa: { bpm: 118, n: 8, root: 48, scale: 'pent', lead: 'kalimba', style: 'pulse', drum: 'djembe', bass: [0, 0, 3, 0, 0, 2, 3, 0],
+    mel: '5 . 3 4 . 3 2 . | 3 . 2 0 . 2 3 . | 5 . 6 5 . 4 3 . | 4 . 3 2 . . 1 2 | 3 . 5 3 . 5 7 . | 6 . 5 4 . 3 4 . | 5 . 3 2 . 3 1 . | 0 . 2 0 . . . .' },
+  japan: { bpm: 84, n: 8, root: 50, scale: 'hira', lead: 'koto', style: 'drone', drum: 'taiko', bass: [0, 0, 3, 0, 0, 4, 3, 0],
+    mel: '5 - 4 3 - 2 1 - | 2 - - . 3 - . . | 4 - 3 4 5 - 7 - | 5 - - - . . . . | 8 - 7 5 - 4 3 - | 4 3 2 - 1 2 - . | 3 - 2 1 0 - 1 - | 0 - - - . . . .' },
+};
+const VOICES = {   // wave(s), attack, decay(s), sustain?, cutoff, tremolo
+  brass: { w: ['sawtooth'], a: .03, d: .32, cut: 1500, g: .16 }, tuba: { w: ['sawtooth', 'square'], a: .03, d: .26, cut: 900, g: .15 }, accordion: { w: ['sawtooth', 'square'], det: 9, a: .04, d: .34, cut: 1900, g: .09, oct: 1 },
+  whistle: { w: ['sine', 'triangle'], a: .02, d: .24, cut: 5000, g: .13, oct: 1 }, zither: { w: ['triangle'], a: .004, d: .7, cut: 4200, g: .2, oct: 1 }, fiddle: { w: ['sawtooth'], det: 5, a: .05, d: .32, cut: 2600, g: .09, oct: 1, vib: 1 },
+  mandolin: { w: ['triangle', 'sawtooth'], a: .004, d: .22, cut: 3600, g: .1, oct: 1, trem: 1 }, balalaika: { w: ['triangle', 'square'], a: .004, d: .26, cut: 2600, g: .12, oct: 1, trem: 1 }, oud: { w: ['sawtooth'], a: .004, d: .42, cut: 1500, g: .17 },
+  banjo: { w: ['sawtooth', 'triangle'], a: .002, d: .2, cut: 3800, g: .12, oct: 1 }, kalimba: { w: ['sine', 'triangle'], a: .002, d: .5, cut: 3200, g: .22, oct: 1 }, koto: { w: ['triangle', 'sawtooth'], a: .003, d: .9, cut: 2400, g: .15 },
+};
+const DRUMS = { march: { k: [0, 4], s: [2, 6, 7] }, jig: { k: [0, 3], h: [2, 5] }, tamb: { h: [0, 1, 2, 3, 4, 5], k: [0, 3] }, bells: { h: [0, 2, 4, 6] }, hand: { k: [0, 3], s: [6], h: [2, 5] }, shuffle: { k: [0, 4], h: [2, 3, 6, 7], s: [4] }, djembe: { k: [0, 3, 6], s: [2, 5], h: [1, 4, 7] }, taiko: { k: [0, 5] } };
+Object.values(TRACKS).forEach(t => { t.steps = t.mel.replace(/\|/g, ' ').trim().split(/\s+/); });
+
+const Sound = {
+  ctx: null, on: true, track: null, next: 0, i: 0, timer: 0,
+  init() {
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    const x = this.ctx = new AC(); this.master = x.createGain(); this.master.gain.value = this.on ? .9 : 0;
+    const comp = x.createDynamicsCompressor(); this.master.connect(comp); comp.connect(x.destination);
+    this.music = x.createGain(); this.music.gain.value = 1; this.music.connect(this.master);
+    this.fx = x.createGain(); this.fx.gain.value = .8; this.fx.connect(this.master);
+    const len = x.sampleRate * 2, b = this.noiseBuf = x.createBuffer(1, len, x.sampleRate), d = b.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const src = x.createBufferSource(); src.buffer = b; src.loop = true; this.windF = x.createBiquadFilter(); this.windF.type = 'bandpass'; this.windF.frequency.value = 420; this.windF.Q.value = .6; this.windG = x.createGain(); this.windG.gain.value = 0; src.connect(this.windF); this.windF.connect(this.windG); this.windG.connect(this.fx); src.start();
+    this.timer = setInterval(() => this.schedule(), 60);
+    if (this.want) this.play(this.want);
+  },
+  setOn(v) { this.on = v; if (this.ctx) this.master.gain.setTargetAtTime(v ? .9 : 0, this.ctx.currentTime, .05); },
+  play(id) { this.want = id; if (!this.ctx || this.track === id) return; this.track = id; this.i = 0; this.next = this.ctx.currentTime + .12; },
+  wind(v) { if (this.ctx) this.windG.gain.setTargetAtTime(v, this.ctx.currentTime, .4); },
+  hz(t, deg, oct = 0) { const s = SCALES[t.scale], n = s.length, o = Math.floor(deg / n); return 440 * Math.pow(2, (t.root + s[deg - o * n] + 12 * (o + oct) - 69) / 12); },
+  note(v, f, at, dur) {
+    const x = this.ctx, g = x.createGain(), lp = x.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = v.cut; const end = at + Math.max(.08, Math.min(dur * 1.15, v.d + dur * .6));
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(v.g, at + v.a); g.gain.exponentialRampToValueAtTime(0.0006, end); g.connect(lp); lp.connect(this.music);
+    if (v.trem) { const l = x.createOscillator(), lg = x.createGain(); l.frequency.value = 13; lg.gain.value = v.g * .35; l.connect(lg); lg.connect(g.gain); l.start(at); l.stop(end); }
+    v.w.forEach((w, k) => { const o = x.createOscillator(); o.type = w; o.frequency.value = f; if (v.det) o.detune.value = k ? v.det : -v.det; if (v.vib) { const l = x.createOscillator(), lg = x.createGain(); l.frequency.value = 5.5; lg.gain.value = f * .008; l.connect(lg); lg.connect(o.frequency); l.start(at); l.stop(end); } o.connect(g); o.start(at); o.stop(end + .02); });
+  },
+  noise(at, dur, freq, gain, type = 'lowpass', out) { const x = this.ctx, s = x.createBufferSource(), f = x.createBiquadFilter(), g = x.createGain(); s.buffer = this.noiseBuf; f.type = type; f.frequency.setValueAtTime(freq, at); f.frequency.exponentialRampToValueAtTime(Math.max(40, freq * .25), at + dur); g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0006, at + dur); s.connect(f); f.connect(g); g.connect(out || this.music); s.start(at, Math.random()); s.stop(at + dur + .02); },
+  thump(at, f, dur, gain, out) { const x = this.ctx, o = x.createOscillator(), g = x.createGain(); o.frequency.setValueAtTime(f, at); o.frequency.exponentialRampToValueAtTime(f * .4, at + dur); g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0006, at + dur); o.connect(g); g.connect(out || this.music); o.start(at); o.stop(at + dur + .02); },
+  schedule() {
+    const x = this.ctx; if (!x || !this.track || x.state !== 'running') return; if (this.next < x.currentTime - .5) this.next = x.currentTime + .05;
+    while (this.next < x.currentTime + .25) { this.step(this.next); this.next += 30 / TRACKS[this.track].bpm; this.i++; }
+  },
+  step(at) {
+    const t = TRACKS[this.track], total = t.steps.length, i = this.i % total, s8 = 30 / t.bpm, n = t.n, bar = Math.floor(i / n) % t.bass.length, st = i % n, v = VOICES[t.lead], tok = t.steps[i];
+    if (tok !== '.' && tok !== '-') { let len = 1; while (i + len < total && t.steps[i + len] === '-') len++; this.note(v, this.hz(t, +tok, v.oct || 0), at, len * s8); }
+    const root = t.bass[bar], B = { w: ['triangle'], a: .008, d: .3, cut: 700, g: .24 }, C = { w: ['triangle'], a: .01, d: .18, cut: 1600, g: .06 }, chord = k => [0, 2, 4].forEach(d => this.note(C, this.hz(t, root + d, k), at, s8));
+    if (t.style === 'oom') { if (st === 0) this.note(B, this.hz(t, root, -1), at, s8 * 1.6); if (st === 4) this.note(B, this.hz(t, root + (t.scale === 'pent' ? 3 : 4), -2), at, s8 * 1.6); if (st === 2 || st === 6) chord(0); }
+    else if (t.style === 'waltz') { if (st === 0) this.note(B, this.hz(t, root, -1), at, s8 * 1.8); if (st === 2 || st === 4) chord(0); }
+    else if (t.style === 'walk') { if (st === 0 || st === 3) this.note(B, this.hz(t, root + (st ? 2 : 0), -1), at, s8 * 2); if (st === 2 || st === 5) chord(0); }
+    else if (t.style === 'pulse') { if (st === 0 || st === 3 || st === 6) this.note(B, this.hz(t, root + (st === 6 ? 2 : 0), -1), at, s8 * 1.4); }
+    else if (st === 0) { this.note({ w: ['sine', 'triangle'], a: .12, d: 1.6, cut: 900, g: .13 }, this.hz(t, root, -1), at, s8 * n); this.note({ w: ['sine'], a: .12, d: 1.6, cut: 900, g: .07 }, this.hz(t, root, 0), at, s8 * n); }
+    const d = DRUMS[t.drum]; if (d) { if (d.k && d.k.includes(st)) this.thump(at, t.drum === 'taiko' ? 90 : 130, t.drum === 'taiko' ? .5 : .16, t.drum === 'taiko' ? .5 : .3); if (d.s && d.s.includes(st)) this.noise(at, .09, 2400, .09, 'bandpass'); if (d.h && d.h.includes(st)) this.noise(at, .04, 7000, .045, 'highpass'); }
+  },
+  flap() { if (this.ctx) this.noise(this.ctx.currentTime, .09, 700, .07, 'bandpass', this.fx); },
+  coin() { if (!this.ctx) return; const t = this.ctx.currentTime; [1318, 1976].forEach((f, k) => { const o = this.ctx.createOscillator(), g = this.ctx.createGain(); o.type = 'triangle'; o.frequency.value = f; g.gain.setValueAtTime(.12, t + k * .07); g.gain.exponentialRampToValueAtTime(.0006, t + k * .07 + .22); o.connect(g); g.connect(this.fx); o.start(t + k * .07); o.stop(t + k * .07 + .25); }); },
+  thunder() { if (this.ctx) this.noise(this.ctx.currentTime + rnd(.2, .7), 1.6, 260, .3, 'lowpass', this.fx); },
+  boom(id) {
+    if (!this.ctx) return; const t = this.ctx.currentTime;
+    if (id === 'feathers') return this.noise(t, .5, 500, .4, 'lowpass', this.fx);
+    this.noise(t, id === 'oil' ? 1.8 : 1.1, id === 'electric' ? 5200 : 1500, .6, 'lowpass', this.fx); this.thump(t, 110, .6, .6, this.fx);
+    if (id === 'shock') this.thump(t + .16, 70, .8, .5, this.fx); if (id === 'fireworks') [.24, .48].forEach(k => this.noise(t + k, .5, 3200, .35, 'bandpass', this.fx));
+    if (id === 'silver') for (let k = 0; k < 6; k++) setTimeout(() => this.coin(), 120 + k * 110);
+    if (id === 'phoenix') [523, 659, 784, 1046].forEach((f, k) => this.note({ w: ['triangle'], a: .02, d: .5, cut: 4000, g: .2 }, f, t + .3 + k * .12, .4));
+  },
+};
+document.addEventListener('visibilitychange', () => { if (Sound.ctx) document.hidden ? Sound.ctx.suspend() : Sound.ctx.resume(); });
+
+// =====================================================================
+//  SAVE DATA  (version 2; converts saves from the first version)
+// =====================================================================
+const save = { v: 2, coins: 0, best: 0, owned: [STARTER], sel: STARTER, booms: ['standard'], boom: 'standard', regions: ['cliffs'], region: 'cliffs', bests: {}, sound: true };
+const OLD_IDS = { po2: 'uk_fledgling', demoiselle: 'fr_libellule', bleriot: 'fr_traversiere', taube: 'at_schwalbe', rogo: 'jp_umidori', s16: 'ru_strizh', jenny: 'us_daisy', m9: 'ru_gagara', nieuport: 'fr_cigale', ki1: 'jp_raiju', fokker: 'de_habicht' };
+function loadSave(s) {
+  if (!s || typeof s !== 'object') return;
+  const list = (a, table, base) => [...new Set([base, ...(Array.isArray(a) ? a : [])])].filter(id => table[id]);
+  if (!s.v) { s.owned = (Array.isArray(s.owned) ? s.owned : []).map(id => OLD_IDS[id] || id); s.sel = OLD_IDS[s.sel] || s.sel; s.bests = { cliffs: +s.best || 0 }; }
+  save.coins = Math.max(0, Math.floor(+s.coins || 0)); save.best = +s.best || 0; save.bests = s.bests && typeof s.bests === 'object' ? s.bests : {}; save.sound = s.sound !== false;
+  save.owned = list(s.owned, PLANE_BY_ID, STARTER); save.booms = list(s.booms, BOOM_BY_ID, 'standard'); save.regions = list(s.regions, REGION_BY_ID, 'cliffs');
+  save.sel = save.owned.includes(s.sel) ? s.sel : STARTER; save.boom = save.booms.includes(s.boom) ? s.boom : 'standard'; save.region = save.regions.includes(s.region) ? s.region : 'cliffs';
+}
+try { loadSave(JSON.parse(localStorage.getItem('soaringPlaneSave') || 'null')); } catch (e) {}
+function persist() { try { localStorage.setItem('soaringPlaneSave', JSON.stringify(save)); } catch (e) {} }
+Sound.on = save.sound;
+
+// =====================================================================
+//  GAME CANVAS
+// =====================================================================
+const wrap = document.getElementById('wrap'), canvas = document.getElementById('game'), ctx = canvas.getContext('2d');
+function resize() {
+  const s = Math.min(window.innerWidth / W, window.innerHeight / H), dpr = Math.min(window.devicePixelRatio || 1, 2);
+  wrap.style.transform = `translate(${(window.innerWidth - W * s) / 2}px, ${(window.innerHeight - H * s) / 2}px) scale(${s})`;
+  canvas.width = Math.max(1, Math.round(W * s * dpr)); canvas.height = Math.max(1, Math.round(H * s * dpr));
+  ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
+}
+window.addEventListener('resize', resize); resize();
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const CLOUD_C = [[255, 255, 255], [208, 211, 215], [84, 89, 99]];
+function wmix(arr, w) { const i = w <= 1 ? 0 : 1, t = w <= 1 ? w : w - 1, a = arr[i], b = arr[i + 1]; return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * t)).join(',')})`; }
+// Weather: 0 clear, 1 overcast, 2 = the region's own storm
+function targetWeather(score) { return score < 15 ? 0 : score < 25 ? (score - 15) / 10 : 2; }
+
+const G = { state: 'menu', region: REGIONS[0], plane: null, obs: [], coins: [], sparks: [], pops: [], bolts: [], drops: [], petals: [], boom: null, score: 0, runCoins: 0, time: 0, flash: 0, hit: 0, shake: 0, weather: 0, scroll: 0, gun: 0, gunX: 0, overShown: false };
+const far = Array.from({ length: 7 }, () => ({ x: rnd(0, W), y: rnd(30, 330), r: rnd(28, 46), s: rnd(10, 18) }));
+const near = Array.from({ length: 5 }, () => ({ x: rnd(0, W), y: rnd(40, 400), r: rnd(40, 64), s: rnd(28, 40) }));
+const fogs = Array.from({ length: 12 }, (_, i) => ({ x: rnd(-60, W + 60), y: rnd(80, GROUND), w: rnd(130, 240), h: rnd(26, 60), s: rnd(22, 70), front: i % 3 === 0 }));
+const TILE_W = 880, TILE_H = 300; let tile = null, tileOf = null;
+function landscape(region) {
+  if (tileOf === region.scene) return tile;
+  const cv = document.createElement('canvas'); cv.width = TILE_W * 1.5; cv.height = TILE_H * 1.5; const c = cv.getContext('2d'); c.scale(3, 3);
+  NOSKY = true; SCENES[region.scene](c, 440, 150); NOSKY = false; tile = cv; tileOf = region.scene; return tile;
+}
+function eachTile(f) { const off = (G.scroll * .22) % (TILE_W * 2); for (let k = 0; k < 4; k++) { const x = k * TILE_W - off; if (x > -TILE_W && x < W) f(x, k % 2 === 1); } }
+
+function reset() {
+  G.region = REGION_BY_ID[save.region] || REGIONS[0]; G.plane = { x: 120, y: H / 2 - 20, vy: 0, angle: 0, prop: 0 };
+  Object.assign(G, { obs: [], coins: [], sparks: [], pops: [], bolts: [], drops: [], petals: [], boom: null, score: 0, runCoins: 0, time: 0, weather: 0, flash: 0, hit: 0, shake: 0, overShown: false, gun: 0 });
+  for (let i = 0; i < 3; i++) spawn(W + 160 + i * SPACING);
+}
+function spawn(x) {
+  const gap = Math.max(158, 196 - G.score * 1.1), margin = 80, gapTop = margin + Math.random() * (GROUND - margin * 2 - gap), gapBot = gapTop + gap, o = OBST[G.region.id];
+  G.obs.push({ x, gapTop, gapBot, passed: false, top: makeSprite(o.top, gapTop + 12, -1), bot: makeSprite(o.bot, GROUND - gapBot + 4, 1) });
+  if (Math.random() < .7) G.coins.push({ x, y: gapTop + gap / 2 + rnd(-gap * .2, gap * .2), spin: rnd(0, TAU) });
+  if (Math.random() < .3) { const pr = G.obs[G.obs.length - 2], py = pr ? (pr.gapTop + pr.gapBot) / 2 : H / 2; G.coins.push({ x: x - SPACING / 2, y: (py + gapTop + gap / 2) / 2, spin: rnd(0, TAU) }); }
+}
+function makeBolt() {
+  let x = rnd(30, W - 30), y = -5; const end = rnd(260, 520), main = [[x, y]], branches = [];
+  while (y < end) { y += rnd(16, 34); x += rnd(-22, 22); main.push([x, y]); if (Math.random() < .22) { const br = [[x, y]]; let bx = x, by = y; const d = Math.random() < .5 ? -1 : 1; for (let k = 0; k < 4; k++) { bx += d * rnd(8, 20); by += rnd(12, 24); br.push([bx, by]); } branches.push(br); } }
+  return { main, branches, life: .45 };
+}
+function collides(o, p) {
+  const ob = OBST[G.region.id];
+  const test = (depth, prof) => { if (depth <= 0) return false; for (let d = Math.max(0, depth - 18); d <= depth; d += 3) { const hw = prof(d) - 3; if (p.x + 22 > o.x - hw && p.x - 22 < o.x + hw) return true; } return false; };
+  return test(o.gapTop - (p.y - 9) - 4, ob.topP) || test(p.y + 9 - o.gapBot - 4, ob.botP);
+}
+
+// ---- input
+function flap() { if (G.state === 'ready') G.state = 'playing'; if (G.state === 'playing') { G.plane.vy = FLAP_V; Sound.flap(); } }
+window.addEventListener('keydown', e => {
+  Sound.init(); if (e.repeat) return;
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+    if (G.state === 'ready' || G.state === 'playing') { e.preventDefault(); flap(); } else if (G.state === 'over' && G.overShown) { e.preventDefault(); startGame(); }
+  }
+});
+window.addEventListener('pointerdown', () => Sound.init(), true);
+canvas.addEventListener('pointerdown', e => { if (G.state === 'ready' || G.state === 'playing') { e.preventDefault(); flap(); } });
+
+function crash() {
+  G.state = 'over'; G.time = 0; G.shake = .5; G.hit = .6; G.boom = new Boom(save.boom, G.plane.x, G.plane.y); Sound.boom(save.boom);
+  const prev = save.bests[G.region.id] || 0; G.newBest = G.score > prev; if (G.newBest) save.bests[G.region.id] = G.score; save.best = Math.max(save.best, G.score); persist();
+}
+
+// =====================================================================
+//  UPDATE
+// =====================================================================
+const eventLevel = () => clamp((G.weather - 1.15) / .85, 0, 1);
+function update(dt) {
+  G.time += dt; const p = G.plane, speed = 150 + Math.min(G.score, 40) * 1.5, moving = G.state !== 'over'; p.prop += dt * 42; if (moving) G.scroll += speed * dt;
+  const tw = G.state === 'menu' ? 0 : targetWeather(G.score); G.weather += Math.sign(tw - G.weather) * Math.min(Math.abs(tw - G.weather), dt * (tw > 1.5 ? .7 : .35));
+  const e = eventLevel(), wx = WEATHER[G.region.weather], gust = 1 + .35 * Math.sin(G.time * 1.7) + .2 * Math.sin(G.time * 4.3);
+  far.forEach(h => { if (moving) h.x -= h.s * dt; if (h.x < -h.r * 3) { h.x = W + h.r * 3; h.y = rnd(30, 330); } });
+  near.forEach(h => { if (moving) h.x -= h.s * dt; if (h.x < -h.r * 3) { h.x = W + h.r * 3; h.y = rnd(40, 400); } });
+  if (wx.fog) fogs.forEach(f => { f.x -= f.s * dt; if (f.x < -f.w) { f.x = W + f.w; f.y = rnd(80, GROUND); } });
+  // background lightning — decoration only, behind the obstacles
+  if (wx.bolts && e > .4 && Math.random() < dt * 1.1 * e) { G.bolts.push(makeBolt()); G.flash = .8; Sound.thunder(); }
+  G.bolts.forEach(b => { b.life -= dt; }); G.bolts = G.bolts.filter(b => b.life > 0);
+  G.gun -= dt * 2.5; if (wx.guns && e > .2 && G.gun < 0 && Math.random() < dt * 1.6) { G.gun = 1; G.gunX = rnd(20, W - 20); }
+  for (const k of ['flash', 'hit']) if (G[k] > 0) G[k] -= dt * 3; if (G.shake > 0) G.shake -= dt;
+  // particles
+  const want = Math.round(wx.n * e); while (G.drops.length < want) G.drops.push({ x: rnd(-40, W + 260), y: rnd(-60, H), z: rnd(.55, 1.25), w: rnd(0, TAU) }); if (G.drops.length > want) G.drops.length = want;
+  const [vx, vy] = wx.v; for (const d of G.drops) { d.x += vx * d.z * (wx.wind > .3 ? gust : 1) * dt + (wx.k === 'snow' || wx.k === 'ash' ? Math.sin(G.time * 2 + d.w) * 22 * dt : 0); d.y += vy * d.z * dt + (wx.k === 'sand' ? Math.sin(G.time * 3 + d.w) * 40 * dt : 0); if (d.y > H + 10) { d.y = rnd(-40, 0); d.x = rnd(0, W + 260); } if (d.x < -50) { d.x = W + rnd(10, 60); d.y = rnd(-40, H); } }
+  const wantP = Math.round((wx.petals || 0) * Math.max(e, G.region.id === 'japan' ? .3 : 0)); while (G.petals.length < wantP) G.petals.push({ x: rnd(0, W), y: rnd(0, H), z: rnd(.6, 1.3), w: rnd(0, TAU) });
+  for (const q of G.petals) { q.x -= (70 + 360 * e * gust) * q.z * dt; q.y += (36 + 60 * e) * q.z * dt; q.w += dt * 5; if (q.x < -10 || q.y > H) { q.x = W + rnd(0, 80); q.y = rnd(-60, H * .8); } }
+  Sound.wind(G.state === 'menu' ? 0 : e * wx.wind * .42);
+  G.coins.forEach(cn => { cn.spin += dt * 4; }); G.sparks.forEach(s => { s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; }); G.sparks = G.sparks.filter(s => s.life > 0); G.pops.forEach(s => { s.y -= 46 * dt; s.life -= dt; }); G.pops = G.pops.filter(s => s.life > 0);
+  if (G.boom) { G.boom.update(dt); if (G.boom.done) G.boom = null; }
+
+  if (G.state === 'menu') { p.x = W / 2 + 10; p.y = 318 + Math.sin(G.time * 2.2) * 9; p.angle = Math.sin(G.time * 2.2) * .05; return; }
+  if (G.state === 'ready') { p.y = H / 2 - 20 + Math.sin(G.time * 3) * 10; p.angle = Math.sin(G.time * 3) * .05; return; }
+  if (G.state === 'over') { if (!G.overShown && G.time > 1.5) { G.overShown = true; showOver(); } return; }
+
+  p.vy = Math.min(p.vy + GRAVITY * dt, MAX_FALL); p.y += p.vy * dt; p.angle += (clamp(p.vy / 500, -.45, 1.2) - p.angle) * Math.min(1, dt * 8);
+  if (p.y < 12) { p.y = 12; p.vy = 0; } if (p.y > GROUND - 14) { p.y = GROUND - 14; crash(); return; }
+  for (const o of G.obs) { o.x -= speed * dt; if (!o.passed && o.x + CLIFF_W / 2 < p.x - 20) { o.passed = true; G.score++; } }
+  for (const cn of G.coins) {
+    cn.x -= speed * dt;
+    if (Math.hypot(cn.x - p.x, cn.y - p.y) < 28) { cn.taken = true; const v = G.region.value; G.runCoins += v; save.coins += v; Sound.coin(); G.pops.push({ x: cn.x, y: cn.y - 12, life: .8, s: '+' + v }); for (let i = 0; i < 10; i++) { const a = rnd(0, TAU), q = rnd(60, 160); G.sparks.push({ x: cn.x, y: cn.y, vx: Math.cos(a) * q, vy: Math.sin(a) * q, life: rnd(.25, .5) }); } }
+  }
+  G.coins = G.coins.filter(cn => !cn.taken && cn.x > -40); if (G.obs[0].x < -CLIFF_W) G.obs.shift();
+  const lastO = G.obs[G.obs.length - 1]; if (lastO.x < W + 160 - SPACING) spawn(lastO.x + SPACING);
+  for (const o of G.obs) if (collides(o, p)) { crash(); break; }
+}
+
+// =====================================================================
+//  RENDER
+// =====================================================================
+function drawSky() {
+  const w = G.weather, r = G.region, g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, wmix(r.skyTop, w)); g.addColorStop(1, wmix(r.skyBot, w)); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  if (w < 1) { ctx.globalAlpha = 1 - w; const sg = ctx.createRadialGradient(390, 110, 10, 390, 110, 90); sg.addColorStop(0, 'rgba(255,248,215,1)'); sg.addColorStop(.35, 'rgba(255,240,190,.55)'); sg.addColorStop(1, 'rgba(255,240,190,0)'); ctx.fillStyle = sg; ctx.fillRect(290, 10, 200, 200); CI(ctx, 390, 110, 26, '#fff6d6'); ctx.globalAlpha = 1; }
+}
+function cloudLayer(list, alpha, darken) { const col = wmix(CLOUD_C, Math.min(2, G.weather + darken)); ctx.globalAlpha = alpha * (WEATHER[G.region.weather].dark ? 1 : 1 - eventLevel() * .5); for (const h of list) { puff(ctx, h.x, h.y + h.r * .15, h.r, 'rgba(0,0,0,.08)'); puff(ctx, h.x, h.y, h.r, col); } ctx.globalAlpha = 1; }
+// far decorations that belong to a region's storm (never collide)
+function stormBackdrop(wx, e) {
+  if (e <= 0) return; ctx.save();
+  if (wx.aurora) for (let k = 0; k < 3; k++) { const g = ctx.createLinearGradient(0, 60 + k * 30, 0, 300 + k * 30); const col = ['90,255,170', '90,220,255', '190,120,255'][k]; g.addColorStop(0, `rgba(${col},0)`); g.addColorStop(.35, `rgba(${col},${.42 * e})`); g.addColorStop(1, `rgba(${col},0)`); ctx.fillStyle = g; ctx.beginPath(); for (let x = 0; x <= W; x += 16) ctx.lineTo(x, 70 + k * 34 + Math.sin(x * .014 + G.time * .7 + k) * 34); for (let x = W; x >= 0; x -= 16) ctx.lineTo(x, 280 + k * 30 + Math.sin(x * .018 + G.time * .5 + k * 2) * 30); ctx.fill(); }
+  for (const b of G.bolts) { ctx.globalAlpha = b.life > .3 ? 1 : (Math.random() < .5 ? .9 : .25); ctx.strokeStyle = '#f4f6ff'; ctx.shadowColor = '#b8c8ff'; ctx.shadowBlur = 18; ctx.lineJoin = 'round'; ctx.lineWidth = 3.2; ctx.beginPath(); b.main.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); ctx.lineWidth = 1.4; b.branches.forEach(br => { ctx.beginPath(); br.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); }); }
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  if (wx.guns && G.gun > 0) { const g = ctx.createRadialGradient(G.gunX, GROUND - 130, 4, G.gunX, GROUND - 130, 130); g.addColorStop(0, `rgba(255,190,90,${G.gun * .8})`); g.addColorStop(1, 'rgba(255,150,60,0)'); ctx.fillStyle = g; ctx.fillRect(0, GROUND - 280, W, 280); }
+  if (wx.beams) for (const k of [0, 1]) { const bx = 110 + k * 250, a = -Math.PI / 2 + Math.sin(G.time * .6 + k * 2.2) * .55; const g = ctx.createLinearGradient(bx, GROUND, bx + Math.cos(a) * 640, GROUND + Math.sin(a) * 640); g.addColorStop(0, `rgba(255,250,215,${.5 * e})`); g.addColorStop(1, 'rgba(255,250,215,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(bx - 4, GROUND); ctx.lineTo(bx + Math.cos(a - .09) * 680, GROUND + Math.sin(a - .09) * 680); ctx.lineTo(bx + Math.cos(a + .09) * 680, GROUND + Math.sin(a + .09) * 680); ctx.lineTo(bx + 4, GROUND); ctx.fill(); }
+  if (wx.funnel) { const fx = 330 + Math.sin(G.time * .35) * 70; for (let i = 0; i < 30; i++) { const k = i / 29, y = GROUND - 30 - k * 420, ww = 12 + k * k * 110; ctx.globalAlpha = .62 * e; ctx.fillStyle = i % 2 ? '#3b382c' : '#6b6450'; ctx.beginPath(); ctx.ellipse(fx + Math.sin(G.time * 3 - k * 6) * (6 + 16 * (1 - k)) + k * 40, y, ww, 24 + k * 16, 0, 0, TAU); ctx.fill(); } ctx.globalAlpha = .5 * e; for (let i = 0; i < 8; i++) puff(ctx, fx + Math.cos(G.time * 4 + i) * 34, GROUND - 24 + Math.sin(i * 2) * 10, 12, '#8a8060'); ctx.globalAlpha = 1; }
+  ctx.restore();
+}
+function drawLand(wx, e) {
+  const t = landscape(G.region), y = GROUND - TILE_H + 4;
+  eachTile((x, mir) => {
+    if (wx.volcano && e > 0) { const vx = mir ? x + TILE_W - 472 : x + 472, vy = y + 96, g = ctx.createRadialGradient(vx, vy, 4, vx, vy, 190); g.addColorStop(0, `rgba(255,120,40,${.85 * e})`); g.addColorStop(1, 'rgba(255,60,20,0)'); ctx.fillStyle = g; ctx.fillRect(vx - 190, vy - 190, 380, 290); ctx.globalAlpha = e; for (let i = 0; i < 22; i++) { const k = (G.time * .6 + i / 22) % 1, a = (i * 2.4) % 1.4 - .7; CI(ctx, vx + a * 110 * k, vy - 150 * k + 190 * k * k, 3.4 * (1 - k) + 1, k < .4 ? '#ffe08a' : '#ff6a2a'); } ctx.globalAlpha = 1; }
+    ctx.save(); if (mir) { ctx.translate(x + TILE_W, y); ctx.scale(-1, 1); } else ctx.translate(x, y); ctx.drawImage(t, 0, 0, TILE_W + .6, TILE_H); ctx.restore();
+  });
+  // haze pushes the landscape back so that obstacles read clearly
+  const c = wmix(G.region.skyBot, G.weather).slice(4, -1), g = ctx.createLinearGradient(0, y, 0, GROUND), a = .3 + .2 * Math.min(1, G.weather / 2); g.addColorStop(0, `rgba(${c},0)`); g.addColorStop(.45, `rgba(${c},${a})`); g.addColorStop(1, `rgba(${c},${a})`); ctx.fillStyle = g; ctx.fillRect(0, y, W, TILE_H);
+}
+function drawFog(e, front) { for (const f of fogs) if (f.front === front) { const g = ctx.createRadialGradient(0, 0, 4, 0, 0, f.w); const a = (front ? .3 : .6) * e; g.addColorStop(0, `rgba(222,228,229,${a})`); g.addColorStop(1, 'rgba(222,228,229,0)'); ctx.save(); ctx.translate(f.x, f.y); ctx.scale(1, f.h / f.w * 1.4); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, f.w, 0, TAU); ctx.fill(); ctx.restore(); } }
+function drawParticles(wx) {
+  const D = G.drops; if (D.length) {
+    const [vx, vy] = wx.v, m = Math.hypot(vx, vy) || 1;
+    if (wx.k === 'rain') { ctx.strokeStyle = 'rgba(205,215,232,.5)'; ctx.lineWidth = 1.1; ctx.beginPath(); for (const d of D) { const l = 15 * d.z; ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - vx / m * l, d.y - vy / m * l); } ctx.stroke(); if (wx.spray) { ctx.fillStyle = 'rgba(235,245,248,.5)'; for (let i = 0; i < D.length; i += 3) { const d = D[i]; ctx.fillRect(d.x, GROUND - 4 - Math.abs(Math.sin(G.time * 2 + d.w)) * 46, 2.2, 2.2); } } }
+    else if (wx.k === 'sand') { ctx.strokeStyle = `rgba(${wx.dust},.6)`; ctx.lineWidth = 1.6; ctx.beginPath(); for (const d of D) { ctx.moveTo(d.x, d.y); ctx.lineTo(d.x + 15 * d.z, d.y - 1); } ctx.stroke(); }
+    else if (wx.k === 'hail') { for (const d of D) CI(ctx, d.x, d.y, 2.6 * d.z, 'rgba(240,247,252,.9)'); }
+    else if (wx.k === 'snow') { ctx.fillStyle = 'rgba(255,255,255,.88)'; ctx.beginPath(); for (const d of D) { ctx.moveTo(d.x + 3, d.y); ctx.arc(d.x, d.y, 2.3 * d.z, 0, TAU); } ctx.fill(); }
+    else if (wx.k === 'ash') for (let i = 0; i < D.length; i++) { const d = D[i]; if (i % 4) { ctx.fillStyle = 'rgba(190,180,174,.75)'; ctx.fillRect(d.x, d.y, 3 * d.z, 2 * d.z); } else CI(ctx, d.x, d.y, 1.8 * d.z, Math.sin(G.time * 6 + d.w) > 0 ? '#ffb13a' : '#e8582a'); }
+  }
+  for (const q of G.petals) { ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.w); ctx.fillStyle = q.z > 1 ? '#f9c6d4' : '#f2a6bc'; ctx.beginPath(); ctx.ellipse(0, 0, 4.4 * q.z, 2.2 * q.z, 0, 0, TAU); ctx.fill(); ctx.restore(); }
+}
+function drawGround() {
+  const [a, b] = G.region.ground; ctx.fillStyle = a; ctx.fillRect(0, GROUND, W, H - GROUND); ctx.fillStyle = b; const off = G.scroll % 46; for (let x = -off; x < W + 46; x += 46) { ctx.beginPath(); ctx.ellipse(x, GROUND + 8, 16, 5, 0, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.ellipse(x + 24, GROUND + 22, 12, 4, 0, 0, TAU); ctx.fill(); } ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.fillRect(0, GROUND, W, 2.5);
+}
+const FELL = "'IM Fell English SC', Georgia, serif", ELITE = "'Special Elite', 'Courier New', monospace";
+function text(str, x, y, size, font = FELL, align = 'center') { ctx.font = `${size}px ${font}`; ctx.textAlign = align; ctx.textBaseline = 'alphabetic'; ctx.lineWidth = size / 6; ctx.strokeStyle = 'rgba(25,20,12,.85)'; ctx.lineJoin = 'round'; ctx.strokeText(str, x, y); ctx.fillStyle = '#f2ead2'; ctx.fillText(str, x, y); }
+function draw() {
+  const e = eventLevel(), wx = WEATHER[G.region.weather], p = G.plane;
+  ctx.save(); if (G.shake > 0) ctx.translate(rnd(-5, 5) * G.shake * 2, rnd(-5, 5) * G.shake * 2);
+  drawSky(); cloudLayer(far, .6, .15); stormBackdrop(wx, e); cloudLayer(near, .85, 0); drawLand(wx, e); if (wx.fog) drawFog(e, false);
+  for (const o of G.obs) if (o.x < W + 80) { ctx.drawImage(o.top.cv, o.x - o.top.w / 2, o.gapTop - o.top.h + o.top.pad, o.top.w, o.top.h); ctx.drawImage(o.bot.cv, o.x - o.bot.w / 2, o.gapBot - o.bot.pad, o.bot.w, o.bot.h); }
+  for (const cn of G.coins) drawCoin(ctx, cn.x, cn.y + Math.sin(cn.spin * .5) * 3, 12, cn.spin);
+  ctx.fillStyle = '#f4f7fa'; for (const s of G.sparks) { ctx.globalAlpha = clamp(s.life * 2, 0, 1); ctx.fillRect(s.x - 1.5, s.y - 1.5, 3, 3); } ctx.globalAlpha = 1;
+  drawGround();
+  if (G.state !== 'over') { if (e > 0 && wx.dark) { const gl = ctx.createRadialGradient(p.x, p.y, 6, p.x, p.y, 62); gl.addColorStop(0, `rgba(255,240,205,${.34 * e})`); gl.addColorStop(1, 'rgba(255,240,205,0)'); ctx.fillStyle = gl; ctx.fillRect(p.x - 62, p.y - 62, 124, 124); } ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.angle); drawPlane(ctx, save.sel, p.prop); ctx.restore(); }
+  drawParticles(wx); if (wx.fog) drawFog(e, true);
+  if (e > 0) { const [r, g, b, a] = wx.veil; ctx.fillStyle = `rgba(${r},${g},${b},${a * e})`; ctx.fillRect(0, 0, W, H); }
+  if (G.boom) G.boom.draw(ctx);
+  ctx.restore();
+  if (G.flash > 0) { ctx.fillStyle = `rgba(225,232,255,${Math.min(G.flash, 1) * .3})`; ctx.fillRect(0, 0, W, H); }
+  if (G.hit > 0) { ctx.fillStyle = `rgba(255,250,235,${G.hit * .5})`; ctx.fillRect(0, 0, W, H); }
+  for (const s of G.pops) { ctx.globalAlpha = clamp(s.life * 2, 0, 1); text(s.s, s.x, s.y, 20, ELITE); } ctx.globalAlpha = 1;
+  if (G.state !== 'menu') {
+    if (G.state !== 'ready') text(String(G.score), W / 2, 86, 64);
+    ctx.fillStyle = 'rgba(20,24,18,.5)'; ctx.beginPath(); ctx.roundRect(W - 106, 14, 92, 34, 6); ctx.fill(); drawCoin(ctx, W - 88, 31, 11, 0); text(String(G.runCoins), W - 24, 41, 26, ELITE, 'right');
+  }
+  if (G.state === 'ready') { text(G.region.name, W / 2, 168, 46); text(G.region.place, W / 2, 198, 18, ELITE); text('Tap or press Space to climb', W / 2, H / 2 + 80, 22, ELITE); text(G.region.value > 1 ? `Coins here are worth ${G.region.value} marks` : 'Mind the obstacles, collect silver', W / 2, H / 2 + 112, 17, ELITE); }
+}
+
+// =====================================================================
+//  UI
+// =====================================================================
+const $ = id => document.getElementById(id);
+let screenId = 'menu', storeTab = 'planes', planeFilter = 'all', boomCards = [];
+function show(id) { screenId = id; document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id)); if (document.activeElement) document.activeElement.blur(); $('btnSound').style.display = id === 'store' || id === 'levels' ? 'none' : ''; }
+const coinTag = '<canvas class="coin-ic" width="44" height="44"></canvas>';
+function paintCoins(root = document) { root.querySelectorAll('canvas.coin-ic').forEach(cv => { const c = cv.getContext('2d'); c.clearRect(0, 0, 44, 44); drawCoin(c, 22, 22, 20, 0); }); }
+function refreshMoney() { for (const id of ['menuCoins', 'storeCoins', 'levelCoins', 'ovTotal']) $(id).textContent = save.coins; $('menuBest').textContent = save.best; $('btnSound').textContent = save.sound ? '♪' : '♪̸'; $('btnSound').classList.toggle('off', !save.sound); }
+function toMenu() { save.region = REGION_BY_ID[save.region] ? save.region : 'cliffs'; reset(); G.state = 'menu'; refreshMoney(); show('menu'); Sound.play('menu'); }
+function startGame() { reset(); G.state = 'ready'; show(null); Sound.play(G.region.id); }
+function showOver() { $('ovRegion').textContent = G.region.name; $('ovScore').textContent = G.score; $('ovBest').textContent = save.bests[G.region.id] || 0; $('ovCoins').textContent = G.runCoins; $('ovNew').textContent = G.newBest && G.score > 0 ? '★ New record! ★' : ''; refreshMoney(); show('over'); }
+function flagCanvas(key, w = 30, h = 20) { const fc = document.createElement('canvas'); fc.width = w * 2; fc.height = h * 2; fc.className = 'flag'; fc.style.width = w + 'px'; fc.style.height = h + 'px'; const c = fc.getContext('2d'); c.scale(2, 2); drawFlag(c, key, w, h); return fc; }
+// previews are painted only when a card scrolls into view
+const lazy = new IntersectionObserver(es => es.forEach(x => { if (x.isIntersecting && x.target._paint) { x.target._paint(); x.target._paint = null; lazy.unobserve(x.target); } }));
+function preview(paint) { const cv = document.createElement('canvas'); cv.className = 'preview'; cv._paint = () => { cv.width = 880; cv.height = 300; const c = cv.getContext('2d'); c.scale(2, 2); paint(c); }; lazy.observe(cv); return cv; }
+function planePreview(c, pl) { SCENES[pl.scene](c, 440, 150); c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse(222, 137, 70, 5, 0, 0, TAU); c.fill(); c.save(); c.translate(230, 78); c.rotate(-.05); c.scale(1.85, 1.85); drawPlane(c, pl.id, .9); c.restore(); }
+function regionPreview(c, r) { SCENES[r.scene](c, 440, 150); const o = OBST[r.id]; for (const [x, gy] of [[96, 60], [330, 84]]) { c.save(); c.translate(x, gy + 26); c.scale(.5, .5); o.bot(c, 260); c.restore(); c.save(); c.translate(x, gy - 26); c.scale(.5, .5); o.top(c, 260); c.restore(); } c.save(); c.translate(212, 72); c.scale(1.15, 1.15); drawPlane(c, save.sel, .9); c.restore(); }
+// generic footer with Buy / Select
+function footer(info, cost, owned, selected, labels, buy, select) {
+  const f = document.createElement('div'); f.className = 'foot'; f.innerHTML = `<span class="cost">${owned ? `<small>${labels.owned}</small>` : coinTag + cost}</span><div><button class="buy"></button><div class="need"></div></div>`;
+  const b = f.querySelector('.buy');
+  if (owned) { b.classList.add('select'); b.textContent = selected ? labels.active : labels.select; b.disabled = selected && !labels.always; b.onclick = select; }
+  else { b.textContent = 'Buy'; b.disabled = save.coins < cost; if (b.disabled) f.querySelector('.need').textContent = `need ${cost - save.coins} more`; b.onclick = () => { if (save.coins < cost) return; save.coins -= cost; buy(); persist(); Sound.coin(); refreshMoney(); }; }
+  info.appendChild(f);
+}
+function keepScroll(list, build) { const t = list.scrollTop; build(); list.scrollTop = t; }
+function buildPlanes() {
+  const list = $('storeList'); list.innerHTML = ''; boomCards = [];
+  const bar = document.createElement('div'); bar.className = 'filter'; const chip = (key, label) => { const b = document.createElement('button'); b.title = label; b.setAttribute('aria-label', label); if (key === 'all') b.textContent = 'All'; else b.appendChild(flagCanvas(key, 27, 18)); b.classList.toggle('on', planeFilter === key); b.onclick = () => { planeFilter = key; buildPlanes(); $('storeList').scrollTop = 0; }; bar.appendChild(b); }; chip('all', 'All countries'); Object.entries(COUNTRIES).forEach(([k, v]) => chip(k, v.name)); list.appendChild(bar);
+  PLANES.filter(p => planeFilter === 'all' || p.ck === planeFilter).forEach(pl => {
+    const owned = save.owned.includes(pl.id), selected = save.sel === pl.id, card = document.createElement('div'); card.className = 'card' + (selected ? ' selected' : ''); card.appendChild(preview(c => planePreview(c, pl)));
+    const info = document.createElement('div'); info.className = 'info'; info.innerHTML = `<h3>${pl.name}</h3><p class="history">${pl.history}</p><dl class="specs"><dt>Country</dt><dd class="country"></dd><dt>First flight</dt><dd>${pl.year}</dd><dt>Engine power</dt><dd>${pl.power}</dd><dt>Top speed</dt><dd>${pl.kmh} km/h</dd><dt>Class</dt><dd>${pl.cls}</dd></dl>`;
+    const cdd = info.querySelector('.country'); cdd.appendChild(flagCanvas(pl.ck)); cdd.appendChild(document.createTextNode(COUNTRIES[pl.ck].name));
+    footer(info, pl.cost, owned, selected, { owned: pl.cost ? 'In your hangar' : 'Standard issue', active: 'In service', select: 'Select' }, () => { save.owned.push(pl.id); save.sel = pl.id; keepScroll(list, buildPlanes); }, () => { save.sel = pl.id; persist(); keepScroll(list, buildPlanes); });
+    card.appendChild(info); list.appendChild(card);
+  });
+  const note = document.createElement('p'); note.className = 'note'; note.textContent = 'All aircraft, makers and stories are fictional.'; list.appendChild(note); paintCoins(list);
+}
+function buildBooms() {
+  const list = $('storeList'); list.innerHTML = ''; boomCards = [];
+  BOOMS.forEach((bm, i) => {
+    const owned = save.booms.includes(bm.id), selected = save.boom === bm.id, card = document.createElement('div'); card.className = 'card' + (selected ? ' selected' : ''); const cv = document.createElement('canvas'); cv.className = 'preview'; cv.width = 440; cv.height = 150; card.appendChild(cv); boomCards.push({ cv, id: bm.id, t: -i * .25, boom: null });
+    const info = document.createElement('div'); info.className = 'info'; info.innerHTML = `<h3>${bm.name}</h3><p class="history">${bm.text}</p>`;
+    footer(info, bm.cost, owned, selected, { owned: bm.cost ? 'Purchased' : 'Standard issue', active: 'In use', select: 'Select' }, () => { save.booms.push(bm.id); save.boom = bm.id; keepScroll(list, buildBooms); }, () => { save.boom = bm.id; persist(); keepScroll(list, buildBooms); });
+    card.appendChild(info); list.appendChild(card);
+  });
+  paintCoins(list);
+}
+function animateBooms(dt) {
+  const list = $('storeList'), top = list.scrollTop, bot = top + list.clientHeight;
+  for (const b of boomCards) {
+    const y = b.cv.parentElement.offsetTop - list.offsetTop; if (y + 160 < top || y > bot) continue; b.t += dt; const c = b.cv.getContext('2d'), k = b.t % 3.1, x = 60 + Math.min(1, k / .8) * 160;
+    if (b.t > 0 && k >= .8 && !b.boom && !b.fired) { b.boom = new Boom(b.id, 220, 84); b.fired = true; } if (k < .8) { b.fired = false; b.boom = null; }
+    skyGrad(c, 440, 150, '#5b87b0', '#cfe0ea'); puff(c, 80, 44, 14, 'rgba(255,255,255,.8)'); puff(c, 360, 60, 16, 'rgba(255,255,255,.8)'); rockPreview(c); if (k < .8) { c.save(); c.translate(x, 84); c.scale(1.1, 1.1); drawPlane(c, save.sel, b.t * 40); c.restore(); } if (b.boom) { b.boom.update(dt); b.boom.draw(c); }
+  }
+}
+function rockPreview(c) { PL(c, [[238, 150], [242, 110], [236, 76], [246, 40], [240, 0], [440, 0], [440, 150]], '#7a7f85'); PL(c, [[262, 150], [266, 100], [258, 60], [268, 0], [440, 0], [440, 150]], '#62676d'); LN(c, [[240, 30, 440, 46], [240, 70, 440, 88], [242, 112, 440, 132]], 'rgba(30,32,36,.3)', 2); }
+function openStore(tab) { storeTab = tab || storeTab; $('tabPlanes').classList.toggle('on', storeTab === 'planes'); $('tabBooms').classList.toggle('on', storeTab === 'booms'); storeTab === 'planes' ? buildPlanes() : buildBooms(); $('storeList').scrollTop = 0; refreshMoney(); show('store'); }
+function buildLevels() {
+  const list = $('levelList'); list.innerHTML = '';
+  REGIONS.forEach(r => {
+    const owned = save.regions.includes(r.id), selected = save.region === r.id, card = document.createElement('div'); card.className = 'card' + (selected ? ' selected' : '') + (owned ? '' : ' locked'); card.appendChild(preview(c => regionPreview(c, r)));
+    const info = document.createElement('div'); info.className = 'info'; info.innerHTML = `<h3><span class="fl"></span>${r.name}<span class="num">${r.place}</span></h3><p class="history">${r.text}</p><dl class="specs"><dt>Obstacles</dt><dd>${r.obs}</dd><dt>Storm</dt><dd>${r.wname}</dd><dt>Each coin</dt><dd>${r.value} mark${r.value > 1 ? 's' : ''}</dd><dt>Best score</dt><dd>${save.bests[r.id] || 0}</dd></dl>`;
+    if (r.flag) info.querySelector('.fl').appendChild(flagCanvas(r.flag));
+    footer(info, r.cost, owned, selected, { owned: r.cost ? 'Purchased' : 'Free', active: 'Take off', select: 'Take off', always: true }, () => { save.regions.push(r.id); save.region = r.id; keepScroll(list, buildLevels); }, () => { save.region = r.id; persist(); startGame(); });
+    card.appendChild(info); list.appendChild(card);
+  });
+  paintCoins(list);
+}
+function openLevels() { buildLevels(); refreshMoney(); show('levels'); $('levelList').scrollTop = 0; const sel = $('levelList').querySelector('.selected'); if (sel) $('levelList').scrollTop = Math.max(0, sel.offsetTop - $('levelList').offsetTop - 10); }
+
+$('btnStart').onclick = openLevels; $('btnStore').onclick = () => openStore('planes'); $('tabPlanes').onclick = () => openStore('planes'); $('tabBooms').onclick = () => openStore('booms');
+$('btnBack').onclick = toMenu; $('btnLevelBack').onclick = toMenu; $('btnRetry').onclick = startGame; $('btnRegions').onclick = () => { toMenu(); openLevels(); }; $('btnMenu').onclick = toMenu;
+$('btnSound').onclick = () => { save.sound = !save.sound; Sound.setOn(save.sound); persist(); refreshMoney(); $('btnSound').blur(); };
+
+let last = performance.now();
+function frame(now) { const dt = clamp((now - last) / 1000, 0, 1 / 30); last = now; update(dt); draw(); if (screenId === 'store' && storeTab === 'booms') animateBooms(dt); requestAnimationFrame(frame); }
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => paintCoins());
+if (location.hash === '#debug') window.__soaring = { G, save, REGIONS, PLANES, BOOMS, OBST, WEATHER, SCENES, TRACKS, Boom, Sound, drawPlane, drawFlag, spawn, makeSprite, update, draw, startGame, toMenu, openStore, openLevels, COUNTRIES, collides, loadSave, persist, regionPreview, planePreview };
+paintCoins(); toMenu(); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
