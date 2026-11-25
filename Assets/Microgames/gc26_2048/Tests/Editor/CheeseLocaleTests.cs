@@ -12,6 +12,17 @@ namespace GC26._2048.Tests
         }
 
         [Test]
+        public void TextsShowTheMoveLimit()
+        {
+            string limit = CheeseRules.MoveLimit.ToString();
+            foreach (var language in new[] { CheeseLanguage.English, CheeseLanguage.Russian })
+            {
+                StringAssert.Contains(limit, CheeseLocale.Get("facts", language), $"facts, {language}");
+                StringAssert.Contains(limit, CheeseLocale.Get("rules_text", language), $"rules, {language}");
+            }
+        }
+
+        [Test]
         public void EveryTextHasBothLanguages()
         {
             foreach (var key in CheeseLocale.Keys)

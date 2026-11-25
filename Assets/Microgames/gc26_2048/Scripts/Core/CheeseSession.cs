@@ -23,7 +23,9 @@ namespace GC26._2048
         public int BestLevel { get; private set; }
         public EndReason Ended { get; private set; }
         public bool IsOver => Ended != EndReason.None;
-        public int MovesMade => CheeseRules.MoveLimit - MovesLeft;
+        /// <summary>Move limit this game started with (a game saved under an older limit keeps it).</summary>
+        public int MoveLimit { get; private set; } = CheeseRules.MoveLimit;
+        public int MovesMade => MoveLimit - MovesLeft;
 
         public CheeseSession(int seed)
         {
@@ -34,7 +36,8 @@ namespace GC26._2048
         {
             Board.Clear();
             Score = 0;
-            MovesLeft = CheeseRules.MoveLimit;
+            MoveLimit = CheeseRules.MoveLimit;
+            MovesLeft = MoveLimit;
             Cheeses = 0;
             CheeseShown = false;
             BestLevel = 0;
@@ -43,9 +46,11 @@ namespace GC26._2048
             Spawn(1);
         }
 
-        public void Restore(int[] cells, int score, int movesLeft, int cheeses, bool cheeseShown, int bestLevel)
+        public void Restore(int[] cells, int score, int movesLeft, int cheeses, bool cheeseShown, int bestLevel,
+            int moveLimit = CheeseRules.MoveLimit)
         {
             Board.Load(cells);
+            MoveLimit = Math.Max(moveLimit, movesLeft);
             Score = score;
             MovesLeft = movesLeft;
             Cheeses = cheeses;

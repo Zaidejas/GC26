@@ -27,7 +27,7 @@ namespace GC26._2048
             ["rules"] = new[] { "Rules", "Правила" },
             ["settings"] = new[] { "Settings", "Настройки" },
             ["exit"] = new[] { "Exit", "Выход" },
-            ["facts"] = new[] { "4×4 field · 8 items · 150 moves", "Поле 4×4 · 8 предметов · 150 ходов" },
+            ["facts"] = new[] { "4×4 field · 8 items · 300 moves", "Поле 4×4 · 8 предметов · 300 ходов" },
             ["menu"] = new[] { "Menu", "Меню" },
             ["score_caps"] = new[] { "SCORE", "ОЧКИ" },
             ["moves_caps"] = new[] { "MOVES", "ХОДЫ" },
@@ -51,13 +51,13 @@ namespace GC26._2048
                 "3. Every merge scores points: the more valuable the item, the more points — from 32 to 2048.\n" +
                 "4. The mouse takes finished cheese to its hole right away, and the cell is freed.\n" +
                 "5. After every move, new grass or hay appears on the field.\n" +
-                "6. You have 150 moves. The game ends when you run out of moves or the field is full.",
+                "6. You have 300 moves. The game ends when you run out of moves or the field is full.",
                 "1. Проведите пальцем вверх, вниз, влево или вправо — все предметы на поле сдвинутся.\n" +
                 "2. Два одинаковых предмета объединяются в следующий.\n" +
                 "3. За каждое объединение — очки: чем ценнее предмет, тем больше, от 32 до 2048.\n" +
                 "4. Готовый сыр мышка сразу уносит в норку, и место освобождается.\n" +
                 "5. После каждого хода на поле появляется новая трава или сено.\n" +
-                "6. У вас 150 ходов. Игра заканчивается, когда ходы кончатся или поле заполнится."
+                "6. У вас 300 ходов. Игра заканчивается, когда ходы кончатся или поле заполнится."
             },
             ["chain_first"] = new[] { "appears on the field", "появляется на поле" },
             ["chain_to_hole"] = new[] { " → the mouse takes it home", " → мышка уносит в норку" },

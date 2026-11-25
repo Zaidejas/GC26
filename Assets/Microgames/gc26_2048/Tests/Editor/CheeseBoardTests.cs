@@ -142,14 +142,32 @@ namespace GC26._2048.Tests
         }
 
         [Test]
-        public void NewGameStartsWithTwoGrassAnd150Moves()
+        public void NewGameStartsWithTwoGrassAnd300Moves()
         {
+            Assert.AreEqual(300, CheeseRules.MoveLimit);
             var s = new CheeseSession(7);
             s.StartNew();
             var cells = s.Board.ToArray();
             Assert.AreEqual(2, cells.Count(l => l == 1));
             Assert.AreEqual(14, cells.Count(l => l == 0));
-            Assert.AreEqual(150, s.MovesLeft);
+            Assert.AreEqual(CheeseRules.MoveLimit, s.MovesLeft);
+        }
+
+        [Test]
+        public void GameSavedUnderTheOldLimitCountsMovesMadeFromIt()
+        {
+            var s = new CheeseSession(7);
+            s.Restore(new[] { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, 0, 40, 0, false, 1,
+                CheeseSaveData.LegacyMoveLimit);
+            Assert.AreEqual(150, s.MoveLimit);
+            Assert.AreEqual(110, s.MovesMade);
+        }
+
+        [Test]
+        public void SaveWithoutLimitIsTheOld150MoveGame()
+        {
+            Assert.AreEqual(150, new CheeseSaveData { moves = 40 }.MoveLimit);
+            Assert.AreEqual(300, new CheeseSaveData { moves = 40, limit = 300 }.MoveLimit);
         }
 
         // ---- bumps: items that slid into each other without merging (jelly squash in the view) ----

@@ -320,7 +320,7 @@ namespace GC26._2048
                 NewGame();
                 return;
             }
-            session.Restore(d.cells, d.score, d.moves, d.cheeses, d.cheeseShown, d.bestLevel);
+            session.Restore(d.cells, d.score, d.moves, d.cheeses, d.cheeseShown, d.bestLevel, d.MoveLimit);
             recordAtStart = storage.Best;
             lastScore = session.Score;
             playing = true;

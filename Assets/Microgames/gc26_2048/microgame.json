@@ -1,7 +1,7 @@
 {
   "id": "gc26_2048",
   "title": "Mousey's Cheese",
-  "description": "Merge puzzle: from grass to cheese in 150 moves",
+  "description": "Merge puzzle: from grass to cheese in 300 moves",
   "entry_scene": "gc26_2048_Main",
   "authors": [],
   "version": "0.0.1"

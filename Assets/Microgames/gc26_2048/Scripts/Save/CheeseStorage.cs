@@ -14,6 +14,13 @@ namespace GC26._2048
         public int cheeses;
         public bool cheeseShown;
         public int bestLevel;
+        /// <summary>Move limit the game started with; 0 in saves made before it was stored.</summary>
+        public int limit;
+
+        /// <summary>The only limit there was before saves kept it.</summary>
+        public const int LegacyMoveLimit = 150;
+
+        public int MoveLimit => limit > 0 ? limit : LegacyMoveLimit;
     }
 
     /// <summary>
@@ -91,7 +98,8 @@ namespace GC26._2048
                 moves = s.MovesLeft,
                 cheeses = s.Cheeses,
                 cheeseShown = s.CheeseShown,
-                bestLevel = s.BestLevel
+                bestLevel = s.BestLevel,
+                limit = s.MoveLimit
             };
             try
             {
