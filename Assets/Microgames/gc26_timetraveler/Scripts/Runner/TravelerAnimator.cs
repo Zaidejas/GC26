@@ -72,7 +72,10 @@ namespace GC26.Timetraveler
                 || !LoadSet("jump", JumpFrames, out var jump, out var jumpAura)
                 || !LoadSet("slide", SlideFrames, out var slide, out var slideAura)
                 || !LoadSet("death", DeathFrames, out var death, out var deathAura))
+            {
+                TimetravelerLog.Info($"No traveler sprites in Resources/{Folder}*: drawing her as a box.");
                 return null;
+            }
 
             var go = new GameObject("TravelerSprite");
             go.transform.SetParent(traveler.transform, false);
@@ -120,11 +123,7 @@ namespace GC26.Timetraveler
             {
                 frames[i] = Load(name + i);
                 auras[i] = Load(name + i + "_aura");
-                if (frames[i] == null || auras[i] == null)
-                {
-                    TimetravelerLog.Warn($"Traveler sprites not found ({name}{i}) in Resources/{Folder}*, using the plain box.");
-                    return false;
-                }
+                if (frames[i] == null || auras[i] == null) return false;
             }
             return true;
         }

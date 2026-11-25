@@ -82,6 +82,7 @@ namespace GC26.Timetraveler
 
             Sprite frame = null;
             var lift = 0f;                        // height above the ground
+            var ducking = false;                  // sliding (box drawn low when there are no sprites)
             var tint = Color.white;
             var runFrame = _run != null ? _run[(int)(realTime * 12f) % _run.Length] : null;
 
@@ -98,6 +99,7 @@ namespace GC26.Timetraveler
             {
                 if (cx < from || cx > to) return false;
                 frame = _slide != null ? _slide[2] : null;
+                ducking = true;
                 return true;
             }
 
@@ -167,6 +169,13 @@ namespace GC26.Timetraveler
                 GUI.color = Color.white;
                 DrawSprite(rect, sprite);
                 GUI.color = old;
+            }
+            else
+            {
+                // No sprites: the same coloured box as in the run (lower while sliding).
+                var bh = ducking ? h * 0.4f : h * 0.85f;
+                var bw = ducking ? h * 0.7f : h * 0.45f;
+                Fill(new Rect(cx - bw / 2f, groundY - lift - bh, bw, bh), tint == Color.white ? RunnerWorldState.PastColor : tint);
             }
             return acting;
         }

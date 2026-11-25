@@ -472,7 +472,7 @@ namespace GC26.Timetraveler
         void UpdateFeel(float baseSpeed)
         {
             var speed01 = Mathf.InverseLerp(startSpeed, maxSpeed, baseSpeed);
-            _follow.screenAnchorX = 0.17f;   // fixed framing: the view does not slide around with the speed
+            _follow.screenAnchorX = RunnerCamera.RunAnchor;   // fixed framing: the view does not slide around with the speed
             if (_traveler.IsGrounded) _follow.groundY = Feet.y;
 
             _speedFlash -= Time.unscaledDeltaTime;

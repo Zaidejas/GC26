@@ -13,7 +13,10 @@ namespace GC26.Timetraveler
         public const float PixelsPerUnit = 16f;
         public const float CanvasHeightPx = 480f;
 
-        [Range(0f, 1f)] public float screenAnchorX = 0.2f;
+        /// <summary>Where the traveler stands while running: 0 = left edge, 1 = right edge.</summary>
+        public const float RunAnchor = 0.3f;
+
+        [Range(0f, 1f)] public float screenAnchorX = RunAnchor;
         [Tooltip("1 = the whole 270x480 canvas; bigger = closer (the traveler looks bigger, less is seen ahead)")]
         public float zoom = 1.2f;
         [Tooltip("Camera centre height above the ground the traveler last stood on (not above the traveler: jumps do not move the view)")]
