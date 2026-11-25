@@ -50,11 +50,12 @@ namespace GC26.Towerdefence
         WaveSpawner _enemies;
         PlaceholderArt _art;
         Transform _effects;
+        PoolManager _pool;
         TextMeshPro _label;
         float _cooldown;
 
         public static TowerUnit Build(TowerData data, int slot, Vector3 position, Transform parent,
-            WaveSpawner enemies, PlaceholderArt art, Transform effects)
+            WaveSpawner enemies, PlaceholderArt art, Transform effects, PoolManager pool)
         {
             var body = art.NewShape(data.displayName, art.Square, parent, position, 0.8f, data.color, 5);
             var tower = body.gameObject.AddComponent<TowerUnit>();
@@ -64,6 +65,7 @@ namespace GC26.Towerdefence
             tower._enemies = enemies;
             tower._art = art;
             tower._effects = effects;
+            tower._pool = pool;
 
             // Letter on top, so towers can be told apart before there is art. "+" marks each upgrade.
             var label = new GameObject("Letter").AddComponent<TextMeshPro>();
@@ -141,7 +143,7 @@ namespace GC26.Towerdefence
             switch (Data.attack)
             {
                 case TowerAttack.Projectile:
-                    TowerProjectile.Launch(Data, Damage, transform.position, target, _enemies, _art, _effects);
+                    TowerProjectile.Launch(Data, Damage, transform.position, target, _enemies, _art, _effects, _pool);
                     break;
 
                 case TowerAttack.Hitscan:

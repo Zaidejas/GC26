@@ -32,11 +32,15 @@ namespace GC26.Towerdefence
 
         public bool IsAlive { get; private set; }
 
+        /// <summary>Grows every time this (pooled) object starts a new life, so old references can tell.</summary>
+        public int Life { get; private set; }
+
         /// <summary>Multiplies speed; 1 = normal. Set by ApplySlow (Frost).</summary>
         public float SpeedMultiplier { get; set; } = 1f;
 
         PathLine _line;
         EnemyPath _path;
+        Action<EnemyUnit> _release;
         float _slowUntil;
         float _healGlowUntil;
         SpriteRenderer _body;
@@ -56,18 +60,30 @@ namespace GC26.Towerdefence
         /// <summary>
         /// Creates an enemy at the start of its path. Uses data.prefab if set, otherwise a colored circle.
         /// hpMultiplier covers per-wave scaling and the boss's reduced HP. Adds the HP (and shield) bar.
+        /// Enemies come from the pool (one group per enemy type) and go back to it when they finish.
         /// </summary>
-        public static EnemyUnit Spawn(EnemyData data, EnemyPath path, Transform parent, float hpMultiplier, PlaceholderArt art)
+        public static EnemyUnit Spawn(EnemyData data, EnemyPath path, Transform parent, float hpMultiplier,
+            PlaceholderArt art, PoolManager pool)
+        {
+            string key = "enemy:" + data.name;
+            var go = pool.Get(key, parent, () => Build(data, art));
+            var unit = go.GetComponent<EnemyUnit>();
+            unit._release = u => pool.Release(key, u.gameObject);
+            unit.Init(data, path, hpMultiplier);
+            return unit;
+        }
+
+        /// <summary>Builds the object once per pooled enemy: body, EnemyUnit, HP bar.</summary>
+        static GameObject Build(EnemyData data, PlaceholderArt art)
         {
             GameObject go;
             if (data.prefab != null)
             {
-                go = Instantiate(data.prefab, parent);
+                go = Instantiate(data.prefab);
             }
             else
             {
                 go = new GameObject();
-                go.transform.SetParent(parent, false);
                 var sr = go.AddComponent<SpriteRenderer>();
                 sr.sprite = art.Circle;
                 sr.color = data.color;
@@ -79,14 +95,25 @@ namespace GC26.Towerdefence
             go.name = data.displayName;
             var unit = go.GetComponent<EnemyUnit>();
             if (unit == null) unit = go.AddComponent<EnemyUnit>();
-            unit.Init(data, path, hpMultiplier);
+            unit.Data = data; // the HP bar reads size and shield from it
             unit._body = go.GetComponent<SpriteRenderer>(); // placeholder circle; null for a prefab
             EnemyHealthBar.Attach(unit, art);
-            return unit;
+            return go;
+        }
+
+        /// <summary>Takes the enemy off the field without a kill or a castle hit (restart, back to menu).</summary>
+        public void Despawn()
+        {
+            if (!gameObject.activeSelf) return;
+            Finish();
         }
 
         public void Init(EnemyData data, EnemyPath path, float hpMultiplier = 1f)
         {
+            // A reused enemy must not keep the listeners of its previous life.
+            Died = null;
+            ReachedCastle = null;
+            Life++;
             Data = data;
             MaxHp = data.maxHp * hpMultiplier;
             Hp = MaxHp;
@@ -182,8 +209,9 @@ namespace GC26.Towerdefence
         void Finish()
         {
             IsAlive = false;
-            // The PoolManager task will return it to a pool instead.
-            Destroy(gameObject);
+            if (_path != null) _path.LayoutChanged -= OnLayoutChanged;
+            if (_release != null) _release(this);
+            else Destroy(gameObject);
         }
     }
 }

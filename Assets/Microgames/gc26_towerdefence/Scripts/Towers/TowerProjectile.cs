@@ -15,28 +15,46 @@ namespace GC26.Towerdefence
         TowerData _data;
         float _damage;
         EnemyUnit _target;
+        int _targetLife;
         Vector3 _aim;
         WaveSpawner _enemies;
         PlaceholderArt _art;
         Transform _effects;
+        PoolManager _pool;
+        string _key;
 
-        public static void Launch(TowerData data, float damage, Vector3 from, EnemyUnit target, WaveSpawner enemies, PlaceholderArt art, Transform effects)
+        public static void Launch(TowerData data, float damage, Vector3 from, EnemyUnit target, WaveSpawner enemies,
+            PlaceholderArt art, Transform effects, PoolManager pool)
         {
-            float size = data.splashRadius > 0f ? 0.22f : 0.14f;
-            var sr = art.NewShape("Projectile", art.Circle, effects, from, size, Color.Lerp(data.color, Color.white, 0.35f), 30);
-            var p = sr.gameObject.AddComponent<TowerProjectile>();
+            // One pool group per tower type: same size and color.
+            string key = "projectile:" + data.name;
+            var go = pool.Get(key, effects, () =>
+            {
+                float size = data.splashRadius > 0f ? 0.22f : 0.14f;
+                var sr = art.NewShape("Projectile", art.Circle, null, Vector3.zero, size, Color.Lerp(data.color, Color.white, 0.35f), 30);
+                sr.gameObject.AddComponent<TowerProjectile>();
+                return sr.gameObject;
+            });
+            go.transform.position = from;
+            var p = go.GetComponent<TowerProjectile>();
+            p._pool = pool;
+            p._key = key;
             p._data = data;
             p._damage = damage;
             p._target = target;
+            p._targetLife = target.Life;
             p._aim = target.transform.position;
             p._enemies = enemies;
             p._art = art;
             p._effects = effects;
         }
 
+        /// <summary>Still the same living enemy (a pooled enemy that died may already be a new one).</summary>
+        bool TargetValid => _target != null && _target.IsAlive && _target.Life == _targetLife;
+
         void Update()
         {
-            if (_target != null && _target.IsAlive) _aim = _target.transform.position;
+            if (TargetValid) _aim = _target.transform.position;
 
             Vector3 d = _aim - transform.position;
             float step = Speed * Time.deltaTime;
@@ -44,7 +62,7 @@ namespace GC26.Towerdefence
             {
                 transform.position = _aim;
                 Impact();
-                Destroy(gameObject);
+                _pool.Release(_key, gameObject);
             }
             else
             {
@@ -68,7 +86,7 @@ namespace GC26.Towerdefence
                 return;
             }
 
-            if (_target == null || !_target.IsAlive) return;
+            if (!TargetValid) return;
             _target.TakeDamage(_damage, _data.ignoresArmor);
             if (_data.slowAmount > 0f && _target != null && _target.IsAlive)
                 _target.ApplySlow(_data.slowAmount, _data.slowDuration);

@@ -19,6 +19,7 @@ namespace GC26.Towerdefence
         [SerializeField] EconomyManager economy;
         [SerializeField] WaveSpawner enemies;
         [SerializeField] PlaceholderArt art;
+        [SerializeField] PoolManager pool;
         [SerializeField] BuildMenuView menu;
         /// <summary>Towers offered in the build menu, in this order (LevelData.towers).</summary>
         TowerData[] towers => level.Data != null && level.Data.towers != null ? level.Data.towers : System.Array.Empty<TowerData>();
@@ -102,7 +103,7 @@ namespace GC26.Towerdefence
             if (_built[slot] != null || tower == null) return;
             if (!economy.TrySpend(tower.cost)) return;
 
-            _built[slot] = TowerUnit.Build(tower, slot, SlotPosition(slot), _towerRoot, enemies, art, _effectRoot);
+            _built[slot] = TowerUnit.Build(tower, slot, SlotPosition(slot), _towerRoot, enemies, art, _effectRoot, pool);
             _slotViews[slot].gameObject.SetActive(false);
             CloseMenu();
         }

@@ -13,6 +13,7 @@ namespace GC26.Towerdefence
         [SerializeField] LevelFlow level;
         [SerializeField] EnemyPath path;
         [SerializeField] PlaceholderArt art;
+        [SerializeField] PoolManager pool;
         [Tooltip("Enemy HP x (1 + this x (wave - 1)). Prototype: 0.08.")]
         [SerializeField, Min(0f)] float hpPerWave = 0.08f;
 
@@ -85,8 +86,8 @@ namespace GC26.Towerdefence
         void ClearEnemies()
         {
             _running = false;
-            foreach (var unit in _alive)
-                if (unit != null) Destroy(unit.gameObject);
+            foreach (var unit in _alive.ToArray())
+                if (unit != null) unit.Despawn();
             _alive.Clear();
         }
 
@@ -124,12 +125,13 @@ namespace GC26.Towerdefence
 
         void Spawn(EnemyData enemy, float hpMultiplier)
         {
-            var unit = EnemyUnit.Spawn(enemy, path, transform, hpMultiplier, art);
+            var unit = EnemyUnit.Spawn(enemy, path, transform, hpMultiplier, art, pool);
             level.RegisterEnemy(unit);
             _alive.Add(unit);
 
             // Healers (Shaman) show their healing radius as a faint green ring.
-            if (enemy.healPerSecond > 0f && enemy.healRadius > 0f && enemy.prefab == null)
+            if (enemy.healPerSecond > 0f && enemy.healRadius > 0f && enemy.prefab == null
+                && unit.transform.Find("HealRadius") == null) // a reused Shaman already has it
             {
                 var ring = art.NewShape("HealRadius", art.Ring, unit.transform, unit.transform.position, 1f,
                     new Color(0.4f, 0.9f, 0.6f, 0.45f), 9);

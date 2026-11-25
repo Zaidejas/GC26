@@ -11,6 +11,9 @@ namespace GC26.Towerdefence
     {
         const int Size = 64;
 
+        [Tooltip("Optional. Flashes are reused from here instead of created and destroyed.")]
+        [SerializeField] PoolManager pool;
+
         Sprite _circle;
         Sprite _square;
         Sprite _ring;
@@ -112,17 +115,37 @@ namespace GC26.Towerdefence
         public void FlashLine(Vector3 from, Vector3 to, Color color, float width, float seconds, Transform parent)
         {
             Vector3 d = to - from;
-            var sr = NewShape("Flash", Square, parent, (from + to) / 2f, 1f, color, 31);
+            var sr = Flash("flash:line", Square, parent, (from + to) / 2f, color, seconds);
             sr.transform.localScale = new Vector3(d.magnitude, width, 1f);
             sr.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg);
-            Destroy(sr.gameObject, seconds);
         }
 
         /// <summary>A short-lived ring (splash).</summary>
         public void FlashRing(Vector3 center, float radius, Color color, float seconds, Transform parent)
         {
-            var sr = NewShape("Splash", Ring, parent, center, radius * 2f, color, 31);
-            Destroy(sr.gameObject, seconds);
+            var sr = Flash("flash:ring", Ring, parent, center, color, seconds);
+            sr.transform.localScale = Vector3.one * radius * 2f;
+            sr.transform.rotation = Quaternion.identity;
+        }
+
+        /// <summary>A shape that disappears after `seconds`: from the pool if there is one.</summary>
+        SpriteRenderer Flash(string key, Sprite sprite, Transform parent, Vector3 position, Color color, float seconds)
+        {
+            SpriteRenderer sr;
+            if (pool != null)
+            {
+                var go = pool.Get(key, parent, () => NewShape("Flash", sprite, null, Vector3.zero, 1f, Color.white, 31).gameObject);
+                sr = go.GetComponent<SpriteRenderer>();
+                pool.ReleaseAfter(key, go, seconds);
+            }
+            else
+            {
+                sr = NewShape("Flash", sprite, parent, position, 1f, color, 31);
+                Destroy(sr.gameObject, seconds);
+            }
+            sr.transform.position = position;
+            sr.color = color;
+            return sr;
         }
 
         void OnDestroy()

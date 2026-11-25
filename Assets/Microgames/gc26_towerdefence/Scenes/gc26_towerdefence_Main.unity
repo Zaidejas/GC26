@@ -401,6 +401,7 @@ MonoBehaviour:
   level: {fileID: 100000044}
   path: {fileID: 100000023}
   art: {fileID: 100000053}
+  pool: {fileID: 100000056}
   hpPerWave: 0.08
   debugDamagePerSecond: 0
 --- !u!1 &100000041
@@ -496,6 +497,7 @@ GameObject:
   - component: {fileID: 100000053}
   - component: {fileID: 100000054}
   - component: {fileID: 100000055}
+  - component: {fileID: 100000056}
   m_Layer: 0
   m_Name: BuildManager
   m_TagString: Untagged
@@ -530,6 +532,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ecc46279c05742bab3101a943eeb1d87, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  pool: {fileID: 100000056}
 --- !u!114 &100000054
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -548,6 +551,7 @@ MonoBehaviour:
   economy: {fileID: 100000043}
   enemies: {fileID: 100000033}
   art: {fileID: 100000053}
+  pool: {fileID: 100000056}
   menu: {fileID: 100000055}
 --- !u!114 &100000055
 MonoBehaviour:
@@ -562,6 +566,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   art: {fileID: 100000053}
+--- !u!114 &100000056
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000051}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db369d0edff64b26a86b5747fd7df56a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &100000061
 GameObject:
   m_ObjectHideFlags: 0
