@@ -28,6 +28,7 @@ namespace GC26._2048Nastya.Tests
             _store = new SaveStore2048(_saveFolder, "gc26_2048_nastya_playtest_");
             _store.DeleteAll();
             Game2048Nastya.TestSaveStore = _store;
+            Game2048Nastya.TestSkipSplash = true; // tests play at once; the splash has its own test
             yield return UnityEditor.SceneManagement.EditorSceneManager.LoadSceneAsyncInPlayMode(
                 ScenePath, new LoadSceneParameters(LoadSceneMode.Additive));
             _scene = SceneManager.GetSceneByPath(ScenePath);
@@ -45,6 +46,7 @@ namespace GC26._2048Nastya.Tests
             if (_scene.IsValid() && _scene.isLoaded)
                 yield return SceneManager.UnloadSceneAsync(_scene);
             Game2048Nastya.TestSaveStore = null;
+            Game2048Nastya.TestSkipSplash = false;
             _store?.DeleteAll();
             if (_saveFolder != null && Directory.Exists(_saveFolder)) Directory.Delete(_saveFolder, true);
         }
@@ -456,6 +458,64 @@ namespace GC26._2048Nastya.Tests
             game.ToggleSound();
             Assert.IsFalse(sfx.Muted);
             Assert.IsTrue(_store.SoundOn);
+        }
+
+        // ---------- splash and title ----------
+
+        [UnityTest]
+        public IEnumerator Splash_BlocksMoves_AnyInputSkipsIt()
+        {
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
+            var splash = UnityEngine.Object.FindAnyObjectByType<Splash2048>(FindObjectsInactive.Include);
+            Assert.IsNotNull(splash);
+            Assert.IsFalse(splash.IsVisible, "tests start without it");
+
+            Game2048Nastya.TestSkipSplash = false;
+            game.ExitToMenu(); // standalone: launching again, now with the splash
+            yield return null;
+            Assert.IsTrue(splash.IsBlocking);
+            int moves = game.State.Moves;
+            Assert.IsFalse(game.CanPlay);
+
+            game.OnMoveInput(Direction2048.Left); // only skips
+            Assert.IsFalse(splash.IsVisible);
+            Assert.AreEqual(moves, game.State.Moves, "the skipping key is not a move");
+            Assert.IsTrue(game.CanPlay);
+        }
+
+        [UnityTest]
+        public IEnumerator Splash_GoesAwayByItself()
+        {
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
+            var splash = UnityEngine.Object.FindAnyObjectByType<Splash2048>(FindObjectsInactive.Include);
+            Game2048Nastya.TestSkipSplash = false;
+            game.ExitToMenu();
+            yield return null;
+            Assert.IsTrue(splash.IsVisible);
+
+            yield return new WaitForSecondsRealtime(1.2f + 0.4f + 0.3f);
+            Assert.IsFalse(splash.IsVisible);
+            Assert.IsTrue(game.CanPlay);
+        }
+
+        [UnityTest]
+        public IEnumerator HudTitle_2048UnderColours_RightAligned_SameFontAndSize()
+        {
+            yield return null; // let the layout settle
+            var hud = UnityEngine.Object.FindAnyObjectByType<Hud2048>();
+            var texts = hud.GetComponentsInChildren<TMPro.TMP_Text>(true);
+            var name = texts.Single(t => t.text == "Colours");
+            var number = texts.Single(t => t.text == "2048" && t.transform.parent == name.transform.parent);
+
+            Assert.AreEqual(name.font, number.font);
+            Assert.AreEqual(name.fontSize, number.fontSize);
+            Assert.AreEqual(name.fontStyle, number.fontStyle);
+            Assert.AreEqual(TMPro.TextAlignmentOptions.Right, number.alignment);
+
+            var a = name.rectTransform;
+            var b = number.rectTransform;
+            Assert.Less(b.position.y, a.position.y, "2048 is below Colours");
+            Assert.AreEqual(a.rect.width, b.rect.width, 0.5f, "same width, so the right edges line up");
         }
     }
 }

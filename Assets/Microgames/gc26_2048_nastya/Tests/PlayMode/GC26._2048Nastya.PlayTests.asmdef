@@ -3,6 +3,7 @@
     "rootNamespace": "GC26._2048Nastya.Tests",
     "references": [
         "GC26._2048Nastya",
+        "Unity.TextMeshPro",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

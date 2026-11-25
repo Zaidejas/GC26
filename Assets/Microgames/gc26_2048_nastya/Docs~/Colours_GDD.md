@@ -85,14 +85,23 @@ The goal is to build a **2048** tile. The game ends when the board is full and n
 ## 4. Game flow and screens
 
 ```
-Shell menu ──Begin()──► [Game screen] ◄──► [Pause menu] ──"To menu"──► exit(score) ──► Shell menu
-                              │
-                              ├──► [Win overlay]       (first 2048: Keep going / New game)
-                              └──► [Game over overlay] (Try again / To menu)
+Shell menu ──Begin()──► [Splash] ──► [Game screen] ◄──► [Pause menu] ──"To menu"──► exit(score) ──► Shell menu
+                                            │
+                                            ├──► [Win overlay]       (first 2048: Keep going / New game)
+                                            └──► [Game over overlay] (Try again / To menu)
 ```
 
+### 4.0 Splash screen
+- Every launch starts with a short splash: the title **Colours** with **2048** under it, right-aligned,
+  on the game background. It stays 1.2 s and fades out in 0.4 s, then the game screen is ready.
+- A tap, a click or any key skips it at once. Moves are ignored while it is on screen.
+- The game in progress is already loaded behind it, so skipping never loses anything.
+
 ### 4.1 Game screen (HUD)
-- **Top bar:** game title, **Score** box, **Best** box, **Pause** button, **New game** button.
+- **Top bar:** game title (**Colours**, with **2048** on the line below, right-aligned, same font and size),
+  **Score** box, **Best** box, and the buttons **Undo**, **New game** and **Pause**.
+- **Undo** takes back the last move only (board, score and move count; the best score stays). It is greyed out
+  when there is nothing to undo: in a new game, right after a resume, and right after an undo.
 - **Center:** the board, square, as large as fits the screen while leaving room for the HUD.
 - Short hint under the board on the first launch only: "Swipe or use the arrow keys to combine tiles."
 
@@ -148,6 +157,7 @@ Flat shapes, soft shadows, no textures; everything is built from uGUI images wit
 | Spawn | Tile scales 0 → 1 | 0.12 s, after the slide |
 | Invalid move | Board shifts 6 px toward the direction and back | 0.08 s |
 | Score | The number just updates (no "+N" popup) | instant |
+| Splash | Holds, then fades out | 1.2 s + 0.4 s |
 | 2048 reached | Tile pulses; win overlay fades in | 0.4 s |
 
 A whole move must finish in **≤ 0.25 s**.
@@ -321,14 +331,23 @@ A whole move must finish in **≤ 0.25 s**.
 ## 4. Поток игры и экраны
 
 ```
-Меню оболочки ──Begin()──► [Игровой экран] ◄──► [Пауза] ──«В меню»──► exit(score) ──► Меню оболочки
-                                 │
-                                 ├──► [Окно победы]       (первая 2048: Играть дальше / Новая игра)
-                                 └──► [Окно конца игры]   (Ещё раз / В меню)
+Меню оболочки ──Begin()──► [Заставка] ──► [Игровой экран] ◄──► [Пауза] ──«В меню»──► exit(score) ──► Меню оболочки
+                                                 │
+                                                 ├──► [Окно победы]       (первая 2048: Играть дальше / Новая игра)
+                                                 └──► [Окно конца игры]   (Ещё раз / В меню)
 ```
 
+### 4.0 Заставка
+- Каждый запуск начинается с короткой заставки: название **Colours**, под ним **2048** по правому краю,
+  на фоне игры. Она держится 1,2 с и плавно исчезает за 0,4 с, после чего игровой экран готов.
+- Касание, клик или любая клавиша сразу её пропускают. Пока заставка на экране, ходы не принимаются.
+- Сохранённая партия уже загружена под заставкой, поэтому пропуск ничего не теряет.
+
 ### 4.1 Игровой экран (HUD)
-- **Верхняя панель:** название игры, блок **Score** (счёт), блок **Best** (лучший), кнопка **паузы**, кнопка **новой игры**.
+- **Верхняя панель:** название игры (**Colours**, под ним **2048** по правому краю, тем же шрифтом и того же размера),
+  блок **Score** (счёт), блок **Best** (лучший) и кнопки **Undo** (отмена хода), **New game** (новая игра) и **Pause** (пауза).
+- **Undo** отменяет только последний ход (поле, счёт и число ходов; рекорд не меняется). Кнопка серая,
+  когда отменять нечего: в новой игре, сразу после продолжения из сохранения и сразу после отмены.
 - **Центр:** поле, квадратное, максимального размера, при котором остаётся место для HUD.
 - Короткая подсказка под полем только при первом запуске: «Swipe or use the arrow keys to combine tiles» («Свайпай или жми стрелки, чтобы соединять плитки»).
 
@@ -384,6 +403,7 @@ A whole move must finish in **≤ 0.25 s**.
 | Появление | Плитка масштабируется 0 → 1 | 0,12 с, после сдвига |
 | Недействительный ход | Поле сдвигается на 6 px в сторону хода и обратно | 0,08 с |
 | Счёт | Число просто обновляется (без всплывающего «+N») | сразу |
+| Заставка | Держится, затем плавно исчезает | 1,2 с + 0,4 с |
 | Собрана 2048 | Плитка пульсирует; окно победы плавно появляется | 0,4 с |
 
 Весь ход должен укладываться в **≤ 0,25 с**.

@@ -256,6 +256,7 @@ namespace GC26._2048Nastya.EditorTools
             Wire(hud, "hintText", hint);
             var overlays = BuildOverlays(canvasGo.transform);
             var confirmPanel = BuildConfirm(canvasGo.transform, out var yes, out var no);
+            var splash = BuildSplash(canvasGo.transform);
             Wire(hud, "confirmPanel", confirmPanel);
             Wire(hud, "confirmYesButton", yes);
             Wire(hud, "confirmNoButton", no);
@@ -271,6 +272,7 @@ namespace GC26._2048Nastya.EditorTools
             Wire(game, "boardView", boardView);
             Wire(game, "hud", hud);
             Wire(game, "overlays", overlays);
+            Wire(game, "splash", splash);
             Wire(game, "input", input);
             Wire(game, "sfx", BuildSfx(root, canvasGo.transform));
             Wire(game, "ownCamera", cam);
@@ -294,15 +296,19 @@ namespace GC26._2048Nastya.EditorTools
             rect.anchoredPosition = new Vector2(0f, -50f);
             var hud = go.AddComponent<Hud2048>();
 
-            var title = Text(Node("Title", go.transform), "Colours", 104f, _theme.hudText, TextAlignmentOptions.MidlineLeft, true);
-            Stretch(title.gameObject, new Vector2(0f, 0.45f), new Vector2(0.44f, 1f));
-            var undo = MakeButton(go.transform, "UndoButton", "Undo", new Vector2(0.18f, 0f), new Vector2(0.44f, 0.36f));
-            Wire(hud, "undoButton", undo);
+            // "Colours" with "2048" right-aligned under it (T5B), in the top-left corner.
+            var title = BuildTitle(go.transform, 104f);
+            var titleRect = (RectTransform)title.transform;
+            titleRect.anchorMin = titleRect.anchorMax = new Vector2(0f, 1f);
+            titleRect.pivot = new Vector2(0f, 1f);
+            titleRect.anchoredPosition = Vector2.zero;
 
             var score = ScoreBox(go.transform, "ScoreBox", "SCORE", new Vector2(0.46f, 0.45f), new Vector2(0.72f, 1f));
             var best = ScoreBox(go.transform, "BestBox", "BEST", new Vector2(0.74f, 0.45f), new Vector2(1f, 1f));
-            var newGame = MakeButton(go.transform, "NewGameButton", "New game", new Vector2(0.46f, 0f), new Vector2(0.72f, 0.36f));
-            var pause = MakeButton(go.transform, "PauseButton", "Pause", new Vector2(0.74f, 0f), new Vector2(1f, 0.36f));
+            var undo = MakeButton(go.transform, "UndoButton", "Undo", new Vector2(0.46f, 0f), new Vector2(0.58f, 0.36f));
+            var newGame = MakeButton(go.transform, "NewGameButton", "New game", new Vector2(0.60f, 0f), new Vector2(0.80f, 0.36f));
+            var pause = MakeButton(go.transform, "PauseButton", "Pause", new Vector2(0.82f, 0f), new Vector2(1f, 0.36f));
+            Wire(hud, "undoButton", undo);
 
             Wire(hud, "scoreText", score);
             Wire(hud, "bestText", best);
@@ -398,6 +404,53 @@ namespace GC26._2048Nastya.EditorTools
             var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
             if (clip == null) Debug.LogError($"[gc26_2048_nastya] missing {path}: run python Docs~/generate_sfx.py");
             return clip;
+        }
+
+        /// <summary>
+        /// The game title: "Colours", and "2048" on the next line, right-aligned to the end of "Colours",
+        /// same font and size. A vertical layout sized to its widest line keeps them aligned for any font.
+        /// </summary>
+        static GameObject BuildTitle(Transform parent, float size)
+        {
+            var go = Node("Title", parent);
+            var layout = go.AddComponent<VerticalLayoutGroup>();
+            layout.childControlWidth = true;
+            layout.childForceExpandWidth = true;   // both lines get the width of the widest one
+            layout.childControlHeight = true;
+            layout.childForceExpandHeight = false;
+            layout.spacing = -size * 0.25f;          // the two lines sit close together
+            var fitter = go.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            Text(Node("Name", go.transform), "Colours", size, _theme.hudText, TextAlignmentOptions.Left, true);
+            Text(Node("Number", go.transform), "2048", size, _theme.hudText, TextAlignmentOptions.Right, true);
+            return go;
+        }
+
+        /// <summary>T5A: full-screen splash over everything; the whole screen is one button that skips it.</summary>
+        static Splash2048 BuildSplash(Transform canvas)
+        {
+            var panel = Node("Splash", canvas);
+            Stretch(panel, Vector2.zero, Vector2.one);
+            var image = panel.AddComponent<Image>();
+            image.color = _theme.background;
+            var skip = panel.AddComponent<Button>();
+            skip.transition = Selectable.Transition.None;
+            skip.targetGraphic = image;
+            var group = panel.AddComponent<CanvasGroup>();
+
+            var title = BuildTitle(panel.transform, 180f);
+            var rect = (RectTransform)title.transform;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = new Vector2(0f, 60f);
+
+            var splash = panel.AddComponent<Splash2048>();
+            Wire(splash, "group", group);
+            Wire(splash, "skipArea", skip);
+            panel.SetActive(false);
+            return splash;
         }
 
         static TMP_Text BuildHint(Transform canvas)
@@ -557,6 +610,10 @@ namespace GC26._2048Nastya.EditorTools
             button.targetGraphic = image;
             var label = Text(Node("Label", go.transform), caption, 40f, _theme.hudText, TextAlignmentOptions.Center, true);
             Stretch(label.gameObject, Vector2.zero, Vector2.one);
+            label.margin = new Vector4(8f, 0f, 8f, 0f);
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 24f;
+            label.fontSizeMax = 40f;
             return button;
         }
 

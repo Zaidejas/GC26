@@ -17,7 +17,7 @@ namespace GC26._2048Nastya
         /// Layout version of the entry scene. ColoursBuilder2048 stamps it into the scene; bump it whenever the
         /// builder adds or rewires objects, and the editor rebuilds an older scene by itself.
         /// </summary>
-        public const int SceneVersion = 4;
+        public const int SceneVersion = 5;
 
         /// <summary>T59: phones default to 30 FPS; the game asks for 60 while it runs and restores the old value.</summary>
         public const int TargetFrameRate = 60;
@@ -25,12 +25,16 @@ namespace GC26._2048Nastya
         /// <summary>Tests only: set before the scene loads so the player's real save is never touched.</summary>
         public static SaveStore2048 TestSaveStore;
 
+        /// <summary>Tests only: start without the splash screen.</summary>
+        public static bool TestSkipSplash;
+
         [SerializeField] Theme2048 theme;
         [SerializeField] BoardView2048 boardView;
         [SerializeField] Hud2048 hud;
         [SerializeField] Overlays2048 overlays;
         [SerializeField] Input2048 input;
         [SerializeField] Sfx2048 sfx;
+        [SerializeField] Splash2048 splash;
 
         [Header("Standalone only (disabled when the shell has its own camera)")]
         [SerializeField] Camera ownCamera;
@@ -54,7 +58,17 @@ namespace GC26._2048Nastya
         public GameState2048 State => _state;
 
         /// <summary>The game is on screen and accepts moves: no overlay, no dialog, not exited.</summary>
-        public bool CanPlay => _state != null && !_exited && !overlays.IsOpen && !hud.IsConfirmOpen;
+        public bool CanPlay => _state != null && !_exited && !overlays.IsOpen && !hud.IsConfirmOpen && !SplashBlocking;
+
+        bool SplashBlocking => splash != null && splash.IsBlocking;
+
+        /// <summary>GDD 4.0: any key or move input during the splash only skips it.</summary>
+        bool SkipSplash()
+        {
+            if (!SplashBlocking) return false;
+            splash.Skip();
+            return true;
+        }
 
         public void Begin(Action<int> exit)
         {
@@ -162,6 +176,8 @@ namespace GC26._2048Nastya
             _hintVisible = !_save.HintShown;
             hud.ShowHint(_hintVisible);
             if (_hintVisible) _save.HintShown = true;
+
+            if (splash != null && !TestSkipSplash) splash.Show(null);
         }
 
         public void StartNewGame()
@@ -192,7 +208,7 @@ namespace GC26._2048Nastya
         /// </summary>
         public void OnMoveInput(Direction2048 dir)
         {
-            if (!CanPlay) return;
+            if (SkipSplash() || !CanPlay) return;
             if (boardView.IsAnimating && _buffered.HasValue)
                 boardView.FinishNow(); // plays the buffered move
             if (!CanPlay) return;      // that move may have opened the win or game over overlay
@@ -277,7 +293,7 @@ namespace GC26._2048Nastya
         /// <summary>T54: U or the Undo button. One step only; a new game or a resumed game has nothing to undo.</summary>
         public void Undo()
         {
-            if (!CanPlay) return;
+            if (SkipSplash() || !CanPlay) return;
             FinishAnimation();
             if (!CanPlay || !_state.TryUndo()) return;
             boardView.Render(_state.Board);
@@ -290,7 +306,7 @@ namespace GC26._2048Nastya
 
         void OnNewGameRequested()
         {
-            if (_state == null || _exited || overlays.IsOpen) return;
+            if (SkipSplash() || _state == null || _exited || overlays.IsOpen) return;
             // Ask only when there is progress to lose (GDD 3).
             if (_state.Moves > 0 && !_state.IsOver)
                 hud.ShowConfirm(StartNewGame);
@@ -319,7 +335,7 @@ namespace GC26._2048Nastya
         /// <summary>T42: Esc or the Pause button. Toggles the pause menu; closes the "new game?" dialog first.</summary>
         public void Pause()
         {
-            if (_state == null || _exited) return;
+            if (SkipSplash() || _state == null || _exited) return;
             if (hud.IsConfirmOpen) { hud.CloseConfirm(); return; }
             if (overlays.Open == Overlays2048.Kind.Pause) { Resume(); return; }
             if (overlays.IsOpen) return; // win / game over have their own buttons
