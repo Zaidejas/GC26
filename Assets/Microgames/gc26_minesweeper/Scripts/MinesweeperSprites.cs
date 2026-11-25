@@ -9,6 +9,7 @@ namespace GC26.Minesweeper
         public Sprite Rounded, HiddenTile, OpenTile, HitTile, Frame;
         public Sprite RedFlag, YellowFlag, WrongFlag, MenuIcon;
         public Sprite FaceSmile, FaceOh, FaceCool, FaceDead;
+        public Sprite Dot, Ring;   // How to play demo: the "finger" and the long-press ring
 
         const int N = 64;   // every texture is 64x64 pixels
 
@@ -89,6 +90,13 @@ namespace GC26.Minesweeper
                 p.Line(18, 34, 27, 43, 2, Dark); p.Line(18, 43, 27, 34, 2, Dark);   // X eyes
                 p.Line(37, 34, 46, 43, 2, Dark); p.Line(37, 43, 46, 34, 2, Dark);
                 p.Rect(22, 19, 42, 22, Dark);                                     // flat mouth
+            }), 0);
+
+            s.Dot = Make(Paint(p => p.Circle(32, 32, 30, White)), 0);
+            s.Ring = Make(Paint(p =>
+            {
+                p.Circle(32, 32, 31, White);
+                p.Circle(32, 32, 24, Clear);
             }), 0);
 
             return s;

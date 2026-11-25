@@ -12,7 +12,7 @@ namespace GC26.Minesweeper
     public class MinesweeperCellView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
     {
         // Classic number colours: 1 blue, 2 green, 3 red, 4 dark blue, 5 dark red, 6 teal, 7 black, 8 grey.
-        static readonly Color[] NumberColors =
+        public static readonly Color[] NumberColors =
         {
             new Color32(0x1E, 0x5B, 0xD8, 0xFF), new Color32(0x1F, 0x8A, 0x3B, 0xFF),
             new Color32(0xC6, 0x28, 0x28, 0xFF), new Color32(0x18, 0x2E, 0x7A, 0xFF),

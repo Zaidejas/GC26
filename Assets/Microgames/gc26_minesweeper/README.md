@@ -20,7 +20,7 @@
 | Folder | What's inside |
 |---|---|
 | `Scripts/Core/` | The rules in plain C# (`MinesweeperBoard`, `MinesweeperCell`, `MinesweeperState`, `MinesweeperDifficulty`, `MinesweeperLossLines`) and `MinesweeperSolver`, which checks that a board can be solved without guessing |
-| `Scripts/` | `MinesweeperGame` (the `IMicrogame`; builds the whole UI from code), `MinesweeperCellView` (tap / long press / right click), `MinesweeperSprites` (graphics drawn in code), `MinesweeperSafeArea` |
+| `Scripts/` | `MinesweeperGame` (the `IMicrogame`; builds the whole UI from code), `MinesweeperCellView` (tap / long press / right click), `MinesweeperHowToPlayDemo` (the animation in How to play), `MinesweeperSprites` (graphics drawn in code), `MinesweeperSafeArea` |
 | `Resources/gc26_minesweeper/loss_lines.txt` | Lines shown after a loss, one per line; `#` lines are comments. Add lines here, no code changes needed |
 | `Editor/` | `GC26 → Minesweeper → Create Main Scene` and `Build Windows Player` |
 | `Tests/EditMode/` | Unit tests for the rules (Test Runner → EditMode) |
@@ -32,6 +32,10 @@ In Unity: **GC26 → Minesweeper → Version → Bump Version...** — describe 
 
 | Version | Changes |
 |---|---|
+| 0.6.1 | How to play: × close button in the top-right corner, works on every page |
+| 0.6.0 | How to play: 4 pages, one per tap (open a cell, what a number means, red flag = lose, yellow flag), each a short animation with one line of text |
+| 0.5.0 | Tutorial: new step that highlights a cell that must hide a red flag and asks to mark it (long press on phones, right-click on computers), then "Avoid the red flags! Good luck!" |
+| 0.4.0 | Tutorial bubble in the middle of the screen (may cover the board, never the highlighted cell); How to play has a looping animation and much shorter text |
 | 0.3.1 | Button words match their action: pause is now Resume / Menu (level screen) / Exit (leave Red Flags); questions and Back say "go to the menu" or "exit" |
 | 0.3.0 | "Are you sure you want to leave and lose your progress?" before restart, Change level, Exit to menu or Back during a game in progress |
 | 0.2.2 | Class rules (tools/): tutorial state is no longer static (rule 6), docs moved into the game folder as `Docs~/` (rule 1), branch `game/gc26_minesweeper` |

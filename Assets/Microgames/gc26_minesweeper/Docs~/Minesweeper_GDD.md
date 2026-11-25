@@ -337,13 +337,16 @@ A panel that slides up from the bottom, so the board stays visible above it and 
 - If the list is empty, only the "lost" message is shown.
 
 ### 6.5 First-game tutorial
-A short tutorial runs in the **first game each time Red Flags is opened** (from the GC26 menu, or as its own app), whatever difficulty the player chooses. Later games before leaving Red Flags don't show it. It is a message bubble **above the board** (between the top bar and the board); the board stays playable the whole time.
+A short tutorial runs in the **first game each time Red Flags is opened** (from the GC26 menu, or as its own app), whatever difficulty the player chooses. Later games before leaving Red Flags don't show it. It is a message bubble **in the middle of the screen, on top of the board**; the rest of the board stays playable the whole time.
 
 1. **Before the first tap:** "Tap any cell to start. Your first tap is always safe." The bubble has no button; it waits for the tap.
-2. **After the first tap:** the opened cell with the **biggest number** gets a pulsing yellow outline (if several share the biggest number, the first one found is used; on a big board the view scrolls to it). The bubble says: **"This cell has *N* red flags around it — be careful!"** ("1 red flag" when N is 1). It has a **Got it** button.
-3. The tutorial closes when the player taps **Got it**, or makes any next move (tap or flag), or leaves the game.
+2. **After the first tap:** the opened cell with the **biggest number** gets a pulsing yellow outline (if several share the biggest number, the first one found is used; on a big board the view scrolls to it). The bubble says: **"This cell has *N* red flags around it — be careful!"** ("1 red flag" when N is 1). It has a **Got it** button. **Got it** or any next move goes to step 3.
+3. **Mark a red flag:** the game finds a hidden cell that the numbers prove must hide a red flag (next to an opened number whose hidden neighbours are exactly as many as its missing red flags) and highlights it. The bubble says: **"The numbers show this cell must hide a red flag. Long press it to mark it with a yellow flag."** On a computer it says **"Right-click it"** instead of "Long press it". The step ends when that cell gets a yellow flag (long press, right-click, or a tap in Flag mode), or with the **Skip** button. If the board has no such cell yet, this step is skipped.
+4. **Send-off:** **"Avoid the red flags! Good luck!"** with a **Let's go!** button, in the middle of the screen. **Let's go!** or any move closes the tutorial.
 
-- All tutorial messages are shown **above the board, never below it or on top of it**. While the bubble is visible the board area is a little shorter, so no cell is covered.
+The tutorial also closes at once if the round is won or lost, or the player leaves the game.
+
+- The bubble is shown **in the middle of the screen** and may cover part of the board, but **never the highlighted cell**: if it would, it moves just above that cell, or just below it when there's no room above.
 - It counts as seen for this session once step 2 has appeared. Nothing is saved: closing and reopening the app shows it again. If the player leaves a game before their first tap, the tutorial starts again in their next game.
 
 ### 6.6 "How to play" pop-up
@@ -353,35 +356,36 @@ Opened any time during a game with the **?** button at the right end of the top 
 ┌───────────────────────────┐
 │░░░░░░░░░░░░░░░░░░░░░░░░░░░│  ← the rest of the screen is dimmed
 │░┌───────────────────────┐░│
-│░│      How to play      │░│
-│░│ • Tap cells to reveal │░│
-│░│   them. Avoid the red │░│
-│░│   flags!              │░│
-│░│ • A number shows how  │░│
-│░│   many red flags touch│░│
-│░│   that cell.          │░│
-│░│ • Long press a cell to│░│
-│░│   mark a suspected red│░│
-│░│   flag with a yellow  │░│
-│░│   flag.               │░│
-│░│ • Open every safe cell│░│
-│░│   to win.             │░│
-│░│      [    OK    ]     │░│
+│░│      How to play   [×]│░│  ← × closes it
+│░│    ┌──┬──┬──┬──┐      │░│
+│░│    │  │  │1 │■ │  ●   │░│  ← animated 4×3 demo board,
+│░│    ├──┼──┼──┼──┤      │░│    ● = the "finger"
+│░│    │  │  │2 │■ │      │░│
+│░│    ├──┼──┼──┼──┤      │░│
+│░│    │  │  │1 │■ │      │░│
+│░│    └──┴──┴──┴──┘      │░│
+│░│  Tap a cell to open it│░│  ← one short line per page
+│░│         1 / 4         │░│  ← page number
+│░│      [   Next   ]     │░│  ← "Got it" on the last page
 │░└───────────────────────┘░│
 │░░░░░░░░░░░░░░░░░░░░░░░░░░░│
 └───────────────────────────┘
 ```
 
-**Text:**
-- **How to play**
-- Tap cells to reveal them. **Avoid the red flags!**
-- A number shows how many red flags touch that cell, including diagonally.
-- Long press a cell to mark it with a yellow flag where you suspect a red flag. The Flag button at the bottom does the same with a normal tap.
-- Open every cell without a red flag to win. Your first tap is always safe.
+**Four pages, one per tap.** Each page loops a short animation with one line of text:
+
+| Page | Animation | Text |
+|---|---|---|
+| 1 / 4 | The finger taps a hidden cell and an area opens, cell by cell | Tap a cell to open it |
+| 2 / 4 | The "2" pulses in a yellow frame; the two red flags it counts fade in around it | A number = how many red flags touch it |
+| 3 / 4 | The finger taps a hidden cell: dark tile with a red flag, the board shakes | Tap a red flag and you lose! |
+| 4 / 4 | The finger holds a hidden cell while a yellow ring fills, then a yellow flag appears | Long press to mark it with a yellow flag (on a computer: "Right-click …") |
 
 **Behaviour:**
-- The pop-up closes when the player taps **OK** or taps **anywhere on the screen**, inside or outside the pop-up.
-- The tap that closes it never reaches the board, so it can't open or flag a cell by accident.
+- A tap **anywhere** (or the **Next** button) shows the next page. On the last page the button says **Got it**, and a tap closes the pop-up.
+- An **×** button in the top-right corner of the pop-up closes it at once, on any page.
+- It always starts again at page 1 when opened.
+- The taps never reach the board, so they can't open or flag a cell by accident.
 - The timer is paused while the pop-up is open.
 - Android **Back** closes the pop-up first; a second Back goes to the menu.
 - The pop-up doesn't change the round in any way and can be opened as often as the player wants, also during the tutorial or after the round ends.

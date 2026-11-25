@@ -48,6 +48,7 @@ namespace GC26.Minesweeper
         // ---- UI references
         Canvas canvas;
         GameObject menuScreen, gameScreen, tutorialBox, endPanel, helpOverlay, pauseOverlay, confirmOverlay;
+        RectTransform tutorialRect;
         Text confirmTitle, confirmYesLabel;
         Action confirmYes;                      // what "Yes" does in the "Are you sure?" dialog
         readonly List<Text> levelLabels = new List<Text>();
@@ -56,6 +57,10 @@ namespace GC26.Minesweeper
         Text counterText, timerText, tutorialText, endTitle, endLine;
         Image faceImage;
         GameObject tutorialOkButton;
+        Text tutorialOkLabel;
+        MinesweeperHowToPlayDemo helpDemo;
+        Text helpButtonLabel;
+        Button helpCloseButton;
         Outline revealOutline, flagOutline;
 
         // ---- game state
@@ -65,7 +70,7 @@ namespace GC26.Minesweeper
         MinesweeperState state;
         bool flagMode, appPaused;
         float elapsed;
-        int tutorialStep;                       // 0 = off, 1 = waiting for the first tap, 2 = showing the number
+        int tutorialStep;                       // 0 = off, 1 = first tap, 2 = number, 3 = mark a red flag, 4 = good luck
         MinesweeperCellView tutorialTarget, pressedCell;
         Vector2 lastAreaSize;
 
@@ -136,7 +141,7 @@ namespace GC26.Minesweeper
         void LateUpdate()
         {
             if (!InGame || board == null) return;
-            if (boardArea.rect.size != lastAreaSize) LayoutBoard();   // e.g. the tutorial box appeared or closed
+            if (boardArea.rect.size != lastAreaSize) LayoutBoard();   // e.g. the window was resized
 
             if (tutorialTarget != null)
             {
@@ -149,6 +154,41 @@ namespace GC26.Minesweeper
                 float pad = 8f + 6f * Mathf.PingPong(Time.unscaledTime * 2f, 1f);
                 highlightFrame.sizeDelta = t.rect.size + Vector2.one * (pad * 2f);
             }
+            if (tutorialBox.activeSelf) PlaceTutorialBubble();
+        }
+
+        // The tutorial bubble sits in the middle of the screen and may cover the board, but never the
+        // highlighted cell: if it would, it moves just above the cell, or just below it if there's no room above.
+        void PlaceTutorialBubble()
+        {
+            var screen = (RectTransform)gameScreen.transform;
+            float half = tutorialRect.rect.height / 2f;
+            float y = 0f;                                          // 0 = middle of the game screen
+            if (tutorialTarget != null)
+            {
+                const float gap = 30f;
+                var corners = new Vector3[4];
+                tutorialTarget.Rect.GetWorldCorners(corners);      // 0 = bottom-left, 2 = top-right
+                float cellBottom = screen.InverseTransformPoint(corners[0]).y - gap;
+                float cellTop = screen.InverseTransformPoint(corners[2]).y + gap;
+                bool covers = y - half < cellTop && y + half > cellBottom;
+                if (covers)
+                {
+                    float roomTop = screen.rect.yMax - 170f;      // below the top bar
+                    y = cellTop + half <= roomTop - half ? cellTop + half : cellBottom - half;
+                }
+            }
+            tutorialRect.anchoredPosition = new Vector2(0, y);
+        }
+
+        // True if the tutorial bubble and the highlighted cell overlap on screen (used by the self-test).
+        bool TutorialBubbleCoversTarget()
+        {
+            if (tutorialTarget == null || !tutorialBox.activeSelf) return false;
+            var a = new Vector3[4]; var b = new Vector3[4];
+            tutorialRect.GetWorldCorners(a);
+            tutorialTarget.Rect.GetWorldCorners(b);
+            return a[0].x < b[2].x && a[2].x > b[0].x && a[0].y < b[2].y && a[2].y > b[0].y;
         }
 
         // Android Back / Escape: close a pop-up first, then game -> level screen -> exit.
@@ -259,37 +299,38 @@ namespace GC26.Minesweeper
         public void OnTap(int x, int y)
         {
             if (IsOver || OverlayOpen) return;
-            if (tutorialStep == 2) EndTutorial();                 // any next move closes the tutorial
 
             MinesweeperCell c = board.GetCell(x, y);
-            if (c.IsRevealed) { AfterOpen(board.Chord(x, y)); return; }   // tap a number = chord
-            if (flagMode) { ToggleFlag(x, y); return; }
-            if (c.IsFlagged) return;
-
-            bool firstReveal = !board.MinesPlaced;
-            if (firstReveal)
+            if (c.IsRevealed) AfterOpen(board.Chord(x, y));          // tap a number = chord
+            else if (flagMode) ToggleFlag(x, y);
+            else if (!c.IsFlagged)
             {
-                // The first tap is always safe. About 4% of boards need a guess somewhere; the rest are
-                // re-rolled until they can be solved from here by logic alone (MinesweeperSolver).
-                board.PlaceMinesFair(x, y);
-                state = MinesweeperState.Playing;
+                bool firstReveal = !board.MinesPlaced;
+                if (firstReveal)
+                {
+                    // The first tap is always safe. About 4% of boards need a guess somewhere; the rest are
+                    // re-rolled until they can be solved from here by logic alone (MinesweeperSolver).
+                    board.PlaceMinesFair(x, y);
+                    state = MinesweeperState.Playing;
+                }
+                AfterOpen(board.Reveal(x, y));
+                if (firstReveal) { TutorialAfterFirstReveal(); return; }
             }
-            AfterOpen(board.Reveal(x, y));
-            if (firstReveal) TutorialAfterFirstReveal();
+            TutorialAfterAction();
         }
 
         public void OnLongPress(int x, int y)
         {
             if (IsOver || OverlayOpen) return;
-            if (tutorialStep == 2) EndTutorial();
             if (!board.GetCell(x, y).IsRevealed && ToggleFlag(x, y)) Vibrate();
+            TutorialAfterAction();
         }
 
         public void OnSecondaryClick(int x, int y)
         {
             if (IsOver || OverlayOpen) return;
-            if (tutorialStep == 2) EndTutorial();
             ToggleFlag(x, y);
+            TutorialAfterAction();
         }
 
         public void SetPressedCell(MinesweeperCellView cell)
@@ -393,14 +434,91 @@ namespace GC26.Minesweeper
         }
 
         // =====================================================================
-        // First-game tutorial (GDD 6.5): above the board, once per app launch
+        // First-game tutorial (GDD 6.5), in the first game each time Red Flags is opened:
+        //   1. "Tap any cell to start"                (waits for the first tap)
+        //   2. the biggest opened number is explained (Got it, or any move)
+        //   3. a cell that must hide a red flag is highlighted: mark it with a yellow flag (or Skip)
+        //   4. "Avoid the red flags! Good luck!"      (Let's go!, or any move)
         // =====================================================================
 
         void StartTutorialIfNeeded()
         {
             if (tutorialSeen) return;
             tutorialStep = 1;
-            ShowTutorial("Tap any cell to start. Your first tap is always safe.", false);
+            ShowTutorial("Tap any cell to start. Your first tap is always safe.", null);
+        }
+
+        // Called after every move during the tutorial.
+        void TutorialAfterAction()
+        {
+            if (tutorialStep == 0) return;
+            if (IsOver) { EndTutorial(); return; }
+            switch (tutorialStep)
+            {
+                case 2: TutorialMarkStep(); break;                          // any move after step 2 moves on
+                case 3:
+                    if (board.GetCell(tutorialTarget.X, tutorialTarget.Y).IsFlagged) TutorialGoodLuck();
+                    break;
+                case 4: EndTutorial(); break;
+            }
+        }
+
+        // The button in the tutorial bubble: Got it / Skip / Let's go!
+        void OnTutorialButton()
+        {
+            if (tutorialStep == 2) TutorialMarkStep();
+            else if (tutorialStep == 3) TutorialGoodLuck();
+            else EndTutorial();
+        }
+
+        // Step 3: a cell the numbers prove is a red flag; the player marks it with a yellow flag.
+        void TutorialMarkStep()
+        {
+            MinesweeperCellView target = FindObviousRedFlag();
+            if (target == null) { TutorialGoodLuck(); return; }      // none on this board yet
+            tutorialStep = 3;
+            SetTutorialTarget(target);
+            // Phones and tablets: long press. Computers: right-click (long press also works there).
+            string how = Application.isMobilePlatform ? "Long press" : "Right-click";
+            ShowTutorial($"The numbers show this cell must hide a red flag. {how} it to mark it with a yellow flag.", "Skip");
+        }
+
+        // Step 4: the send-off.
+        void TutorialGoodLuck()
+        {
+            tutorialStep = 4;
+            SetTutorialTarget(null);
+            ShowTutorial("Avoid the red flags! Good luck!", "Let's go!");
+        }
+
+        // A hidden cell that must be a red flag: next to an opened number whose hidden, unflagged
+        // neighbours are exactly as many as its missing red flags. Null if there is none.
+        MinesweeperCellView FindObviousRedFlag()
+        {
+            for (int y = 0; y < board.Height; y++)
+                for (int x = 0; x < board.Width; x++)
+                {
+                    MinesweeperCell c = board.GetCell(x, y);
+                    if (!c.IsRevealed || c.AdjacentMines == 0) continue;
+                    int flagged = 0, hidden = 0;
+                    Vector2Int first = default;
+                    foreach (var n in board.Neighbours(x, y))
+                    {
+                        MinesweeperCell nc = board.GetCell(n.x, n.y);
+                        if (nc.IsFlagged) flagged++;
+                        else if (!nc.IsRevealed) { if (hidden == 0) first = n; hidden++; }
+                    }
+                    if (hidden > 0 && hidden == c.AdjacentMines - flagged && board.GetCell(first.x, first.y).IsMine)
+                        return cells[first.x, first.y];
+                }
+            return null;
+        }
+
+        void SetTutorialTarget(MinesweeperCellView cell)
+        {
+            tutorialTarget = cell;
+            highlightFrame.gameObject.SetActive(cell != null);
+            if (cell != null) highlightFrame.SetAsLastSibling();
         }
 
         void TutorialAfterFirstReveal()
@@ -420,16 +538,16 @@ namespace GC26.Minesweeper
 
             tutorialStep = 2;
             tutorialSeen = true;
-            tutorialTarget = best;
-            highlightFrame.gameObject.SetActive(true);
-            highlightFrame.SetAsLastSibling();
-            ShowTutorial($"This cell has {bestNumber} red flag{(bestNumber == 1 ? "" : "s")} around it — be careful!", true);
+            SetTutorialTarget(best);
+            ShowTutorial($"This cell has {bestNumber} red flag{(bestNumber == 1 ? "" : "s")} around it — be careful!", "Got it");
         }
 
-        void ShowTutorial(string text, bool withButton)
+        // buttonLabel null = no button (step 1 waits for the first tap).
+        void ShowTutorial(string text, string buttonLabel)
         {
             tutorialText.text = text;
-            tutorialOkButton.SetActive(withButton);
+            tutorialOkButton.SetActive(buttonLabel != null);
+            if (buttonLabel != null) tutorialOkLabel.text = buttonLabel;
             tutorialBox.SetActive(true);
         }
 
@@ -445,7 +563,12 @@ namespace GC26.Minesweeper
         // Pop-ups
         // =====================================================================
 
-        void ShowHelp() { SetPressedCell(null); helpOverlay.SetActive(true); }
+        void ShowHelp()
+        {
+            SetPressedCell(null);
+            helpOverlay.SetActive(true);         // the demo starts again at page 1 (OnEnable)
+            UpdateHelpButton();
+        }
         void HideHelp() => helpOverlay.SetActive(false);
         void ShowPause() { SetPressedCell(null); pauseOverlay.SetActive(true); }
 
@@ -631,18 +754,21 @@ namespace GC26.Minesweeper
             Button helpButton = MakeButton(top, "Help", "?", 72, ButtonColor, TextColor, ShowHelp, out _);
             Layout(helpButton, w: 130);
 
-            // ---- tutorial: between the top bar and the board, so it never covers the board
-            RectTransform tutWrap = NewRect("Tutorial", g);
-            Layout(tutWrap, fh: 0);
-            tutorialBox = tutWrap.gameObject;
-            var tw = tutWrap.gameObject.AddComponent<VerticalLayoutGroup>();
-            tw.padding = new RectOffset(30, 30, 24, 0);
-            tw.childControlWidth = tw.childControlHeight = true;
-            tw.childForceExpandWidth = true;
-            tw.childForceExpandHeight = false;
-
-            RectTransform tut = NewRect("Box", tutWrap);
+            // ---- tutorial: a bubble in the middle of the screen, on top of the board (outside the column
+            // layout). LateUpdate moves it up or down so it never covers the highlighted cell.
+            RectTransform tut = NewRect("Tutorial", g);
+            tutorialRect = tut;
+            tut.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+            tut.anchorMin = new Vector2(0, 0.5f);
+            tut.anchorMax = new Vector2(1, 0.5f);
+            tut.pivot = new Vector2(0.5f, 0.5f);
+            tut.offsetMin = new Vector2(40, 0);
+            tut.offsetMax = new Vector2(-40, 0);
+            tut.anchoredPosition = Vector2.zero;
+            tut.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            tutorialBox = tut.gameObject;
             AddImage(tut, PanelColor, sprites.Rounded);
+            tut.gameObject.AddComponent<Shadow>().effectDistance = new Vector2(0, -10);
             var outline = tut.gameObject.AddComponent<Outline>();
             outline.effectColor = YellowColor;
             outline.effectDistance = new Vector2(4, -4);
@@ -657,7 +783,7 @@ namespace GC26.Minesweeper
             RectTransform tutTextRt = NewRect("Text", tut);
             tutorialText = AddText(tutTextRt, "", 46, TextColor, FontStyle.Normal);
             Layout(tutTextRt, fw: 1);
-            Button ok = MakeButton(tut, "GotIt", "Got it", 46, YellowColor, DarkText, EndTutorial, out _);
+            Button ok = MakeButton(tut, "TutorialButton", "Got it", 46, YellowColor, DarkText, OnTutorialButton, out tutorialOkLabel);
             Layout(ok, w: 340, h: 110);
             tutorialOkButton = ok.gameObject;
             tutorialBox.SetActive(false);
@@ -731,6 +857,7 @@ namespace GC26.Minesweeper
             endPanel = end.gameObject;
             endPanel.SetActive(false);
 
+            tutorialRect.SetAsLastSibling();      // the tutorial bubble draws on top of the board
             gameScreen.SetActive(false);
         }
 
@@ -752,18 +879,41 @@ namespace GC26.Minesweeper
         {
             RectTransform dialog = MakeOverlay(app, "HowToPlay", out helpOverlay, closeOnTap: true);
             AddText(NewRect("Title", dialog), "How to play", 64, TextColor, FontStyle.Bold);
-            string red = ColorUtility.ToHtmlStringRGB(RedColor), yellow = ColorUtility.ToHtmlStringRGB(YellowColor);
-            Text body = AddText(NewRect("Rules", dialog),
-                "•  Tap cells to reveal them. <b>Avoid the <color=#" + red + ">red flags</color>!</b>\n\n" +
-                "•  A number shows how many red flags touch that cell, including diagonally.\n\n" +
-                "•  Long press (or right-click) a cell to mark it with a <color=#" + yellow + ">yellow flag</color> where you suspect a red flag. The Flag button at the bottom does the same with a normal tap.\n\n" +
-                "•  Open every cell without a red flag to win. Your first tap is always safe.",
-                42, TextColor, FontStyle.Normal);
-            body.alignment = TextAnchor.UpperLeft;
-            Button ok = MakeButton(dialog, "OK", "OK", 50, YellowColor, DarkText, HideHelp, out _);
-            Layout(ok, h: 120);
+
+            // Four pages, one per tap: an animation with one short caption each.
+            RectTransform demo = NewRect("Demo", dialog);
+            RectTransform captionRt = NewRect("Caption", dialog);
+            Text caption = AddText(captionRt, "", 48, TextColor, FontStyle.Bold);
+            Layout(captionRt, h: 130);
+            RectTransform pageRt = NewRect("Page", dialog);
+            Text page = AddText(pageRt, "", 34, new Color(TextColor.r, TextColor.g, TextColor.b, 0.6f), FontStyle.Normal);
+            Layout(pageRt, h: 44);
+            helpDemo = demo.gameObject.AddComponent<MinesweeperHowToPlayDemo>();
+            helpDemo.Init(sprites, font, caption, page, RedColor, YellowColor);
+
+            Button next = MakeButton(dialog, "Next", "Next", 50, YellowColor, DarkText, HelpNext, out helpButtonLabel);
+            Layout(next, h: 120);
+
+            // × in the top-right corner closes How to play from any page (a tap elsewhere goes to the next page).
+            Button close = MakeButton(dialog, "Close", "×", 72, ButtonColor, TextColor, HideHelp, out _);
+            var closeRt = (RectTransform)close.transform;
+            closeRt.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+            closeRt.anchorMin = closeRt.anchorMax = closeRt.pivot = new Vector2(1, 1);
+            closeRt.sizeDelta = new Vector2(100, 100);
+            closeRt.anchoredPosition = new Vector2(-24, -24);
+            helpCloseButton = close;
             helpOverlay.SetActive(false);
         }
+
+        // A tap anywhere on How to play (or its button) shows the next page; after the last one it closes.
+        void HelpNext()
+        {
+            if (!helpDemo.Next()) { HideHelp(); return; }
+            UpdateHelpButton();
+        }
+
+        void UpdateHelpButton() =>
+            helpButtonLabel.text = helpDemo.Page == MinesweeperHowToPlayDemo.PageCount - 1 ? "Got it" : "Next";
 
         // Pause (class rule: every game has a pause and "Exit to menu").
         void BuildPause(RectTransform app)
@@ -800,7 +950,7 @@ namespace GC26.Minesweeper
                 var close = o.gameObject.AddComponent<Button>();
                 close.transition = Selectable.Transition.None;
                 close.targetGraphic = dim;
-                close.onClick.AddListener(HideHelp);
+                close.onClick.AddListener(HelpNext);
             }
 
             RectTransform d = NewRect("Dialog", o);
@@ -946,20 +1096,63 @@ namespace GC26.Minesweeper
             OnTap(4, 4);
             yield return null; yield return null; yield return null;
             log.Add($"tutorial step 2 shown: {tutorialBox.activeSelf && tutorialStep == 2} ({tutorialText.text})");
+            log.Add($"tutorial bubble covers the highlighted cell: {TutorialBubbleCoversTarget()} (expected False), bubble y {tutorialRect.anchoredPosition.y:F0}");
             yield return Screenshot(folder, "3_tutorial_step2");
 
+            // Worst case: highlight the cell in the very middle, right where the bubble would be.
+            MinesweeperCellView realTarget = tutorialTarget;
+            tutorialTarget = cells[board.Width / 2, board.Height / 2];
+            yield return null; yield return null;
+            log.Add($"middle cell highlighted: bubble covers it {TutorialBubbleCoversTarget()} (expected False), bubble moved to y {tutorialRect.anchoredPosition.y:F0}");
+            yield return Screenshot(folder, "3b_tutorial_moved");
+            tutorialTarget = realTarget;
+
+            // Step 3: mark the obvious red flag. Step 4: good luck.
+            OnTutorialButton();                                  // "Got it"
+            yield return null; yield return null;
+            MinesweeperCellView markTarget = tutorialTarget;
+            log.Add($"tutorial step 3 shown: {tutorialStep == 3} ('{tutorialText.text}', button '{tutorialOkLabel.text}')");
+            if (markTarget != null)
+            {
+                log.Add($"step 3 highlights a real red flag: {board.GetCell(markTarget.X, markTarget.Y).IsMine}, bubble covers it {TutorialBubbleCoversTarget()} (expected False)");
+                yield return Screenshot(folder, "3c_tutorial_mark");
+                OnSecondaryClick(markTarget.X, markTarget.Y);    // right-click = yellow flag
+                yield return null; yield return null;
+            }
+            log.Add($"tutorial step 4 shown: {tutorialStep == 4} ('{tutorialText.text}', button '{tutorialOkLabel.text}')");
+            yield return Screenshot(folder, "3d_tutorial_good_luck");
+            OnTutorialButton();                                  // "Let's go!"
+            log.Add($"tutorial closed after 'Let's go!': {!tutorialBox.activeSelf && tutorialStep == 0}");
+
+            // How to play: one page per tap; a screenshot of each page mid-animation.
             ShowHelp();
-            yield return null;
-            yield return Screenshot(folder, "4_how_to_play");
-            HideHelp();
+            string[] pageShots = { "4a_help_tap", "4b_help_number", "4c_help_red_flag", "4d_help_yellow_flag" };
+            float[] waits = { 1.6f, 1.6f, 1.2f, 1.6f };
+            for (int p = 0; p < pageShots.Length; p++)
+            {
+                yield return new WaitForSecondsRealtime(waits[p]);
+                log.Add($"help page {helpDemo.Page + 1}: '{helpDemo.GetComponentInParent<VerticalLayoutGroup>().transform.Find("Caption").GetComponent<Text>().text}', button '{helpButtonLabel.text}'");
+                yield return Screenshot(folder, pageShots[p]);
+                HelpNext();                                       // = a tap
+            }
+            log.Add($"help closed after the last page: {!helpOverlay.activeSelf}");
+
+            // × closes it from any page.
+            ShowHelp();
+            HelpNext();
+            yield return new WaitForSecondsRealtime(0.5f);
+            yield return Screenshot(folder, "4e_help_close_button");
+            int pageBefore = helpDemo.Page;
+            helpCloseButton.onClick.Invoke();
+            log.Add($"× on page {pageBefore + 1} closes How to play: {!helpOverlay.activeSelf}");
 
             Vector2Int? mine = null, safe = null;
             for (int x = 0; x < board.Width; x++)
                 for (int y = 0; y < board.Height; y++)
                 {
                     MinesweeperCell c = board.GetCell(x, y);
-                    if (c.IsMine && mine == null) mine = new Vector2Int(x, y);
-                    if (!c.IsMine && !c.IsRevealed && safe == null) safe = new Vector2Int(x, y);
+                    if (c.IsMine && !c.IsFlagged && mine == null) mine = new Vector2Int(x, y);
+                    if (!c.IsMine && !c.IsRevealed && !c.IsFlagged && safe == null) safe = new Vector2Int(x, y);
                 }
             if (safe.HasValue)
             {
