@@ -20,16 +20,11 @@ namespace GC26.Towerdefence
         [SerializeField] WaveSpawner enemies;
         [SerializeField] PlaceholderArt art;
         [SerializeField] BuildMenuView menu;
-        [Tooltip("Towers offered in the build menu, in this order.")]
-        [SerializeField] TowerData[] towers;
+        /// <summary>Towers offered in the build menu, in this order (LevelData.towers).</summary>
+        TowerData[] towers => level.Data != null && level.Data.towers != null ? level.Data.towers : System.Array.Empty<TowerData>();
 
-        [Tooltip("Build slots in prototype map coordinates (x right, y down).")]
-        [SerializeField]
-        Vector2[] slotMapPoints =
-        {
-            new(1.5f, 3f), new(2f, 5.5f), new(5.5f, 3f), new(5.5f, 5f), new(5.5f, 8f), new(9.5f, 1f),
-            new(9.5f, 4.5f), new(9.5f, 7.8f), new(13.5f, 1.5f), new(13.5f, 4.5f), new(13.5f, 8f),
-        };
+        /// <summary>Build slots in prototype map coordinates (LevelData.slots).</summary>
+        Vector2[] slotMapPoints => level.Data != null && level.Data.slots != null ? level.Data.slots : System.Array.Empty<Vector2>();
 
         /// <summary>Half the size of the tap area around a slot, in tiles.</summary>
         const float TapHalfSize = 0.55f;
@@ -212,11 +207,16 @@ namespace GC26.Towerdefence
             menu.Close();
         }
 
-        /// <summary>The screen turned: move slots and towers to their turned positions.</summary>
+        /// <summary>The screen turned or the level's points were edited: move slots and towers.</summary>
         void Relayout()
         {
             CloseMenu();
             if (_slotViews == null) return;
+            if (_slotViews.Length != slotMapPoints.Length)
+            {
+                Debug.LogWarning($"[{TowerdefenceGame.Id}] the number of slots changed; stop and start Play to apply it", this);
+                return;
+            }
             for (int i = 0; i < _slotViews.Length; i++)
             {
                 _slotViews[i].transform.position = SlotPosition(i);

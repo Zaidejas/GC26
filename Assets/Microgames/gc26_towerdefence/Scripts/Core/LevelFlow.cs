@@ -26,9 +26,8 @@ namespace GC26.Towerdefence
     {
         [SerializeField] TowerdefenceGame game;
         [SerializeField] EconomyManager economy;
-
-        [SerializeField, Min(1)] int startLives = 20;
-        [SerializeField, Min(1)] int totalWaves = 10;
+        [Tooltip("The level to play: road, slots, towers, waves, starting gold and lives.")]
+        [SerializeField] LevelData levelData;
         [Tooltip("Seconds on the build timer. Calling the wave early pays the seconds left as gold.")]
         [SerializeField, Min(0f)] float buildCountdown = 20f;
         [Tooltip("Wave-clear bonus = base + per wave x wave number (prototype: 20 + 5 x wave).")]
@@ -55,10 +54,12 @@ namespace GC26.Towerdefence
 
         public LevelState State { get; private set; } = LevelState.Waiting;
         public int Lives { get; private set; }
-        public int StartLives => startLives;
+        /// <summary>The level being played. Path, BuildManager and WaveSpawner read it through here.</summary>
+        public LevelData Data => levelData;
+        public int StartLives => levelData != null ? levelData.startLives : 0;
         /// <summary>Last started wave, 1-based; 0 before the first wave.</summary>
         public int CurrentWave { get; private set; }
-        public int TotalWaves => totalWaves;
+        public int TotalWaves => levelData != null && levelData.waves != null ? levelData.waves.Length : 0;
         /// <summary>Seconds left on the build timer (stops at 0).</summary>
         public float Countdown { get; private set; }
 
@@ -68,7 +69,7 @@ namespace GC26.Towerdefence
         /// Stars for a win (GDD section 3): 3 with 18+ lives left, 2 with 10+, 1 for any win; 0 if not won.
         /// </summary>
         public int Stars => State != LevelState.Won ? 0 : Lives >= threeStarLives ? 3 : Lives >= twoStarLives ? 2 : 1;
-        public bool CanStartWave => State == LevelState.Build && CurrentWave < totalWaves;
+        public bool CanStartWave => State == LevelState.Build && CurrentWave < TotalWaves;
 
         int _aliveEnemies;
         bool _spawningFinished;
@@ -88,11 +89,18 @@ namespace GC26.Towerdefence
         /// <summary>Starts (or restarts) the level from the first build phase.</summary>
         public void BeginLevel()
         {
-            Lives = startLives;
+            if (levelData == null)
+            {
+                Debug.LogError($"[{TowerdefenceGame.Id}] LevelFlow: assign Level Data", this);
+                return;
+            }
+            Debug.Log($"[{TowerdefenceGame.Id}] level '{levelData.displayName}' ({levelData.name}): " +
+                      $"{levelData.startGold} gold, {StartLives} lives, {TotalWaves} waves");
+            Lives = StartLives;
             CurrentWave = 0;
             _aliveEnemies = 0;
             _spawningFinished = false;
-            if (economy != null) economy.ResetGold();
+            if (economy != null) economy.ResetGold(levelData.startGold);
             LevelBegun?.Invoke();
             LivesChanged?.Invoke(Lives);
             EnterBuild();
@@ -111,7 +119,7 @@ namespace GC26.Towerdefence
             _aliveEnemies = 0;
             _spawningFinished = false;
             SetState(LevelState.Wave);
-            Debug.Log($"[{TowerdefenceGame.Id}] wave {CurrentWave}/{totalWaves} started");
+            Debug.Log($"[{TowerdefenceGame.Id}] wave {CurrentWave}/{TotalWaves} started");
             WaveStarted?.Invoke(CurrentWave);
         }
 
@@ -178,7 +186,7 @@ namespace GC26.Towerdefence
             WaveCleared?.Invoke(CurrentWave);
             PayBonus($"Wave {CurrentWave} cleared", waveClearBase + waveClearPerWave * CurrentWave);
 
-            if (CurrentWave >= totalWaves)
+            if (CurrentWave >= TotalWaves)
             {
                 SetState(LevelState.Won);
                 Debug.Log($"[{TowerdefenceGame.Id}] WON with {Lives} lives");

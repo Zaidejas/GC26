@@ -14,6 +14,8 @@ namespace GC26.Towerdefence
     /// the road comes in at the top and the castle is at the bottom. Distances stay the same, so balance does too.
     /// Only positions turn, not sprites, so letters and HP bars stay level. When the screen turns,
     /// LayoutChanged fires and everything that stores a position moves to the new one.
+    /// LayoutChanged also fires when the level's Path or Slots are edited in the Inspector during Play,
+    /// so a level can be tuned live. The road and the castle are drawn as placeholder shapes.
     /// Ground enemies follow every point; flying ones go straight from the first point to the last (the castle).
     /// </summary>
     public class EnemyPath : MonoBehaviour
@@ -21,16 +23,24 @@ namespace GC26.Towerdefence
         public const int Columns = 16;
         public const int Rows = 9;
 
-        [Tooltip("Waypoints in prototype map coordinates (x right, y down). The last one is the castle.")]
-        [SerializeField]
-        Vector2[] mapPoints =
-        {
-            new(-0.5f, 1.5f), new(3.5f, 1.5f), new(3.5f, 6.5f), new(7.5f, 6.5f),
-            new(7.5f, 2.5f), new(11.5f, 2.5f), new(11.5f, 6.5f), new(15f, 6.5f),
-        };
+        [Tooltip("The road comes from the level being played (LevelData.path).")]
+        [SerializeField] LevelFlow level;
+
+        /// <summary>Waypoints in prototype map coordinates (x right, y down). The last one is the castle.</summary>
+        Vector2[] mapPoints => level != null && level.Data != null ? level.Data.path : null;
 
         [Tooltip("Turn the map for upright screens. Off = always horizontal.")]
         [SerializeField] bool allowVertical = true;
+
+        [Tooltip("Draws the road and the castle. Empty = nothing drawn.")]
+        [SerializeField] PlaceholderArt art;
+
+        static readonly Color RoadColor = new(0.55f, 0.44f, 0.29f);
+        static readonly Color CastleColor = new(0.62f, 0.62f, 0.66f);
+        const float RoadWidth = 0.72f; // as in the prototype
+
+        int _layoutHash;
+        readonly List<GameObject> _roadView = new();
 
         PathLine _ground;
         PathLine _air;
@@ -44,16 +54,58 @@ namespace GC26.Towerdefence
         public float FieldWidth => IsVertical ? Rows : Columns;
         public float FieldHeight => IsVertical ? Columns : Rows;
 
-        void Awake() => IsVertical = WantVertical();
+        void Awake()
+        {
+            IsVertical = WantVertical();
+            _layoutHash = LayoutHash();
+        }
+
+        void Start() => DrawRoad();
 
         void Update()
         {
+            // Rebuild when the screen turns or the level's points were edited.
             bool vertical = WantVertical();
-            if (vertical == IsVertical) return;
+            int hash = LayoutHash();
+            if (vertical == IsVertical && hash == _layoutHash) return;
             IsVertical = vertical;
+            _layoutHash = hash;
             _ground = null;
             _air = null;
+            DrawRoad();
             LayoutChanged?.Invoke();
+        }
+
+        /// <summary>Changes whenever a road or slot point of the current level changes.</summary>
+        int LayoutHash()
+        {
+            if (level == null || level.Data == null) return 0;
+            int h = 17;
+            if (level.Data.path != null) foreach (var p in level.Data.path) h = h * 31 + p.GetHashCode();
+            h = h * 31 + 7;
+            if (level.Data.slots != null) foreach (var s in level.Data.slots) h = h * 31 + s.GetHashCode();
+            return h;
+        }
+
+        /// <summary>Brown bands along the road and a grey square for the castle (placeholder art).</summary>
+        void DrawRoad()
+        {
+            foreach (var go in _roadView) if (go != null) Destroy(go);
+            _roadView.Clear();
+            if (art == null || mapPoints == null || mapPoints.Length < 2) return;
+
+            for (int i = 0; i < mapPoints.Length - 1; i++)
+            {
+                Vector3 a = MapToWorld(mapPoints[i]), b = MapToWorld(mapPoints[i + 1]);
+                Vector3 d = b - a;
+                var band = art.NewShape("Road", art.Rect, transform, (a + b) / 2f, 1f, RoadColor, 0);
+                // + width so the bands overlap into clean corners.
+                band.transform.localScale = new Vector3(d.magnitude + RoadWidth, RoadWidth, 1f);
+                band.transform.rotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg);
+                _roadView.Add(band.gameObject);
+            }
+            var castle = art.NewShape("Castle", art.Square, transform, MapToWorld(mapPoints[^1]), 1.1f, CastleColor, 3);
+            _roadView.Add(castle.gameObject);
         }
 
         bool WantVertical() => allowVertical && Screen.height > Screen.width;

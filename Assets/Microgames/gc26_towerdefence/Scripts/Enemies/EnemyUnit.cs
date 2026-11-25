@@ -105,7 +105,8 @@ namespace GC26.Towerdefence
 
         void Update()
         {
-            if (!IsAlive) return;
+            // _line is lost if Unity recompiles scripts during Play; such an enemy just stops instead of throwing.
+            if (!IsAlive || _line == null) return;
 
             if (_slowUntil > 0f && Time.time >= _slowUntil)
             {

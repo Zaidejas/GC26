@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f46bc57db7574e19b7a20db49b98b525, type: 3}
+  m_Name: Level02
+  m_EditorClassIdentifier: 
+  displayName: Level 2
+  startGold: 160
+  startLives: 20
+  path:
+  - {x: -0.5, y: 1.5}
+  - {x: 3.5, y: 1.5}
+  - {x: 3.5, y: 6.5}
+  - {x: 7, y: 6.5}
+  - {x: 7, y: 5}
+  - {x: 10, y: 2.5}
+  - {x: 15, y: 2.5}
+  - {x: 15, y: 6.5}
+  - {x: 11.5, y: 6.5}
+  slots:
+  - {x: 1.5, y: 3}
+  - {x: 2, y: 5.5}
+  - {x: 5.5, y: 5}
+  - {x: 5.5, y: 8}
+  - {x: 9.5, y: 1}
+  - {x: 10.5, y: 4.5}
+  - {x: 9.5, y: 7.8}
+  - {x: 13.5, y: 1.5}
+  - {x: 13.5, y: 4.5}
+  - {x: 13.5, y: 8}
+  towers:
+  - {fileID: 11400000, guid: 10ef69c984d44d00b1394acc26ee07d5, type: 2}
+  - {fileID: 11400000, guid: d75e0669ca90470a81b777f582f789b0, type: 2}
+  - {fileID: 11400000, guid: e725a739dd6440a990a0903a31f11b1e, type: 2}
+  - {fileID: 11400000, guid: d8f0fa21ce2c4bd19774d88c22d15235, type: 2}
+  waves:
+  - {fileID: 11400000, guid: 817f45e0ecfa40639a5e327438606f44, type: 2}
+  - {fileID: 11400000, guid: d9dde053424847068f53a54b4764097c, type: 2}
+  - {fileID: 11400000, guid: e2efbc416ac749e1aa6b2da1805ea342, type: 2}
+  - {fileID: 11400000, guid: b22dff42c4e74256848c38c2d6c41fd3, type: 2}
+  - {fileID: 11400000, guid: b88d3d91c5d74c1ca81d41b475a0fb22, type: 2}
+  - {fileID: 11400000, guid: 16a29774fc994a8b8591c7505893e41a, type: 2}
+  - {fileID: 11400000, guid: 3d5978153fa24cc0a46192c4692c120b, type: 2}
+  - {fileID: 11400000, guid: d8bb27eeb00241cc9bc18fd26f4d568f, type: 2}
+  - {fileID: 11400000, guid: 867d03ffc4004e5db634d6f264ea6d0f, type: 2}
+  - {fileID: 11400000, guid: 91a334335a264d99b006a1ea01181da3, type: 2}

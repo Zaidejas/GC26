@@ -173,7 +173,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 4.5
+  orthographic size: 17.691668
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
@@ -217,8 +217,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_RenderShadows: 1
-  m_RequiresDepthTextureOption: 2
-  m_RequiresOpaqueTextureOption: 2
+  m_RequiresDepthTextureOption: 0
+  m_RequiresOpaqueTextureOption: 0
   m_CameraType: 0
   m_Cameras: []
   m_RendererIndex: -1
@@ -247,6 +247,7 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
 --- !u!114 &100000006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -261,6 +262,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   path: {fileID: 100000023}
   margin: 0.25
+  verticalHudRoom: 2.5
 --- !u!1 &100000011
 GameObject:
   m_ObjectHideFlags: 0
@@ -349,15 +351,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7c92b65dc7e84b049163cd82d7448c02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mapPoints:
-  - {x: -0.5, y: 1.5}
-  - {x: 3.5, y: 1.5}
-  - {x: 3.5, y: 6.5}
-  - {x: 7.5, y: 6.5}
-  - {x: 7.5, y: 2.5}
-  - {x: 11.5, y: 2.5}
-  - {x: 11.5, y: 6.5}
-  - {x: 15, y: 6.5}
+  level: {fileID: 100000044}
+  allowVertical: 1
+  art: {fileID: 100000053}
 --- !u!1 &100000031
 GameObject:
   m_ObjectHideFlags: 0
@@ -405,17 +401,6 @@ MonoBehaviour:
   level: {fileID: 100000044}
   path: {fileID: 100000023}
   art: {fileID: 100000053}
-  waves:
-  - {fileID: 11400000, guid: 817f45e0ecfa40639a5e327438606f44, type: 2}
-  - {fileID: 11400000, guid: d9dde053424847068f53a54b4764097c, type: 2}
-  - {fileID: 11400000, guid: e2efbc416ac749e1aa6b2da1805ea342, type: 2}
-  - {fileID: 11400000, guid: b22dff42c4e74256848c38c2d6c41fd3, type: 2}
-  - {fileID: 11400000, guid: b88d3d91c5d74c1ca81d41b475a0fb22, type: 2}
-  - {fileID: 11400000, guid: 16a29774fc994a8b8591c7505893e41a, type: 2}
-  - {fileID: 11400000, guid: 3d5978153fa24cc0a46192c4692c120b, type: 2}
-  - {fileID: 11400000, guid: d8bb27eeb00241cc9bc18fd26f4d568f, type: 2}
-  - {fileID: 11400000, guid: 867d03ffc4004e5db634d6f264ea6d0f, type: 2}
-  - {fileID: 11400000, guid: 91a334335a264d99b006a1ea01181da3, type: 2}
   hpPerWave: 0.08
   debugDamagePerSecond: 0
 --- !u!1 &100000041
@@ -464,7 +449,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 47b3b0712f9e4655af53286094d969d5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  startGold: 250
 --- !u!114 &100000044
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -479,9 +463,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   game: {fileID: 100000013}
   economy: {fileID: 100000043}
-  startLives: 20
-  totalWaves: 10
+  levelData: {fileID: 11400000, guid: 92b90b1e49e14f1468f27a9469f6c5a7, type: 2}
   buildCountdown: 20
+  waveClearBase: 20
+  waveClearPerWave: 5
+  threeStarLives: 18
+  twoStarLives: 10
 --- !u!114 &100000045
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -562,24 +549,6 @@ MonoBehaviour:
   enemies: {fileID: 100000033}
   art: {fileID: 100000053}
   menu: {fileID: 100000055}
-  towers:
-  - {fileID: 11400000, guid: 10ef69c984d44d00b1394acc26ee07d5, type: 2}
-  - {fileID: 11400000, guid: d75e0669ca90470a81b777f582f789b0, type: 2}
-  - {fileID: 11400000, guid: e725a739dd6440a990a0903a31f11b1e, type: 2}
-  - {fileID: 11400000, guid: d8f0fa21ce2c4bd19774d88c22d15235, type: 2}
-  - {fileID: 11400000, guid: e47be3b159374aec9f3f53432d3808ef, type: 2}
-  slotMapPoints:
-  - {x: 1.5, y: 3}
-  - {x: 2, y: 5.5}
-  - {x: 5.5, y: 3}
-  - {x: 5.5, y: 5}
-  - {x: 5.5, y: 8}
-  - {x: 9.5, y: 1}
-  - {x: 9.5, y: 4.5}
-  - {x: 9.5, y: 7.8}
-  - {x: 13.5, y: 1.5}
-  - {x: 13.5, y: 4.5}
-  - {x: 13.5, y: 8}
 --- !u!114 &100000055
 MonoBehaviour:
   m_ObjectHideFlags: 0

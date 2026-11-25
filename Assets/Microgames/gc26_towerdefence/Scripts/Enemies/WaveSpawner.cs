@@ -4,7 +4,7 @@ using UnityEngine;
 namespace GC26.Towerdefence
 {
     /// <summary>
-    /// Plays the waves: when LevelFlow starts wave N, sends the enemies of waves[N-1] on their schedule,
+    /// Plays the waves: when LevelFlow starts wave N, sends the enemies of LevelData.waves[N-1] on their schedule,
     /// registers each one with LevelFlow, and calls FinishSpawning after the last one.
     /// Enemy HP grows with the wave number: x (1 + hpPerWave x (wave - 1)), as in the prototype.
     /// </summary>
@@ -13,8 +13,6 @@ namespace GC26.Towerdefence
         [SerializeField] LevelFlow level;
         [SerializeField] EnemyPath path;
         [SerializeField] PlaceholderArt art;
-        [Tooltip("In play order. The count should match Total Waves on LevelFlow.")]
-        [SerializeField] WaveData[] waves;
         [Tooltip("Enemy HP x (1 + this x (wave - 1)). Prototype: 0.08.")]
         [SerializeField, Min(0f)] float hpPerWave = 0.08f;
 
@@ -52,12 +50,6 @@ namespace GC26.Towerdefence
             level.StateChanged -= OnStateChanged;
         }
 
-        void Start()
-        {
-            if (level != null && waves != null && waves.Length != level.TotalWaves)
-                Debug.LogWarning($"[{TowerdefenceGame.Id}] WaveSpawner has {waves.Length} waves, LevelFlow expects {level.TotalWaves}", this);
-        }
-
         void OnWaveStarted(int wave)
         {
             _schedule.Clear();
@@ -66,6 +58,7 @@ namespace GC26.Towerdefence
             _wave = wave;
             _running = false;
 
+            var waves = level.Data != null ? level.Data.waves : null;
             var data = waves != null && wave - 1 < waves.Length ? waves[wave - 1] : null;
             if (path == null || data == null)
             {
