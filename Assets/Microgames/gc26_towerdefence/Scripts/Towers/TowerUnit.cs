@@ -20,7 +20,7 @@ namespace GC26.Towerdefence
     /// <summary>
     /// A built tower: picks a target in range by its TargetMode and attacks it according to TowerData.attack.
     /// Three levels: each upgrade gives +40% damage and +10% range and costs 75%, then 100% of the base price.
-    /// Selling refunds 70% of all gold spent on it. Numbers from the prototype CONFIG and GDD section 5.
+    /// Selling refunds 50% of all gold spent on it (GDD section 5; the prototype had 70%).
     /// </summary>
     public class TowerUnit : MonoBehaviour
     {
@@ -28,7 +28,7 @@ namespace GC26.Towerdefence
         const float UpgradeDamage = 1.4f;
         const float UpgradeRange = 1.1f;
         static readonly float[] UpgradeCostShare = { 0.75f, 1f };
-        const float SellRefund = 0.7f;
+        const float SellRefund = 0.5f;
 
         public TowerData Data { get; private set; }
         public int SlotIndex { get; private set; }

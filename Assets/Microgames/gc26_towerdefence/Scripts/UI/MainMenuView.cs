@@ -33,7 +33,7 @@ namespace GC26.Towerdefence
             "<b>1. Build:</b> tap a grey square and choose a tower.\n" +
             "<b>2. Start:</b> press the green play button. Starting early gives bonus gold.\n" +
             "<b>3. Earn:</b> you get gold for every monster you kill and every wave you clear.\n" +
-            "<b>4. Improve:</b> tap a tower to upgrade it, sell it (70% back) or change who it shoots first.\n" +
+            "<b>4. Improve:</b> tap a tower to upgrade it, sell it (50% back) or change who it shoots first.\n" +
             "<b>5. Win:</b> survive all the waves. 3 stars with 18+ lives left, 2 with 10+, 1 for any win.\n\n" +
             "<size=115%><b>Towers</b></size>\n" +
             "<b>Archer</b>: cheap, hits flying monsters\n" +

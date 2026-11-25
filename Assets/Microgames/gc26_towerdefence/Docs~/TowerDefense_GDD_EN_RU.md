@@ -50,7 +50,7 @@
 | Start wave | Button in the bottom-right corner |
 
 ## 5. Towers
-Every tower has 3 levels (base + 2 upgrades). Each upgrade adds about +40% damage and +10% range. Upgrades cost 75% and then 100% of the base price. Selling refunds 70% of the gold spent.
+Every tower has 3 levels (base + 2 upgrades). Each upgrade adds about +40% damage and +10% range. Upgrades cost 75% and then 100% of the base price. Selling refunds **50%** of the gold spent (changed from 70%).
 
 | Tower | Cost | Role | Damage | Fire rate | Range | Hits air | Unlock |
 |---|---|---|---|---|---|---|---|
@@ -61,6 +61,15 @@ Every tower has 3 levels (base + 2 upgrades). Each upgrade adds about +40% damag
 | **Sniper** | 250 | Long range, ignores armor | 60 | 0.33/s | 7.0 | ✅ | Level 3-1 |
 
 **Target modes:** First (default), Last, Strongest, Closest.
+
+### 5.1 Mine (planned)
+A cheap, one-time "barricade" tower. It does not shoot.
+- **Where:** on any build slot, **including a ruined one** (see 6.1). The Mine is the only thing that can be built on a ruined slot.
+- **Trigger:** the first **ground** enemy that comes into contact sets it off.
+- **Explosion:** big area damage plus **burning** (damage over a few seconds) to ground enemies. Flying enemies in the area take the **explosion damage only** (no burning) and are **knocked back**.
+- **After the explosion** the slot is **ruined for the rest of the level**.
+- **Upgrades:** 2 levels, like other towers (more damage / bigger area).
+- **Role:** cheap but very situational: a last line in front of the castle or a way to use a slot the Driller has ruined.
 
 ## 6. Enemies
 | Enemy | HP | Speed | Special | Gold | Lives lost | First appears |
@@ -73,6 +82,18 @@ Every tower has 3 levels (base + 2 upgrades). Each upgrade adds about +40% damag
 | **Warlord** (boss) | 2000 | 0.5 | Shield absorbs the first 300 damage | 100 | 10 | 3-5 (and World 1 & 2 finales with less HP) |
 
 Enemy HP is multiplied by **1 + 0.08 × (wave number − 1)** to scale difficulty within a level.
+
+### 6.1 Driller and tunnels (planned)
+| Enemy | HP | Speed | Special | Gold | Lives lost | First appears |
+|---|---|---|---|---|---|---|
+| **Driller** | ~60 | ~0.5 | Digs tunnels that shorten the road | tbd | tbd | Level 2 (introduction) |
+
+- **Tunnel spots** are set per level (LevelData): pairs of road points, "entry" and "exit", where two parts of the road come close. They can be marked on the map (cracks) so the player sees the danger.
+- **Digging:** the Driller stops at a free entry and digs for a few seconds (a progress bar is shown). **Killing it while it digs stops the tunnel.**
+- **Tunnel:** stays until the end of the level. Ground enemies that have not reached the entry yet take the short way; enemies already past it keep the old road. Flying enemies are not affected.
+- **Slots on the tunnel's way are ruined for the rest of the level.** A tower standing there is **sold automatically for 50%**. The slot is ruined even if the tower was sold before the Driller arrived. Only a Mine can be built on a ruined slot.
+- **Several Drillers in one wave:** each tunnel spot is dug once. A second Driller arriving at a spot that is being dug **helps and makes the digging faster**. If the tunnel is already open, the next Drillers use it and dig the next free spot further along the road. When every spot is dug, Drillers act as slow ordinary enemies.
+- **Counterplay:** kill it before or while it digs, plan towers away from tunnel spots, or put a Mine on the way.
 
 ## 7. Economy
 - **Starting gold:** 250 (enough for 2 towers)
@@ -155,7 +176,7 @@ Endless mode, hero units, global upgrade tree, multiplayer, in-app purchases, le
 | Запуск волны | Кнопка в правом нижнем углу |
 
 ## 5. Башни
-У каждой башни 3 уровня (базовый + 2 улучшения). Каждое улучшение даёт примерно +40% урона и +10% радиуса. Улучшения стоят 75%, а затем 100% базовой цены. При продаже возвращается 70% потраченного золота.
+У каждой башни 3 уровня (базовый + 2 улучшения). Каждое улучшение даёт примерно +40% урона и +10% радиуса. Улучшения стоят 75%, а затем 100% базовой цены. При продаже возвращается **50%** потраченного золота (было 70%).
 
 | Башня | Цена | Роль | Урон | Скорострельность | Радиус | По воздуху | Открывается |
 |---|---|---|---|---|---|---|---|
@@ -166,6 +187,15 @@ Endless mode, hero units, global upgrade tree, multiplayer, in-app purchases, le
 | **Снайпер** | 250 | Большая дальность, игнорирует броню | 60 | 0,33/с | 7,0 | ✅ | Уровень 3-1 |
 
 **Режимы выбора цели:** первый (по умолчанию), последний, сильнейший, ближайший.
+
+### 5.1 Мина (запланировано)
+Дешёвая одноразовая «баррикада». Сама не стреляет.
+- **Где:** на любом месте для башни, **в том числе на разрушенном** (см. 6.1). Мина — единственное, что можно построить на разрушенном месте.
+- **Срабатывание:** от первого **наземного** врага, который её коснулся.
+- **Взрыв:** большой урон по площади и **горение** (урон в течение нескольких секунд) для наземных врагов. Летающие в зоне взрыва получают **только урон от взрыва** (без горения) и **отбрасываются назад**.
+- **После взрыва** место **разрушено до конца уровня**.
+- **Улучшения:** 2 уровня, как у других башен (больше урон / больше зона).
+- **Роль:** дешёвая, но очень ситуативная: последний рубеж у замка или способ использовать место, разрушенное бурильщиком.
 
 ## 6. Враги
 | Враг | Здоровье | Скорость | Особенность | Золото | Отнимает жизней | Появляется |
@@ -178,6 +208,18 @@ Endless mode, hero units, global upgrade tree, multiplayer, in-app purchases, le
 | **Военачальник** (босс) | 2000 | 0,5 | Щит поглощает первые 300 урона | 100 | 10 | 3-5 (и в финалах миров 1 и 2 с меньшим здоровьем) |
 
 Здоровье врагов умножается на **1 + 0,08 × (номер волны − 1)**, чтобы сложность росла внутри уровня.
+
+### 6.1 Бурильщик и туннели (запланировано)
+| Враг | Здоровье | Скорость | Особенность | Золото | Отнимает жизней | Появляется |
+|---|---|---|---|---|---|---|
+| **Бурильщик** | ~60 | ~0,5 | Роет туннели, которые сокращают дорогу | уточнить | уточнить | Уровень 2 (знакомство) |
+
+- **Места для туннелей** задаются в каждом уровне (LevelData): пары точек дороги «вход» и «выход» там, где две части дороги близко. На карте их можно пометить трещинами, чтобы игрок видел опасность.
+- **Рытьё:** бурильщик останавливается у свободного входа и роет несколько секунд (видна полоска прогресса). **Если убить его во время рытья, туннеля не будет.**
+- **Туннель:** остаётся до конца уровня. Наземные враги, которые ещё не дошли до входа, идут коротким путём; те, кто уже прошёл вход, идут по старой дороге. Летающих туннель не касается.
+- **Места для башен на пути туннеля разрушаются до конца уровня.** Башня на таком месте **автоматически продаётся за 50%**. Место разрушается, даже если башню продали до прихода бурильщика. На разрушенном месте можно построить только мину.
+- **Несколько бурильщиков в волне:** каждое место роется один раз. Второй бурильщик, пришедший к месту, где уже роют, **помогает, и рытьё идёт быстрее**. Если туннель уже открыт, следующие бурильщики идут через него и роют следующее свободное место дальше по дороге. Когда все места вырыты, бурильщики ведут себя как обычные медленные враги.
+- **Как помешать:** убить его до или во время рытья, ставить башни подальше от мест для туннелей, поставить мину на его пути.
 
 ## 7. Экономика
 - **Стартовое золото:** 250 (хватает на 2 башни)
