@@ -134,8 +134,9 @@ namespace GC26.Tetris
                 // The tall layout has no left column to spare, so coins and best score sit under the bot.
                 int best = Mathf.Max(Best(battleTable), game.Score);
                 Vector2 coins = HudLayout.CoinCounter;
-                Label(T("монеты ", "coins ") + Mathf.RoundToInt(shownCoins).ToString("N0"), coins.x, coins.y, unit, 0.5f * (1f + coinKick * 0.25f), TextAnchor.MiddleCenter, new Color(1f, 0.8f, 0.25f));
-                Label(T("рекорд ", "best ") + best.ToString("N0") + T("   ·   повержено ", "   ·   defeated ") + battle.BotsDefeated, coins.x, coins.y - 0.62f, unit, 0.34f, TextAnchor.MiddleCenter, Muted);
+                float k = HudLayout.ItemScale;
+                Label(T("монеты ", "coins ") + Mathf.RoundToInt(shownCoins).ToString("N0"), coins.x, coins.y, unit, 0.5f * k * (1f + coinKick * 0.25f), TextAnchor.MiddleCenter, new Color(1f, 0.8f, 0.25f));
+                Label(T("рекорд ", "best ") + best.ToString("N0") + T("   ·   повержено ", "   ·   defeated ") + battle.BotsDefeated, coins.x, coins.y - 0.62f * k, unit, 0.34f * k, TextAnchor.MiddleCenter, Muted);
                 return;
             }
             Label(T("Повержено: ", "Defeated: ") + battle.BotsDefeated, x, -8.75f, unit, 0.42f, TextAnchor.MiddleCenter, Muted);

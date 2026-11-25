@@ -15,7 +15,8 @@ namespace GC26.Tetris.View
         public const float PanelCenterOffset = 3.6f;
 
         const float CellScale = 0.94f;
-        const float PreviewScale = 0.72f;
+        // Hold and queue pieces; the tall layout draws them larger when its band has room.
+        static float PreviewScale { get { return 0.72f * HudLayout.PieceScale; } }
         const float FlashDuration = 0.28f;
 
         static readonly Color[] PieceColors =
@@ -220,8 +221,12 @@ namespace GC26.Tetris.View
             PlacePanel(nextPanel, HudLayout.NextPanelCenter, HudLayout.NextPanelSize);
             PlacePanel(holdPanel, HudLayout.HoldPanelCenter, HudLayout.HoldPanelSize);
             PlacePanel(statsPanel, HudLayout.StatsPanelCenter, HudLayout.StatsPanelSize);
+            float iconScale = 0.8f * HudLayout.ItemScale;
             for (int i = 0; i < legendIcons.Count; i++)
+            {
                 legendIcons[i].transform.localPosition = HudLayout.LegendIcon(i);
+                legendIcons[i].transform.localScale = new Vector3(iconScale, iconScale, 1f);
+            }
         }
 
         static void PlacePanel(SpriteRenderer panel, Vector2 center, Vector2 size)
@@ -531,6 +536,7 @@ namespace GC26.Tetris.View
                 float x = (shape[i].X - (minX + maxX) / 2f) * PreviewScale;
                 float y = (shape[i].Y - (minY + maxY) / 2f) * PreviewScale;
                 cells[i].transform.localPosition = new Vector3(center.x + x, center.y + y, 0f);
+                cells[i].transform.localScale = new Vector3(PreviewScale * CellScale, PreviewScale * CellScale, 1f);
                 cells[i].color = color;
             }
         }

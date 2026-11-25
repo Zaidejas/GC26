@@ -26,9 +26,13 @@ namespace GC26.Tetris
         float touchAnchorX;
         float touchTime;
 
+        /// <summary>
+        /// True on a phone, and in the editor while the Game view is switched to Simulator: UnityEngine.Device
+        /// reports the simulated device, so the phone layout can be checked without building an APK.
+        /// </summary>
         static bool IsPhone
         {
-            get { return Application.isMobilePlatform; }
+            get { return UnityEngine.Device.Application.isMobilePlatform; }
         }
 
         void SetUpPhone()

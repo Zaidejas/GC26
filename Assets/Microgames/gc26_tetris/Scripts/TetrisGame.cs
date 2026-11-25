@@ -648,15 +648,18 @@ namespace GC26.Tetris
 
         void FitCameraToWindow()
         {
-            if (HudLayout.Refresh(Screen.width, Screen.height) || !layoutApplied)
+            bool switched = HudLayout.Refresh(Screen.width, Screen.height);
+            float aspect = (float)Screen.width / Mathf.Max(1, Screen.height);
+            // The zoom decides how far the tall layout's band stretches, so it comes before placing the panels.
+            mainCamera.orthographicSize = HudLayout.OrthoSize(aspect);
+            if (HudLayout.TakeStretchChange() || switched || !layoutApplied)
             {
                 layoutApplied = true;
                 view.ApplyLayout();
                 RelayoutBattle();
-                Debug.Log("[BlockDrop] Layout " + (HudLayout.Portrait ? "portrait" : "landscape") + " " + Screen.width + "x" + Screen.height);
+                Debug.Log("[BlockDrop] Layout " + (HudLayout.Portrait ? "portrait" : "landscape") + " " + Screen.width + "x" + Screen.height +
+                          " band " + HudLayout.BandStretch.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture));
             }
-            float aspect = (float)Screen.width / Mathf.Max(1, Screen.height);
-            mainCamera.orthographicSize = HudLayout.OrthoSize(aspect);
         }
 
         bool layoutApplied;
@@ -759,7 +762,7 @@ namespace GC26.Tetris
 
             bool portrait = HudLayout.Portrait;
             Vector2 holdLabel = HudLayout.HoldLabel, nextLabel = HudLayout.NextLabel;
-            float headerSize = portrait ? 0.45f : 0.55f;
+            float headerSize = portrait ? 0.45f * HudLayout.ItemScale : 0.55f;
             Label(T("ЗАПАС", "HOLD"), holdLabel.x, holdLabel.y, unit, headerSize, TextAnchor.MiddleCenter, Muted);
             Label(T("ДАЛЕЕ", "NEXT"), nextLabel.x, nextLabel.y, unit, headerSize, TextAnchor.MiddleCenter, Muted);
 
@@ -805,7 +808,7 @@ namespace GC26.Tetris
                 Vector2 combo = HudLayout.ComboLine;
                 if (portrait)
                 {
-                    Label(T("КОМБО ", "COMBO ") + game.Combo + T("   ·   дальше ×", "   ·   next ×") + MultiplierText(next), combo.x, combo.y, unit, 0.5f * (1f + comboKick * 0.3f), TextAnchor.MiddleCenter, view.AccentColor);
+                    Label(T("КОМБО ", "COMBO ") + game.Combo + T("   ·   дальше ×", "   ·   next ×") + MultiplierText(next), combo.x, combo.y, unit, 0.5f * HudLayout.ItemScale * (1f + comboKick * 0.3f), TextAnchor.MiddleCenter, view.AccentColor);
                 }
                 else
                 {
@@ -817,8 +820,9 @@ namespace GC26.Tetris
             if (game.Mode != GameMode.Battle)
             {
                 float legendX = HudLayout.LegendTextX;
-                Label(T("взрыв 5×5", "blast 5×5"), legendX, HudLayout.LegendIcon(0).y, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
-                Label(T("весь ряд", "whole row"), legendX, HudLayout.LegendIcon(1).y, unit, 0.4f, TextAnchor.MiddleCenter, Muted);
+                float legendSize = 0.4f * HudLayout.ItemScale;
+                Label(T("взрыв 5×5", "blast 5×5"), legendX, HudLayout.LegendIcon(0).y, unit, legendSize, TextAnchor.MiddleCenter, Muted);
+                Label(T("весь ряд", "whole row"), legendX, HudLayout.LegendIcon(1).y, unit, legendSize, TextAnchor.MiddleCenter, Muted);
             }
 
             DrawPopups(unit);

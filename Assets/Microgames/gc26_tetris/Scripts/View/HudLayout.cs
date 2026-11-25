@@ -17,9 +17,52 @@ namespace GC26.Tetris.View
 
         public static bool Portrait { get; private set; }
 
+        // The tall layout: the band above the well runs from the well's top edge up BandHeight units, and the
+        // floor sits just under the well. On a taller screen the band stretches upward to fill what is left.
+        const float WellTop = 10f;
+        const float BandHeight = 9.3f;
+        const float WellFloor = -10.5f;
+        const float BottomBreathing = 1f;
+
+        // Shares of the screen height under a camera cut-out or system bars, top and bottom.
+        static float insetTop, insetBottom;
+        static float currentOrtho = 15f;
+        static bool stretchChanged;
+
+        /// <summary>How much taller than normal the band above the well is drawn (1 on a screen with no room to spare).</summary>
+        public static float BandStretch { get; private set; } = 1f;
+
+        /// <summary>Text and badges in the band grow with it, a little more gently.</summary>
+        public static float ItemScale { get { return Portrait ? Mathf.Min(BandStretch, 1.35f) : 1f; } }
+
+        /// <summary>Hold and queue pieces grow too, but a four-cell I must still fit its panel.</summary>
+        public static float PieceScale { get { return Portrait ? Mathf.Min(BandStretch, 1.18f) : 1f; } }
+
+        /// <summary>
+        /// The middle of the band's centre column (best score, then the bomb and lightning legend): halfway between
+        /// the band's top and the combo line, so the group sits in the middle however far the band stretches.
+        /// </summary>
+        static float CenterColumnMid
+        {
+            get { return (B(19f) + B(11.35f) + 0.6f) / 2f; }
+        }
+
+        /// <summary>A height in the band, measured from the well's top edge and stretched with it.</summary>
+        static float B(float y)
+        {
+            return WellTop + (y - WellTop) * BandStretch;
+        }
+
         /// <summary>Re-reads the window shape. Returns true when the layout switched.</summary>
         public static bool Refresh(int width, int height)
         {
+            // UnityEngine.Device follows the editor's Device Simulator too, cut-out included.
+            Rect safe = UnityEngine.Device.Screen.safeArea;
+            if (height > 0 && safe.height > 0f)
+            {
+                insetTop = Mathf.Clamp01((height - safe.yMax) / height);
+                insetBottom = Mathf.Clamp01(safe.yMin / height);
+            }
             bool portrait = height > width * 1.05f;
             bool changed = portrait != Portrait;
             Portrait = portrait;
@@ -34,33 +77,68 @@ namespace GC26.Tetris.View
         /// <summary>Half the visible height, big enough that the whole layout fits the window.</summary>
         public static float OrthoSize(float aspect)
         {
-            return Portrait ? Mathf.Max(15f, 8.4f / aspect) : Mathf.Max(11f, 11f / aspect);
+            currentOrtho = Portrait ? Mathf.Max(15f, 8.4f / aspect) : Mathf.Max(11f, 11f / aspect);
+            float stretch = 1f;
+            if (Portrait)
+            {
+                // The width sets the zoom, so a tall phone has height to spare: give it to the band.
+                float free = currentOrtho * 2f * (1f - insetTop - insetBottom);
+                float spare = free - (WellTop + BandHeight - WellFloor) - BottomBreathing;
+                stretch = Mathf.Clamp(1f + spare / BandHeight, 1f, 1.8f);
+            }
+            if (Mathf.Abs(stretch - BandStretch) > 0.005f)
+            {
+                BandStretch = stretch;
+                stretchChanged = true;
+            }
+            return currentOrtho;
         }
 
-        /// <summary>During a game a tall window looks a little higher, to fit the band above the well.</summary>
-        public static float GameCameraY { get { return Portrait ? 4.5f : 0f; } }
+        /// <summary>True once after the band's stretch changed, so the panels can be placed again.</summary>
+        public static bool TakeStretchChange()
+        {
+            bool changed = stretchChanged;
+            stretchChanged = false;
+            return changed;
+        }
+
+        /// <summary>
+        /// During a game the tall layout centres the band and the well between the cut-out and the bottom bar.
+        /// </summary>
+        public static float GameCameraY
+        {
+            get
+            {
+                if (!Portrait)
+                    return 0f;
+                float span = currentOrtho * 2f;
+                float top = WellTop + BandHeight * BandStretch + insetTop * span;
+                float bottom = WellFloor - insetBottom * span;
+                return (top + bottom) / 2f;
+            }
+        }
 
         // --- hold, queue and their panels -----------------------------------------------------
 
-        public static Vector2 HoldCenter { get { return Portrait ? new Vector2(-SideX, 16.6f) : new Vector2(LeftX, 6.2f); } }
-        public static Vector2 HoldLabel { get { return Portrait ? new Vector2(-SideX, 18.45f) : new Vector2(LeftX, 8f); } }
-        public static Vector2 HoldPanelCenter { get { return Portrait ? new Vector2(-SideX, 17.05f) : new Vector2(LeftX, 6.2f); } }
-        public static Vector2 HoldPanelSize { get { return Portrait ? new Vector2(ColumnWidth, 4f) : new Vector2(5f, 4.6f); } }
+        public static Vector2 HoldCenter { get { return Portrait ? new Vector2(-SideX, B(16.6f)) : new Vector2(LeftX, 6.2f); } }
+        public static Vector2 HoldLabel { get { return Portrait ? new Vector2(-SideX, B(18.45f)) : new Vector2(LeftX, 8f); } }
+        public static Vector2 HoldPanelCenter { get { return Portrait ? new Vector2(-SideX, B(17.05f)) : new Vector2(LeftX, 6.2f); } }
+        public static Vector2 HoldPanelSize { get { return Portrait ? new Vector2(ColumnWidth, 4f * BandStretch) : new Vector2(5f, 4.6f); } }
 
         /// <summary>The clickable pause button: top right in the wide layout, beside the well in the tall one.</summary>
         public static Vector2 PauseButtonCenter { get { return Portrait ? new Vector2(Board.Width / 2f + 1.05f, 9.1f) : new Vector2(RightX, 10.2f); } }
         public static Vector2 PauseButtonSize { get { return Portrait ? new Vector2(1.4f, 1.5f) : new Vector2(5f, 1.2f); } }
 
-        public static Vector2 NextLabel { get { return Portrait ? new Vector2(SideX, 18.45f) : new Vector2(RightX, 8f); } }
+        public static Vector2 NextLabel { get { return Portrait ? new Vector2(SideX, B(18.45f)) : new Vector2(RightX, 8f); } }
         public static Vector2 NextCenter(int slot)
         {
-            return Portrait ? new Vector2(SideX, 16.6f - slot * 2.3f) : new Vector2(RightX, 6.2f - slot * 3f);
+            return Portrait ? new Vector2(SideX, B(16.6f - slot * 2.3f)) : new Vector2(RightX, 6.2f - slot * 3f);
         }
-        public static Vector2 NextPanelCenter { get { return Portrait ? new Vector2(SideX, 14.7f) : new Vector2(RightX, 3.2f); } }
-        public static Vector2 NextPanelSize { get { return Portrait ? new Vector2(ColumnWidth, 8.7f) : new Vector2(5f, 10.6f); } }
+        public static Vector2 NextPanelCenter { get { return Portrait ? new Vector2(SideX, B(14.7f)) : new Vector2(RightX, 3.2f); } }
+        public static Vector2 NextPanelSize { get { return Portrait ? new Vector2(ColumnWidth, 8.7f * BandStretch) : new Vector2(5f, 10.6f); } }
 
-        public static Vector2 StatsPanelCenter { get { return Portrait ? new Vector2(-SideX, 12.6f) : new Vector2(LeftX, -1.05f); } }
-        public static Vector2 StatsPanelSize { get { return Portrait ? new Vector2(ColumnWidth, 4.3f) : new Vector2(5f, 9.1f); } }
+        public static Vector2 StatsPanelCenter { get { return Portrait ? new Vector2(-SideX, B(12.6f)) : new Vector2(LeftX, -1.05f); } }
+        public static Vector2 StatsPanelSize { get { return Portrait ? new Vector2(ColumnWidth, 4.3f * BandStretch) : new Vector2(5f, 9.1f); } }
 
         // --- numbers --------------------------------------------------------------------------
 
@@ -79,37 +157,37 @@ namespace GC26.Tetris.View
             }
             switch (slot)
             {
-                case StatSlot.Score: return new Vector2(-SideX, 13.95f);
-                case StatSlot.Second: return new Vector2(0f, 18.45f);
-                case StatSlot.Level: return new Vector2(-SideX, 12.65f);
-                default: return new Vector2(-SideX, 11.35f);
+                case StatSlot.Score: return new Vector2(-SideX, B(13.95f));
+                case StatSlot.Second: return new Vector2(0f, CenterColumnMid + 1.25f * ItemScale);
+                case StatSlot.Level: return new Vector2(-SideX, B(12.65f));
+                default: return new Vector2(-SideX, B(11.35f));
             }
         }
 
         /// <summary>The tall layout packs three stats into a short panel, so they are drawn smaller.</summary>
         public static float StatScale(StatSlot slot)
         {
-            return Portrait && slot != StatSlot.Second ? 0.72f : 1f;
+            return Portrait ? (slot != StatSlot.Second ? 0.72f : 1f) * ItemScale : 1f;
         }
 
-        public static Vector2 ComboLine { get { return Portrait ? new Vector2(0f, 11.35f) : new Vector2(LeftX, -6.6f); } }
+        public static Vector2 ComboLine { get { return Portrait ? new Vector2(0f, B(11.35f)) : new Vector2(LeftX, -6.6f); } }
 
         public static Vector2 LegendIcon(int line)
         {
-            return Portrait ? new Vector2(-2.2f, 16.2f - line * 1.15f) : new Vector2(RightX - 2.05f, -5.0f - line * 1.05f);
+            return Portrait ? new Vector2(-2.2f, CenterColumnMid - (0.85f + line * 1.15f) * ItemScale) : new Vector2(RightX - 2.05f, -5.0f - line * 1.05f);
         }
 
         public static float LegendTextX { get { return Portrait ? 0.75f : RightX + 0.45f; } }
 
         // --- the bot --------------------------------------------------------------------------
 
-        public static Vector2 BotPanelCenter { get { return Portrait ? new Vector2(0f, 15.75f) : new Vector2(RightX, -6.5f); } }
-        public static Vector2 BotPanelSize { get { return Portrait ? new Vector2(8f, 6.6f) : new Vector2(5f, 7.8f); } }
-        public static Vector2 BotCenter { get { return Portrait ? new Vector2(0f, 15.6f) : new Vector2(RightX, -6.3f); } }
-        public static float BotNameY { get { return Portrait ? 18.6f : -3.12f; } }
-        public static float BotBarY { get { return Portrait ? 17.95f : -3.85f; } }
+        public static Vector2 BotPanelCenter { get { return Portrait ? new Vector2(0f, B(15.75f)) : new Vector2(RightX, -6.5f); } }
+        public static Vector2 BotPanelSize { get { return Portrait ? new Vector2(8f, 6.6f * BandStretch) : new Vector2(5f, 7.8f); } }
+        public static Vector2 BotCenter { get { return Portrait ? new Vector2(0f, B(15.6f)) : new Vector2(RightX, -6.3f); } }
+        public static float BotNameY { get { return Portrait ? B(18.6f) : -3.12f; } }
+        public static float BotBarY { get { return Portrait ? B(17.95f) : -3.85f; } }
         /// <summary>Where the coins fly to: the coin counter.</summary>
-        public static Vector2 CoinCounter { get { return Portrait ? new Vector2(0f, 13.15f) : new Vector2(LeftX, -0.25f); } }
+        public static Vector2 CoinCounter { get { return Portrait ? new Vector2(0f, B(13.15f)) : new Vector2(LeftX, -0.25f); } }
 
         // --- menu -----------------------------------------------------------------------------
 
