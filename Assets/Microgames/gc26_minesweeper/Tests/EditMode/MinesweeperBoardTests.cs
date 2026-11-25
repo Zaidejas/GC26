@@ -15,6 +15,22 @@ namespace GC26.Minesweeper.Tests
         }
 
         [Test]
+        public void ShapeFor_KeepsCellCount_AndFitsTheScreen()
+        {
+            var expert = MinesweeperDifficulty.Expert;
+            Assert.AreEqual((16, 30), expert.ShapeFor(400f, 900f));     // tall phone: its own shape
+            Assert.AreEqual((20, 24), expert.ShapeFor(528f, 764f));     // wider portrait window
+            Assert.AreEqual((30, 16), expert.ShapeFor(1200f, 600f));    // landscape PC
+            foreach (var lv in MinesweeperDifficulty.All)
+                foreach (var area in new[] { (300f, 900f), (528f, 764f), (1200f, 600f), (800f, 800f) })
+                {
+                    var s = lv.ShapeFor(area.Item1, area.Item2);
+                    Assert.AreEqual(lv.Width * lv.Height, s.cols * s.rows, lv.Name);
+                }
+            Assert.AreEqual((16, 16), MinesweeperDifficulty.Intermediate.ShapeFor(1200f, 600f));   // never 8×32
+        }
+
+        [Test]
         public void PlaceMines_PlacesExactCount_AndKeepsFirstTapSafe()
         {
             var b = new MinesweeperBoard(9, 9, 10, seed: 42);

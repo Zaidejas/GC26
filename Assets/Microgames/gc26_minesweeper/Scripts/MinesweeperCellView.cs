@@ -4,12 +4,10 @@ using UnityEngine.UI;
 
 namespace GC26.Minesweeper
 {
-    // One square on screen. Turns a finger or mouse into:
-    //   tap        = press and release on the cell        -> MinesweeperGame.OnTap
-    //   long press = held for LongPressSeconds            -> MinesweeperGame.OnLongPress (yellow flag)
-    //   right click (mouse)                               -> MinesweeperGame.OnSecondaryClick (yellow flag)
-    // Sliding the finger off the cell cancels the press.
-    public class MinesweeperCellView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
+    // One square on screen. A finger or left mouse button pressing it starts a press that
+    // MinesweeperGame follows until release (BeginPress): the finger may slide to another cell to aim,
+    // release = tap, holding still = long press (yellow flag). Right click = yellow flag at once.
+    public class MinesweeperCellView : MonoBehaviour, IPointerDownHandler
     {
         // Classic number colours: 1 blue, 2 green, 3 red, 4 dark blue, 5 dark red, 6 teal, 7 black, 8 grey.
         public static readonly Color[] NumberColors =
@@ -29,8 +27,11 @@ namespace GC26.Minesweeper
         Image background, icon;
         Text label;
 
-        bool pressing, longDone;
-        float downTime;
+        // What the cell currently shows (the magnifier copies it).
+        public Sprite TileSprite => background.sprite;
+        public Sprite IconSprite => icon.enabled ? icon.sprite : null;
+        public string NumberText => label.text;
+        public Color NumberColor => label.color;
 
         public void Init(MinesweeperGame owner, int x, int y, Image bg, Image iconImage, Text numberLabel)
         {
@@ -76,37 +77,7 @@ namespace GC26.Minesweeper
         public void OnPointerDown(PointerEventData e)
         {
             if (e.button == PointerEventData.InputButton.Right) { game.OnSecondaryClick(X, Y); return; }
-            if (e.button != PointerEventData.InputButton.Left) return;
-            pressing = true;
-            longDone = false;
-            downTime = Time.unscaledTime;
-            game.SetPressedCell(this);
-        }
-
-        void Update()
-        {
-            if (!pressing || longDone) return;
-            if (Time.unscaledTime - downTime >= game.LongPressSeconds)
-            {
-                longDone = true;               // held still long enough: long press
-                game.SetPressedCell(null);
-                game.OnLongPress(X, Y);
-            }
-        }
-
-        public void OnPointerUp(PointerEventData e)
-        {
-            if (!pressing || e.button != PointerEventData.InputButton.Left) return;
-            pressing = false;
-            game.SetPressedCell(null);
-            if (!longDone) game.OnTap(X, Y);
-        }
-
-        public void OnPointerExit(PointerEventData e)
-        {
-            if (!pressing) return;             // finger slid off: cancel
-            pressing = false;
-            game.SetPressedCell(null);
+            if (e.button == PointerEventData.InputButton.Left) game.BeginPress(this);
         }
     }
 }

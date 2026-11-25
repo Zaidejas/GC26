@@ -12,6 +12,7 @@
 - A number shows how many red flags touch that cell, including diagonally.
 - Long press (or right-click) a cell to mark it with a yellow flag where you suspect a red flag. The Flag button at the bottom does the same with a normal tap.
 - Tap an opened number when all its red flags are marked to open the cells around it.
+- Pinch with two fingers (mouse wheel on a computer) to zoom in and out; drag with two fingers (or with the wheel held) to move around.
 - Open every cell without a red flag to win. Your first tap is always safe.
 - Top bar: ☰ pause (Resume / Menu / Exit), red flag counter, face = restart, timer, ? = How to play.
 - **Menu** always means Red Flags' own main menu (the level screen); **Exit** always means leaving Red Flags (closes the app, or back to the GC26 menu).
@@ -32,6 +33,9 @@ In Unity: **GC26 → Minesweeper → Version → Bump Version...** — describe 
 
 | Version | Changes |
 |---|---|
+| 0.9.0 | Zoom: pinch with two fingers (or the mouse wheel) to zoom in and out, drag with two fingers (or the wheel held) to move; no scroll bars, the view stays on the board. First time on Expert: a "Zoom in and out" hint with an animation |
+| 0.8.0 | Board shape fits the screen: the same cells are rearranged for bigger cells (Expert 16×30 / 20×24 / 30×16, chosen at the start of a round); the magnifier only appears for touch, never with a mouse |
+| 0.7.0 | Precise taps on small cells: slide the finger to aim, a magnifier shows the cells under it (Expert, and Intermediate on phones); thinner board margins (cells 4–10% bigger) |
 | 0.6.1 | How to play: × close button in the top-right corner, works on every page |
 | 0.6.0 | How to play: 4 pages, one per tap (open a cell, what a number means, red flag = lose, yellow flag), each a short animation with one line of text |
 | 0.5.0 | Tutorial: new step that highlights a cell that must hide a red flag and asks to mark it (long press on phones, right-click on computers), then "Avoid the red flags! Good luck!" |

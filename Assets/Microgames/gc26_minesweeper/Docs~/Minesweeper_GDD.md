@@ -111,7 +111,7 @@ Boards are arranged for a **tall, portrait** screen.
 |---|---|---|---|---|
 | Beginner | 9 × 9 | 10 | 12% | Whole board fits with large cells; no zoom needed |
 | Intermediate | 16 × 16 | 40 | 16% | Whole board fits; zoom helps on small phones |
-| Expert | 16 × 30 | 99 | 21% | Whole board fits when zoomed out; zoom in to play comfortably |
+| Expert | 16 × 30 | 99 | 21% | Whole board fits; small cells, made easy to hit by slide-to-aim and the magnifier (3.5). On wider screens the same 480 cells can be arranged as 20 × 24 or 30 × 16 |
 | Custom *(optional)* | Chosen by the player | Chosen by the player (at most cells − 9) | — | — |
 
 Expert is the classic 30×16 board turned upright, so it has the same difficulty as the original.
@@ -131,7 +131,7 @@ Expert is the classic 30×16 board turned upright, so it has the same difficulty
 - **Number 1–8:** only that cell opens.
 - **0 (empty):** the cell opens, and all its neighbours open automatically. Any neighbour that is also a 0 opens its neighbours too, and so on. This chain stops at numbered cells, so an empty region opens along with its numbered border ("flood fill").
 - Tapping a flagged cell does nothing (in normal mode).
-- A cell opens when the finger is **lifted**, not when it touches. If the finger moves away (a drag), nothing opens. This prevents accidental opens while scrolling.
+- A cell opens when the finger is **lifted**, not when it touches. While the finger is down it can **slide to aim**: the cell under the finger is the one that opens on release (see 3.5). Lifting the finger outside the board opens nothing.
 
 ### 3.3 Flagging (long press, or tap in flag mode)
 There are two ways to flag, so players can choose what's comfortable:
@@ -148,10 +148,22 @@ Rules for flags:
 - If the number of flags doesn't match, nothing happens.
 - If one of those flags is wrong, chording opens a mine and the round is lost.
 
-### 3.5 Zoom and pan
-- **Pinch** with two fingers to zoom in and out. Zooming out stops when the whole board is visible; zooming in stops at about 4 cells across.
-- **Drag** with one finger to move around the board. The view can't move away from the board.
-- Zooming and panning never open or flag cells.
+### 3.5 Small cells: board shape, zoom, aim and magnifier (no scroll bars)
+Zoomed out, the whole board always fits the screen. On a phone, 16 columns can't be wider than about **4 mm each** (screen width ÷ 16), while a comfortable touch target is 7–9 mm. So the player can zoom in, and tapping is made precise even without zooming:
+
+| Screen | Expert cell size |
+|---|---|
+| Phone 16:9 (1080×1920) | about 3.4 mm |
+| Phone 20:9 (1080×2400) | about 4.1 mm |
+| Small phone (720×1600) | about 4.0 mm |
+| Tablet (1536×2048) | about 5.9 mm |
+
+- **Zoom:** on phones, **pinch with two fingers** to zoom in and out and **drag with two fingers** to move the zoomed view; on computers the **mouse wheel** zooms around the pointer and **dragging with the wheel held** moves the view. Zooming stops when cells look about 130 units big (Beginner never zooms: its cells are already that big). There are no scroll bars, and the view is held on the board: zoomed out, the whole board fits; zoomed in, its edges can't be dragged away from the screen's edges. Every new board starts zoomed out. One finger (or the left button) still only aims and taps, so a pinch never opens or flags a cell, even when one finger lifts before the other.
+- **Zoom hint:** the first time Expert opens (saved, so only once), a pop-up "Zoom in and out" plays a short looping animation: two fingers spread and the board grows, they drag and it moves, they pinch and it shrinks (on computers a pointer shows "scroll ▲", "wheel + drag", "scroll ▼"), with one caption and a **Got it** button (Back also closes it). If the tutorial is running on that board, the hint comes right after it.
+- **Slide to aim:** the finger can slide while pressed; the cell under it is highlighted and is the one that opens when the finger is lifted. Holding still on a cell for 0.4 s still puts a yellow flag (the wait starts again after each slide).
+- **Board shape fits the screen:** when a new board starts, its cells may be rearranged to fill the free space better: the same number of cells and red flags, only the outline changes. Expert can be 16×30 (tall phones), 20×24 (wider portrait screens, tablets) or 24×20 / 30×16 (landscape windows on PC); the game picks whichever gives the biggest cells, and keeps the level's own shape on a tie. Beginner and Intermediate stay square. The shape is chosen again if the window changes before the first move; after that it stays for the whole round. On a tall phone 16×30 is already the best fit, so phones are unchanged.
+- **Magnifier (touch only):** when cells look small (Expert or Intermediate on phones, not zoomed in enough) and the player uses a finger, a box above the finger shows the 3×3 cells around it **enlarged**, with the cell that will be hit framed in yellow. It appears after a short moment (0.12 s), so quick taps don't flash it. Near the top of the board it shows below the finger instead, and it always stays on screen. A mouse never shows it: the pointer doesn't hide the cell.
+- The board uses almost the whole space between the bars (thin margins), which makes cells 4–10% bigger than before.
 
 ### 3.6 Mine counter
 - Shows **total red flags − yellow flags placed**.
@@ -185,9 +197,11 @@ Rules for flags:
 | Tap | Hidden cell, flag mode | Place or remove a flag |
 | Long press (~0.4 s) | Hidden cell, any mode | Place or remove a flag (with vibration) |
 | Tap | Opened number | Chord |
-| Finger held on the board | — | Tile looks pressed; face changes to 😮 |
-| One-finger drag | Board | Pan the view |
-| Two-finger pinch | Board | Zoom in or out |
+| Finger held on the board | — | Tile looks pressed; face changes to 😮; on small cells a magnifier shows the cells under the finger |
+| Slide while pressed | Board | Aim at another cell; it opens on release |
+| Two-finger pinch | Board | Zoom in or out (3.5) |
+| Two-finger drag | Board, zoomed in | Move the view (no scroll bars; it stays on the board) |
+| Mouse wheel / drag with the wheel held | Board (computer) | Zoom around the pointer / move the view |
 | Tap face button | Top bar | Restart with the same difficulty (asks first during a game in progress, 6.7) |
 | Tap **?** button | Top bar (right) | Open the "How to play" pop-up; OK or a tap anywhere closes it |
 | Tap ⛏/🚩 button | Bottom bar | Switch between reveal and flag mode |
@@ -443,7 +457,8 @@ No account, internet connection or special permissions are needed. Uninstalling 
 |---|---|
 | First tap near a corner or edge | The safe area is clipped to the board; the tap is still safe |
 | Long press before the first reveal | The flag is placed; the timer doesn't start |
-| Finger moves while pressed | Becomes a drag (pan); no cell opens or is flagged |
+| Finger moves while pressed | Aims at the cell now under the finger; that cell opens on release (3.5) |
+| Finger slides off the board and is lifted there | Nothing opens |
 | Second finger touches during a tap | Becomes a pinch; the tap is cancelled |
 | Touch starts on a button | Only the button reacts, never the cell behind it |
 | Touch outside the board (empty margin) | Ignored |
