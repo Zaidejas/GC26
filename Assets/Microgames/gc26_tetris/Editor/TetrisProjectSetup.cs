@@ -118,8 +118,8 @@ namespace GC26.Tetris.EditorTools
                 // Play stores and modern phones want 64-bit code, which on Android means IL2CPP.
                 PlayerSettings.SetScriptingBackend(android, ScriptingImplementation.IL2CPP);
                 PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
-                // Both layouts work, so the phone may turn either way.
-                PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
+                // Held upright only: the phone's wider well is laid out for the tall screen.
+                PlayerSettings.defaultInterfaceOrientation = UIOrientation.Portrait;
                 PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
 
                 System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(ApkPath));
@@ -250,6 +250,7 @@ namespace GC26.Tetris.EditorTools
                 { "Lines during the warning cancel garbage rows", LinesBlockAttack },
                 { "Defeating the bot calls off its attack", DefeatStopsAttack },
                 { "Garbage lifts the falling piece, or ends the game", MatchTakesGarbage },
+                { "A wider well works the same", WiderWell },
                 { "Achievement keys are unique and targets make sense", AchievementsWellFormed },
                 { "Totals add up and unlock once", AchievementTotals },
                 { "Bests keep the highest value", AchievementBests },
@@ -1275,6 +1276,39 @@ namespace GC26.Tetris.EditorTools
             Check(copy.UnlockedCount == 2 && copy.Value(AchievementStat.Level) == 7, "same content");
             TetrisAchievements broken = TetrisAchievements.Parse("v=x,-3,5;u=nope,combo5,;junk");
             Check(broken.UnlockedCount == 1 && broken.Value(AchievementStat.LinesTotal) == 0 && broken.Value(AchievementStat.Combo) == 5, "garbage skipped");
+        }
+
+        static void WiderWell()
+        {
+            try
+            {
+                Board.SetWidth(Board.PhoneWidth);
+                Check(Board.Width == 12, "columns " + Board.Width);
+                var game = new TetrisMatch(7, false);
+                int box = PieceShapes.BoxSize(game.CurrentType);
+                Check(game.CurrentX == (12 - box) / 2, "the piece starts in the middle: " + game.CurrentX);
+                for (int i = 0; i < 12; i++)
+                    game.Move(1);
+                game.HardDrop();
+                bool atRightWall = false;
+                for (int y = 0; y < Board.VisibleHeight; y++)
+                    atRightWall |= game.Board.Get(11, y) != Board.Empty;
+                Check(atRightWall, "a piece can reach the twelfth column");
+
+                // A full twelve-cell row clears; eleven cells do not.
+                var board = new Board();
+                for (int x = 0; x < 11; x++)
+                    board.Set(x, 0, 1);
+                Check(board.ClearFullRows().Count == 0, "eleven of twelve is not full");
+                board.Set(11, 0, 1);
+                Check(board.ClearFullRows().Count == 1, "twelve of twelve clears");
+                Board.SetWidth(99);
+                Check(Board.Width == 14, "capped");
+            }
+            finally
+            {
+                Board.SetWidth(Board.DefaultWidth);
+            }
         }
 
         // Finds a seed that spawns the wanted piece first.

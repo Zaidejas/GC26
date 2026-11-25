@@ -7,7 +7,10 @@ namespace GC26.Tetris.View
     /// <summary>Draws the well and the side previews with pooled sprites built at runtime.</summary>
     public sealed class BoardView
     {
-        public const float BoardLeft = -Board.Width / 2f;
+        public static float BoardLeft
+        {
+            get { return -Board.Width / 2f; }
+        }
         public const float BoardBottom = -Board.VisibleHeight / 2f;
         public const float PanelCenterOffset = 3.6f;
 

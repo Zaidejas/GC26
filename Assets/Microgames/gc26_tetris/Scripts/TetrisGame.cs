@@ -106,6 +106,7 @@ namespace GC26.Tetris
         static void ResetForPlayMode()
         {
             liveCopies.Clear();
+            Board.SetWidth(Board.DefaultWidth);
         }
 
         void Awake()
@@ -115,6 +116,7 @@ namespace GC26.Tetris
             RuntimeAssets.Owner = this;
             // Layout is static, so read the window afresh rather than trust a previous visit.
             HudLayout.Refresh(Screen.width, Screen.height);
+            ChooseBoardWidth();
             mainCamera = gameCamera != null ? gameCamera : Camera.main;
             view = new BoardView(transform, spriteMaterial);
             ReadCommandLine();
@@ -144,6 +146,17 @@ namespace GC26.Tetris
                 older.gameObject.SetActive(false);
             }
             liveCopies.Add(this);
+        }
+
+        /// <summary>
+        /// A phone held upright has room beside the 10-column well, so the phone build plays on 12 columns.
+        /// Chosen once, before the board is built; the phone build stays upright. -phoneWidth tries it on a PC.
+        /// </summary>
+        void ChooseBoardWidth()
+        {
+            bool tryOnPc = System.Array.IndexOf(System.Environment.GetCommandLineArgs(), "-phoneWidth") >= 0;
+            Board.SetWidth(IsPhone || tryOnPc ? Board.PhoneWidth : Board.DefaultWidth);
+            Debug.Log("[BlockDrop] Well columns " + Board.Width);
         }
 
         void OnDestroy()

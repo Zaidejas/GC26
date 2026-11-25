@@ -2,10 +2,23 @@ using System.Collections.Generic;
 
 namespace GC26.Tetris.Logic
 {
-    /// <summary>The well. Row 0 is the bottom; rows at or above VisibleHeight are hidden.</summary>
+    /// <summary>
+    /// The well. Row 0 is the bottom; rows at or above VisibleHeight are hidden.
+    /// 10 columns by default; the phone build uses 12 (SetWidth), chosen once before the first game.
+    /// </summary>
     public sealed class Board
     {
-        public const int Width = 10;
+        public const int DefaultWidth = 10;
+        public const int PhoneWidth = 12;
+
+        public static int Width { get; private set; } = DefaultWidth;
+
+        /// <summary>Sets the number of columns for boards made from now on (10 to 14).</summary>
+        public static void SetWidth(int columns)
+        {
+            Width = System.Math.Max(DefaultWidth, System.Math.Min(14, columns));
+        }
+
         public const int VisibleHeight = 20;
         public const int Height = 24;
         public const int Empty = -1;
