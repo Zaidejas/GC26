@@ -1,0 +1,11 @@
+{
+  "name": "GC26.ScienceSnake",
+  "rootNamespace": "GC26.ScienceSnake",
+  "references": [
+    "UnityEngine.UI",
+    "Unity.InputSystem",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "Unity.RenderPipelines.Core.Runtime"
+  ],
+  "autoReferenced": false
+}

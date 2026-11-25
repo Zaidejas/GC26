@@ -1,0 +1,11 @@
+{
+  "name": "GC26.ScienceSnake.Editor",
+  "rootNamespace": "GC26.ScienceSnake.Editor",
+  "references": [
+    "GC26.ScienceSnake"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "autoReferenced": false
+}
