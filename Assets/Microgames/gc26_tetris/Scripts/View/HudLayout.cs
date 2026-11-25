@@ -129,6 +129,24 @@ namespace GC26.Tetris.View
         public static Vector2 PauseButtonCenter { get { return Portrait ? new Vector2(Board.Width / 2f + 1.05f, 9.1f) : new Vector2(RightX, 10.2f); } }
         public static Vector2 PauseButtonSize { get { return Portrait ? new Vector2(1.4f, 1.5f) : new Vector2(5f, 1.2f); } }
 
+        // --- strips beside the well (tall layout) ---------------------------------------------
+
+        static float StripX { get { return Board.Width / 2f + 1.05f; } }
+        const float StripWidth = 1.4f;
+        const float StripBottom = -9.6f;
+
+        /// <summary>Left of the well: the level bar, with the level number above it.</summary>
+        public static Rect LevelStrip
+        {
+            get { return Rect.MinMaxRect(-StripX - StripWidth / 2f, StripBottom, -StripX + StripWidth / 2f, 8.4f); }
+        }
+
+        /// <summary>Right of the well, under the pause button: the combo bar, with the multiplier above it.</summary>
+        public static Rect ComboStrip
+        {
+            get { return Rect.MinMaxRect(StripX - StripWidth / 2f, StripBottom, StripX + StripWidth / 2f, 7.4f); }
+        }
+
         public static Vector2 NextLabel { get { return Portrait ? new Vector2(SideX, B(18.45f)) : new Vector2(RightX, 8f); } }
         public static Vector2 NextCenter(int slot)
         {

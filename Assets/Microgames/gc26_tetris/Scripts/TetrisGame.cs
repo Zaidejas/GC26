@@ -547,6 +547,7 @@ namespace GC26.Tetris
             if (battle == null)
                 coinKick = Mathf.Max(0f, coinKick - deltaTime * 5f);
             UpdateBattleLooks(deltaTime);
+            UpdateStrips(deltaTime);
 
             GameStateForAudio music = inMenu ? GameStateForAudio.Paused
                 : game.State == GameState.Playing ? GameStateForAudio.Playing
@@ -855,6 +856,7 @@ namespace GC26.Tetris
                 Label(T("весь ряд", "whole row"), legendX, HudLayout.LegendIcon(1).y, unit, legendSize, TextAnchor.MiddleCenter, Muted);
             }
 
+            DrawSideStrips(unit);
             DrawPopups(unit);
             DrawAchievementToast(unit);
 
