@@ -189,9 +189,7 @@ namespace GC26.Tetris
                 case "level10": return T("Десятый уровень", "Level ten");
                 case "bombs10": return T("Подрывник", "Demolisher");
                 case "lightnings10": return T("Громовержец", "Thunderer");
-                case "first_bot": return T("Первая победа", "First win");
-                case "bots3": return T("Гроза ботов", "Bot breaker");
-                default: return T("Щит из линий", "Line shield");
+                default: return achievement.Key;
             }
         }
 
@@ -209,9 +207,7 @@ namespace GC26.Tetris
                 case "level10": return T("дойди до 10 уровня", "reach level 10");
                 case "bombs10": return T("взорви 10 бомб", "set off 10 bombs");
                 case "lightnings10": return T("10 ударов молнии", "10 lightning strikes");
-                case "first_bot": return T("победи бота", "beat a bot");
-                case "bots3": return T("3 бота за один бой", "3 bots in one battle");
-                default: return T("отбей 5 атак бота", "block 5 bot attacks");
+                default: return "";
             }
         }
     }

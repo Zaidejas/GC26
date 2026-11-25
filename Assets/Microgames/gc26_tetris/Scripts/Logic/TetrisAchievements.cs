@@ -47,7 +47,11 @@ namespace GC26.Tetris.Logic
     /// </summary>
     public sealed class TetrisAchievements
     {
-        /// <summary>Every achievement, in the order the list shows them. Keys are saved, so never rename one.</summary>
+        /// <summary>
+        /// Every achievement, in the order the list shows them. Keys are saved, so never rename one.
+        /// The bot achievements (first_bot, bots3, blocks5) went with the bot battle; old saves that hold them
+        /// simply skip those keys. The bot counters stay in AchievementStat because saves store them by position.
+        /// </summary>
         public static readonly Achievement[] All =
         {
             new Achievement("first_line", AchievementStat.LinesTotal, 1, 5),
@@ -60,9 +64,6 @@ namespace GC26.Tetris.Logic
             new Achievement("level10", AchievementStat.Level, 10, 40),
             new Achievement("bombs10", AchievementStat.Bombs, 10, 20),
             new Achievement("lightnings10", AchievementStat.Lightnings, 10, 20),
-            new Achievement("first_bot", AchievementStat.BotsTotal, 1, 15),
-            new Achievement("bots3", AchievementStat.BotsInBattle, 3, 40),
-            new Achievement("blocks5", AchievementStat.AttacksBlocked, 5, 30),
         };
 
         static readonly int StatCount = Enum.GetValues(typeof(AchievementStat)).Length;

@@ -1275,7 +1275,9 @@ namespace GC26.Tetris.EditorTools
             ach.Report(AchievementStat.BotsTotal, 1);
             TetrisAchievements copy = TetrisAchievements.Parse(ach.Serialize());
             Check(copy.Serialize() == ach.Serialize(), "round trip: " + copy.Serialize());
-            Check(copy.UnlockedCount == 2 && copy.Value(AchievementStat.Level) == 7, "same content");
+            // Bombs unlock one goal; the bot counter is still saved but no longer unlocks anything.
+            Check(copy.UnlockedCount == 1 && copy.Value(AchievementStat.Level) == 7 && copy.Value(AchievementStat.BotsTotal) == 1, "same content");
+            Check(TetrisAchievements.Parse("v=;u=first_bot,bombs10").UnlockedCount == 1, "a saved bot achievement is dropped");
             TetrisAchievements broken = TetrisAchievements.Parse("v=x,-3,5;u=nope,combo5,;junk");
             Check(broken.UnlockedCount == 1 && broken.Value(AchievementStat.LinesTotal) == 0 && broken.Value(AchievementStat.Combo) == 5, "garbage skipped");
         }
