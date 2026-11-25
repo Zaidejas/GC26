@@ -20,6 +20,45 @@ namespace GC26.Towerdefence
         /// <summary>A plain square with sharp corners (bars).</summary>
         public Sprite Rect => _rect != null ? _rect : _rect = Make((x, y) => 1f);
 
+        Sprite _star;
+
+        /// <summary>A five-pointed star (level ratings).</summary>
+        public Sprite Star => _star != null ? _star : _star = Make((x, y) =>
+        {
+            // 4x4 samples per pixel for smooth edges.
+            int inside = 0;
+            for (int sy = 0; sy < 4; sy++)
+            for (int sx = 0; sx < 4; sx++)
+                if (InStar((x - 0.5f + (sx + 0.5f) / 4f) / Size, (y - 0.5f + (sy + 0.5f) / 4f) / Size)) inside++;
+            return inside / 16f;
+        });
+
+        static readonly Vector2[] StarPoints = BuildStar();
+
+        static Vector2[] BuildStar()
+        {
+            var points = new Vector2[10];
+            for (int i = 0; i < 10; i++)
+            {
+                float angle = Mathf.PI / 2f + i * Mathf.PI / 5f;
+                float r = i % 2 == 0 ? 0.5f : 0.21f;
+                points[i] = new Vector2(0.5f + Mathf.Cos(angle) * r, 0.47f + Mathf.Sin(angle) * r);
+            }
+            return points;
+        }
+
+        /// <summary>Even-odd test against the star outline, in 0..1 coordinates.</summary>
+        static bool InStar(float px, float py)
+        {
+            bool inside = false;
+            var p = StarPoints;
+            for (int i = 0, j = p.Length - 1; i < p.Length; j = i++)
+                if ((p[i].y > py) != (p[j].y > py) &&
+                    px < (p[j].x - p[i].x) * (py - p[i].y) / (p[j].y - p[i].y) + p[i].x)
+                    inside = !inside;
+            return inside;
+        }
+
         public Sprite Circle => _circle != null ? _circle : _circle = Make((x, y) => Mathf.Clamp01(Size / 2f - Dist(x, y)));
 
         public Sprite Square => _square != null ? _square : _square = Make((x, y) =>

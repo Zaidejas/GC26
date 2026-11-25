@@ -31,6 +31,7 @@ namespace GC26.Towerdefence
         static readonly Color Grey = new(0.35f, 0.35f, 0.38f);
 
         CanvasScaler _scaler;
+        Canvas _canvas;
         RectTransform _safeArea;
         Rect _appliedSafeArea;
         Vector2Int _appliedScreen;
@@ -106,6 +107,12 @@ namespace GC26.Towerdefence
         void Update()
         {
             if (_gold == null) return;
+
+            // Hidden while the main menu is up (no level running).
+            bool inLevel = level.State != LevelState.Waiting;
+            if (_canvas.enabled != inLevel) _canvas.enabled = inLevel;
+            if (!inLevel) return;
+
             ApplyScreen();
             HandleKeys();
 
@@ -191,17 +198,14 @@ namespace GC26.Towerdefence
         void Restart()
         {
             SetPaused(false);
-            // Remove enemies still on the field, then start over.
-            foreach (var unit in FindObjectsByType<EnemyUnit>(FindObjectsSortMode.None))
-                Destroy(unit.gameObject);
-            level.BeginLevel();
+            level.BeginLevel(); // WaveSpawner and BuildManager clear the field
         }
 
+        /// <summary>Back to the game's own main menu (level select); Exit there returns to GC26.</summary>
         void ExitToMainMenu()
         {
             SetPaused(false);
-            // The shell gets the stars as the score (0 when the level was not won).
-            if (game != null) game.ExitToMenu(level.Stars);
+            level.CloseLevel();
         }
 
         /// <summary>The shell scene has its own EventSystem; create one only when the game runs alone.</summary>
@@ -224,6 +228,7 @@ namespace GC26.Towerdefence
             var canvas = canvasGo.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 100;
+            _canvas = canvas;
             _scaler = canvasGo.AddComponent<CanvasScaler>();
             _scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             canvasGo.AddComponent<GraphicRaycaster>();

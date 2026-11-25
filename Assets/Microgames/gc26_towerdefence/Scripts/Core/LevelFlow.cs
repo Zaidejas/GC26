@@ -1,4 +1,5 @@
 using System;
+using GC26.Core;
 using UnityEngine;
 
 namespace GC26.Towerdefence
@@ -21,13 +22,17 @@ namespace GC26.Towerdefence
     /// Every spawned enemy is passed to RegisterEnemy: kills give gold, enemies at the castle take lives.
     /// The spawner calls FinishSpawning when a wave has no more enemies to send;
     /// the wave is cleared once that happened and no registered enemy is left alive.
+    /// The main menu picks a level with StartLevel and goes back with CloseLevel.
+    /// The best stars per level are saved in PlayerPrefs under MicrogameSave.Key (rule 4).
     /// </summary>
     public class LevelFlow : MonoBehaviour
     {
         [SerializeField] TowerdefenceGame game;
         [SerializeField] EconomyManager economy;
-        [Tooltip("The level to play: road, slots, towers, waves, starting gold and lives.")]
+        [Tooltip("The level to play: road, slots, towers, waves, starting gold and lives. The main menu replaces it.")]
         [SerializeField] LevelData levelData;
+        [Tooltip("Start this level right away, without the main menu (handy for testing).")]
+        [SerializeField] bool startWithoutMenu;
         [Tooltip("Seconds on the build timer. Calling the wave early pays the seconds left as gold.")]
         [SerializeField, Min(0f)] float buildCountdown = 20f;
         [Tooltip("Wave-clear bonus = base + per wave x wave number (prototype: 20 + 5 x wave).")]
@@ -45,6 +50,8 @@ namespace GC26.Towerdefence
 
         /// <summary>Raised at the start of every attempt (first start and restarts): clear towers, effects, etc.</summary>
         public event Action LevelBegun;
+        /// <summary>Raised when the player leaves the level for the main menu: clear the field.</summary>
+        public event Action LevelClosed;
         public event Action<LevelState> StateChanged;
         public event Action<int> LivesChanged;
         /// <summary>Raised with the 1-based wave number. The spawner starts sending enemies on it.</summary>
@@ -77,13 +84,50 @@ namespace GC26.Towerdefence
         void OnEnable()
         {
             if (game == null) return;
-            game.Started += BeginLevel;
-            if (game.IsStarted && State == LevelState.Waiting) BeginLevel();
+            game.Started += OnGameStarted;
+            if (game.IsStarted && State == LevelState.Waiting) OnGameStarted();
         }
 
         void OnDisable()
         {
-            if (game != null) game.Started -= BeginLevel;
+            if (game != null) game.Started -= OnGameStarted;
+        }
+
+        // Normally the main menu starts a level; this skips it for testing.
+        void OnGameStarted()
+        {
+            if (startWithoutMenu) BeginLevel();
+        }
+
+        /// <summary>Plays the given level from the start (main menu "Level N" button).</summary>
+        public void StartLevel(LevelData level)
+        {
+            if (level == null) return;
+            levelData = level;
+            BeginLevel();
+        }
+
+        /// <summary>Leaves the level for the main menu. The field is cleared through LevelClosed.</summary>
+        public void CloseLevel()
+        {
+            CurrentWave = 0;
+            _aliveEnemies = 0;
+            _spawningFinished = false;
+            SetState(LevelState.Waiting);
+            LevelClosed?.Invoke();
+        }
+
+        /// <summary>Best stars ever earned on this level (0 = never won).</summary>
+        public static int BestStars(LevelData level) =>
+            level == null ? 0 : PlayerPrefs.GetInt(StarsKey(level), 0);
+
+        static string StarsKey(LevelData level) => MicrogameSave.Key(TowerdefenceGame.Id, "stars_" + level.name);
+
+        void SaveBestStars()
+        {
+            if (levelData == null || Stars <= BestStars(levelData)) return;
+            PlayerPrefs.SetInt(StarsKey(levelData), Stars);
+            PlayerPrefs.Save();
         }
 
         /// <summary>Starts (or restarts) the level from the first build phase.</summary>
@@ -126,7 +170,7 @@ namespace GC26.Towerdefence
         /// <summary>Call for every enemy the spawner creates during a wave.</summary>
         public void RegisterEnemy(EnemyUnit enemy)
         {
-            if (enemy == null || IsOver) return;
+            if (enemy == null || IsOver || State == LevelState.Waiting) return;
             _aliveEnemies++;
             enemy.Died += OnEnemyDied;
             enemy.ReachedCastle += OnEnemyReachedCastle;
@@ -189,6 +233,7 @@ namespace GC26.Towerdefence
             if (CurrentWave >= TotalWaves)
             {
                 SetState(LevelState.Won);
+                SaveBestStars();
                 Debug.Log($"[{TowerdefenceGame.Id}] WON with {Lives} lives");
             }
             else

@@ -41,6 +41,8 @@ namespace GC26.Towerdefence
             if (level == null) return;
             level.WaveStarted += OnWaveStarted;
             level.StateChanged += OnStateChanged;
+            level.LevelBegun += ClearEnemies;
+            level.LevelClosed += ClearEnemies;
         }
 
         void OnDisable()
@@ -48,6 +50,8 @@ namespace GC26.Towerdefence
             if (level == null) return;
             level.WaveStarted -= OnWaveStarted;
             level.StateChanged -= OnStateChanged;
+            level.LevelBegun -= ClearEnemies;
+            level.LevelClosed -= ClearEnemies;
         }
 
         void OnWaveStarted(int wave)
@@ -75,6 +79,15 @@ namespace GC26.Towerdefence
             }
             _schedule.Sort((a, b) => a.time.CompareTo(b.time));
             _running = true;
+        }
+
+        /// <summary>Restart or back to the menu: stop sending and remove every enemy on the field.</summary>
+        void ClearEnemies()
+        {
+            _running = false;
+            foreach (var unit in _alive)
+                if (unit != null) Destroy(unit.gameObject);
+            _alive.Clear();
         }
 
         // Restart or game over: stop sending the rest of the wave.

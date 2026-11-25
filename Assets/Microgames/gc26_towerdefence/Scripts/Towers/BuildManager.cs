@@ -53,23 +53,27 @@ namespace GC26.Towerdefence
 
         void OnEnable()
         {
-            if (level != null) level.LevelBegun += ClearTowers;
+            if (level != null)
+            {
+                level.LevelBegun += OnLevelBegun;
+                level.LevelClosed += ClearTowers;
+            }
             if (path != null) path.LayoutChanged += Relayout;
         }
 
         void OnDisable()
         {
-            if (level != null) level.LevelBegun -= ClearTowers;
+            if (level != null)
+            {
+                level.LevelBegun -= OnLevelBegun;
+                level.LevelClosed -= ClearTowers;
+            }
             if (path != null) path.LayoutChanged -= Relayout;
         }
 
         void Start()
         {
-            _built = new TowerUnit[slotMapPoints.Length];
-            _slotViews = new SpriteRenderer[slotMapPoints.Length];
-            for (int i = 0; i < slotMapPoints.Length; i++)
-                _slotViews[i] = art.NewShape($"Slot {i + 1}", art.Square, transform, SlotPosition(i), 0.76f, SlotColor, 1);
-
+            if (_slotViews == null) RebuildSlots();
             _rangePreview = art.NewShape("RangePreview", art.Ring, transform, Vector3.zero, 1f, new Color(1f, 1f, 1f, 0.7f), 2);
             _rangePreview.gameObject.SetActive(false);
         }
@@ -222,6 +226,26 @@ namespace GC26.Towerdefence
                 _slotViews[i].transform.position = SlotPosition(i);
                 if (_built[i] != null) _built[i].transform.position = SlotPosition(i);
             }
+        }
+
+        // A new attempt, maybe on another level: empty field, slots of the current level.
+        void OnLevelBegun()
+        {
+            ClearTowers();
+            RebuildSlots();
+        }
+
+        /// <summary>Creates one grey square per slot of the current level (levels differ in count and place).</summary>
+        void RebuildSlots()
+        {
+            if (_slotViews != null)
+                foreach (var view in _slotViews)
+                    if (view != null) Destroy(view.gameObject);
+
+            _built = new TowerUnit[slotMapPoints.Length];
+            _slotViews = new SpriteRenderer[slotMapPoints.Length];
+            for (int i = 0; i < slotMapPoints.Length; i++)
+                _slotViews[i] = art.NewShape($"Slot {i + 1}", art.Square, transform, SlotPosition(i), 0.76f, SlotColor, 1);
         }
 
         void ClearTowers()
