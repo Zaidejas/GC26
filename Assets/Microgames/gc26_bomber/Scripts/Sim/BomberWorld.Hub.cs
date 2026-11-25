@@ -176,7 +176,7 @@ namespace GC26.Bomber
             BuildBorder(new List<string> { "hub" });
             Walls.Add(Rect(3, 10, 2, 2, cover: true)); Walls.Add(Rect(12, 10, 2, 2, cover: true)); Walls.Add(Rect(7, 17, 3, 1, cover: true));
             ComputeBlocked();
-            var keepChar = Meta.Char; Meta.Char = "spark"; SetupPlayer(); Meta.Char = keepChar;
+            var keepChar = Meta.Char; var keepTac = Meta.Tactic; Meta.Char = "spark"; Meta.Tactic = "vent"; SetupPlayer(); Meta.Char = keepChar; Meta.Tactic = keepTac;
             P.Weapons.Clear(); P.Weapons.Add(new BomberWeapon { Id = "blaster" }); P.Mods.Clear(); P.Comps.Clear(); P.Emp = 1; P.Scrap = 0;
             P.R = 9f; P.X = W / 2f; P.Y = H - 120f; P.Vx = P.Vy = 0f; P.DashT = 0f; P.ITime = 0f; P.AbT = P.AbCd = P.TacCd = 0f;
             Core.Vent(HeatModel.Max); Governor.Forsage = false; ApplyCoreMods();

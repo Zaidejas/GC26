@@ -18,7 +18,7 @@ namespace GC26.Bomber
                                 MR = Hex("#ff3048"), MY = Hex("#ffd65c"), MO = Hex("#ff8a3c"), MC = Hex("#9ff4ff"), Outline = Hex("#05070e");
 
         public Sprite Drone, Rotor, Gun, Lens, Shot, ShotHeavy, EnemyShot, Pixel, Ring, Disc, Scrap, Repair, EmpPickup, Barrel, Wall, TurretHead;
-        public Sprite UiCircle, UiRing, UiWhite, UiGradient, UiVignette, Glow;
+        public Sprite UiCircle, UiRing, UiWhite, UiGradient, UiVignette, Glow, UiArrow;
         public Sprite Terminal, Cell, Dynamite, ForgeTurret, Npc;
         public Sprite Chest, ChestOpen, Altar, AltarUsed, Bench, Stand, Rocket, Saw, Flame, CompGunner, CompGuard, CompMedic, CompStriker;
         readonly Dictionary<string, Sprite> _enemy = new Dictionary<string, Sprite>();
@@ -68,6 +68,7 @@ namespace GC26.Bomber
             ForgeTurret = Build(18, 18, c => { c.Fill(c.Box(0, 0, 18, 18), Hex("#2a1e10")); c.Fill(c.Box(2, 2, 16, 16), Hex("#ff9f43")); c.Fill(c.Disc(9, 9, 4f), Hex("#3a2a14")); c.Rect(8, 8, 2, 2, Hex("#ffcf8a")); });
             Npc = Build(10, 12, c => { c.Fill(c.Disc(5, 3.5f, 3.2f), Hex("#f0f4ff")); c.Fill(c.Box(1.5f, 6, 8.5f, 12), Hex("#f0f4ff")); c.Rect(3, 3, 4, 1, MK); });
             UiCircle = Smooth(128, ring: false, 100, ui: true); UiRing = Smooth(128, ring: true, 100, ui: true);
+            UiArrow = Build(16, 16, c => { c.Fill(c.Poly(new[] { (15f, 8f), (2f, 1f), (6f, 8f), (2f, 15f) }), new Color32(255, 255, 255, 255), false); }, outline: false); UiArrow.texture.filterMode = FilterMode.Bilinear;
             UiWhite = Build(1, 1, c => c.Px(0, 0, new Color32(255, 255, 255, 255)), outline: false);
             UiGradient = Build(1, 64, c => { for (int y = 0; y < 64; y++) c.Px(0, y, new Color32(255, 255, 255, (byte)(Mathf.SmoothStep(0f, 1f, y / 63f) * 255))); }, outline: false); UiGradient.texture.filterMode = FilterMode.Bilinear;
         }

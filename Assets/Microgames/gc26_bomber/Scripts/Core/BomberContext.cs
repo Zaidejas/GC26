@@ -14,10 +14,13 @@ namespace GC26.Bomber
         public BomberWorld World { get; private set; }
         public BomberView View { get; private set; }
         public BomberPhoneUI UI { get; private set; }
+        public BomberDebugLog Log { get; private set; }
 
         public void Init(BomberGame game)
         {
             Game = game;
+            Log = new BomberDebugLog(() => World != null ? World.DebugState : "starting");
+            Log.Attach();
             Art = new BomberArt();
             World = new BomberWorld { Meta = BomberMeta.Load() };
             World.MetaChanged += () => World.Meta.Save();
@@ -27,6 +30,7 @@ namespace GC26.Bomber
             UI.Init(this, View.Target);
             World.Toast += (m, t) => UI.Toast(m, t);
             World.Shake += a => View.AddShake(a);
+            Log.ErrorLogged += _ => UI.OnBugLogged();
             if (World.Meta.TutorialDone) World.EnterHub(); else World.EnterTutorial();
         }
 
@@ -46,13 +50,18 @@ namespace GC26.Bomber
         void Update()
         {
             if (World == null) return;
-            var intent = UI.ReadIntent();
-            if (!UI.Paused) World.Tick(Mathf.Min(Time.deltaTime, 1f / 30f), intent);
-            View.Sync();
-            UI.Sync(Time.unscaledDeltaTime);
+            // a bug in one frame must not freeze the game: log it (with the game state) and keep going
+            try
+            {
+                var intent = UI.ReadIntent();
+                if (!UI.Paused) World.Tick(Mathf.Min(Time.deltaTime, 1f / 30f), intent);
+            }
+            catch (System.Exception e) { Debug.LogException(e); }
+            try { View.Sync(); } catch (System.Exception e) { Debug.LogException(e); }
+            try { UI.Sync(Time.unscaledDeltaTime); } catch (System.Exception e) { Debug.LogException(e); }
         }
 
         void OnDisable() => Time.timeScale = 1f;
-        void OnDestroy() => Art?.Dispose();
+        void OnDestroy() { Log?.Detach(); Art?.Dispose(); }
     }
 }

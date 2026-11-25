@@ -11,6 +11,7 @@ namespace GC26.Bomber
     {
         public Vector2 Move;          // analog, length <= 1, y DOWN (screen space)
         public bool Dash, Vent, Emp, Ability, ForsageToggle, AltPressed, AltHeld, Use, Swap;
+        public bool HasAim; public Vector2 AimAt; // drag-to-aim target (world px) for the tactic / ability pressed this frame
     }
 
     /// <summary>
@@ -398,9 +399,10 @@ namespace GC26.Bomber
 
             if (it.ForsageToggle && Is("forge")) Toast?.Invoke("Кузня: ядро без Форсажа, зато греется на 40% медленнее", 1.6f);
             else if (it.ForsageToggle && Core.CanFire) { Governor.Forsage = !Governor.Forsage; Toast?.Invoke(Governor.Forsage ? "ФОРСАЖ: ядро разгоняется, урон +30%. Следи за перегревом!" : "Ядро в безопасной зоне", 1.4f); }
-            if (it.Vent && P.TacCd <= 0f && Core.CanFire) Vent();
+            if (P.BubbleT > 0f) P.BubbleT -= dt;
+            if (it.Vent && Mode != BomberMode.Hub) UseTactic(it);
             if (it.Emp && P.Emp > 0) Emp();
-            if (it.Ability && Mode != BomberMode.Hub) UseAbility();
+            if (it.Ability && Mode != BomberMode.Hub) UseAbility(it);
 
             // auto aim: nearest enemy, preferring ones in line of sight
             BomberEnemy best = null; float bs = 1e9f;
@@ -456,7 +458,7 @@ namespace GC26.Bomber
 
         void Hurt()
         {
-            if (P.ITime > 0f || Phase != BomberPhase.Play || Mode != BomberMode.Run) return;
+            if (P.ITime > 0f || Phase != BomberPhase.Play || Mode != BomberMode.Run || DevGod) return;
             if (Is("bastion") && P.AbT > 0f) return;
             if (P.Shield > 0f) { P.Shield = 0f; P.ShieldT = 6f; P.ITime = 0.5f; AddRing(P.X, P.Y, 30f, new Color32(159, 208, 255, 255), 0.3f); return; }
             P.Hp--; DamageTaken++; RoomDamaged = true; _bossDamaged = true; P.ITime = BomberData.IFrames * (Is("bastion") ? 1.5f : 1f); Shake?.Invoke(1f); Flash = 0.15f;

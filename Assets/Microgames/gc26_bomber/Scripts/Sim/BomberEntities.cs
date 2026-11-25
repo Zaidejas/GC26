@@ -25,7 +25,7 @@ namespace GC26.Bomber
         public int Hp, MaxHp, BaseHp, AltarLoss;
         public float MuzzleT, Aim, ITime, DashT, DashCd, Dx, Dy = -1f, AltCd, TacCd, AbCd, AbT, Bob, Shield, ShieldT, TrailT;
         public int Emp, Scrap, Cur, ModSlots = 4, CompSlots = 1, Charges = 3, LeechK;
-        public string Char = "spark"; public float Speed = 192f, DmgK = 1f, CoolK = 1f, DashK = 1f, AbilityCd = 16f, ChargeT, VortT;
+        public string Char = "spark", Tactic = "vent"; public float BubbleT; public float Speed = 192f, DmgK = 1f, CoolK = 1f, DashK = 1f, AbilityCd = 16f, ChargeT, VortT;
         public bool Firing;
         public readonly List<BomberWeapon> Weapons = new List<BomberWeapon>();
         public readonly List<string> Mods = new List<string>();

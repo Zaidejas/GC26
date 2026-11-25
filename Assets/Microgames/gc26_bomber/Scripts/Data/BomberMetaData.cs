@@ -11,6 +11,7 @@ namespace GC26.Bomber
     public sealed class BomberUpDef { public string Id, Name, Desc; public int[] Cost; }
     public sealed class BomberNpcDef { public string Id, Name, Bonus, Line; public bool Home, Char; public Color32 Color; }
     public sealed class BomberAchDef { public string Id, Name, Desc, Reward; public int Data; }
+    public sealed class BomberTacticDef { public string Id, Name, Desc; public float Cd; public int Cost; }
     public sealed class BomberStationDef { public string Id, Name; public float X, Y; public Color32 Color; }
 
     /// <summary>Hub and meta progression tables from the prototype: drones, upgrades bought with Data, survivors, achievements.</summary>
@@ -94,6 +95,18 @@ namespace GC26.Bomber
             ["cryo"] = (0, "sector2"), ["beam"] = (0, "win"), ["disc"] = (0, "kills300"), ["minigun"] = (0, "over50"),
         };
 
+        /// <summary>The tactic on the left button, shared by all drones.</summary>
+        public static readonly BomberTacticDef[] Tactics =
+        {
+            new BomberTacticDef { Id = "vent", Name = "Сброс", Cd = 8, Desc = "−50 нагрева и ударная волна, сбивает пули рядом. Чем горячее ядро, тем сильнее и шире волна: 20 урона на холодном, до 70 на горячем." },
+            new BomberTacticDef { Id = "bubble", Name = "Купол", Cd = 12, Cost = 40, Desc = "3 с купол гасит вражеские пули вокруг тебя. −20 нагрева." },
+            new BomberTacticDef { Id = "blink", Name = "Блинк", Cd = 6, Cost = 50, Desc = "Телепорт до 230 px туда, куда потянешь кнопку, и 0.3 с неуязвимости. −20 нагрева." },
+            new BomberTacticDef { Id = "gravity", Name = "Гравиграната", Cd = 10, Cost = 60, Desc = "Потяни кнопку и отпусти: 1.6 с стягивает врагов в точку, потом взрыв на 45." },
+            new BomberTacticDef { Id = "cryonova", Name = "Крио-нова", Cd = 14, Cost = 70, Desc = "Замораживает врагов в радиусе 150 на 2 с и сбрасывает 40 нагрева." },
+            new BomberTacticDef { Id = "overload", Name = "Выброс ядра", Cd = 10, Cost = 80, Desc = "Весь нагрев превращается в урон по кругу: нагрев ×1.2, а с 90% — ×1.8 (до 180 урона). Нагрев → 0." },
+        };
+        public static BomberTacticDef Tactic(string id) { foreach (var t in Tactics) if (t.Id == id) return t; return Tactics[0]; }
+
         /// <summary>Hub terminals (portrait hub room).</summary>
         public static readonly BomberStationDef[] Stations =
         {
@@ -101,6 +114,7 @@ namespace GC26.Bomber
             new BomberStationDef { Id = "armory", Name = "Арсенал", X = 424, Y = 250, Color = C("#ffb347") },
             new BomberStationDef { Id = "workshop", Name = "Мастерская", X = 120, Y = 500, Color = C("#6dffb0") },
             new BomberStationDef { Id = "records", Name = "Достижения", X = 424, Y = 500, Color = C("#ffd65c") },
+            new BomberStationDef { Id = "tactics", Name = "Тактика", X = 424, Y = 740, Color = C("#ff9adf") },
             new BomberStationDef { Id = "training", Name = "Тренировка", X = 120, Y = 740, Color = C("#b48cff") },
         };
         public static BomberStationDef Station(string id) { foreach (var s in Stations) if (s.Id == id) return s; return null; }

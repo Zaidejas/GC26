@@ -16,8 +16,8 @@ namespace GC26.Bomber
 
         public int Data, Best;
         public bool TutorialDone;
-        public string Char = "spark", StartWeapon = "blaster";
-        public List<string> Ach = new List<string>(), Rescued = new List<string>(), Weapons = new List<string>(), Chars = new List<string>();
+        public string Char = "spark", StartWeapon = "blaster", Tactic = "vent";
+        public List<string> Ach = new List<string>(), Rescued = new List<string>(), Weapons = new List<string>(), Chars = new List<string>(), Tactics = new List<string>();
         public List<Level> Ups = new List<Level>(), CharUps = new List<Level>();
         public int Runs, Wins, Kills, Overheats, NoDmg, BestSector = 1, Bosses, DataEarned, Fusions, BestCombo;
 
@@ -64,6 +64,7 @@ namespace GC26.Bomber
             return u.ach != null ? HasAch(u.ach) : Weapons.Contains(id);
         }
 
+        public bool TacticUnlocked(string id) => id == "vent" || Tactics.Contains(id);
         public bool CompUnlocked(string id) => id != "striker" || HasAch("rooms12");
     }
 }

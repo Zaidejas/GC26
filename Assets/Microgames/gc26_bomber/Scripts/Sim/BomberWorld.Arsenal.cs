@@ -251,6 +251,7 @@ namespace GC26.Bomber
                             float s2 = Mathf.Sqrt(b.Vx * b.Vx + b.Vy * b.Vy) * 1.2f;
                             b.Enemy = false; b.Dmg = 15f; b.Color = new Color32(191, 244, 255, 255); b.Life = 1.2f; b.Vx = Mathf.Cos(P.Aim) * s2; b.Vy = Mathf.Sin(P.Aim) * s2; b.Hit = null; break;
                         }
+                        if (P.BubbleT > 0f && Dist(P.X, P.Y, b.X, b.Y) < 46f) { b.Dead = true; Spark(b.X, b.Y, new Color32(159, 208, 255, 255), 100f); break; }
                         if (Dist(P.X, P.Y, b.X, b.Y) < P.R * 0.75f + b.R && P.ITime <= 0f) { Hurt(); b.Dead = true; }
                     }
                 }

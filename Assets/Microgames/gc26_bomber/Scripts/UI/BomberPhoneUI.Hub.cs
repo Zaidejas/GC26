@@ -53,7 +53,10 @@ namespace GC26.Bomber
             if (w.Mode == BomberMode.Tutorial) rows.Add(("Пропустить обучение", () => { HidePanel(); w.SkipTutorial(); }));
             rows.Add(($"Кнопки крупнее ({Mathf.RoundToInt(_btnScale * 100)}%)", () => SetButtonScale(_btnScale + 0.1f)));
             rows.Add(("Кнопки мельче", () => SetButtonScale(_btnScale - 0.1f)));
+            rows.Add(("Настроить управление", EditControls));
             rows.Add(($"Тёмная станция: {(_ctx.View.Dark ? "вкл" : "выкл")}", () => { _ctx.View.SetDark(!_ctx.View.Dark); Pause(); }));
+            rows.Add(($"Журнал ошибок{(_ctx.Log.Entries.Count > 0 ? $" ({_ctx.Log.Entries.Count})" : "")}", ShowJournal));
+            if (DevTools) rows.Add(("Разработка", ShowDev));
             if (w.Mode == BomberMode.Hub) rows.Add(("Пройти обучение заново", () => { HidePanel(); w.EnterTutorial(); }));
             if (w.Mode == BomberMode.Run) rows.Add(("Сдаться (в хаб, ½ Данных)", () => { HidePanel(); w.Abandon(); }));
             rows.Add(("В меню", () => _ctx.ExitToMenu()));
@@ -88,6 +91,7 @@ namespace GC26.Bomber
                 case "chars": ShowChars(); break;
                 case "armory": ShowArmory(); break;
                 case "workshop": ShowWorkshop(); break;
+                case "tactics": ShowTactics(); break;
                 case "records": ShowRecords(); break;
                 case "training":
                     ShowPanel("training", "Тренировка", "Пройти обучение ещё раз? Прогресс не теряется.", ("Начать обучение", () => { HidePanel(); _ctx.World.EnterTutorial(); }), ("Закрыть", HidePanel));

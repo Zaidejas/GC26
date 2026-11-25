@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace GC26.Bomber
 {
-    public sealed class BomberThrow { public float Sx, Sy, Tx, Ty, X, Y, T, Fly = 0.4f, Fuse = 0.7f; }
+    public sealed class BomberThrow { public string Kind = "dyn"; public float Sx, Sy, Tx, Ty, X, Y, T, Fly = 0.4f, Fuse = 0.7f; }
     public sealed class BomberTurret { public float X, Y, T = 9f, Cd, A; }
 
     // Playable drones: stats, traits and abilities (prototype CHARS, useAbility, updateAbility).
@@ -36,7 +36,8 @@ namespace GC26.Bomber
             P.Emp = 1 + m.Up("emp");
             P.Scrap = 25 * m.Up("scrap") + (m.IsRescued("quarter") ? 15 : 0);
             P.ModSlots = 4 + m.Up("slot"); P.CompSlots = 1 + m.Up("comp");
-            P.Charges = 3; P.ChargeT = 0f; P.LeechK = 0; P.VortT = 0f;
+            P.Charges = 3; P.ChargeT = 0f; P.LeechK = 0; P.VortT = 0f; P.BubbleT = 0f;
+            P.Tactic = m.TacticUnlocked(m.Tactic) ? m.Tactic : "vent";
             P.Weapons.Clear(); P.Weapons.Add(new BomberWeapon { Id = m.WeaponUnlocked(m.StartWeapon) ? m.StartWeapon : "blaster" }); P.Cur = 0;
             Throws.Clear(); Turrets.Clear();
         }
@@ -54,16 +55,15 @@ namespace GC26.Bomber
             }
         }
 
-        void UseAbility()
+        void UseAbility(BomberIntent it)
         {
             var ch = CharDef;
             if (Is("sapper"))
             {
                 if (P.Charges <= 0) return;
                 P.Charges--; if (P.ChargeT <= 0f) P.ChargeT = P.AbilityCd;
-                var t = NearestEnemy(P.X, P.Y, 330f);
-                float tx = t != null ? t.X : P.X + Mathf.Cos(P.Aim) * 150f, ty = t != null ? t.Y : P.Y + Mathf.Sin(P.Aim) * 150f;
-                Throws.Add(new BomberThrow { Sx = P.X, Sy = P.Y, X = P.X, Y = P.Y, Tx = Mathf.Clamp(tx, 40f, W - 40f), Ty = Mathf.Clamp(ty, 40f, H - 40f) });
+                var tg = TargetFor("dyn", it);
+                Throws.Add(new BomberThrow { Sx = P.X, Sy = P.Y, X = P.X, Y = P.Y, Tx = tg.x, Ty = tg.y });
                 return;
             }
             if (P.AbCd > 0f || P.AbT > 0f) return;
@@ -105,6 +105,13 @@ namespace GC26.Bomber
                 var t = Throws[i];
                 if (t.T < t.Fly) { t.T += dt; float k = Mathf.Min(1f, t.T / t.Fly); t.X = t.Sx + (t.Tx - t.Sx) * k; t.Y = t.Sy + (t.Ty - t.Sy) * k - Mathf.Sin(k * Mathf.PI) * 50f; continue; }
                 t.X = t.Tx; t.Y = t.Ty; t.Fuse -= dt;
+                if (t.Kind == "grav")
+                {
+                    foreach (var e in Enemies) { float d0 = Dist(e.X, e.Y, t.X, t.Y); if (d0 < 150f && d0 > 6f && !Anchored(e)) { float a = Mathf.Atan2(t.Y - e.Y, t.X - e.X); MoveBody(e, Mathf.Cos(a) * 260f * dt, Mathf.Sin(a) * 260f * dt); } }
+                    if (Random.value < 0.8f) { float a = Random.value * 6.28f; Particle(t.X + Mathf.Cos(a) * 140f, t.Y + Mathf.Sin(a) * 140f, -Mathf.Cos(a) * 300f, -Mathf.Sin(a) * 300f, 0.45f, new Color32(180, 140, 255, 255), 2f); }
+                    if (t.Fuse <= 0f) { Throws.RemoveAt(i); Explode(t.X, t.Y, 90f, 45f * (1f + 0.06f * Meta.Up("dmg")), false, true); }
+                    continue;
+                }
                 if (Random.value < 0.5f) Particle(t.X, t.Y - 6f, (Random.value - 0.5f) * 30f, -60f, 0.3f, new Color32(255, 214, 92, 255), 2f);
                 if (t.Fuse <= 0f) { Throws.RemoveAt(i); Explode(t.X, t.Y, 95f, 80f * (1f + 0.06f * Meta.Up("dmg")), false, true); }
             }

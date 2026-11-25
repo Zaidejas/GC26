@@ -52,7 +52,7 @@ namespace GC26.Bomber
         BomberIntent _intent; float _toastT;
         readonly Queue<(string, float)> _toasts = new Queue<(string, float)>();
 
-        public bool Paused => _panelKind == "pause";
+        public bool Paused => _panelKind == "pause" || _panelKind == "dev" || _panelKind == "journal" || _editCtl;
         float _scroll0; // snapped scroll used for drawing this frame (world px)
 
         // ================= build =================
@@ -129,6 +129,7 @@ namespace GC26.Bomber
             _panel.gameObject.SetActive(false);
 
             BuildTutorialCard(t);
+            BuildExtras(t);
             _flash = Img("Flash", t, ctx.Art.UiWhite, new Color(1f, 0.24f, 0.31f, 0f)); Stretch(_flash.rectTransform);
         }
 
@@ -189,11 +190,12 @@ namespace GC26.Bomber
             {
                 float bk = b.AtTop ? 1f : k; b.Rad = b.R * bk;
                 b.Pos = b.AtTop ? new Vector2(b.Local.x < 0 ? fw + b.Local.x : b.Local.x, b.Local.y) : new Vector2(b.Local.x * k, fh - (PanelH - b.Local.y) * k);
+                b.Pos = AdjustPos(b, b.Pos, fw, fh);
                 Circle(b.Glow.rectTransform, b.Pos, b.Rad + 8 * bk); Circle(b.Bg.rectTransform, b.Pos, b.Rad); Circle(b.Cd.rectTransform, b.Pos, b.Rad); Circle(b.Rim.rectTransform, b.Pos, b.Rad);
                 Place(b.Sub.rectTransform, b.Pos.x - b.Rad, b.Pos.y, b.Rad * 2, b.Rad);
                 b.Label.fontSize = Mathf.RoundToInt(b.LabelFont * bk); b.Sub.fontSize = Mathf.RoundToInt(15 * bk);
             }
-            var jh = new Vector2(fw - 112 * k, fh - PanelH * k / 2f);
+            var jh = new Vector2(_leftHand ? 112 * k : fw - 112 * k, fh - PanelH * k / 2f);
             Circle(_joyHint.rectTransform, jh, 62 * k); Place(_joyHintText.rectTransform, jh.x - 80, jh.y - 30, 160, 60);
 
             // the room between the HUD and the panel: (almost) full width; if the whole room would be too small,
@@ -225,6 +227,7 @@ namespace GC26.Bomber
             Place(_flash.rectTransform, 0, 0, fw, fh + _bottomInset);
 
             LayoutPanel(fw, fh);
+            LayoutExtras(fw, fh);
             LayoutTutorialCard(ww);
         }
 
@@ -399,6 +402,8 @@ namespace GC26.Bomber
             if (_fw <= 0f || !RectTransformUtility.ScreenPointToLocalPointInRectangle(_safe, screen, null, out var local)) return;
             var r = _safe.rect; var p = new Vector2(local.x - r.xMin, r.yMax - local.y); // top-left origin, y down
             if (_panelKind != null) { PanelPointer(id, p, began, ended); return; }
+            if (_editCtl) { EditPointer(id, p, began, ended); return; }
+            if (!began && id == _aimTouch) { AimPointer(id, p, ended); if (ended) _held.Remove(id); return; }
             if (began)
             {
                 if (TrySkip(p)) return;
@@ -406,6 +411,7 @@ namespace GC26.Bomber
                 {
                     if (!b.Visible || Vector2.Distance(b.Pos, p) > b.Rad + 10f) continue;
                     _held[id] = b.Id;
+                    if (StartAim(id, b)) { if (ended) { AimPointer(id, p, true); _held.Remove(id); } return; }
                     switch (b.Id)
                     {
                         case "pause": Pause(); break;
@@ -502,7 +508,7 @@ namespace GC26.Bomber
                 {
                     case "dash": ready = Mathf.Clamp01(1f - p.DashCd / Mathf.Max(0.2f, 0.8f * p.DashK)); break;
                     case "ab": (ready, sub) = w.AbilityState; b.Label.text = w.AbilityLabel; b.Col = (Color)w.CharDef.Color; break;
-                    case "tac": ready = Mathf.Clamp01(1f - p.TacCd / 8f); if (ready < 1f) sub = Mathf.CeilToInt(p.TacCd).ToString(); break;
+                    case "tac": ready = Mathf.Clamp01(1f - p.TacCd / w.TacticCd); if (ready < 1f) sub = Mathf.CeilToInt(p.TacCd).ToString(); b.Label.text = w.TacticLabel; break;
                     case "emp": ready = p.Emp > 0 ? 1f : 0f; sub = "×" + p.Emp; break;
                     case "od": ready = core.CanFire ? 1f : 0f; b.Label.text = w.Governor.Forsage ? "ФОРСАЖ\nВКЛ" : "ФОРСАЖ"; if (!core.CanFire) sub = core.OverheatLeft.ToString("0.0"); break;
                     case "alt": ready = p.AltCd <= 0f ? 1f : 0.3f; b.Visible = w.AltLabel != null; if (b.Visible) b.Label.text = w.AltLabel; break;
@@ -511,12 +517,14 @@ namespace GC26.Bomber
                 }
                 if (hub && (b.Id == "tac" || b.Id == "emp" || b.Id == "od" || b.Id == "ab" || b.Id == "alt" || b.Id == "swap")) b.Visible = false;
                 if (!w.TutShows(b.Id)) b.Visible = false;
+                if (_editCtl) b.Visible = true;
                 foreach (var g in new Graphic[] { b.Bg, b.Cd, b.Rim, b.Glow, b.Label, b.Sub }) g.enabled = b.Visible;
                 bool down = _held.ContainsValue(b.Id), isReady = ready >= 1f;
                 b.Cd.fillAmount = 1f - ready;
-                b.Bg.color = down ? new Color(0.16f, 0.24f, 0.4f, 0.8f) : new Color(0.027f, 0.043f, 0.086f, b.AtTop ? 0.72f : 0.45f);
-                b.Rim.color = isReady ? b.Col : new Color(0.43f, 0.51f, 0.67f, 0.6f);
-                b.Label.color = isReady ? Color.white : new Color(0.54f, 0.59f, 0.71f);
+                float al = b.AtTop ? 1f : _btnAlpha;
+                b.Bg.color = down ? new Color(0.16f, 0.24f, 0.4f, 0.8f * al) : new Color(0.027f, 0.043f, 0.086f, (b.AtTop ? 0.72f : 0.45f) * al);
+                var rim = isReady ? b.Col : new Color(0.43f, 0.51f, 0.67f, 0.6f); rim.a *= _editCtl && _dragBtn == b ? 1f : al; b.Rim.color = rim;
+                b.Label.color = isReady ? new Color(1f, 1f, 1f, Mathf.Max(0.6f, al)) : new Color(0.54f, 0.59f, 0.71f, Mathf.Max(0.6f, al));
                 Place(b.Label.rectTransform, b.Pos.x - b.Rad, b.Pos.y - b.Rad + (sub.Length > 0 ? -2 : 4) * b.Rad / b.R, b.Rad * 2, b.Rad * 2 - 10 * b.Rad / b.R);
                 b.Sub.text = sub;
                 b.Glow.color = new Color(b.Col.r, b.Col.g, b.Col.b, tut && w.TutButton == b.Id ? 0.45f + 0.4f * Mathf.Sin(Time.unscaledTime * 8f) : b.Id == "od" && w.Governor.Forsage ? 0.35f + 0.25f * Mathf.Sin(w.Time * 10f) : 0f);
@@ -571,6 +579,7 @@ namespace GC26.Bomber
             }
             for (int i = q; i < _propLabels.Count; i++) _propLabels[i].enabled = false;
             SyncTutorialCard(w);
+            SyncExtras(w, dt);
             // elite affix tags and floor hazard hints
             int g2 = 0;
             foreach (var e in w.Enemies)
