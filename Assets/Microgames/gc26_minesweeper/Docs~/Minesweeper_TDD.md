@@ -1116,6 +1116,10 @@ Device Simulator profiles to check: a 16:9 phone, a tall 20:9 phone with a notch
 - [ ] Pinch zooms in and out around the fingers; a two-finger drag moves the zoomed view; neither ever opens or flags a cell, even when the fingers lift one at a time
 - [ ] The zoomed view can't be dragged off the board, there are no scroll bars, and zoomed out the whole board fits; every new board starts zoomed out
 - [ ] Computer: the mouse wheel zooms around the pointer, dragging with the wheel held moves the view
+- [ ] Every pop-up (How to play, pause, "Are you sure?", zoom hint, end panel, tutorial) has × in the top-right corner, doing the safe thing (Resume / Keep playing / hide panel / end tutorial)
+- [ ] The level screen has no Exit button and shows "Best" only for levels already won; the end panel says "New game"
+- [ ] Tapping the red flag counter or the timer shows a short hint below the top bar; it stays until the next tap anywhere (tapping the same counter again closes it; tapping the hint itself never opens the cell under it)
+- [ ] The first tap on a yellow flag shows "A cell with a yellow flag doesn't open…" with how to remove it; later taps don't
 - [ ] The "Zoom in and out" hint with its animation appears the first time Expert opens (after the tutorial if it's running), never again after "Got it" / Back
 - [ ] The tile under the finger looks pressed and the face shows 😮; both reset on lift or drag
 - [ ] Tapping a button never opens the cell behind it

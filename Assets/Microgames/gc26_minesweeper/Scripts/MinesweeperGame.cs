@@ -91,6 +91,12 @@ namespace GC26.Minesweeper
         float pinchStartDistance, pinchStartZoom;
         Vector2 pinchLastMid, lastMousePos;
         GameObject zoomHintOverlay;
+
+        // ---- short hints (counters, yellow flag)
+        RectTransform hintRect;
+        Text hintText;
+        string hintClosedByPress;               // the hint the current press just closed (so tapping a counter again toggles it off)
+        bool flagTapHintShown;                  // once each time Red Flags is opened, like the tutorial (not static: rule 6)
         string ZoomHintKey => MicrogameSave.Key(Id, "zoom_hint_seen");
 
         // =====================================================================
@@ -126,7 +132,7 @@ namespace GC26.Minesweeper
             if (testDir != null) StartCoroutine(SelfTest(testDir));
         }
 
-        /// <summary>Called by "Exit to menu" (pause) and by "Exit" on the level screen.</summary>
+        /// <summary>Called by "Exit" in the pause menu and by Back on the level screen.</summary>
         public void ExitToMenu(int score)
         {
             var e = exit;
@@ -147,6 +153,7 @@ namespace GC26.Minesweeper
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) OnBack();
 
             if (!InGame) return;
+            if (hintRect.gameObject.activeSelf && OverlayOpen) HideHint();
             if (!OverlayOpen) UpdateZoomInput();
             if (pressing) UpdatePress();
             if (state == MinesweeperState.Playing && !appPaused && !OverlayOpen)
@@ -455,6 +462,9 @@ namespace GC26.Minesweeper
 
         void LateUpdate()
         {
+            // In LateUpdate, after the UI has handled this frame's press: the hint still blocked it,
+            // so a tap on the hint closes it without opening the cell underneath.
+            if (InGame && PressBeganThisFrame()) OnAnyPress();
             if (!InGame || board == null) return;
             if (boardArea.rect.size != lastAreaSize) LayoutBoard();   // e.g. the window was resized
 
@@ -580,7 +590,8 @@ namespace GC26.Minesweeper
             {
                 var lv = MinesweeperDifficulty.All[i];
                 int best = PlayerPrefs.GetInt(BestKey(lv), -1);
-                levelLabels[i].text = $"<b>{lv.Name}</b>\n<size=40>{lv.Width}×{lv.Height} · {lv.Mines} red flags · Best: {(best >= 0 ? best + " s" : "—")}</size>";
+                string bestText = best >= 0 ? $" · Best: {best} s" : "";      // nothing until the level is won once
+                levelLabels[i].text = $"<b>{lv.Name}</b>\n<size=40>{lv.Width}×{lv.Height} · {lv.Mines} red flags{bestText}</size>";
             }
             menuScreen.SetActive(true);
         }
@@ -597,6 +608,7 @@ namespace GC26.Minesweeper
         void NewRound()
         {
             CancelPress();
+            HideHint();
             var shape = ShapeForScreen();
             board = new MinesweeperBoard(shape.cols, shape.rows, level.Mines);
             state = MinesweeperState.Ready;
@@ -635,6 +647,13 @@ namespace GC26.Minesweeper
                 }
                 AfterOpen(board.Reveal(x, y));
                 if (firstReveal) { TutorialAfterFirstReveal(); return; }
+            }
+            else if (!flagTapHintShown)
+            {
+                // Tapped a yellow flag: it's protected and doesn't open. Say so (once) and how to remove it.
+                flagTapHintShown = true;
+                string how = Application.isMobilePlatform ? "Long press" : "Right-click";
+                ShowHint($"A cell with a yellow flag doesn't open.\n{how} it to remove the flag.");
             }
             TutorialAfterAction();
         }
@@ -789,6 +808,13 @@ namespace GC26.Minesweeper
             if (tutorialStep == 2) TutorialMarkStep();
             else if (tutorialStep == 3) TutorialGoodLuck();
             else FinishTutorial();
+        }
+
+        // × on the tutorial bubble: stop the tutorial now (it won't come back this time Red Flags is open).
+        void CloseTutorial()
+        {
+            tutorialSeen = true;
+            FinishTutorial();
         }
 
         // The tutorial is done; on Expert the zoom hint comes next (the first time only).
@@ -1044,7 +1070,7 @@ namespace GC26.Minesweeper
             BuildConfirm(app);            // last, so it draws on top of everything
         }
 
-        // Level screen (the first screen): title, three levels with best times, Exit.
+        // Level screen (the first screen): title and three levels (with the best time once there is one).
         void BuildMenu(RectTransform app)
         {
             RectTransform menu = NewRect("Levels", app);
@@ -1076,11 +1102,9 @@ namespace GC26.Minesweeper
                 Layout(b, h: 230);
             }
 
+            // No Exit button here: Exit is in the pause menu, and Back on the level screen leaves Red Flags.
             RectTransform spacer = NewRect("Spacer", menu);
             Layout(spacer, h: 20, fh: 1);
-
-            Button exitButton = MakeButton(menu, "Exit", "Exit", 50, ButtonColor, TextColor, () => ExitToMenu(0), out _);
-            Layout(exitButton, h: 140);
         }
 
         // Game screen: top bar, tutorial, board, bottom bar, end-of-round panel.
@@ -1108,10 +1132,10 @@ namespace GC26.Minesweeper
 
             Button menuButton = MakeIconButton(top, "Pause", sprites.MenuIcon, ShowPause, out _);
             Layout(menuButton, w: 130);
-            counterText = MakeDigits(top, "Counter");
+            counterText = MakeDigits(top, "Counter", () => ShowHint("Red flags left to find:\nall red flags minus your yellow flags"));
             Button faceButton = MakeIconButton(top, "Face", sprites.FaceSmile, RequestNewRound, out faceImage);
             Layout(faceButton, w: 150);
-            timerText = MakeDigits(top, "Timer");
+            timerText = MakeDigits(top, "Timer", () => ShowHint("Time in seconds since your first tap"));
             Button helpButton = MakeButton(top, "Help", "?", 72, ButtonColor, TextColor, ShowHelp, out _);
             Layout(helpButton, w: 130);
 
@@ -1146,6 +1170,7 @@ namespace GC26.Minesweeper
             Layout(tutTextRt, fw: 1);
             Button ok = MakeButton(tut, "TutorialButton", "Got it", 46, YellowColor, DarkText, OnTutorialButton, out tutorialOkLabel);
             Layout(ok, w: 340, h: 110);
+            AddCloseButton(tut, CloseTutorial, 90f, 20f);   // × ends the tutorial
             tutorialOkButton = ok.gameObject;
             tutorialBox.SetActive(false);
 
@@ -1214,14 +1239,76 @@ namespace GC26.Minesweeper
             rh.spacing = 24;
             rh.childControlWidth = rh.childControlHeight = true;
             rh.childForceExpandWidth = rh.childForceExpandHeight = true;
-            MakeButton(row, "PlayAgain", "Play again", 46, YellowColor, DarkText, NewRound, out _);
+            MakeButton(row, "NewGame", "New game", 46, YellowColor, DarkText, NewRound, out _);
             MakeButton(row, "Levels", "Menu", 46, ButtonColor, TextColor, ShowMenu, out _);
+            // × hides the panel to look at the finished board; the face button still starts a new game.
+            AddCloseButton(end, () => endPanel.SetActive(false), 90f, 20f);
             endPanel = end.gameObject;
             endPanel.SetActive(false);
 
+            BuildHint(g);
             tutorialRect.SetAsLastSibling();      // the tutorial bubble draws on top of the board
+            hintRect.SetAsLastSibling();          // the short hint on top of the tutorial
             BuildLoupe(g);                        // and the magnifier on top of everything in the game screen
             gameScreen.SetActive(false);
+        }
+
+        // A short hint just below the top bar (what a counter means, why a flagged cell didn't open).
+        // It stays until the next tap or click anywhere (on the hint itself, the counter again, the board…).
+        void BuildHint(RectTransform gameRoot)
+        {
+            hintRect = NewRect("Hint", gameRoot);
+            hintRect.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+            hintRect.anchorMin = new Vector2(0, 1);
+            hintRect.anchorMax = new Vector2(1, 1);
+            hintRect.pivot = new Vector2(0.5f, 1);
+            hintRect.offsetMin = new Vector2(60, 0);
+            hintRect.offsetMax = new Vector2(-60, 0);
+            hintRect.anchoredPosition = new Vector2(0, -190);
+            AddImage(hintRect, PanelColor, sprites.Rounded);   // catches taps, so a tap on it doesn't reach the board
+            hintRect.gameObject.AddComponent<Shadow>().effectDistance = new Vector2(0, -8);
+            var outline = hintRect.gameObject.AddComponent<Outline>();
+            outline.effectColor = YellowColor;
+            outline.effectDistance = new Vector2(3, -3);
+            var hv = hintRect.gameObject.AddComponent<VerticalLayoutGroup>();
+            hv.padding = new RectOffset(36, 36, 24, 24);
+            hv.childControlWidth = hv.childControlHeight = true;
+            hv.childForceExpandWidth = true;
+            hv.childForceExpandHeight = false;
+            hintRect.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            hintText = AddText(NewRect("Text", hintRect), "", 42, TextColor, FontStyle.Normal);
+            hintRect.gameObject.SetActive(false);
+        }
+
+        void ShowHint(string text)
+        {
+            // The press on the counter already closed this same hint: that tap means "close", not "show again".
+            if (text == hintClosedByPress) { hintClosedByPress = null; return; }
+            hintText.text = text;
+            hintRect.gameObject.SetActive(true);
+        }
+
+        // Any new tap or click (any button, any finger) closes the hint.
+        void OnAnyPress()
+        {
+            if (hintRect.gameObject.activeSelf) { hintClosedByPress = hintText.text; HideHint(); }
+            else hintClosedByPress = null;
+        }
+
+        static bool PressBeganThisFrame()
+        {
+            Mouse m = Mouse.current;
+            if (m != null && (m.leftButton.wasPressedThisFrame || m.rightButton.wasPressedThisFrame || m.middleButton.wasPressedThisFrame)) return true;
+            Touchscreen ts = Touchscreen.current;
+            if (ts != null)
+                foreach (var t in ts.touches)
+                    if (t.press.wasPressedThisFrame) return true;
+            return false;
+        }
+
+        void HideHint()
+        {
+            if (hintRect != null) hintRect.gameObject.SetActive(false);
         }
 
         // Small version number at the very bottom of every screen. It sits in the bottom padding of the
@@ -1258,13 +1345,7 @@ namespace GC26.Minesweeper
             Layout(next, h: 120);
 
             // × in the top-right corner closes How to play from any page (a tap elsewhere goes to the next page).
-            Button close = MakeButton(dialog, "Close", "×", 72, ButtonColor, TextColor, HideHelp, out _);
-            var closeRt = (RectTransform)close.transform;
-            closeRt.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
-            closeRt.anchorMin = closeRt.anchorMax = closeRt.pivot = new Vector2(1, 1);
-            closeRt.sizeDelta = new Vector2(100, 100);
-            closeRt.anchoredPosition = new Vector2(-24, -24);
-            helpCloseButton = close;
+            helpCloseButton = AddCloseButton(dialog, HideHelp);
             helpOverlay.SetActive(false);
         }
 
@@ -1292,6 +1373,7 @@ namespace GC26.Minesweeper
                 : "Mouse wheel to zoom.\nHold the wheel and drag to move.", 44, TextColor, FontStyle.Normal);
             Layout(captionRt, h: 130);
             Layout(MakeButton(dialog, "GotIt", "Got it", 50, YellowColor, DarkText, HideZoomHint, out _), h: 120);
+            AddCloseButton(dialog, HideZoomHint);
             zoomHintOverlay.SetActive(false);
         }
 
@@ -1303,6 +1385,7 @@ namespace GC26.Minesweeper
             Layout(MakeButton(dialog, "Resume", "Resume", 50, YellowColor, DarkText, () => pauseOverlay.SetActive(false), out _), h: 130);
             Layout(MakeButton(dialog, "Menu", "Menu", 50, ButtonColor, TextColor, RequestMenu, out _), h: 130);   // level screen
             Layout(MakeButton(dialog, "Exit", "Exit", 50, ButtonColor, TextColor, RequestExit, out _), h: 130);   // leave Red Flags
+            AddCloseButton(dialog, () => pauseOverlay.SetActive(false));                                         // × = Resume
             pauseOverlay.SetActive(false);
         }
 
@@ -1314,6 +1397,7 @@ namespace GC26.Minesweeper
             confirmTitle = AddText(NewRect("Question", dialog), "", 52, TextColor, FontStyle.Bold);
             Layout(MakeButton(dialog, "KeepPlaying", "Keep playing", 50, YellowColor, DarkText, ConfirmNo, out _), h: 130);
             Layout(MakeButton(dialog, "Yes", "", 50, RedColor, Color.white, ConfirmYes, out confirmYesLabel), h: 130);
+            AddCloseButton(dialog, ConfirmNo);                                                                   // × = Keep playing (safe)
             confirmOverlay.SetActive(false);
         }
 
@@ -1348,10 +1432,33 @@ namespace GC26.Minesweeper
             return d;
         }
 
-        Text MakeDigits(RectTransform parent, string name)
+        // The × close button every pop-up has, always in its top-right corner. Makes room for it by
+        // raising the pop-up's top padding, so a long title or question never runs under it.
+        Button AddCloseButton(RectTransform popup, UnityAction onClose, float size = 100f, float inset = 24f)
+        {
+            var layout = popup.GetComponent<VerticalLayoutGroup>();
+            if (layout != null) layout.padding.top = Mathf.Max(layout.padding.top, Mathf.RoundToInt(size + inset));
+            Button close = MakeButton(popup, "Close", "×", Mathf.RoundToInt(size * 0.72f), ButtonColor, TextColor, onClose, out _);
+            var rt = (RectTransform)close.transform;
+            rt.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1, 1);
+            rt.sizeDelta = new Vector2(size, size);
+            rt.anchoredPosition = new Vector2(-inset, -inset);
+            return close;
+        }
+
+        // A red-digits display; tapping it shows what it counts (onClick).
+        Text MakeDigits(RectTransform parent, string name, UnityAction onClick)
         {
             RectTransform rt = NewRect(name, parent);
-            AddImage(rt, Color.black, sprites.Rounded);
+            Image bg = AddImage(rt, Color.black, sprites.Rounded);
+            var b = rt.gameObject.AddComponent<Button>();
+            b.targetGraphic = bg;
+            ColorBlock colors = b.colors;
+            colors.pressedColor = new Color(0.75f, 0.75f, 0.75f, 1f);
+            colors.highlightedColor = Color.white;
+            b.colors = colors;
+            b.onClick.AddListener(onClick);
             Layout(rt, fw: 1);
             RectTransform t = NewRect("Text", rt);
             Stretch(t);
@@ -1469,6 +1576,12 @@ namespace GC26.Minesweeper
             PlayerPrefs.DeleteKey(ZoomHintKey);
             yield return new WaitForSecondsRealtime(1.5f);
             yield return Screenshot(folder, "1_levels");
+            log.Add($"level screen has no Exit button: {menuScreen.transform.Find("Exit") == null}");
+            for (int i = 0; i < MinesweeperDifficulty.All.Length; i++)
+            {
+                bool hasBest = PlayerPrefs.GetInt(BestKey(MinesweeperDifficulty.All[i]), -1) >= 0;
+                log.Add($"{MinesweeperDifficulty.All[i].Name} label shows Best only when there is one: {levelLabels[i].text.Contains("Best") == hasBest} ('{levelLabels[i].text.Replace("\n", " / ")}')");
+            }
 
             StartGame(MinesweeperDifficulty.Beginner);
             yield return null; yield return null; yield return null;
@@ -1541,7 +1654,50 @@ namespace GC26.Minesweeper
             {
                 OnLongPress(safe.Value.x, safe.Value.y);
                 log.Add($"long press placed a yellow flag: {board.GetCell(safe.Value.x, safe.Value.y).IsFlagged}, counter {counterText.text}");
+
+                // Tapping the yellow flag: it stays, and the first time a hint says why.
+                OnTap(safe.Value.x, safe.Value.y);
+                yield return null;
+                log.Add($"tap on a yellow flag: still flagged {board.GetCell(safe.Value.x, safe.Value.y).IsFlagged}, hint shown {hintRect.gameObject.activeSelf} ('{hintText.text.Replace("\n", " / ")}')");
+                yield return Screenshot(folder, "4f_flag_tap_hint");
+                HideHint();
+                OnTap(safe.Value.x, safe.Value.y);
+                log.Add($"second tap on a yellow flag: hint shown again {hintRect.gameObject.activeSelf} (expected False)");
             }
+
+            // Tapping the counters explains them; the next tap anywhere closes the hint.
+            // (A real tap = OnAnyPress when the finger goes down, then the button's onClick when it lifts.)
+            Button counterButton = counterText.GetComponentInParent<Button>(), timerButton = timerText.GetComponentInParent<Button>();
+            OnAnyPress(); counterButton.onClick.Invoke();
+            yield return new WaitForSecondsRealtime(4f);         // no time limit any more
+            log.Add($"tap on the red flag counter: hint '{hintText.text.Replace("\n", " / ")}', still shown after 4 s {hintRect.gameObject.activeSelf}");
+            yield return Screenshot(folder, "4g_counter_hint");
+            OnAnyPress(); counterButton.onClick.Invoke();
+            log.Add($"tap on the counter again closes it: {!hintRect.gameObject.activeSelf}");
+            OnAnyPress(); counterButton.onClick.Invoke();
+            log.Add($"and the next tap on it shows it again: {hintRect.gameObject.activeSelf}");
+            OnAnyPress(); timerButton.onClick.Invoke();
+            log.Add($"tap on the timer while the counter hint is up: now '{hintText.text}', shown {hintRect.gameObject.activeSelf}");
+            OnAnyPress();                                        // a tap somewhere else (board, bar, hint itself)
+            log.Add($"tap anywhere else closes it: {!hintRect.gameObject.activeSelf}");
+            log.Add($"the hint catches taps (a tap on it doesn't reach the board): {hintRect.GetComponent<Image>().raycastTarget}");
+
+            // × on every pop-up, top-right corner.
+            ShowPause();
+            Button pauseClose = pauseOverlay.transform.Find("Dialog/Close").GetComponent<Button>();
+            yield return Screenshot(folder, "6a_pause_close");
+            pauseClose.onClick.Invoke();
+            log.Add($"pause × closes it (= Resume): {!pauseOverlay.activeSelf}");
+            RequestNewRound();
+            yield return null;
+            yield return Screenshot(folder, "5b_confirm_close");
+            confirmOverlay.transform.Find("Dialog/Close").GetComponent<Button>().onClick.Invoke();
+            log.Add($"'Are you sure?' × = Keep playing: closed {!confirmOverlay.activeSelf}, same game {state == MinesweeperState.Playing}");
+            ShowZoomHint();
+            zoomHintOverlay.transform.Find("Dialog/Close").GetComponent<Button>().onClick.Invoke();
+            log.Add($"zoom hint × closes it: {!zoomHintOverlay.activeSelf}");
+            PlayerPrefs.DeleteKey(ZoomHintKey);                  // so the first Expert board below still shows it
+            log.Add($"every pop-up's × sits in the same corner: {SameCorner(helpCloseButton, pauseClose, confirmOverlay.transform.Find("Dialog/Close").GetComponent<Button>(), zoomHintOverlay.transform.Find("Dialog/Close").GetComponent<Button>())}");
 
             // Restart during a game must ask first; "Keep playing" keeps everything.
             RequestNewRound();
@@ -1563,6 +1719,9 @@ namespace GC26.Minesweeper
             yield return null; yield return null;
             log.Add($"after tapping a red flag: state {state}, panel '{endTitle.text}', line '{endLine.text}'");
             yield return Screenshot(folder, "5_loss");
+            log.Add($"end panel buttons: '{endPanel.transform.Find("Buttons/NewGame/Label").GetComponent<Text>().text}', has ×: {endPanel.transform.Find("Close") != null}");
+            endPanel.transform.Find("Close").GetComponent<Button>().onClick.Invoke();
+            log.Add($"end panel × hides it to look at the board: {!endPanel.activeSelf}");
             bool ranAtOnce = false;
             ConfirmIfGameInProgress("test", "Yes", () => ranAtOnce = true);
             log.Add($"after the round is over, leaving doesn't ask: {ranAtOnce && !confirmOverlay.activeSelf}");
@@ -1667,6 +1826,18 @@ namespace GC26.Minesweeper
 
             File.WriteAllLines(Path.Combine(folder, "selftest.txt"), log);
             Application.Quit();
+        }
+
+        // All × buttons have the same anchor, size and inset (top-right corner of their pop-up).
+        static bool SameCorner(params Button[] buttons)
+        {
+            var first = (RectTransform)buttons[0].transform;
+            foreach (var b in buttons)
+            {
+                var rt = (RectTransform)b.transform;
+                if (rt.anchorMin != new Vector2(1, 1) || rt.anchoredPosition != first.anchoredPosition || rt.sizeDelta != first.sizeDelta) return false;
+            }
+            return true;
         }
 
         static IEnumerator Screenshot(string folder, string name)

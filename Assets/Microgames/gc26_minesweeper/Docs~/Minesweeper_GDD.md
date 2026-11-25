@@ -120,7 +120,7 @@ Expert is the classic 30×16 board turned upright, so it has the same difficulty
 
 ### 3.1 Starting a round
 1. A round always starts from the **difficulty choice**: the app opens on it, and the player picks Beginner, Intermediate or Expert before any board is shown.
-2. The round starts in the **Ready** state: **every cell is hidden**, the timer shows `000`, and the counter shows the total number of red flags. The game never opens or marks any cell by itself before the player's first action; this is true for every new board (from the menu, the face button or Play again).
+2. The round starts in the **Ready** state: **every cell is hidden**, the timer shows `000`, and the counter shows the total number of red flags. The game never opens or marks any cell by itself before the player's first action; this is true for every new board (from the menu, the face button or New game).
 3. Mines are **not** placed until the first reveal.
 4. On the first tap that reveals a cell, mines are placed randomly, but **never on the tapped cell or its 8 neighbours**. So the first tap always opens a 0, which opens an area of the board.
    - **Hardly any guessing:** the layout is also checked by a logic solver. On every level about **4%** of boards (target 3–5%) need a guess somewhere, which keeps a little tension; all other boards are re-rolled until they can be solved from that first tap by logic alone. (Measured on 400 boards per level, purely random layouts needed a guess in 11.5% of Beginner, 33.8% of Intermediate and 89.3% of Expert boards; with this rule it is 3.9% on each level.)
@@ -130,7 +130,7 @@ Expert is the classic 30×16 board turned upright, so it has the same difficulty
 - **Mine:** the round is lost immediately.
 - **Number 1–8:** only that cell opens.
 - **0 (empty):** the cell opens, and all its neighbours open automatically. Any neighbour that is also a 0 opens its neighbours too, and so on. This chain stops at numbered cells, so an empty region opens along with its numbered border ("flood fill").
-- Tapping a flagged cell does nothing (in normal mode).
+- Tapping a flagged cell does nothing (in normal mode). The first time this happens (each time Red Flags is opened) a short hint below the top bar says: "A cell with a yellow flag doesn't open. Long press (computers: Right-click) it to remove the flag."
 - A cell opens when the finger is **lifted**, not when it touches. While the finger is down it can **slide to aim**: the cell under the finger is the one that opens on release (see 3.5). Lifting the finger outside the board opens nothing.
 
 ### 3.3 Flagging (long press, or tap in flag mode)
@@ -187,7 +187,7 @@ Zoomed out, the whole board always fits the screen. On a phone, 16 columns can't
 
 ### 3.10 After the round
 - The board can't be changed any more after a win or loss, but the player can still zoom and pan to look at it.
-- The player can restart (face button or **Play again**) or return to the menu (**Menu** button or Android **Back**).
+- The player can restart (face button or **New game**) or return to the menu (**Menu** button or Android **Back**).
 
 ## 4. Controls
 
@@ -228,7 +228,7 @@ All buttons are at least 48 dp (about 9 mm) so they're easy to hit with a thumb.
           │  Game: Ready  │◄─────────────┐        ──► Main Menu
           └──────┬────────┘              │
                  │ first reveal tap      │ Restart
-                 ▼                       │ (face / Play again)
+                 ▼                       │ (face / New game)  
           ┌───────────────┐              │ from any state
           │ Game: Playing │──────────────┤
           └───┬───────┬───┘              │
@@ -255,7 +255,7 @@ All buttons are at least 48 dp (about 9 mm) so they're easy to hit with a thumb.
 6. **Either:**
    - **a.** All safe cells are open → **Win**: 😎, the time is shown and maybe saved as a record. **Or:**
    - **b.** The player opens a mine → **Lose**: the phone vibrates and all mines are shown, 😵.
-6. The player taps **Play again**, or presses **Back** to return to the menu and choose another difficulty.
+6. The player taps **New game**, or presses **Back** to return to the menu and choose another difficulty.
 
 ### 5.3 Step-by-step: experienced player
 1. Menu → **Expert**. The 16×30 board appears fully zoomed out.
@@ -264,7 +264,7 @@ All buttons are at least 48 dp (about 9 mm) so they're easy to hit with a thumb.
 4. The player switches to 🚩 flag mode for quick flagging, then taps numbers to **chord** and clear cells fast.
 5. A phone call interrupts; the timer pauses. After the call the player returns and continues.
 6. Wins in 142 s → "New record!" → the best time for Expert is updated in the menu.
-7. Taps **Play again** at once to try for a better time.
+7. Taps **New game** at once to try for a better time.
 
 ## 6. Screens
 
@@ -291,7 +291,7 @@ All layouts are **portrait** and stay inside the phone's **safe area** (clear of
 │  ┌─────────────────────┐  │
 │  │ Expert              │  │
 │  │ 16×30 · 99 red flags│  │
-│  │ Best: —             │  │
+│  │ (no Best until won) │  │
 │  └─────────────────────┘  │
 │                           │
 └───────────────────────────┘
@@ -300,7 +300,9 @@ All layouts are **portrait** and stay inside the phone's **safe area** (clear of
 - The menu has **no instructions text**; new players learn the controls from the first-game tutorial (6.5) and the **?** button in the game (6.6).
 - Large difficulty cards, each showing the board size, the number of red flags and the best time ("—" if there is none yet).
 - ⚙ opens the settings panel: **Sound** on/off and **Vibration** on/off.
-- An **Exit** button at the bottom leaves Red Flags: it closes the app, or returns to the GC26 menu when the game was started from there (the class rules require a way out). Android Back on this screen does the same.
+- No Exit button on this screen: **Exit** is in the pause menu (the class rules' way out), and Android Back / Esc on this screen leaves Red Flags.
+- A level shows **Best: N s** only once it has been won; before that its line shows just the size and red flags.
+- Every pop-up (How to play, pause, "Are you sure?", zoom hint, end-of-round panel, tutorial bubble) has a **× close button in its top-right corner**. It does the safe thing: pause × = Resume, "Are you sure?" × = Keep playing, end panel × hides the panel to look at the board, tutorial × ends the tutorial.
 
 ### 6.2 Game screen
 ```
@@ -323,7 +325,7 @@ All layouts are **portrait** and stay inside the phone's **safe area** (clear of
 ```
 - In the sketches, 🚩 stands for the player's **yellow** flag (on the board and on the mode toggle).
 - **Menu button** (☰, top left): back to the main menu.
-- **Red flag counter**: red flags minus yellow flags, three digits.
+- **Red flag counter**: red flags minus yellow flags, three digits. Tapping it (or the timer) shows a short hint below the top bar until the next tap or click anywhere (on the hint, on the same counter again, on the board…; that tap only closes the hint, it doesn't open a cell under it): "Red flags left to find: all red flags minus your yellow flags" / "Time in seconds since your first tap".
 - **Face button** (centre): shows the state and restarts the round when tapped.
 
   | Face | When |
@@ -340,8 +342,8 @@ All layouts are **portrait** and stay inside the phone's **safe area** (clear of
 
 ### 6.3 End-of-round message
 A panel that slides up from the bottom, so the board stays visible above it and can still be zoomed and panned to study it.
-- Win: "You won! Time: 37 s" (+ "New record!" if applicable) — [Play again] [Menu]
-- Loss: "You hit a red flag!", with **one random line from the loss lines list** below it in smaller text — [Play again] [Menu]
+- Win: "You won! Time: 37 s" (+ "New record!" if applicable) — [New game] [Menu]
+- Loss: "You hit a red flag!", with **one random line from the loss lines list** below it in smaller text — [New game] [Menu]
 
 ### 6.4 Loss lines
 - A list of short lines, one of which is picked at random each time the player loses and shown under the "lost" message.
