@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace GC26._2048Nastya
@@ -39,6 +40,15 @@ namespace GC26._2048Nastya
             group.gameObject.SetActive(true);
             if (isActiveAndEnabled) _run = StartCoroutine(Run());
             else Skip();
+        }
+
+        // Taps and clicks hit the full-screen skip button; keys and gamepad buttons end it here.
+        void Update()
+        {
+            if (!IsBlocking) return;
+            if ((Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame) ||
+                (Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame))
+                Skip();
         }
 
         public void Skip()

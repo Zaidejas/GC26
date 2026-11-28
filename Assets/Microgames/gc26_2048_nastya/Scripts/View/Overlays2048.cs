@@ -7,13 +7,32 @@ using UnityEngine.UI;
 namespace GC26._2048Nastya
 {
     /// <summary>
-    /// Full-screen windows over the board (GDD 3 and 4): win, game over and pause. At most one is open.
-    /// Each panel has a dark blocker image, so the board and the HUD behind it cannot be clicked.
-    /// Only displays and reports button clicks; Game2048Nastya decides what they do.
+    /// Full-screen windows over the board (GDD 4): start menu, tutorial, settings, win, game over and pause.
+    /// At most one is open. Each panel blocks clicks to the board and the HUD behind it.
+    /// Only displays and reports button clicks; Game2048Nastya decides what they do. Moving between the
+    /// start menu, the tutorial and the settings is pure navigation, so it stays here.
     /// </summary>
     public sealed class Overlays2048 : MonoBehaviour
     {
-        public enum Kind { None, Win, GameOver, Pause }
+        public enum Kind { None, Win, GameOver, Pause, Menu, Tutorial, Settings }
+
+        [Header("Start menu")]
+        [SerializeField] CanvasGroup menuPanel;
+        [SerializeField] Button menuNewGameButton;
+        [SerializeField] Button continueButton;
+        [SerializeField] Button tutorialButton;
+        [SerializeField] Button settingsButton;
+        [SerializeField] TMP_Text versionText;
+
+        [Header("Tutorial")]
+        [SerializeField] CanvasGroup tutorialPanel;
+        [SerializeField] Button tutorialBackButton;
+
+        [Header("Settings")]
+        [SerializeField] CanvasGroup settingsPanel;
+        [SerializeField] Button settingsSoundButton;
+        [SerializeField] TMP_Text settingsSoundLabel;
+        [SerializeField] Button settingsBackButton;
 
         [Header("Win: \"You made 2048!\"")]
         [SerializeField] CanvasGroup winPanel;
@@ -43,11 +62,17 @@ namespace GC26._2048Nastya
         public event Action NewGameClicked;
         /// <summary>"To menu" on the game over overlay or in the pause menu.</summary>
         public event Action ToMenuClicked;
-        /// <summary>T53: "Sound: On/Off" in the pause menu.</summary>
+        /// <summary>"Sound Effects: On/Off" in the pause menu or in the settings.</summary>
         public event Action SoundClicked;
+        /// <summary>"New Game" in the start menu.</summary>
+        public event Action MenuNewGameClicked;
+        /// <summary>"Continue" in the start menu.</summary>
+        public event Action ContinueClicked;
 
         public Kind Open { get; private set; }
         public bool IsOpen => Open != Kind.None;
+        public bool CanContinue => continueButton != null && continueButton.interactable;
+        public string VersionLabel => versionText != null ? versionText.text : null;
 
         Coroutine _fade;
 
@@ -60,9 +85,29 @@ namespace GC26._2048Nastya
             resumeButton.onClick.AddListener(() => ResumeClicked?.Invoke());
             pauseNewGameButton.onClick.AddListener(() => NewGameClicked?.Invoke());
             pauseMenuButton.onClick.AddListener(() => ToMenuClicked?.Invoke());
-            if (soundButton != null) soundButton.onClick.AddListener(() => SoundClicked?.Invoke());
+            soundButton.onClick.AddListener(() => SoundClicked?.Invoke());
+
+            menuNewGameButton.onClick.AddListener(() => MenuNewGameClicked?.Invoke());
+            continueButton.onClick.AddListener(() => ContinueClicked?.Invoke());
+            tutorialButton.onClick.AddListener(ShowTutorial);
+            settingsButton.onClick.AddListener(ShowSettings);
+            tutorialBackButton.onClick.AddListener(BackToMenu);
+            settingsSoundButton.onClick.AddListener(() => SoundClicked?.Invoke());
+            settingsBackButton.onClick.AddListener(BackToMenu);
             HideAll();
         }
+
+        /// <summary>The start menu after the splash. "Continue" works only when a saved game was loaded.</summary>
+        public void ShowMenu(bool canContinue, string version)
+        {
+            continueButton.interactable = canContinue;
+            versionText.SetText(version);
+            Show(Kind.Menu, menuPanel, 0f);
+        }
+
+        public void ShowTutorial() => Show(Kind.Tutorial, tutorialPanel, 0f);
+        public void ShowSettings() => Show(Kind.Settings, settingsPanel, 0f);
+        public void BackToMenu() => Show(Kind.Menu, menuPanel, 0f);
 
         public void ShowWin() => Show(Kind.Win, winPanel, fadeIn);
 
@@ -77,17 +122,19 @@ namespace GC26._2048Nastya
 
         public void SetSound(bool on)
         {
-            if (soundLabel != null) soundLabel.SetText(on ? "Sound: On" : "Sound: Off");
+            string label = on ? "Sound Effects: On" : "Sound Effects: Off";
+            soundLabel.SetText(label);
+            settingsSoundLabel.SetText(label);
         }
 
         public void HideAll()
         {
             StopFade();
-            SetVisible(winPanel, false);
-            SetVisible(gameOverPanel, false);
-            SetVisible(pausePanel, false);
+            foreach (var panel in Panels()) SetVisible(panel, false);
             Open = Kind.None;
         }
+
+        CanvasGroup[] Panels() => new[] { menuPanel, tutorialPanel, settingsPanel, winPanel, gameOverPanel, pausePanel };
 
         void Show(Kind kind, CanvasGroup panel, float duration)
         {
@@ -132,7 +179,7 @@ namespace GC26._2048Nastya
         void OnDisable()
         {
             StopFade();
-            foreach (var panel in new[] { winPanel, gameOverPanel, pausePanel })
+            foreach (var panel in Panels())
                 if (panel != null) panel.alpha = 1f;
         }
     }

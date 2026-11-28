@@ -17,7 +17,10 @@ namespace GC26._2048Nastya
         /// Layout version of the entry scene. ColoursBuilder2048 stamps it into the scene; bump it whenever the
         /// builder adds or rewires objects, and the editor rebuilds an older scene by itself.
         /// </summary>
-        public const int SceneVersion = 5;
+        public const int SceneVersion = 6;
+
+        /// <summary>Shown in the start menu.</summary>
+        public const string Version = "1.0.0";
 
         /// <summary>T59: phones default to 30 FPS; the game asks for 60 while it runs and restores the old value.</summary>
         public const int TargetFrameRate = 60;
@@ -25,7 +28,7 @@ namespace GC26._2048Nastya
         /// <summary>Tests only: set before the scene loads so the player's real save is never touched.</summary>
         public static SaveStore2048 TestSaveStore;
 
-        /// <summary>Tests only: start without the splash screen.</summary>
+        /// <summary>Tests only: start playing at once, without the splash screen and the start menu.</summary>
         public static bool TestSkipSplash;
 
         [SerializeField] Theme2048 theme;
@@ -58,17 +61,10 @@ namespace GC26._2048Nastya
         public GameState2048 State => _state;
 
         /// <summary>The game is on screen and accepts moves: no overlay, no dialog, not exited.</summary>
-        public bool CanPlay => _state != null && !_exited && !overlays.IsOpen && !hud.IsConfirmOpen && !SplashBlocking;
+        public bool CanPlay => _state != null && !_exited && !overlays.IsOpen && !hud.IsConfirmOpen;
 
-        bool SplashBlocking => splash != null && splash.IsBlocking;
-
-        /// <summary>GDD 4.0: any key or move input during the splash only skips it.</summary>
-        bool SkipSplash()
-        {
-            if (!SplashBlocking) return false;
-            splash.Skip();
-            return true;
-        }
+        /// <summary>A saved game was loaded at this launch, so the start menu offers "Continue".</summary>
+        bool _canContinue;
 
         public void Begin(Action<int> exit)
         {
@@ -100,6 +96,8 @@ namespace GC26._2048Nastya
             overlays.NewGameClicked += OnOverlayNewGame;
             overlays.ToMenuClicked += ExitToMenu;
             overlays.SoundClicked += ToggleSound;
+            overlays.MenuNewGameClicked += MenuNewGame;
+            overlays.ContinueClicked += Continue;
             input.Moved += OnMoveInput;
             input.PausePressed += Pause;
             input.NewGamePressed += OnNewGameRequested;
@@ -148,6 +146,8 @@ namespace GC26._2048Nastya
                 overlays.NewGameClicked -= OnOverlayNewGame;
                 overlays.ToMenuClicked -= ExitToMenu;
                 overlays.SoundClicked -= ToggleSound;
+                overlays.MenuNewGameClicked -= MenuNewGame;
+                overlays.ContinueClicked -= Continue;
             }
             if (input != null)
             {
@@ -169,6 +169,7 @@ namespace GC26._2048Nastya
 
             int best = _save.LoadBest();
             var saved = _save.LoadGame(best);
+            _canContinue = saved != null;
             if (saved != null) Show(saved);
             else StartNewGame();
 
@@ -177,7 +178,26 @@ namespace GC26._2048Nastya
             hud.ShowHint(_hintVisible);
             if (_hintVisible) _save.HintShown = true;
 
-            if (splash != null && !TestSkipSplash) splash.Show(null);
+            if (TestSkipSplash) return;
+            // GDD 4.0: the start menu waits under the splash; the splash fades out and reveals it.
+            overlays.ShowMenu(_canContinue, "v" + Version);
+            UpdateInput();
+            if (splash != null) splash.Show(null);
+        }
+
+        /// <summary>"New Game" in the start menu: asks first when it would replace a saved game.</summary>
+        public void MenuNewGame()
+        {
+            if (_canContinue && _state.Moves > 0) hud.ShowConfirm(StartNewGame);
+            else StartNewGame();
+        }
+
+        /// <summary>"Continue" in the start menu: the saved game is already on the board.</summary>
+        public void Continue()
+        {
+            if (overlays.Open != Overlays2048.Kind.Menu || !_canContinue) return;
+            overlays.HideAll();
+            UpdateInput();
         }
 
         public void StartNewGame()
@@ -208,7 +228,7 @@ namespace GC26._2048Nastya
         /// </summary>
         public void OnMoveInput(Direction2048 dir)
         {
-            if (SkipSplash() || !CanPlay) return;
+            if (!CanPlay) return;
             if (boardView.IsAnimating && _buffered.HasValue)
                 boardView.FinishNow(); // plays the buffered move
             if (!CanPlay) return;      // that move may have opened the win or game over overlay
@@ -293,7 +313,7 @@ namespace GC26._2048Nastya
         /// <summary>T54: U or the Undo button. One step only; a new game or a resumed game has nothing to undo.</summary>
         public void Undo()
         {
-            if (SkipSplash() || !CanPlay) return;
+            if (!CanPlay) return;
             FinishAnimation();
             if (!CanPlay || !_state.TryUndo()) return;
             boardView.Render(_state.Board);
@@ -306,7 +326,7 @@ namespace GC26._2048Nastya
 
         void OnNewGameRequested()
         {
-            if (SkipSplash() || _state == null || _exited || overlays.IsOpen) return;
+            if (_state == null || _exited || overlays.IsOpen) return;
             // Ask only when there is progress to lose (GDD 3).
             if (_state.Moves > 0 && !_state.IsOver)
                 hud.ShowConfirm(StartNewGame);
@@ -335,7 +355,7 @@ namespace GC26._2048Nastya
         /// <summary>T42: Esc or the Pause button. Toggles the pause menu; closes the "new game?" dialog first.</summary>
         public void Pause()
         {
-            if (SkipSplash() || _state == null || _exited) return;
+            if (_state == null || _exited) return;
             if (hud.IsConfirmOpen) { hud.CloseConfirm(); return; }
             if (overlays.Open == Overlays2048.Kind.Pause) { Resume(); return; }
             if (overlays.IsOpen) return; // win / game over have their own buttons

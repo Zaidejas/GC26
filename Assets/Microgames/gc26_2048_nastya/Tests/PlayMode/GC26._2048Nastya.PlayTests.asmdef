@@ -4,6 +4,7 @@
     "references": [
         "GC26._2048Nastya",
         "Unity.TextMeshPro",
+        "UnityEngine.UI",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

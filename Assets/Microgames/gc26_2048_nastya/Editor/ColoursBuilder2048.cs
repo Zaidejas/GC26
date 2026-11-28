@@ -410,7 +410,7 @@ namespace GC26._2048Nastya.EditorTools
         /// The game title: "Colours", and "2048" on the next line, right-aligned to the end of "Colours",
         /// same font and size. A vertical layout sized to its widest line keeps them aligned for any font.
         /// </summary>
-        static GameObject BuildTitle(Transform parent, float size)
+        static GameObject BuildTitle(Transform parent, float size, bool gradient = false)
         {
             var go = Node("Title", parent);
             var layout = go.AddComponent<VerticalLayoutGroup>();
@@ -423,8 +423,14 @@ namespace GC26._2048Nastya.EditorTools
             fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-            Text(Node("Name", go.transform), "Colours", size, _theme.hudText, TextAlignmentOptions.Left, true);
-            Text(Node("Number", go.transform), "2048", size, _theme.hudText, TextAlignmentOptions.Right, true);
+            var color = gradient ? Color.white : _theme.hudText; // vertex colors multiply with it
+            var name = Text(Node("Name", go.transform), "Colours", size, color, TextAlignmentOptions.Left, true);
+            var number = Text(Node("Number", go.transform), "2048", size, color, TextAlignmentOptions.Right, true);
+            if (gradient)
+            {
+                Wire(name.gameObject.AddComponent<TextGradient2048>(), "theme", _theme);
+                Wire(number.gameObject.AddComponent<TextGradient2048>(), "theme", _theme);
+            }
             return go;
         }
 
@@ -440,7 +446,7 @@ namespace GC26._2048Nastya.EditorTools
             skip.targetGraphic = image;
             var group = panel.AddComponent<CanvasGroup>();
 
-            var title = BuildTitle(panel.transform, 180f);
+            var title = BuildTitle(panel.transform, 180f, gradient: true);
             var rect = (RectTransform)title.transform;
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.pivot = new Vector2(0.5f, 0.5f);
@@ -470,93 +476,156 @@ namespace GC26._2048Nastya.EditorTools
             return hint;
         }
 
+        // Every button in every window has the same size (menu, dialogs, confirm).
+        const float DialogWidth = 820f;
+        const float DialogButtonWidth = 600f;
+        const float DialogButtonHeight = 120f;
+        const float DialogButtonGap = 24f;
+        const float DialogPadding = 48f;
+        const float DialogTitleHeight = 130f;
+
         static Overlays2048 BuildOverlays(Transform canvas)
         {
             var root = Node("Overlays", canvas);
             Stretch(root, Vector2.zero, Vector2.one);
             var overlays = root.AddComponent<Overlays2048>();
 
+            // Start menu (GDD 4.0): opaque, gradient title, four buttons, version at the bottom.
+            var menu = Node("MenuPanel", root.transform);
+            Stretch(menu, Vector2.zero, Vector2.one);
+            menu.AddComponent<Image>().color = _theme.background;
+            Wire(overlays, "menuPanel", menu.AddComponent<CanvasGroup>());
+            var menuTitle = (RectTransform)BuildTitle(menu.transform, 160f, gradient: true).transform;
+            menuTitle.anchorMin = menuTitle.anchorMax = new Vector2(0.5f, 0.72f);
+            menuTitle.pivot = new Vector2(0.5f, 0.5f);
+            var menuButtons = Node("Buttons", menu.transform);
+            var menuButtonsRect = (RectTransform)menuButtons.transform;
+            menuButtonsRect.anchorMin = menuButtonsRect.anchorMax = new Vector2(0.5f, 0.38f);
+            menuButtonsRect.sizeDelta = new Vector2(DialogButtonWidth, ButtonsHeight(4));
+            Wire(overlays, "menuNewGameButton", DialogButton(menuButtons.transform, 0, 4, "NewGameButton", "New Game"));
+            Wire(overlays, "continueButton", DialogButton(menuButtons.transform, 1, 4, "ContinueButton", "Continue"));
+            Wire(overlays, "tutorialButton", DialogButton(menuButtons.transform, 2, 4, "TutorialButton", "Tutorial"));
+            Wire(overlays, "settingsButton", DialogButton(menuButtons.transform, 3, 4, "SettingsButton", "Settings"));
+            var version = Text(Node("Version", menu.transform), "v" + Game2048Nastya.Version, 32f, _theme.hudMutedText,
+                TextAlignmentOptions.Bottom, false);
+            Stretch(version.gameObject, new Vector2(0f, 0.02f), new Vector2(1f, 0.08f));
+            Wire(overlays, "versionText", version);
+            menu.SetActive(false);
+
+            // Tutorial
+            var tutorial = OverlayPanel(root.transform, "TutorialPanel", "How to Play", 1, 560f, out var tutorialDialog,
+                "Swipe or use the arrow keys (WASD) to move all tiles.\n\n" +
+                "Two tiles with the same number merge into one: 2 + 2 = 4, 4 + 4 = 8...\n\n" +
+                "Each merge adds the new number to your score.\n" +
+                "Make a 2048 tile to win, then keep going for more.\n\n" +
+                "The game ends when the board is full and no tiles can merge.\n\n" +
+                "Undo (U) takes back one move. Esc pauses the game.");
+            Wire(overlays, "tutorialPanel", tutorial);
+            Wire(overlays, "tutorialBackButton", DialogButton(tutorialDialog, 0, 1, "BackButton", "Back"));
+
+            // Settings
+            var settings = OverlayPanel(root.transform, "SettingsPanel", "Settings", 2, 0f, out var settingsDialog);
+            Wire(overlays, "settingsPanel", settings);
+            var settingsSound = DialogButton(settingsDialog, 0, 2, "SoundButton", "Sound Effects: On");
+            Wire(overlays, "settingsSoundButton", settingsSound);
+            Wire(overlays, "settingsSoundLabel", settingsSound.GetComponentInChildren<TMP_Text>());
+            Wire(overlays, "settingsBackButton", DialogButton(settingsDialog, 1, 2, "BackButton", "Back"));
+
             // Win (T40)
-            var win = OverlayPanel(root.transform, "WinPanel", "You made 2048!", 520f, out var winDialog);
+            var win = OverlayPanel(root.transform, "WinPanel", "You made 2048!", 2, 90f, out var winDialog,
+                "Keep going for a bigger tile?");
             Wire(overlays, "winPanel", win);
-            Wire(overlays, "keepGoingButton",
-                MakeButton(winDialog, "KeepGoingButton", "Keep going", new Vector2(0.06f, 0.08f), new Vector2(0.48f, 0.34f)));
-            Wire(overlays, "winNewGameButton",
-                MakeButton(winDialog, "NewGameButton", "New game", new Vector2(0.52f, 0.08f), new Vector2(0.94f, 0.34f)));
-            var winText = Text(Node("Message", winDialog), "Keep going for a bigger tile?", 40f, _theme.hudMutedText,
-                TextAlignmentOptions.Center, false);
-            Stretch(winText.gameObject, new Vector2(0.05f, 0.40f), new Vector2(0.95f, 0.62f));
+            Wire(overlays, "keepGoingButton", DialogButton(winDialog, 0, 2, "KeepGoingButton", "Keep Going"));
+            Wire(overlays, "winNewGameButton", DialogButton(winDialog, 1, 2, "NewGameButton", "New Game"));
 
             // Game over (T41)
-            var over = OverlayPanel(root.transform, "GameOverPanel", "No more moves", 600f, out var overDialog);
+            var over = OverlayPanel(root.transform, "GameOverPanel", "No more moves", 2, 160f, out var overDialog,
+                "Score  0\nBest  0");
             Wire(overlays, "gameOverPanel", over);
-            var score = Text(Node("Score", overDialog), "Score  0\nBest  0", 52f, _theme.hudText,
-                TextAlignmentOptions.Center, true);
-            Stretch(score.gameObject, new Vector2(0.05f, 0.36f), new Vector2(0.95f, 0.70f));
-            Wire(overlays, "gameOverScoreText", score);
-            Wire(overlays, "tryAgainButton",
-                MakeButton(overDialog, "TryAgainButton", "Try again", new Vector2(0.06f, 0.07f), new Vector2(0.48f, 0.29f)));
-            Wire(overlays, "gameOverMenuButton",
-                MakeButton(overDialog, "MenuButton", "To menu", new Vector2(0.52f, 0.07f), new Vector2(0.94f, 0.29f)));
+            Wire(overlays, "gameOverScoreText", overDialog.Find("Message").GetComponent<TMP_Text>());
+            Wire(overlays, "tryAgainButton", DialogButton(overDialog, 0, 2, "TryAgainButton", "Try Again"));
+            Wire(overlays, "gameOverMenuButton", DialogButton(overDialog, 1, 2, "MenuButton", "To Menu"));
 
             // Pause (T42)
-            var pause = OverlayPanel(root.transform, "PausePanel", "Paused", 940f, out var pauseDialog);
+            var pause = OverlayPanel(root.transform, "PausePanel", "Paused", 4, 0f, out var pauseDialog);
             Wire(overlays, "pausePanel", pause);
-            Wire(overlays, "resumeButton",
-                MakeButton(pauseDialog, "ResumeButton", "Resume", new Vector2(0.15f, 0.60f), new Vector2(0.85f, 0.72f)));
-            Wire(overlays, "pauseNewGameButton",
-                MakeButton(pauseDialog, "NewGameButton", "New game", new Vector2(0.15f, 0.44f), new Vector2(0.85f, 0.56f)));
-            var sound = MakeButton(pauseDialog, "SoundButton", "Sound: On", new Vector2(0.15f, 0.28f), new Vector2(0.85f, 0.40f));
+            Wire(overlays, "resumeButton", DialogButton(pauseDialog, 0, 4, "ResumeButton", "Resume"));
+            Wire(overlays, "pauseNewGameButton", DialogButton(pauseDialog, 1, 4, "NewGameButton", "New Game"));
+            var sound = DialogButton(pauseDialog, 2, 4, "SoundButton", "Sound Effects: On");
             Wire(overlays, "soundButton", sound);
             Wire(overlays, "soundLabel", sound.GetComponentInChildren<TMP_Text>());
-            Wire(overlays, "pauseMenuButton",
-                MakeButton(pauseDialog, "MenuButton", "To menu", new Vector2(0.15f, 0.08f), new Vector2(0.85f, 0.20f)));
+            Wire(overlays, "pauseMenuButton", DialogButton(pauseDialog, 3, 4, "MenuButton", "To Menu"));
 
             return overlays;
         }
 
-        /// <summary>A full-screen dark blocker with a centered dialog and a title; hidden until shown.</summary>
-        static CanvasGroup OverlayPanel(Transform parent, string name, string title, float height, out Transform dialog)
+        static float ButtonsHeight(int count) => count * DialogButtonHeight + (count - 1) * DialogButtonGap;
+
+        /// <summary>
+        /// A full-screen dark blocker with a centered dialog: title, an optional message, then <paramref name="buttons"/>
+        /// rows for <see cref="DialogButton"/>. The dialog height follows its content, so buttons never change size.
+        /// </summary>
+        static CanvasGroup OverlayPanel(Transform parent, string name, string title, int buttons, float messageHeight,
+            out Transform dialog, string message = null)
         {
             var panel = Node(name, parent);
             Stretch(panel, Vector2.zero, Vector2.one);
             panel.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.65f); // blocks clicks behind it
             var group = panel.AddComponent<CanvasGroup>();
 
+            float buttonsTop = DialogPadding + ButtonsHeight(buttons);
+            float height = buttonsTop + (messageHeight > 0f ? messageHeight + DialogPadding : DialogPadding) + DialogTitleHeight;
             var box = Node("Dialog", panel.transform);
-            ((RectTransform)box.transform).sizeDelta = new Vector2(820f, height);
+            ((RectTransform)box.transform).sizeDelta = new Vector2(DialogWidth, height);
             Img(box, _theme.board);
 
             var titleText = Text(Node("Title", box.transform), title, 72f, _theme.hudText, TextAlignmentOptions.Center, true);
-            Stretch(titleText.gameObject, new Vector2(0.05f, 0.74f), new Vector2(0.95f, 0.96f));
+            var titleRect = Stretch(titleText.gameObject, new Vector2(0f, 1f), new Vector2(1f, 1f));
+            titleRect.pivot = new Vector2(0.5f, 1f);
+            titleRect.sizeDelta = new Vector2(-80f, DialogTitleHeight);
+            titleRect.anchoredPosition = new Vector2(0f, -16f);
             titleText.enableAutoSizing = true;
             titleText.fontSizeMin = 40f;
             titleText.fontSizeMax = 72f;
+
+            if (message != null)
+            {
+                var text = Text(Node("Message", box.transform), message, 40f, _theme.hudMutedText, TextAlignmentOptions.Center, false);
+                var rect = Stretch(text.gameObject, new Vector2(0f, 0f), new Vector2(1f, 0f));
+                rect.pivot = new Vector2(0.5f, 0f);
+                rect.sizeDelta = new Vector2(-96f, messageHeight);
+                rect.anchoredPosition = new Vector2(0f, buttonsTop + DialogPadding * 0.5f);
+                text.textWrappingMode = TextWrappingModes.Normal;
+                text.enableAutoSizing = true;
+                text.fontSizeMin = 26f;
+                text.fontSizeMax = 40f;
+            }
 
             panel.SetActive(false);
             dialog = box.transform;
             return group;
         }
 
+        /// <summary>Button number <paramref name="index"/> (0 = top) of <paramref name="count"/>, all the same size, at the bottom.</summary>
+        static Button DialogButton(Transform parent, int index, int count, string name, string caption)
+        {
+            var button = MakeButton(parent, name, caption, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f));
+            var rect = (RectTransform)button.transform;
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.sizeDelta = new Vector2(DialogButtonWidth, DialogButtonHeight);
+            bool inDialog = parent.name == "Dialog";
+            rect.anchoredPosition = new Vector2(0f,
+                (inDialog ? DialogPadding : 0f) + (count - 1 - index) * (DialogButtonHeight + DialogButtonGap));
+            return button;
+        }
+
         static GameObject BuildConfirm(Transform canvas, out Button yes, out Button no)
         {
-            var panel = Node("ConfirmPanel", canvas);
-            Stretch(panel, Vector2.zero, Vector2.one);
-            panel.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.65f); // blocks clicks behind it
-
-            var dialog = Node("Dialog", panel.transform);
-            var rect = (RectTransform)dialog.transform;
-            rect.sizeDelta = new Vector2(820f, 440f);
-            Img(dialog, _theme.board);
-
-            var text = Text(Node("Message", dialog.transform), "Start a new game?\n<size=70%>The current game will be lost.</size>",
-                56f, _theme.hudText, TextAlignmentOptions.Center, true);
-            Stretch(text.gameObject, new Vector2(0.05f, 0.42f), new Vector2(0.95f, 0.95f));
-
-            yes = MakeButton(dialog.transform, "YesButton", "New game", new Vector2(0.06f, 0.08f), new Vector2(0.48f, 0.34f));
-            no = MakeButton(dialog.transform, "NoButton", "Cancel", new Vector2(0.52f, 0.08f), new Vector2(0.94f, 0.34f));
-            panel.SetActive(false);
-            return panel;
+            var group = OverlayPanel(canvas, "ConfirmPanel", "Start a new game?", 2, 70f, out var dialog,
+                "The current game will be lost.");
+            yes = DialogButton(dialog, 0, 2, "YesButton", "New Game");
+            no = DialogButton(dialog, 1, 2, "NoButton", "Cancel");
+            return group.gameObject;
         }
 
         // ---------- helpers ----------

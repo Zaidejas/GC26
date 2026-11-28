@@ -85,7 +85,7 @@ The goal is to build a **2048** tile. The game ends when the board is full and n
 ## 4. Game flow and screens
 
 ```
-Shell menu ──Begin()──► [Splash] ──► [Game screen] ◄──► [Pause menu] ──"To menu"──► exit(score) ──► Shell menu
+Shell menu ──Begin()──► [Splash] ──► [Start menu] ──► [Game screen] ◄──► [Pause menu] ──"To menu"──► exit(score) ──► Shell menu
                                             │
                                             ├──► [Win overlay]       (first 2048: Keep going / New game)
                                             └──► [Game over overlay] (Try again / To menu)
@@ -93,9 +93,22 @@ Shell menu ──Begin()──► [Splash] ──► [Game screen] ◄──► 
 
 ### 4.0 Splash screen
 - Every launch starts with a short splash: the title **Colours** with **2048** under it, right-aligned,
-  on the game background. It stays 1.2 s and fades out in 0.4 s, then the game screen is ready.
-- A tap, a click or any key skips it at once. Moves are ignored while it is on screen.
-- The game in progress is already loaded behind it, so skipping never loses anything.
+  in a left-to-right gradient Amaranth → Thulian Pink → Chalk, on the game background.
+  It stays 1.2 s and fades out in 0.4 s, revealing the start menu.
+- A tap, a click or any key skips it at once.
+
+### 4.0.1 Start menu
+- The same gradient title, then four buttons: **New Game**, **Continue**, **Tutorial**, **Settings**.
+  The game version (for example `v1.0.0`) is shown at the bottom.
+- **Continue** is available only when a saved game was loaded; it returns to that board.
+- **New Game** starts a fresh game; when a saved game exists it first asks "Start a new game?".
+- **Tutorial**: a short "How to Play" page with the rules and controls, and a **Back** button.
+- **Settings**: **Sound Effects: On/Off** (saved between sessions) and **Back**.
+
+### 4.0.2 Windows and language
+- Every button in the start menu and in every window (win, game over, pause, tutorial, settings,
+  "Start a new game?") has the same size and is stacked vertically.
+- All text in the game is in English.
 
 ### 4.1 Game screen (HUD)
 - **Top bar:** game title (**Colours**, with **2048** on the line below, right-aligned, same font and size),
@@ -106,7 +119,7 @@ Shell menu ──Begin()──► [Splash] ──► [Game screen] ◄──► 
 - Short hint under the board on the first launch only: "Swipe or use the arrow keys to combine tiles."
 
 ### 4.2 Pause menu
-- Buttons: **Resume**, **New game**, **To menu**.
+- Buttons: **Resume**, **New Game**, **Sound Effects: On/Off**, **To Menu**.
 - Opening the pause menu blocks board input. It does **not** change `Time.timeScale` (see the TDD).
 - **To menu:** saves the game in progress and calls `exit(score)`.
 
@@ -121,28 +134,28 @@ Shell menu ──Begin()──► [Splash] ──► [Game screen] ◄──► 
 The look is the team's own, deliberately unlike other games in the genre.
 
 ### 5.1 Direction
-**"Night glass":** a dark blue-gray background, a slightly lighter board, and rounded tiles that go from cool colors (low values) to warm, glowing colors (high values).
+**"Mediterranean Coast":** a dark plum-stone background, a slightly lighter board, low tiles in calm natural tones (chalk, sea sage, olive pebble) that move to bright berry accents (Thulian Pink, Amaranth) with a glow on high tiles. Reference colors: Amaranth `#933B5B`, Thulian Pink `#B5728A`, Brook Green `#AABAAE`, Chalk `#E3D6BF`, Pomelo Olive `#9F9679`. The splash title uses a gradient Amaranth → Thulian Pink → Chalk.
 Flat shapes, soft shadows, no textures; everything is built from uGUI images with rounded sprites.
 
 ### 5.2 Palette (starting proposal; tune in the editor)
 
 | Element | Color | Text color |
 | --- | --- | --- |
-| Background | `#141A26` | — |
-| Board | `#1F2738` | — |
-| Empty cell | `#2A3448` | — |
-| 2 | `#3A5A80` | `#E8F0FF` |
-| 4 | `#2F7A8C` | `#E8F0FF` |
-| 8 | `#2E9C7A` | `#FFFFFF` |
-| 16 | `#6BB34A` | `#FFFFFF` |
-| 32 | `#C9B23A` | `#1A1A1A` |
-| 64 | `#E08A2E` | `#FFFFFF` |
-| 128 | `#E0563A` | `#FFFFFF` (+ soft glow) |
-| 256 | `#D63A6E` | `#FFFFFF` (+ glow) |
-| 512 | `#A83AC9` | `#FFFFFF` (+ glow) |
-| 1024 | `#6A4AE0` | `#FFFFFF` (+ stronger glow) |
-| 2048 | `#F5D76E` | `#1A1A1A` (+ pulsing glow) |
-| > 2048 | `#FFFFFF` | `#141A26` (+ pulsing glow) |
+| Background | `#231C20` | — |
+| Board | `#31272D` | — |
+| Empty cell | `#42353C` | — |
+| 2 | `#E3D6BF` | `#231C20` |
+| 4 | `#AABAAE` | `#1D2420` |
+| 8 | `#9F9679` | `#FFF9F2` |
+| 16 | `#848C7A` | `#FFF9F2` |
+| 32 | `#C28A8E` | `#231C20` |
+| 64 | `#B5728A` | `#FFF9F2` |
+| 128 | `#A45372` | `#FFF9F2` (+ soft glow) |
+| 256 | `#933B5B` | `#FFF9F2` (+ glow) |
+| 512 | `#AC3662` | `#FFF9F2` (+ glow) |
+| 1024 | `#C44569` | `#FFF9F2` (+ stronger glow) |
+| 2048 | `#E3D6BF` | `#933B5B` (+ pulsing glow) |
+| > 2048 | `#FFF9F2` | `#933B5B` (+ pulsing glow) |
 
 - Colors live in a ScriptableObject theme (see the TDD), so artists can tweak them without touching code.
 - Font: LiberationSans SDF (already in the project), bold. The number shrinks automatically for 4- and 5-digit values.
@@ -331,7 +344,7 @@ A whole move must finish in **≤ 0.25 s**.
 ## 4. Поток игры и экраны
 
 ```
-Меню оболочки ──Begin()──► [Заставка] ──► [Игровой экран] ◄──► [Пауза] ──«В меню»──► exit(score) ──► Меню оболочки
+Меню оболочки ──Begin()──► [Заставка] ──► [Стартовое меню] ──► [Игровой экран] ◄──► [Пауза] ──«В меню»──► exit(score) ──► Меню оболочки
                                                  │
                                                  ├──► [Окно победы]       (первая 2048: Играть дальше / Новая игра)
                                                  └──► [Окно конца игры]   (Ещё раз / В меню)
@@ -339,9 +352,22 @@ A whole move must finish in **≤ 0.25 s**.
 
 ### 4.0 Заставка
 - Каждый запуск начинается с короткой заставки: название **Colours**, под ним **2048** по правому краю,
-  на фоне игры. Она держится 1,2 с и плавно исчезает за 0,4 с, после чего игровой экран готов.
-- Касание, клик или любая клавиша сразу её пропускают. Пока заставка на экране, ходы не принимаются.
-- Сохранённая партия уже загружена под заставкой, поэтому пропуск ничего не теряет.
+  в градиенте слева направо Amaranth → Thulian Pink → Chalk, на фоне игры.
+  Она держится 1,2 с и плавно исчезает за 0,4 с, открывая стартовое меню.
+- Касание, клик или любая клавиша сразу её пропускают.
+
+### 4.0.1 Стартовое меню
+- То же название с градиентом и четыре кнопки: **New Game** (новая игра), **Continue** (продолжить),
+  **Tutorial** (обучение), **Settings** (настройки). Внизу — версия игры (например `v1.0.0`).
+- **Continue** доступна, только если загружена сохранённая партия; возвращает к ней.
+- **New Game** начинает новую партию; если есть сохранённая, сначала спрашивает «Start a new game?».
+- **Tutorial**: короткая страница «How to Play» с правилами и управлением и кнопкой **Back**.
+- **Settings**: **Sound Effects: On/Off** (сохраняется между запусками) и **Back**.
+
+### 4.0.2 Окна и язык
+- Все кнопки стартового меню и всех окон (победа, конец игры, пауза, обучение, настройки,
+  «Start a new game?») одного размера и стоят друг под другом.
+- Весь текст в игре — на английском.
 
 ### 4.1 Игровой экран (HUD)
 - **Верхняя панель:** название игры (**Colours**, под ним **2048** по правому краю, тем же шрифтом и того же размера),
@@ -352,7 +378,7 @@ A whole move must finish in **≤ 0.25 s**.
 - Короткая подсказка под полем только при первом запуске: «Swipe or use the arrow keys to combine tiles» («Свайпай или жми стрелки, чтобы соединять плитки»).
 
 ### 4.2 Меню паузы
-- Кнопки: **Resume** («Продолжить»), **New game** («Новая игра»), **To menu** («В меню»).
+- Кнопки: **Resume** («Продолжить»), **New Game** («Новая игра»), **Sound Effects: On/Off** (звуковые эффекты), **To Menu** («В меню»).
 - Пока открыта пауза, ввод на поле заблокирован. `Time.timeScale` при этом **не меняется** (см. TDD).
 - **В меню:** сохраняет текущую партию и вызывает `exit(score)`.
 
@@ -367,28 +393,28 @@ A whole move must finish in **≤ 0.25 s**.
 Внешний вид — собственный, сознательно непохожий на другие игры жанра.
 
 ### 5.1 Направление
-**«Ночное стекло»:** тёмный сине-серый фон, чуть более светлое поле и скруглённые плитки, цвет которых идёт от холодных (малые значения) к тёплым светящимся (большие значения).
+**«Средиземноморский берег» (Mediterranean Coast):** тёмный сливово-каменный фон, чуть более светлое поле, младшие плитки в спокойных природных тонах (мел, морской шалфей, оливковая галька), которые переходят в яркие ягодные акценты (Thulian Pink, Amaranth) со свечением у старших плиток. Опорные цвета: Amaranth `#933B5B`, Thulian Pink `#B5728A`, Brook Green `#AABAAE`, Chalk `#E3D6BF`, Pomelo Olive `#9F9679`. Название на заставке — градиент Amaranth → Thulian Pink → Chalk.
 Плоские формы, мягкие тени, без текстур; всё собрано из изображений uGUI со скруглёнными спрайтами.
 
 ### 5.2 Палитра (стартовое предложение; подбирается в редакторе)
 
 | Элемент | Цвет | Цвет текста |
 | --- | --- | --- |
-| Фон | `#141A26` | — |
-| Поле | `#1F2738` | — |
-| Пустая клетка | `#2A3448` | — |
-| 2 | `#3A5A80` | `#E8F0FF` |
-| 4 | `#2F7A8C` | `#E8F0FF` |
-| 8 | `#2E9C7A` | `#FFFFFF` |
-| 16 | `#6BB34A` | `#FFFFFF` |
-| 32 | `#C9B23A` | `#1A1A1A` |
-| 64 | `#E08A2E` | `#FFFFFF` |
-| 128 | `#E0563A` | `#FFFFFF` (+ мягкое свечение) |
-| 256 | `#D63A6E` | `#FFFFFF` (+ свечение) |
-| 512 | `#A83AC9` | `#FFFFFF` (+ свечение) |
-| 1024 | `#6A4AE0` | `#FFFFFF` (+ сильное свечение) |
-| 2048 | `#F5D76E` | `#1A1A1A` (+ пульсирующее свечение) |
-| > 2048 | `#FFFFFF` | `#141A26` (+ пульсирующее свечение) |
+| Фон | `#231C20` | — |
+| Поле | `#31272D` | — |
+| Пустая клетка | `#42353C` | — |
+| 2 | `#E3D6BF` | `#231C20` |
+| 4 | `#AABAAE` | `#1D2420` |
+| 8 | `#9F9679` | `#FFF9F2` |
+| 16 | `#848C7A` | `#FFF9F2` |
+| 32 | `#C28A8E` | `#231C20` |
+| 64 | `#B5728A` | `#FFF9F2` |
+| 128 | `#A45372` | `#FFF9F2` (+ мягкое свечение) |
+| 256 | `#933B5B` | `#FFF9F2` (+ свечение) |
+| 512 | `#AC3662` | `#FFF9F2` (+ свечение) |
+| 1024 | `#C44569` | `#FFF9F2` (+ сильное свечение) |
+| 2048 | `#E3D6BF` | `#933B5B` (+ пульсирующее свечение) |
+| > 2048 | `#FFF9F2` | `#933B5B` (+ пульсирующее свечение) |
 
 - Цвета хранятся в ScriptableObject-теме (см. TDD), чтобы художники могли менять их без кода.
 - Шрифт: LiberationSans SDF (уже есть в проекте), жирный. Для 4- и 5-значных чисел размер автоматически уменьшается.

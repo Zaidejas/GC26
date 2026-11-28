@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 namespace GC26._2048Nastya.Tests
 {
@@ -462,25 +463,29 @@ namespace GC26._2048Nastya.Tests
 
         // ---------- splash and title ----------
 
+        /// <summary>Launches the game again (standalone "To menu"), this time with the splash and the start menu.</summary>
+        IEnumerator RelaunchWithMenu(Game2048Nastya game)
+        {
+            Game2048Nastya.TestSkipSplash = false;
+            game.ExitToMenu();
+            yield return null;
+        }
+
         [UnityTest]
-        public IEnumerator Splash_BlocksMoves_AnyInputSkipsIt()
+        public IEnumerator Splash_CoversTheStartMenu_SkipRevealsIt()
         {
             var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
             var splash = UnityEngine.Object.FindAnyObjectByType<Splash2048>(FindObjectsInactive.Include);
-            Assert.IsNotNull(splash);
             Assert.IsFalse(splash.IsVisible, "tests start without it");
 
-            Game2048Nastya.TestSkipSplash = false;
-            game.ExitToMenu(); // standalone: launching again, now with the splash
-            yield return null;
+            yield return RelaunchWithMenu(game);
             Assert.IsTrue(splash.IsBlocking);
-            int moves = game.State.Moves;
+            Assert.AreEqual(Overlays2048.Kind.Menu, Overlays().Open, "the menu waits under the splash");
             Assert.IsFalse(game.CanPlay);
 
-            game.OnMoveInput(Direction2048.Left); // only skips
+            splash.Skip();
             Assert.IsFalse(splash.IsVisible);
-            Assert.AreEqual(moves, game.State.Moves, "the skipping key is not a move");
-            Assert.IsTrue(game.CanPlay);
+            Assert.AreEqual(Overlays2048.Kind.Menu, Overlays().Open);
         }
 
         [UnityTest]
@@ -488,14 +493,110 @@ namespace GC26._2048Nastya.Tests
         {
             var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
             var splash = UnityEngine.Object.FindAnyObjectByType<Splash2048>(FindObjectsInactive.Include);
-            Game2048Nastya.TestSkipSplash = false;
-            game.ExitToMenu();
-            yield return null;
+            yield return RelaunchWithMenu(game);
             Assert.IsTrue(splash.IsVisible);
 
             yield return new WaitForSecondsRealtime(1.2f + 0.4f + 0.3f);
             Assert.IsFalse(splash.IsVisible);
+            Assert.AreEqual(Overlays2048.Kind.Menu, Overlays().Open);
+        }
+
+        [UnityTest]
+        public IEnumerator Menu_Continue_ResumesTheSavedGame()
+        {
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
+            SetBoard(game,
+                0, 0, 0, 2,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0);
+            Assert.IsTrue(game.Move(Direction2048.Left));
+            game.FinishAnimation();
+            var values = game.State.Board.ToValues();
+
+            yield return RelaunchWithMenu(game);
+            Assert.IsTrue(Overlays().CanContinue);
+            Assert.AreEqual("v" + Game2048Nastya.Version, Overlays().VersionLabel);
+
+            game.Continue();
+            Assert.IsFalse(Overlays().IsOpen);
             Assert.IsTrue(game.CanPlay);
+            CollectionAssert.AreEqual(values, game.State.Board.ToValues());
+        }
+
+        [UnityTest]
+        public IEnumerator Menu_NoSave_ContinueDisabled_NewGameStartsAtOnce()
+        {
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
+            SetBoard(game, // no moves: the finished game is not saved
+                2, 4, 2, 4,
+                4, 2, 4, 2,
+                2, 4, 2, 4,
+                4, 2, 4, 2);
+            yield return RelaunchWithMenu(game);
+            Assert.IsFalse(Overlays().CanContinue);
+
+            game.Continue(); // ignored
+            Assert.AreEqual(Overlays2048.Kind.Menu, Overlays().Open);
+
+            game.MenuNewGame();
+            Assert.IsFalse(Overlays().IsOpen);
+            Assert.IsTrue(game.CanPlay);
+            Assert.AreEqual(0, game.State.Moves);
+        }
+
+        [UnityTest]
+        public IEnumerator Menu_NewGame_AsksBeforeReplacingASavedGame()
+        {
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
+            var hud = UnityEngine.Object.FindAnyObjectByType<Hud2048>();
+            SetBoard(game,
+                0, 0, 0, 2,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                0, 0, 0, 0);
+            Assert.IsTrue(game.Move(Direction2048.Left));
+            game.FinishAnimation();
+            yield return RelaunchWithMenu(game);
+
+            game.MenuNewGame();
+            Assert.IsTrue(hud.IsConfirmOpen, "a saved game would be lost");
+            Assert.AreEqual(Overlays2048.Kind.Menu, Overlays().Open);
+        }
+
+        [UnityTest]
+        public IEnumerator Menu_TutorialAndSettings_GoBackToTheMenu()
+        {
+            var game = UnityEngine.Object.FindAnyObjectByType<Game2048Nastya>();
+            yield return RelaunchWithMenu(game);
+            var overlays = Overlays();
+
+            overlays.ShowTutorial();
+            Assert.AreEqual(Overlays2048.Kind.Tutorial, overlays.Open);
+            overlays.BackToMenu();
+            Assert.AreEqual(Overlays2048.Kind.Menu, overlays.Open);
+
+            overlays.ShowSettings();
+            Assert.AreEqual(Overlays2048.Kind.Settings, overlays.Open);
+            game.ToggleSound();
+            Assert.IsFalse(_store.SoundOn, "sound effects can be switched off in the settings");
+            game.ToggleSound();
+            Assert.IsTrue(_store.SoundOn);
+        }
+
+        [UnityTest]
+        public IEnumerator AllWindowButtons_HaveTheSameSize()
+        {
+            var overlays = Overlays();
+            var confirm = overlays.transform.parent.Find("ConfirmPanel");
+            Assert.IsNotNull(confirm);
+            var buttons = overlays.GetComponentsInChildren<Button>(true)
+                .Concat(confirm.GetComponentsInChildren<Button>(true)).ToArray();
+            Assert.GreaterOrEqual(buttons.Length, 16);
+            var size = ((RectTransform)buttons[0].transform).sizeDelta;
+            foreach (var b in buttons)
+                Assert.AreEqual(size, ((RectTransform)b.transform).sizeDelta, b.name);
+            yield break;
         }
 
         [UnityTest]
